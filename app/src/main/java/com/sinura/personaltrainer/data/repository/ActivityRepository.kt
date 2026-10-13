@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.data.repository
 import android.database.sqlite.SQLiteConstraintException
 import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.backup.RestoreJournal
+import com.sinura.personaltrainer.data.draft.CompletedNoteRecord
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.mapper.toDomain
@@ -283,13 +284,21 @@ class ActivityRepository(
         sessionId: String,
         notes: String,
         nowMs: Long,
-    ): ActivityWrite = serialized {
+    ): ActivityWrite = serialized { updateCompletedNotesLocked(sessionId, notes, nowMs, null) }
+
+    /** The private draft adapter holds maintenance; its frozen owner/notes are checked atomically. */
+    internal suspend fun updateCompletedNotesLocked(
+        sessionId: String, notes: String, nowMs: Long, expected: CompletedNoteRecord?,
+    ): ActivityWrite =
         database.withTransaction {
             val graph = dao.getSessionGraph(sessionId)
                 ?: return@withTransaction ActivityWrite.Rejected(ActivityEditCopy.GONE)
             val session = graph.toDomain()
             if (session.status != ActivityStatus.COMPLETED) {
                 return@withTransaction ActivityWrite.Rejected(ActivityEditCopy.NOTES_LIVE_REFUSED)
+            }
+            if (expected != null && CompletedNoteRecord.activity(session) != expected) {
+                return@withTransaction ActivityWrite.Rejected("Saved notes changed. Review them before saving.")
             }
             val trimmed = notes.trim()
             if (session.notes == trimmed) return@withTransaction ActivityWrite.Accepted(session)
@@ -305,7 +314,6 @@ class ActivityRepository(
                 syncAuthoring?.onActivitySessionCommitted(write.session.id, write.session.status)
             }
         }
-    }
 
     /**
      * Activity blocks are snapshots. Set repair is a strength-session capability

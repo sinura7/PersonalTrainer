@@ -31,7 +31,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +50,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.domain.supportingRecordSession
 import com.sinura.personaltrainer.ui.components.AddToRoutineSheet
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
@@ -239,7 +239,10 @@ fun ExerciseDetailScreen(
                         item(key = "this-workout") { SessionInProgressCard(sessionInProgress) }
                     }
                     if (!holdsOnly && history.records.isNotEmpty()) {
-                        item(key = "records") { RecordsCard(records = history.records, unit = unit) }
+                        item(key = "records") {
+                            RecordsCard(records = history.records, unit = unit, sessions = history.sessions,
+                                onOpenSession = onOpenSession, onOpenActivity = onOpenActivity)
+                        }
                     }
 
                     item(key = "all-time-label") {
@@ -424,9 +427,12 @@ internal fun ExerciseDetailHeader(
  * nowhere else, and the three numbers now sit in one row where they can be compared.
  */
 @Composable
-private fun RecordsCard(
+internal fun RecordsCard(
     records: Map<PersonalRecordKind, PersonalRecord>,
     unit: WeightUnit,
+    sessions: List<ExerciseSessionSummary>,
+    onOpenSession: (String) -> Unit,
+    onOpenActivity: (String) -> Unit,
 ) {
     val heaviest = records[PersonalRecordKind.WEIGHT]
     // REPS for a bodyweight lift, REPS_AT_WEIGHT for a loaded one — the same slot, because they
@@ -470,13 +476,14 @@ private fun RecordsCard(
             heaviest?.let { record ->
                 RecordProvenance(
                     "Heaviest ${record.weightKg.toWeightLabel(unit)} × ${record.reps}",
-                    record.achievedAt,
+                    record, supportingRecordSession(record, sessions), onOpenSession, onOpenActivity,
                 )
             }
             topReps?.let { record ->
                 RecordProvenance(
-                    "${record.reps} reps at ${record.weightKg.toWeightLabel(unit)}",
-                    record.achievedAt,
+                    if (record.kind == PersonalRecordKind.REPS) "${record.reps} bodyweight reps"
+                    else "${record.reps} reps at ${record.weightKg.toWeightLabel(unit)}",
+                    record, supportingRecordSession(record, sessions), onOpenSession, onOpenActivity,
                 )
             }
             estimate?.let { record ->
@@ -484,7 +491,7 @@ private fun RecordsCard(
                 // visible working behind it is not something to train off.
                 RecordProvenance(
                     "1RM from ${record.weightKg.toWeightLabel(unit)} × ${record.reps}",
-                    record.achievedAt,
+                    record, supportingRecordSession(record, sessions), onOpenSession, onOpenActivity,
                 )
             }
         }
@@ -534,15 +541,28 @@ private fun RecordMetric(
 }
 
 @Composable
-private fun RecordProvenance(detail: String, achievedAt: Long) {
-    val achieved = dateLabel(achievedAt)
-    Text(
-        "$detail · $achieved",
-        style = InstrumentType.caption,
-        color = TextSecondary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
+private fun RecordProvenance(
+    detail: String, record: PersonalRecord, source: ExerciseSessionSummary?,
+    onOpenSession: (String) -> Unit, onOpenActivity: (String) -> Unit,
+) {
+    val achieved = source?.let { DateCopy.civilDate(sessionEpochDay(it)) } ?: dateLabel(record.achievedAt)
+    val content: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            Text("$detail · $achieved", style = InstrumentType.caption, color = TextSecondary)
+            Text(source?.sessionName?.takeIf { it.isNotBlank() }?.let { "View $it" }
+                ?: if (source != null) "View recorded session" else "Supporting session unavailable",
+                style = InstrumentType.caption, color = TextSecondary)
+        }
+    }
+    if (source == null) content() else Column(
+        modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin)
+            .clickable(role = Role.Button) {
+                if (source.kind == HistoryKind.ACTIVITY) onOpenActivity(source.sessionId)
+                else onOpenSession(source.sessionId)
+            }
+            .padding(vertical = Metrics.space2)
+            .testTag("record-source-${record.kind.name}"),
+    ) { content() }
 }
 
 /** Exact readouts lead; only two or more recorded points make a trend. */

@@ -35,6 +35,7 @@ class NumberEntryLifetimeInstrumentedTest {
         val rawEntries = MutableStateFlow<List<WorkoutNumberDraft>>(emptyList())
         val accepted = mutableListOf<Pair<String, Int>>()
         val port = object : WorkoutNumberEntries {
+            override fun allowsInput(): Boolean = true
             override val exerciseId get() = owner
             override val entries = rawEntries
             override fun put(value: WorkoutNumberDraft) {
@@ -109,6 +110,7 @@ class NumberEntryLifetimeInstrumentedTest {
         val rawEntries = MutableStateFlow<List<WorkoutNumberDraft>>(emptyList())
         val accepted = mutableListOf<Int>()
         val port = object : WorkoutNumberEntries {
+            override fun allowsInput(): Boolean = true
             override val exerciseId = "numeric-lifetime-fixture"
             override val entries = rawEntries
             override fun put(value: WorkoutNumberDraft) { entries.value = listOf(value) }

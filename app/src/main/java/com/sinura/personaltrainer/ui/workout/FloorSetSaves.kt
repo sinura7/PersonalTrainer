@@ -93,6 +93,14 @@ internal class FloorSetSaves(
         _state.value = WorkoutSaveState(WorkoutSavePhase.CHECKING, command)
     }
 
+    /** A restored private/frame disagreement remains owned and cannot silently write. */
+    fun restorationUnavailable() {
+        val command = _state.value.command ?: return
+        _inFlight.value = false
+        _state.value = WorkoutSaveState(WorkoutSavePhase.FAILED, command,
+            "Could not reconcile the unfinished set. Read again or review saved sets before retrying.")
+    }
+
     /** Freezes [command] in both copies and marks it being written. The caller launches [persist]. */
     fun freeze(command: WorkoutSetSave) {
         // Freeze identity and payload synchronously, before Room or any coroutine suspension.

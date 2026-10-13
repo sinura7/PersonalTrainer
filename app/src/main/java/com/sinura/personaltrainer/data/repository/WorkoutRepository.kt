@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.repository
 
 import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.backup.RestoreJournal
+import com.sinura.personaltrainer.data.draft.CompletedNoteRecord
 import com.sinura.personaltrainer.data.local.AppRoomDatabase
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
@@ -861,10 +862,13 @@ class WorkoutRepository(
     class SetSaveConflict : IllegalStateException("This set changed or was removed. Review your saved sets before continuing.")
 
     /** History retries use the same identity and original values as their first Save tap. */
-    internal suspend fun saveFinishedSet(command: WorkoutSetSave): SavedWorkoutSet = serialized {
+    internal suspend fun saveFinishedSet(command: WorkoutSetSave): SavedWorkoutSet = serialized { saveFinishedSetLocked(command) }
+
+    /** Internal private-draft adapter already holds the same maintenance lock. */
+    internal suspend fun saveFinishedSetLocked(command: WorkoutSetSave): SavedWorkoutSet {
         check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
         fenceWorkoutDrafts()
-        database.withTransaction {
+        return database.withTransaction {
         val current = workoutDao.getSession(command.sessionId) ?: throw SetSaveConflict()
         if (current.session.finishedAt == null) throw SetSaveConflict()
         val existing = workoutDao.getSet(command.setId)
@@ -891,6 +895,14 @@ class WorkoutRepository(
         }
         savedResult(checkNotNull(workoutDao.getSet(command.setId)), current, alreadySaved = false)
         }
+    }
+
+    /** A confirmed identity can be acknowledged without issuing a second mutation. */
+    internal suspend fun readFinishedSetSaveResult(command: WorkoutSetSave): SavedWorkoutSet = database.withTransaction {
+        val current = workoutDao.getSession(command.sessionId) ?: throw SetSaveConflict()
+        val row = workoutDao.getSet(command.setId) ?: throw SetSaveConflict()
+        if (current.session.finishedAt == null || !matchesFinishedSave(row, command, finishedSaveValues(command, current))) throw SetSaveConflict()
+        savedResult(row, current, alreadySaved = true)
     }
 
     /** A failed read leaves the outcome unknown; it never authorizes another insertion. */
@@ -1180,6 +1192,16 @@ class WorkoutRepository(
     internal suspend fun updateLiveNotesIfUnchanged(sessionId: String, before: String, intended: String) = database.withTransaction {
         val row = workoutDao.getSessionRow(sessionId) ?: throw SetSaveConflict()
         if (row.finishedAt != null || row.notes.trim() != before) throw SetSaveConflict()
+        workoutDao.updateSessionNotes(id = sessionId, notes = intended)
+    }
+
+    /** Private completed-note admission owns maintenance; compare again inside the transaction. */
+    internal suspend fun updateCompletedNotesIfUnchanged(sessionId: String, before: CompletedNoteRecord, intended: String) = database.withTransaction {
+        val row = workoutDao.getSessionRow(sessionId) ?: throw SetSaveConflict()
+        if (row.finishedAt == null || row.notes.trim() != before.notes ||
+            CompletedNoteRecord.strengthIdentity(row.id, row.date, row.startedAt, row.finishedAt) != before.identity) {
+            throw SetSaveConflict()
+        }
         workoutDao.updateSessionNotes(id = sessionId, notes = intended)
     }
 

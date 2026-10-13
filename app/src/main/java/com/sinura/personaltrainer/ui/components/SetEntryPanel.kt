@@ -55,6 +55,9 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.workout.WorkoutNumberEntry
+import com.sinura.personaltrainer.ui.workout.retainedNumber
+import com.sinura.personaltrainer.workout.WorkoutNumberField
 
 /**
  * Weight and recorded work in one panel: history's set sheet. Two tall wells sit side by side until
@@ -94,8 +97,11 @@ fun SetEntryPanel(
     val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val workWell: @Composable (Modifier) -> Unit = { wellModifier ->
         if (durationSeconds != null) {
-            TimeStepper(value = durationSeconds, onChange = onDurationSecondsChange, modifier = wellModifier)
+            WorkoutNumberEntry(field = WorkoutNumberField.HOLD_SECONDS) {
+                TimeStepper(value = durationSeconds, onChange = onDurationSecondsChange, modifier = wellModifier)
+            }
         } else {
+            WorkoutNumberEntry(field = WorkoutNumberField.REPS) {
             RepsStepper(
                 value = reps,
                 onAdjust = onRepsAdjust,
@@ -103,6 +109,7 @@ fun SetEntryPanel(
                 modifier = wellModifier,
                 capturedReps = capturedReps,
             )
+            }
         }
     }
     if (stack) {
@@ -111,6 +118,7 @@ fun SetEntryPanel(
             verticalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
             if (loadClass.weightMeaning != WeightMeaning.NONE) {
+                WorkoutNumberEntry(field = WorkoutNumberField.WEIGHT, unit = unit) {
                 WeightStepper(
                     valueKg = weightKg,
                     onWeightKgChange = onWeightKgChange,
@@ -119,6 +127,7 @@ fun SetEntryPanel(
                     meaning = loadClass.weightMeaning,
                     plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
                 )
+                }
             }
             workWell(Modifier.fillMaxWidth())
         }
@@ -128,6 +137,7 @@ fun SetEntryPanel(
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
             if (loadClass.weightMeaning != WeightMeaning.NONE) {
+                WorkoutNumberEntry(field = WorkoutNumberField.WEIGHT, unit = unit) {
                 WeightStepper(
                     valueKg = weightKg,
                     onWeightKgChange = onWeightKgChange,
@@ -136,6 +146,7 @@ fun SetEntryPanel(
                     meaning = loadClass.weightMeaning,
                     plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
                 )
+                }
             }
             workWell(
                 if (loadClass.weightMeaning != WeightMeaning.NONE) Modifier.weight(1f)
@@ -158,7 +169,9 @@ fun WeightStepper(
     val displayNumber = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(valueKg, unit))
     // Steppers are for nudging a number, not setting one: 20 kg to 140 kg is 48 taps at the
     // 2.5 kg step. Typing is the escape hatch, and the number itself is the obvious target.
-    var typing by rememberSaveable { mutableStateOf(false) }
+    val retained = retainedNumber(WorkoutNumberField.WEIGHT)
+    val entryUnit = retained?.weightUnit ?: unit
+    var typing by rememberSaveable { mutableStateOf(retained?.open == true) }
     val label = meaning.fieldLabel
     val plates = if (plated) PlateMath.load(valueKg, unit)?.caption() else null
 
@@ -182,7 +195,7 @@ fun WeightStepper(
     if (typing) {
         NumberEntryDialog(
             title = label,
-            unitLabel = unit.suffix,
+            unitLabel = entryUnit.suffix,
             initial = displayNumber,
             decimal = true,
             helper = SetCopy.weightKeypadHelper(
@@ -193,7 +206,7 @@ fun WeightStepper(
                 },
                 allowsZero = meaning != WeightMeaning.LIFTED,
             ),
-            parse = { NumericEntry.parseWeightKg(it, unit) },
+            parse = { NumericEntry.parseWeightKg(it, entryUnit) },
             onConfirm = { onWeightKgChange(it) },
             onDismiss = { typing = false },
         )
@@ -208,7 +221,8 @@ fun RepsStepper(
     modifier: Modifier = Modifier,
     capturedReps: Boolean = false,
 ) {
-    var typing by rememberSaveable { mutableStateOf(false) }
+    val retained = retainedNumber(WorkoutNumberField.REPS)
+    var typing by rememberSaveable { mutableStateOf(retained?.open == true) }
 
     NumeralWell(
         label = "reps",
@@ -249,7 +263,8 @@ fun RepsStepper(
 /** Captured seconds have no live-target range cap; an untouched original is never clamped. */
 @Composable
 private fun TimeStepper(value: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier) {
-    var typing by rememberSaveable { mutableStateOf(false) }
+    val retained = retainedNumber(WorkoutNumberField.HOLD_SECONDS)
+    var typing by rememberSaveable { mutableStateOf(retained?.open == true) }
     NumeralWell(
         label = "time",
         value = value.toString(),

@@ -2,6 +2,8 @@ package com.sinura.personaltrainer.ui.history
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +55,8 @@ import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
+import com.sinura.personaltrainer.ui.components.CompletedReceiptNotes
+import com.sinura.personaltrainer.ui.components.CompletedNotesConflict
 import com.sinura.personaltrainer.ui.components.NotesLeaveDialog
 import com.sinura.personaltrainer.ui.components.NotesSaveState
 import com.sinura.personaltrainer.ui.components.ScreenHeader
@@ -107,9 +113,11 @@ fun SessionDetailScreen(
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
     val notesExitRequested by viewModel.notesExitRequested.collectAsStateWithLifecycle()
     val notesExitBlocked by viewModel.notesExitBlocked.collectAsStateWithLifecycle()
+    val notesRecovery by viewModel.notesRecovery.collectAsStateWithLifecycle()
     val setSave by viewModel.setSave.collectAsStateWithLifecycle()
     val setEditorExit by viewModel.setEditorExit.collectAsStateWithLifecycle()
     val editorOriginal by viewModel.editorOriginal.collectAsStateWithLifecycle()
+    val finishedDraft by viewModel.finishedSetState.collectAsStateWithLifecycle()
     val leave = { viewModel.requestNotesExit() }
 
     BackHandler(onBack = leave)
@@ -134,6 +142,20 @@ fun SessionDetailScreen(
         addingSessionId = null
     }
 
+    LaunchedEffect(finishedDraft.visible, finishedDraft.draft?.original, setSave.pending) {
+        if (viewModel.finishedSetForm == null) return@LaunchedEffect
+        val retained = finishedDraft.draft?.original
+        if (finishedDraft.visible && retained != null) {
+            if (retained.editing) editingSetId = retained.setId else {
+                addingSessionId = retained.sessionId
+                addingToExerciseId = retained.exerciseId
+            }
+        } else if (!setSave.pending) {
+            editingSetId = null
+            addingToExerciseId = null
+            addingSessionId = null
+        }
+    }
     LaunchedEffect(setEditorExit) {
         val completed = setEditorExit ?: return@LaunchedEffect
         if (completed.editing && editingSetId == completed.setId) editingSetId = null
@@ -219,13 +241,27 @@ fun SessionDetailScreen(
                 },
             )
 
+            val retained = finishedDraft.draft?.original
+            val absentEditor = retained != null && (session == null ||
+                (retained.editing && session.sets.none { it.id == retained.setId }) ||
+                (!retained.editing && session.filledLifts().none { it.exercise.id == retained.exerciseId }))
+            if (viewModel.finishedSetForm != null && (finishedDraft.message != null || absentEditor ||
+                    (!finishedDraft.visible && finishedDraft.draft != null))) {
+                HistoricalSetRecovery(formState = finishedDraft, enabled = !setSave.busy && !state.notesExiting && !finishedDraft.keeping,
+                    onRead = viewModel::retryHistoricalDraft,
+                    onDiscard = { viewModel.discardHistoricalEditor {} },
+                    onResume = { viewModel.finishedSetForm?.showKept() })
+            }
             when {
                 state.isLoading -> {
                     ScreenLoading()
                 }
                 // Before the missing branch on purpose: a failed read also has no session,
                 // and it must not be shown as a deleted one.
-                state.failed -> {
+                state.failed -> Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
                     EmptyState(
                         scene = EmptyScene.RETRY,
                         title = DataHealthCopy.SESSION_TITLE,
@@ -233,18 +269,24 @@ fun SessionDetailScreen(
                         actionLabel = DataHealthCopy.RETRY,
                         onAction = viewModel::retry,
                         actionTag = SessionDetailTestTags.RETRY,
-                        modifier = Modifier.padding(Metrics.gutter),
                     )
+                    TextButton(onClick = leave) { Text("Back") }
+                    CompletedNotesConflict(raw = state.notes, state = notesRecovery, onRetry = viewModel::retryPrivateNotes,
+                        onDiscard = viewModel::discardPrivateNotes, allowDiscard = !state.notesExiting && !state.notesSave.busy && !setSave.pending)
                 }
-                state.missing || session == null -> {
+                state.missing || session == null -> Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
                     EmptyState(
                         scene = EmptyScene.GONE,
                         title = "Session not found",
                         body = "This workout is no longer on this phone.",
                         actionLabel = "Back",
                         onAction = leave,
-                        modifier = Modifier.padding(Metrics.gutter),
                     )
+                    CompletedNotesConflict(raw = state.notes, state = notesRecovery, onRetry = viewModel::retryPrivateNotes,
+                        onDiscard = viewModel::discardPrivateNotes, allowDiscard = !state.notesExiting && !state.notesSave.busy && !setSave.pending)
                 }
                 else -> {
                     val lifts = session.filledLifts()
@@ -270,11 +312,21 @@ fun SessionDetailScreen(
                                 notes = state.notes,
                                 notesSave = state.notesSave,
                                 notesExpanded = notesOpen,
-                                notesEnabled = !state.notesExiting,
+                                notesEnabled = !state.notesExiting && (session.isFinished.not() || notesRecovery.ready),
                                 onToggleNotes = { notesOpen = !notesOpen },
                                 onNotesChange = viewModel::setNotes,
                                 onRetryNotes = viewModel::retryNotesSave,
                                 unit = unit,
+                                notesContent = if (session.isFinished) {
+                                    {
+                                        CompletedReceiptNotes(
+                                            notes = state.notes, state = notesRecovery, save = state.notesSave, expanded = notesOpen,
+                                            onToggle = { notesOpen = !notesOpen }, onChange = viewModel::setNotes,
+                                            onRetrySave = viewModel::retryNotesSave, onRetryPrivate = viewModel::retryPrivateNotes,
+                                            onDiscard = viewModel::discardPrivateNotes, allowActions = !state.notesExiting,
+                                        )
+                                    }
+                                } else null,
                             )
                         }
                         if (lifts.isEmpty()) {
@@ -294,13 +346,14 @@ fun SessionDetailScreen(
                                 unit = unit,
                                 onOpen = { onOpenExercise(lift.exercise.id) },
                                 onEditSet = {
-                                    viewModel.beginSetEdit(it)
-                                    editingSetId = it.id
+                                    if (viewModel.beginSetEdit(it)) editingSetId = it.id
                                 },
                                 onAddSet = {
-                                    discardAddDraft()
-                                    addingSessionId = session.id
-                                    addingToExerciseId = lift.exercise.id
+                                    if (viewModel.beginAdditionalSet(lift.exercise.id)) {
+                                        discardAddDraft()
+                                        addingSessionId = session.id
+                                        addingToExerciseId = lift.exercise.id
+                                    }
                                 },
                             )
                         }
@@ -341,6 +394,7 @@ fun SessionDetailScreen(
         NotesLeaveDialog(
             saveState = state.notesSave.copy(busy = state.notesSave.busy || state.notesExiting),
             liveDraft = false,
+            keepDraftOnLeave = viewModel.durableCompletedNotes,
             onRetry = { viewModel.requestNotesExit() },
             onKeepEditing = {
                 viewModel.keepEditingNotes()
@@ -351,13 +405,16 @@ fun SessionDetailScreen(
     }
 
     val editing = editingSetId?.let { id -> session?.sets?.firstOrNull { it.id == id } }?.let { row ->
-        val snapshot = editorOriginal?.takeIf { it.setId == row.id && it.exerciseId == row.exerciseId }
+        val snapshot = (finishedDraft.draft?.original ?: editorOriginal)?.takeIf { it.setId == row.id && it.exerciseId == row.exerciseId }
         if (snapshot == null) row else row.copy(weightKg = snapshot.values.weightKg, reps = snapshot.values.reps,
             rpe = snapshot.values.rpe, isWarmup = snapshot.values.isWarmup, completedAt = snapshot.completedAt,
             durationSeconds = snapshot.values.durationSeconds)
     }
     if (editing != null && session != null) {
-        SetEditSheet(
+        CompositionLocalProvider(LocalFinishedSetForm provides viewModel.finishedSetForm,
+            LocalFinishedSetDiscard provides { viewModel.discardHistoricalEditor {} },
+            LocalFinishedSetReadAgain provides viewModel::retryHistoricalDraft) {
+            SetEditSheet(
             exercise = session.filledLifts().first { it.exercise.id == editing.exerciseId }.exercise.let { projected ->
                 projected.copy(name = editing.exerciseName.ifBlank { projected.name })
             },
@@ -373,14 +430,18 @@ fun SessionDetailScreen(
                 )
             },
             onDelete = {
-                viewModel.dismissSetEdit(editing.id)
-                editingSetId = null
-                viewModel.deleteSet(editing.id)
-            },
-            onDismiss = {
-                if (setSave.pending) viewModel.releaseSetSave(cancel = true) else {
+                viewModel.discardHistoricalEditor {
                     viewModel.dismissSetEdit(editing.id)
                     editingSetId = null
+                    viewModel.deleteSet(editing.id)
+                }
+            },
+            onDismiss = {
+                if (setSave.pending && viewModel.finishedSetForm == null) viewModel.releaseSetSave(cancel = true) else {
+                    viewModel.closeHistoricalEditor {
+                        viewModel.dismissSetEdit(editing.id)
+                        editingSetId = null
+                    }
                 }
             },
             loadClass = session.loadClassOf(editing.exerciseId),
@@ -390,6 +451,7 @@ fun SessionDetailScreen(
             onRetry = viewModel::retrySetSave,
             onEditValues = { viewModel.releaseSetSave(cancel = false) },
         )
+        }
     }
 
     val adding = addingToExerciseId
@@ -411,7 +473,10 @@ fun SessionDetailScreen(
             ?: session.sets.firstOrNull { it.exerciseId == adding }?.exerciseName
             ?: "Exercise"
         addDrafts.SaveableStateProvider(key = addSetDraftKey(session.id, adding)) {
-            SetEditSheet(
+            CompositionLocalProvider(LocalFinishedSetForm provides viewModel.finishedSetForm,
+            LocalFinishedSetDiscard provides { viewModel.discardHistoricalEditor {} },
+            LocalFinishedSetReadAgain provides viewModel::retryHistoricalDraft) {
+                SetEditSheet(
                 exercise = addingExercise.copy(name = name),
                 initial = null,
                 onSave = { weightKg, reps, rpe, isWarmup, _ ->
@@ -425,7 +490,7 @@ fun SessionDetailScreen(
                 },
                 onDelete = null,
                 onDismiss = {
-                    if (setSave.pending) viewModel.releaseSetSave(cancel = true) else discardAddDraft()
+                    if (setSave.pending && viewModel.finishedSetForm == null) viewModel.releaseSetSave(cancel = true) else viewModel.closeHistoricalEditor(discardAddDraft)
                 },
                 prefillWeightKg = previous?.weightKg ?: 0.0,
                 prefillReps = previous?.reps ?: DEFAULT_ADD_REPS,
@@ -436,6 +501,7 @@ fun SessionDetailScreen(
                 onRetry = viewModel::retrySetSave,
                 onEditValues = { viewModel.releaseSetSave(cancel = false) },
             )
+            }
         }
     }
 
@@ -450,7 +516,15 @@ fun SessionDetailScreen(
             confirmLabel = "Check save",
             onConfirm = viewModel::retrySetSave,
             confirmEnabled = !setSave.busy && setSave.phase != com.sinura.personaltrainer.ui.workout.WorkoutSavePhase.CONFLICT,
-            onDismiss = { viewModel.releaseSetSave(cancel = true) },
+            dismissLabel = if (viewModel.finishedSetForm == null) "Cancel" else "Close · keep edit",
+            recoveryContent = if (viewModel.finishedSetForm != null) ({
+                HistoricalSetRecovery(formState = finishedDraft, enabled = !setSave.busy && !finishedDraft.keeping,
+                    onRead = viewModel::retryHistoricalDraft, onDiscard = { viewModel.discardHistoricalEditor {} }, onResume = {})
+            }) else null,
+            onDismiss = {
+                if (viewModel.finishedSetForm == null) viewModel.releaseSetSave(cancel = true)
+                else viewModel.closeHistoricalEditor { editingSetId = null; discardAddDraft() }
+            },
         )
     }
 
@@ -505,6 +579,7 @@ private fun SessionReceipt(
     onNotesChange: (String) -> Unit,
     onRetryNotes: () -> Unit,
     unit: WeightUnit,
+    notesContent: (@Composable () -> Unit)? = null,
 ) {
     // The headline is whichever unit this session was actually done in. A calisthenics day
     // reading a giant "0 kg" would be the bodyweight stand-in's failure inverted: instead of
@@ -547,7 +622,7 @@ private fun SessionReceipt(
             )
         }
         HairlineDivider(startIndent = 0.dp)
-        NotesBlock(
+        if (notesContent != null) notesContent() else NotesBlock(
             notes = notes,
             expanded = notesExpanded,
             onToggle = onToggleNotes,

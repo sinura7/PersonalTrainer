@@ -59,6 +59,13 @@ object ActivityDetailCopy {
         return ComposerCopy.cardioLineSubtitle(minutes, distanceKm, block.indoor, distance)
     }
 
+    /** Detail shows the actual recorded clock; minute totals elsewhere keep their existing rule. */
+    internal fun recordedCardioSubtitle(block: CardioBlock, distance: DistanceUnit): String = buildList {
+        add("${LiveSessionRules.formatElapsed(block.elapsedSeconds)} elapsed")
+        block.distanceMeters?.let { add(ComposerCopy.formatDistanceKm(it / 1_000.0, distance)) }
+        if (block.indoor) add(CardioCopy.INDOOR)
+    }.joinToString(" · ")
+
     fun volumeLabel(volumeKg: Double, unit: WeightUnit): String =
         WeightConverter.formatVolumeNumber(volumeKg, unit)
 

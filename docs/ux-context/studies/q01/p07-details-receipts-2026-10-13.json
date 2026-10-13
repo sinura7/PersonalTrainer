@@ -1,0 +1,1879 @@
+{
+  "packet": "P07",
+  "state": "Verified P07 implementation candidate; final independent/adversarial receipt/input seals clear. PR and exact-input trunk integration pending; P19/P20 remain open.",
+  "base": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+  "architecture": [
+    "ADR-026",
+    "ADR-033",
+    "completed-training-convergence"
+  ],
+  "problem": "Completed notes lost raw authored text after closing and reopening following a refused Save. Completed receipt copy omitted its captured date and exact elapsed seconds; record bests did not link to their exact supporting session.",
+  "baseline": "baseline-notes02 reproduces reopened Saved note instead of the raw authored text while the confirmed database note remains unchanged. baseline-notes01 was a fixture collector timeout and is retained separately.",
+  "concept": "Connected compact receipt, complete recorded values and sources, correction, retained raw notes, Retry/Keep/Discard and truthful missing/read-failure states. history-preparation/details-receipts-concept.html was shown before coding; browser simulation is not Android evidence.",
+  "decision": "Preserve existing completed-training capabilities and calculations; add private raw checkpoints and frozen note commands, exact reconciliation and narrowly guarded completed-note CAS. Resolve record links from the exact supporting set and store; use captured activity day and exact elapsed seconds alongside existing whole-minute summary.",
+  "tradeoff": "Durable Keep must complete before an orderly exit promises preservation. Conflicting/orphan drafts remain selectable and privately retainable, but do not authorize overwriting/recreating saved records. Explicit Discard affects private unfinished text only.",
+  "behavior": [
+    "Separate owner-keyed fields and commands; ordered maintenance/private IO and claim/version/generation fencing. Existing SavedState complements durable storage.",
+    "Private command admitted before business writes; exact saved outcome settles without replay, unchanged baseline may retry, unavailable/conflicting data retains authored text.",
+    "Latest raw fields survive older accepted writes; confirmed cleanup never replays a completed Save. Close/Back retain, Discard clears only unfinished work.",
+    "Completed strength and typed activity notes preserve their original stores/IDs. Activity snapshot set repair and repeat remain refused under the accepted capability contract.",
+    "Receipt shows captured activity date, exact seconds/hours and recorded distance without changing stored values or minute calculations.",
+    "Best-record links require exact set/session/values/time and unambiguous store. Full names/dates wrap; bodyweight repetitions do not invent zero-kilogram records.",
+    "Historical set checkpoint/admission foundation retains original identity/time/values, raw numeric text and captured units; real repository CAS and exact-readback reconciliation preserve corrections. Production private-generation fencing stays enabled, and unreadable private checkpoints permit explicit private-only Discard.",
+    "Historical editor restores raw numeric text with its captured entry unit, reserves and retains immutable pending commands, keeps Close/Review private fields, and exposes Resume/Read again/private Discard for missing or conflicting saved rows. The shipping ViewModel reconciles framework and private identities before discarding unfinished work.",
+    "Reconstruction prefers readable durable notes over an older Android snapshot. Same-visit live text remains authoritative after failed Keep and Read again; framework raw is a fallback when no private text exists.",
+    "Conflicting set editors show literal retained values and reachable recovery instead of opening a keypad whose owner refuses input. Confirmed private Discard reopens the owner before admitting edits, or shows actionable Read again after an unavailable read.",
+    "The numeric-entry interface requires each owner to implement input admission explicitly. Conflicting historical editors show recovery once, with quiet secondary actions and no redundant Resume while already open."
+  ],
+  "verification": {
+    "notes-sources-target09": {
+      "startedAtUtc": "2026-10-13T15:00:39.9407104Z",
+      "endedAtUtc": "2026-10-13T15:07:18.5267272Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+      "sourceFilesBefore": 1625,
+      "sourceFilesAfter": 1625,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 98,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 11,
+      "freshXmlFiles": 11,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 98,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "notes-sources-target10": {
+      "startedAtUtc": "2026-10-13T15:12:35.9499679Z",
+      "endedAtUtc": "2026-10-13T15:18:51.1801363Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+      "sourceFilesBefore": 1625,
+      "sourceFilesAfter": 1625,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 99,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 11,
+      "freshXmlFiles": 11,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 99,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "receipts-target11": {
+      "startedAtUtc": "2026-10-13T15:21:27.4719803Z",
+      "endedAtUtc": "2026-10-13T15:28:27.9255797Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+      "sourceFilesBefore": 1625,
+      "sourceFilesAfter": 1625,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 108,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 12,
+      "freshXmlFiles": 12,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 108,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "process-final01": {
+      "result": "PASS",
+      "sourceStable": true,
+      "scope": "Fresh completed-note recovery through shipping AppNav on owned API29; no owner data or physical acceptance",
+      "sourceFiles": 1625,
+      "changedInputs": [],
+      "endedAtUtc": "2026-10-13T15:30:55.5326125Z",
+      "head": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+      "sourceStatus": "See source-status and exact source snapshots",
+      "startedAtUtc": "2026-10-13T15:30:30.3691372Z",
+      "phases": [
+        {
+          "passed": true,
+          "exit": 0,
+          "tests": 1,
+          "phase": "stage"
+        },
+        {
+          "passed": true,
+          "exit": 0,
+          "tests": 1,
+          "phase": "resume"
+        }
+      ]
+    },
+    "large-receipt-native01": {
+      "startedUtc": "2026-10-13T15:31:53.9610042Z",
+      "result": "PASS",
+      "sourceFiles": 1625,
+      "exit": 0,
+      "recoveryPhase": "",
+      "finishedUtc": "2026-10-13T15:32:06.5725750Z",
+      "sourceStable": true,
+      "head": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "changedInputs": [],
+      "freshTests": 1,
+      "class": "com.sinura.personaltrainer.ui.history.CompletedNotesContinuityInstrumentedTest",
+      "apks": {
+        "app": "72DCB015932C87299ABCB31CE002CF34106B966229890F282961A9CB251BEC2B",
+        "tests": "8B74997E17E3FE40C7DF723EBB47AA69EE2BCE17B8BDA7CF5CDE105EF711BE90"
+      },
+      "phase": "",
+      "apkStable": true
+    },
+    "record-layout-target12": {
+      "startedAtUtc": "2026-10-13T15:38:42.0293159Z",
+      "endedAtUtc": "2026-10-13T15:44:37.4686613Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+      "sourceFilesBefore": 1625,
+      "sourceFilesAfter": 1625,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 2,
+      "freshXmlFiles": 2,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 3,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "scope": "Full02 freshly passed the complete standalone1712/app4521 suite,614 fresh XML, lint and both APK builds at7d24cbb6. Full04 freshly checked statics/lint/native assembly atba187e35 and reused only verified identical production/JVM/tool/environment inputs plus intact full02 outputs:0 fresh JVM/standalone,4521/1712 reused. Four Android-test paths changed. On final matching APKs,13 native executions passed:5 receipt/chart components,2 distinct AppNav acceptance routes,1 extra connected record route,1 conflict route and4 actual force-stop/reopen phases. The connected-only process-final04 archive contains no force-stop; final05 owns the actual PID termination. Older eight-log/large-text/numeric-lifetime runs retain their original manifests, not a claim of final-APK execution. Phone acceptance and P19 full navigation/layout coverage remain open.",
+    "record-sources-native03": {
+      "finishedUtc": "2026-10-13T15:58:38.1914830Z",
+      "head": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+      "recoveryPhase": "",
+      "class": "com.sinura.personaltrainer.ui.history.RecordSourceInstrumentedTest",
+      "sourceFiles": 1625,
+      "result": "PASS",
+      "apkStable": true,
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "startedUtc": "2026-10-13T15:58:31.8115782Z",
+      "freshTests": 2,
+      "phase": "",
+      "exit": 0,
+      "sourceStable": true,
+      "apks": {
+        "tests": "D1CC7280096109DCEC30E26D06D85CC5A4DF44CAE6C7A37C9BAC0FA18DA7074D",
+        "app": "CC1AF783F998440D024FC4033348F2F790A8DA1A5E3753D49CD38C0A17F9B3B8"
+      },
+      "changedInputs": []
+    },
+    "record-capture-target13": "Statics and native test compilation/assembly succeeded at unchanged 1625 inputs. Targeted JVM task was UP-TO-DATE, so zero fresh tests; the strict wrapper returned incomplete (exit1), preserved. This is assembly evidence, not a passed local gate. The two component native checks then freshly passed with the matching rebuilt test APK.",
+    "finished-set-target16": {
+      "startedAtUtc": "2026-10-13T16:07:56.2742909Z",
+      "endedAtUtc": "2026-10-13T16:12:19.2755547Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f231c8fc43a8ce72c0598546efcd4fca51f3fb4f",
+      "sourceFilesBefore": 1627,
+      "sourceFilesAfter": 1627,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 3,
+      "freshXmlFiles": 3,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 20,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "finished-editor-target17": {
+      "startedAtUtc": "2026-10-13T16:24:06.0806708Z",
+      "endedAtUtc": "2026-10-13T16:24:58.1438312Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1629,
+      "sourceFilesAfter": 1629,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 3,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "finished-editor-target18": {
+      "startedAtUtc": "2026-10-13T16:26:27.7381214Z",
+      "endedAtUtc": "2026-10-13T16:33:41.8322532Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1629,
+      "sourceFilesAfter": 1629,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 66,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 7,
+      "freshXmlFiles": 7,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 66,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "finished-editor-target19": {
+      "startedAtUtc": "2026-10-13T16:42:46.6429201Z",
+      "endedAtUtc": "2026-10-13T16:43:12.4393914Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1630,
+      "sourceFilesAfter": 1630,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 7,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "finished-editor-target20": {
+      "startedAtUtc": "2026-10-13T16:48:17.9210942Z",
+      "endedAtUtc": "2026-10-13T16:49:38.3348292Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1631,
+      "sourceFilesAfter": 1631,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 7,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "finished-editor-target21": {
+      "startedAtUtc": "2026-10-13T16:52:21.2995652Z",
+      "endedAtUtc": "2026-10-13T16:57:30.1667026Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1631,
+      "sourceFilesAfter": 1631,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 72,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 8,
+      "freshXmlFiles": 8,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 72,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "finished-native-build22": {
+      "startedAtUtc": "2026-10-13T17:01:17.0477456Z",
+      "endedAtUtc": "2026-10-13T17:06:59.0663401Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 8,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "assemblyOnly": true,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "finished-set-native01": {
+      "result": "FAIL",
+      "freshTests": 0,
+      "apks": {
+        "tests": "C7F225DAE8A8542257D74D2EDB75667E5CA460B1C8D92DB72540C58A885743C4",
+        "app": "EEAF08A36465D305B8016AF45D7268F3D53AE659BBC756E17F6AAF06113B3FA2"
+      },
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest",
+      "changedInputs": [],
+      "apkStable": true,
+      "sourceStable": true,
+      "exit": 0,
+      "startedUtc": "2026-10-13T17:12:11.1964539Z",
+      "finishedUtc": "2026-10-13T17:12:21.4797300Z",
+      "recoveryPhase": "",
+      "phase": "",
+      "sourceFiles": 1632,
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance"
+    },
+    "finished-native-build23": {
+      "startedAtUtc": "2026-10-13T17:18:30.4497496Z",
+      "endedAtUtc": "2026-10-13T17:22:23.5997929Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 8,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "assemblyOnly": true,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "finished-set-native02": {
+      "phase": "",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "sourceFiles": 1632,
+      "apks": {
+        "app": "EEAF08A36465D305B8016AF45D7268F3D53AE659BBC756E17F6AAF06113B3FA2",
+        "tests": "3BABAA037B03F999FFF114093DF58176161DB409172477A507C2F380CEB52DC2"
+      },
+      "sourceStable": true,
+      "apkStable": true,
+      "exit": 0,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "changedInputs": [],
+      "freshTests": 0,
+      "result": "FAIL",
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest",
+      "recoveryPhase": "",
+      "startedUtc": "2026-10-13T17:23:28.8630592Z",
+      "finishedUtc": "2026-10-13T17:23:40.7846198Z"
+    },
+    "recovery-fixes-target24": {
+      "startedAtUtc": "2026-10-13T17:32:07.3085650Z",
+      "endedAtUtc": "2026-10-13T17:32:28.4416460Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 8,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "recovery-fixes-target25": {
+      "startedAtUtc": "2026-10-13T17:33:21.5468066Z",
+      "endedAtUtc": "2026-10-13T17:34:37.5547229Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 8,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "recovery-fixes-target26": {
+      "startedAtUtc": "2026-10-13T17:37:10.9267738Z",
+      "endedAtUtc": "2026-10-13T17:43:06.4717260Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f04ca981b32af50e9c99b13b1898f6481fd04112",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 30,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 4,
+      "freshXmlFiles": 4,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 30,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "full01": {
+      "startedAtUtc": "2026-10-13T17:45:08.7010142Z",
+      "endedAtUtc": "2026-10-13T18:06:35.2162204Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 4521,
+        "failures": 34,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 614,
+      "freshXmlFiles": 614,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 4521,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": true
+    },
+    "live-entry-target27": {
+      "startedAtUtc": "2026-10-13T18:09:55.8581273Z",
+      "endedAtUtc": "2026-10-13T18:16:25.4310288Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 2,
+      "freshXmlFiles": 2,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 1,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "native-final-build28": {
+      "startedAtUtc": "2026-10-13T18:26:06.8416815Z",
+      "endedAtUtc": "2026-10-13T18:31:31.0517064Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 2,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "assemblyOnly": true,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "native-scroll-build29": {
+      "startedAtUtc": "2026-10-13T18:39:52.7447566Z",
+      "endedAtUtc": "2026-10-13T18:43:40.3563444Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 2,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "assemblyOnly": true,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "finished-set-native03": {
+      "phase": "",
+      "sourceStable": true,
+      "result": "PASS",
+      "recoveryPhase": "",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "apks": {
+        "tests": "96DA6D9318313D87947C9CB19EFA7086369E39420E5B603D7CC1C9B05B80E9F7",
+        "app": "45B0595843BCF11DB7B8E0E39C42BA94ED7B1409A560BA6DFA64A1BF757B008B"
+      },
+      "changedInputs": [],
+      "apkStable": true,
+      "finishedUtc": "2026-10-13T18:19:01.3853093Z",
+      "freshTests": 1,
+      "startedUtc": "2026-10-13T18:18:47.3723237Z",
+      "sourceFiles": 1632,
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest",
+      "exit": 0,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d"
+    },
+    "finished-set-process01": {
+      "sourceStable": true,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "endedAtUtc": "2026-10-13T18:21:56.3526152Z",
+      "sourceFiles": 1632,
+      "scope": "Fresh historical-set raw/unit recovery through shipping AppNav on owned API29; no owner data or physical acceptance",
+      "phases": [
+        {
+          "phase": "stage",
+          "exit": 0,
+          "tests": 1,
+          "passed": true
+        },
+        {
+          "phase": "resume",
+          "exit": 0,
+          "tests": 0,
+          "passed": false
+        }
+      ],
+      "startedAtUtc": "2026-10-13T18:21:31.0328691Z",
+      "sourceStatus": "See source-status and exact source snapshots",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "changedInputs": []
+    },
+    "finished-set-process02": {
+      "sourceStable": true,
+      "sourceFiles": 1632,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "phases": [
+        {
+          "passed": true,
+          "phase": "stage",
+          "exit": 0,
+          "tests": 1
+        },
+        {
+          "passed": true,
+          "phase": "resume",
+          "exit": 0,
+          "tests": 1
+        }
+      ],
+      "sourceStatus": "See source-status and exact source snapshots",
+      "scope": "Fresh historical-set raw/unit recovery through shipping AppNav on owned API29; no owner data or physical acceptance",
+      "startedAtUtc": "2026-10-13T18:33:33.3799725Z",
+      "endedAtUtc": "2026-10-13T18:34:01.9272833Z",
+      "result": "PASS",
+      "changedInputs": []
+    },
+    "finished-set-process03": {
+      "changedInputs": [],
+      "sourceFiles": 1632,
+      "result": "PASS",
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "endedAtUtc": "2026-10-13T18:47:36.0128604Z",
+      "phases": [
+        {
+          "passed": true,
+          "tests": 1,
+          "exit": 0,
+          "phase": "stage"
+        },
+        {
+          "passed": true,
+          "tests": 1,
+          "exit": 0,
+          "phase": "resume"
+        }
+      ],
+      "sourceStable": true,
+      "sourceStatus": "See source-status and exact source snapshots",
+      "startedAtUtc": "2026-10-13T18:47:07.7452776Z",
+      "scope": "Fresh historical-set raw/unit recovery through shipping AppNav on owned API29; no owner data or physical acceptance"
+    },
+    "finished-set-conflict01": {
+      "apkStable": true,
+      "finishedUtc": "2026-10-13T18:20:03.4818806Z",
+      "changedInputs": [],
+      "sourceFiles": 1632,
+      "freshTests": 1,
+      "startedUtc": "2026-10-13T18:19:51.9659861Z",
+      "sourceStable": true,
+      "recoveryPhase": "conflict",
+      "apks": {
+        "app": "45B0595843BCF11DB7B8E0E39C42BA94ED7B1409A560BA6DFA64A1BF757B008B",
+        "tests": "96DA6D9318313D87947C9CB19EFA7086369E39420E5B603D7CC1C9B05B80E9F7"
+      },
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest",
+      "phase": "",
+      "result": "PASS",
+      "exit": 0
+    },
+    "finished-set-conflict02": {
+      "finishedUtc": "2026-10-13T18:48:50.3961753Z",
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "result": "PASS",
+      "startedUtc": "2026-10-13T18:48:38.8046843Z",
+      "apkStable": true,
+      "sourceFiles": 1632,
+      "exit": 0,
+      "freshTests": 1,
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest",
+      "sourceStable": true,
+      "apks": {
+        "app": "1E79255D94DE14B4429DF04B201439E51AE7FD41578DD23AB15267E70D2DFE1C",
+        "tests": "559FBFE86209B57288D2E923FB80E386B4F0BC055B9168A733A48A36C24A376A"
+      },
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "changedInputs": [],
+      "recoveryPhase": "conflict",
+      "phase": ""
+    },
+    "records-chart-native04": {
+      "result": "PASS",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "exit": 0,
+      "apks": {
+        "tests": "1E92A52F05D7B7C5CC24EFB0C535E7AA031ED50ACE2C6F14694EC5FE2ED6285C",
+        "app": "1E79255D94DE14B4429DF04B201439E51AE7FD41578DD23AB15267E70D2DFE1C"
+      },
+      "apkStable": true,
+      "freshTests": 3,
+      "finishedUtc": "2026-10-13T18:35:51.3307710Z",
+      "recoveryPhase": "",
+      "sourceFiles": 1632,
+      "sourceStable": true,
+      "startedUtc": "2026-10-13T18:35:42.6443522Z",
+      "class": "com.sinura.personaltrainer.ui.history.RecordSourceInstrumentedTest",
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "changedInputs": [],
+      "phase": ""
+    },
+    "records-chart-native05": {
+      "phase": "",
+      "freshTests": 3,
+      "sourceFiles": 1632,
+      "changedInputs": [],
+      "exit": 0,
+      "class": "com.sinura.personaltrainer.ui.history.RecordSourceInstrumentedTest",
+      "startedUtc": "2026-10-13T18:50:18.0606035Z",
+      "sourceStable": true,
+      "apks": {
+        "app": "1E79255D94DE14B4429DF04B201439E51AE7FD41578DD23AB15267E70D2DFE1C",
+        "tests": "559FBFE86209B57288D2E923FB80E386B4F0BC055B9168A733A48A36C24A376A"
+      },
+      "apkStable": true,
+      "result": "PASS",
+      "recoveryPhase": "",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "finishedUtc": "2026-10-13T18:50:27.4629920Z"
+    },
+    "large-set-native01": {
+      "result": "PASS",
+      "freshTests": 1,
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "startedUtc": "2026-10-13T18:45:21.1110131Z",
+      "apkStable": true,
+      "sourceStable": true,
+      "changedInputs": [],
+      "sourceFiles": 1632,
+      "apks": {
+        "tests": "559FBFE86209B57288D2E923FB80E386B4F0BC055B9168A733A48A36C24A376A",
+        "app": "1E79255D94DE14B4429DF04B201439E51AE7FD41578DD23AB15267E70D2DFE1C"
+      },
+      "exit": 0,
+      "recoveryPhase": "",
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "phase": "",
+      "finishedUtc": "2026-10-13T18:45:35.9892663Z",
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest"
+    },
+    "notes-process-final02": {
+      "sourceStatus": "See source-status and exact source snapshots",
+      "changedInputs": [],
+      "result": "PASS",
+      "startedAtUtc": "2026-10-13T18:52:37.4078632Z",
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "endedAtUtc": "2026-10-13T18:53:05.2292038Z",
+      "scope": "Fresh completed-note recovery through shipping AppNav on owned API29; no owner data or physical acceptance",
+      "sourceStable": true,
+      "sourceFiles": 1632,
+      "phases": [
+        {
+          "exit": 0,
+          "passed": true,
+          "phase": "stage",
+          "tests": 1
+        },
+        {
+          "exit": 0,
+          "passed": true,
+          "phase": "resume",
+          "tests": 1
+        }
+      ]
+    },
+    "numeric-lifetime-final01": {
+      "changedInputs": [],
+      "recoveryPhase": "",
+      "apkStable": true,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "class": "com.sinura.personaltrainer.ui.components.NumberEntryLifetimeInstrumentedTest",
+      "exit": 0,
+      "result": "PASS",
+      "apks": {
+        "tests": "559FBFE86209B57288D2E923FB80E386B4F0BC055B9168A733A48A36C24A376A",
+        "app": "1E79255D94DE14B4429DF04B201439E51AE7FD41578DD23AB15267E70D2DFE1C"
+      },
+      "startedUtc": "2026-10-13T19:04:43.2425941Z",
+      "freshTests": 4,
+      "sourceFiles": 1632,
+      "phase": "",
+      "finishedUtc": "2026-10-13T19:04:53.3852849Z",
+      "sourceStable": true
+    },
+    "live-workout-native-final02": {
+      "recoveryPhase": "",
+      "apks": {
+        "tests": "559FBFE86209B57288D2E923FB80E386B4F0BC055B9168A733A48A36C24A376A",
+        "app": "1E79255D94DE14B4429DF04B201439E51AE7FD41578DD23AB15267E70D2DFE1C"
+      },
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "startedUtc": "2026-10-13T19:05:06.5016562Z",
+      "result": "PASS",
+      "sourceFiles": 1632,
+      "exit": 0,
+      "finishedUtc": "2026-10-13T19:06:09.5108506Z",
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "class": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyInstrumentedTest",
+      "freshTests": 1,
+      "phase": "",
+      "sourceStable": true,
+      "changedInputs": [],
+      "apkStable": true
+    },
+    "large-receipt-native-final02": {
+      "apks": {
+        "app": "1E79255D94DE14B4429DF04B201439E51AE7FD41578DD23AB15267E70D2DFE1C",
+        "tests": "559FBFE86209B57288D2E923FB80E386B4F0BC055B9168A733A48A36C24A376A"
+      },
+      "sourceStable": true,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "phase": "",
+      "recoveryPhase": "",
+      "changedInputs": [],
+      "result": "PASS",
+      "apkStable": true,
+      "exit": 0,
+      "sourceFiles": 1632,
+      "startedUtc": "2026-10-13T19:06:37.3533963Z",
+      "class": "com.sinura.personaltrainer.ui.history.CompletedNotesContinuityInstrumentedTest",
+      "finishedUtc": "2026-10-13T19:06:50.3344800Z",
+      "freshTests": 1
+    },
+    "recovery-polish-build30": {
+      "startedAtUtc": "2026-10-13T19:07:16.0763124Z",
+      "endedAtUtc": "2026-10-13T19:12:49.8783821Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "32406afb49b44f38dde0f739c727cffceaba361d",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 2,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "assemblyOnly": true,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "full02": {
+      "startedAtUtc": "2026-10-13T19:14:05.4254200Z",
+      "endedAtUtc": "2026-10-13T19:48:44.9197126Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "7d24cbb68a4cff6a26950c3ef11ca418fae8d681",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 4521,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 614,
+      "freshXmlFiles": 614,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 4521,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": true
+    },
+    "full03-native-acceptance": {
+      "startedAtUtc": "2026-10-13T19:50:27.1812938Z",
+      "endedAtUtc": "2026-10-13T19:50:53.7926069Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "d5535a9f1f9ddcd75194ef02fca6988ef0dc4ddd",
+      "sourceFilesBefore": 1634,
+      "sourceFilesAfter": 1634,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 4521,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 614,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 4521,
+      "reusedEvidence": "build/ux-context/runs/details-receipts/full02",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": true,
+      "freshStandaloneExecution": false,
+      "standaloneEvidenceReference": "build/ux-context/runs/details-receipts/full02"
+    },
+    "full04-native-acceptance": {
+      "startedAtUtc": "2026-10-13T19:52:23.3378218Z",
+      "endedAtUtc": "2026-10-13T20:02:44.5562130Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "sourceFilesBefore": 1634,
+      "sourceFilesAfter": 1634,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 4521,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 614,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": true,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 4521,
+      "reusedEvidence": "build/ux-context/runs/details-receipts/full02",
+      "result": "PASS complete gate; unchanged JVM inputs and exact preserved executed XML proven; JVM task UP-TO-DATE or FROM-CACHE, not a new test execution",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": true,
+      "freshStandaloneExecution": false,
+      "standaloneEvidenceReference": "build/ux-context/runs/details-receipts/full02"
+    },
+    "receipt-chart-acceptance01": {
+      "exit": 0,
+      "startedUtc": "2026-10-13T20:02:59.7065252Z",
+      "scope": "Mixed native scopes: Recovery uses screen/VM/private adapter/native dialogs; Continuity uses shipping MainActivity/AppNav; Pass uses components. Exact class list/raw method results govern. No phone acceptance",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "apkStable": true,
+      "finishedUtc": "2026-10-13T20:03:12.7712988Z",
+      "sourceFiles": 1634,
+      "result": "PASS",
+      "apks": {
+        "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E",
+        "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D"
+      },
+      "sourceStable": true,
+      "freshTests": 5,
+      "recoveryPhase": "",
+      "class": "com.sinura.personaltrainer.ui.summary.P07ReceiptStatesInstrumentedTest,com.sinura.personaltrainer.ui.exercise.P07ChartStatesInstrumentedTest",
+      "changedInputs": [],
+      "phase": ""
+    },
+    "record-refresh-connected01": {
+      "finishedUtc": "2026-10-13T20:04:31.3545944Z",
+      "startedUtc": "2026-10-13T20:04:14.5624245Z",
+      "sourceFiles": 1634,
+      "freshTests": 1,
+      "apkStable": true,
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest",
+      "exit": 0,
+      "changedInputs": [],
+      "phase": "",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "apks": {
+        "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E",
+        "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D"
+      },
+      "recoveryPhase": "",
+      "sourceStable": true,
+      "result": "PASS"
+    },
+    "done-return-native01": {
+      "startedUtc": "2026-10-13T20:06:29.5133360Z",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "phase": "",
+      "sourceFiles": 1634,
+      "apkStable": true,
+      "sourceStable": true,
+      "changedInputs": [],
+      "freshTests": 1,
+      "finishedUtc": "2026-10-13T20:06:51.7495118Z",
+      "result": "PASS",
+      "exit": 0,
+      "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest#seedSession_typeWeight_log_rest_finish_reachesSummary",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "recoveryPhase": "",
+      "apks": {
+        "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D",
+        "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E"
+      }
+    },
+    "finished-set-process-final04": {
+      "sourceFiles": 1634,
+      "phases": [
+        {
+          "phase": "connected",
+          "passed": true,
+          "exit": 0,
+          "tests": 1
+        }
+      ],
+      "sourceStable": true,
+      "endedAtUtc": "2026-10-13T20:08:37.3984355Z",
+      "sourceStatus": "See source-status and exact source snapshots",
+      "result": "PASS",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "changedInputs": [],
+      "startedAtUtc": "2026-10-13T20:08:19.9050176Z",
+      "scope": "Fresh historical-set raw/unit recovery through shipping AppNav on owned API29; no owner data or physical acceptance"
+    },
+    "finished-set-process-final05": {
+      "changedInputs": [],
+      "endedAtUtc": "2026-10-13T20:11:24.6488877Z",
+      "scope": "Fresh historical-set raw/unit recovery through shipping AppNav on owned API29; no owner data or physical acceptance",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "phases": [
+        {
+          "passed": true,
+          "phase": "stage",
+          "tests": 1,
+          "exit": 0
+        },
+        {
+          "passed": true,
+          "phase": "resume",
+          "tests": 1,
+          "exit": 0
+        }
+      ],
+      "sourceFiles": 1634,
+      "sourceStatus": "See source-status and exact source snapshots",
+      "sourceStable": true,
+      "result": "PASS",
+      "startedAtUtc": "2026-10-13T20:10:55.3517604Z"
+    },
+    "finished-set-conflict-final03": {
+      "sourceFiles": 1634,
+      "finishedUtc": "2026-10-13T20:08:52.1866852Z",
+      "changedInputs": [],
+      "phase": "",
+      "apks": {
+        "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E",
+        "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D"
+      },
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "apkStable": true,
+      "recoveryPhase": "conflict",
+      "exit": 0,
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest",
+      "startedUtc": "2026-10-13T20:08:39.7729274Z",
+      "sourceStable": true,
+      "freshTests": 1,
+      "result": "PASS",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed"
+    },
+    "notes-process-final03": {
+      "changedInputs": [],
+      "endedAtUtc": "2026-10-13T20:11:51.9789178Z",
+      "scope": "Fresh completed-note recovery through shipping AppNav on owned API29; no owner data or physical acceptance",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "phases": [
+        {
+          "passed": true,
+          "phase": "stage",
+          "tests": 1,
+          "exit": 0
+        },
+        {
+          "passed": true,
+          "phase": "resume",
+          "tests": 1,
+          "exit": 0
+        }
+      ],
+      "sourceFiles": 1634,
+      "sourceStatus": "See source-status and exact source snapshots",
+      "sourceStable": true,
+      "result": "PASS",
+      "startedAtUtc": "2026-10-13T20:11:25.7667273Z"
+    },
+    "finalApks": {
+      "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D",
+      "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E"
+    }
+  },
+  "originalFailures": [
+    "baseline-notes01 collector fixture timeout; repaired with subscribed suspending pump and the same bounded deadline.",
+    "baseline-notes02 demonstrated app raw-note loss; retained unchanged.",
+    "notes-target01 recursive type inference compile failure; explicit property types corrected.",
+    "notes-target03, notes-sources-target05/06: mixed-required-argument and unused-import statics failed. Named new arguments and removed the unused import; no ceilings/assertions weakened.",
+    "native-connected01/02 stayed on History. Captured failure and semantics establish the fixture tapped the noninteractive row footer; exact owned row identity button is now tapped. native-connected03 passed.",
+    "record-sources-native01 mechanical pass still exposed M6 rounded-button clipping under visual inspection. Full-width text-row fix is in record-layout-target12.",
+    "record-sources-native02 mechanical pass captured a blank component frame. It is retained and not accepted as a preview; native capture repair is pending. Compose-root capture in native03 is valid; both fresh checks passed and pixels inspected.",
+    "finished-set-target14 statics refused two newly mixed named/positional calls; named arguments repaired without weakening checks. Zero executed tests.",
+    "finished-set-target15 statics refused a newly fully qualified lambda call; imported the internal adapter normally. Zero executed tests.",
+    "Foundation adversarial review found production correction fencing changed its own private generation. Exact saved readback now reconciles only that admitted handle; a production-hook regression passes. Unreadable owner/discard gap was also fixed with a claimed problem handle and explicit private discard.",
+    "finished-editor-target17 statics rejected an unsupported state.map receiver; named the explicitly typed recovery flow. No checks were weakened and zero tests executed.",
+    "finished-editor-target19 failed test compilation because a trailing Close callback bound to a newly added default argument; reordered the internal arguments. Zero tests executed.",
+    "finished-editor-target20 statics rejected a new raw 240dp constant outside Metrics; added the internal recoveryPreviewMax token and removed an unused import. No ceiling changed; zero tests executed.",
+    "Historical editor review found mismatched framework/private commands could strand Checking, failed Keep followed by Read again could drop newer raw fields, conflict review could implicitly discard, confirmed Close callbacks could edit a hidden draft, and missing rows had no recovery controls. Focused fixes preserve raw fields, expose actionable controls, and guard/reconcile commands. Target21 and bounded fix-review closure record their checks.",
+    "Historical HIST-M3 resume enabled input before the retained pending command returned to Floor; Resume now restores that command first and pending input stays guarded. Scoped closure21 found no remaining C/H/M in that delta.",
+    "finished-set-native01 failed because the fixture searched Type a weight as a content description instead of the existing test tag. No screenshot was captured. Original output retained; selector corrected without changing application behavior.",
+    "finished-set-native02 attempted to confirm deliberately incomplete 225. and then accessed rep controls behind the still-open dialog; two field nodes correctly remained. Fixture now completes to 225.5 and waits for the weight dialog to disappear. The screenshot also held an older rendered field frame and is not accepted as a raw recovery preview.",
+    "Full P07 source review found stale framework notes could replace newer durable text (High), conflicting restored keypads could block all recovery/exit (High), and accepted draft Discard could hide recovery while Edit remained disabled (Medium). All three production fix deltas are closed by both reviewers; native and full-gate proof still pending.",
+    "recovery-fixes-target24 failed test compilation on a private companion constant reference before execution. Test now seeds the existing literal saved-state key; production visibility unchanged.",
+    "recovery-fixes-target25 failed statics on omitted native fixture selection arguments and a mixed constructor call before execution. Explicit selections and named arguments repaired; unchanged required-argument baseline180/46 passes.",
+    "recovery-fixes-target26 passed all 30 fresh scoped JVM checks, then native test compilation refused an unnecessary assertDoesNotExist import. Removed only that import; overall build attempt remains failed/incomplete.",
+    "full01 freshly executed the entire app suite: 4521 tests, 34 failures, no errors/skips. Every failure was AbstractMethodError for the live numeric-entry allowsInput contract. Standalone preflight passed 1712 checks. Original XML/logs/manifests are retained; bytecode-before, bytecode-after and the exact 34-case map are under full01-diagnosis. The interface now requires explicit implementation, the live port explicitly returns true, and historical input remains guarded. No static rule/test was weakened and no host-only cause is claimed. Fresh full02 is mandatory.",
+    "finished-set-process01 stage passed and the actual process was force-stopped; resume failed because assertTextEquals included merged unit/helper text. EditableText already contained the exact 225. raw field. The fixture now asserts EditableText and the captured LBS context; process02/process03 each pass both actual force-stop/reopen phases.",
+    "live-workout-native-final01 executed the AppNav test successfully, then ADB became unavailable during PNG collection. Original instrumentation and partially pulled captures remain. The archive is incomplete, not a clean run. live-workout-native-final02 passes with complete capture collection and unchanged inputs/APKs.",
+    "Final native conflict visual review found duplicate Read again/private Discard below the existing recovery surface. The blocked editor now presents the controls once; normal input retains its existing private Discard. The focused final conflict execution and review addenda own this small presentation correction.",
+    "The first duplicate-action visibility guard hid private controls for submitted commands before any integration. Both reviewers identified the same High mismatch-recovery regression. The final guard keeps lower controls when a command is submitted and suppresses them only when the in-sheet recovery panel renders. Original failing source seal/reports remain; bounded closure follows the correction.",
+    "full03-native-acceptance stopped in check-missing-imports before compilation: the chart test local name selected was mistaken for a Compose semantics import. Renamed the local variable displayUnit, preserving the checker. Full04 passes with unchanged production/JVM inputs and explicitly reused full02 executed evidence. Full03 remains failed; zero fresh JVM/standalone tests ran."
+  ],
+  "reviews": "Final independent p07-final-independent-receipt-seal.md and adversarial p07-final-receipt-seal-adversarial-20261013-161915.md verify exact source,614 fresh/reused XML,4521/1712 executions,13 matching-APK native executions, actual PID termination proofs, nine bounded criterion maps and asset hashes. No remaining C/H/M or required evidence gap within stated P07 scope. All original findings/failures and bounded closures remain archived. Integration/P19/P20/distribution are not claimed complete.",
+  "assets": [
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-receipt-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/process-final01/notes-captures/p07-process-final01-resume-notes-discard-restored-saved-notes.png",
+      "sha256": "12efb109f110563501a8fdd1740db17d81310882144dc5cba19bb8571e661800",
+      "scope": "Shipping MainActivity/AppNav with isolated synthetic Room data; not phone acceptance"
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-notes-recovered-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/process-final01/notes-captures/p07-process-final01-resume-notes-restored-conflict-resume.png",
+      "sha256": "307229a3535c2790bc3079690a767e749b2901c1223eedab68b097f5bbad9357",
+      "scope": "Shipping MainActivity/AppNav with isolated synthetic Room data; not phone acceptance"
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-receipt-font20-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/large-receipt-native01/notes-captures/p07-large-receipt-native01-notes-restored-conflict-connected.png",
+      "sha256": "6ca7a6894a7a1a8d0e3bf12ba47bcf8dfb467101e3e91771b3fb3a5cd8d0e39f",
+      "scope": "Shipping MainActivity/AppNav with isolated synthetic Room data; not phone acceptance"
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-record-source-font20-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/record-sources-native03/notes-captures/p07-record-sources-native03-notes-record-source-captured-date.png",
+      "sha256": "95c34d298909fbebc10dd1da006e2d4351f5dc4ca9f7f049f1d9deee7ceb059c",
+      "scope": "Native Compose record-card component at font2; not whole AppNav or phone acceptance"
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-historical-raw-recovered-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/finished-set-process03/set-captures/p07-finished-set-process03-resume-set-raw-after-reopen-with-kg-preference.png",
+      "sha256": "99191b6970a0e93e486d27d226e2e06a3c2324f82e5b5f4163c0ae8ccc64ee55",
+      "scope": "Shipping AppNav, actual process force-stop/reopen; raw LBS entry retained after KG preference. Pre-final duplicate-control presentation delta; no phone acceptance."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-historical-correction-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/finished-set-process03/set-captures/p07-finished-set-process03-resume-set-confirmed-same-set.png",
+      "sha256": "19f657bf82d7c0db0d4d05ac41eda2fdf40085eff597bc7e69d39bc82937c116",
+      "scope": "Shipping AppNav, exact corrected identity/time/number and refreshed receipt; pre-final presentation delta, no phone acceptance."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-chart-data-list-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/records-chart-native05/notes-captures/p07-records-chart-native05-notes-irregular-session-exact-values.png",
+      "sha256": "5d32deaecdebe62fac100a161b788259f5fa6d8e882487d4e9dd19baaab16a6f",
+      "scope": "Native chart component: irregular Jan1/Jan2/Apr1 dates and exact selected-unit values, equivalent list; not AppNav/phone acceptance."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-record-refreshed-current-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/record-refresh-connected01/set-captures/p07-record-refresh-connected01-set-record-refreshed-after-correction.png",
+      "sha256": "7ae50cf875f52b35509a0ae5b23c856fa5043811e0e81e923eaacaac034ba197",
+      "scope": "Final APK, real retained AppNav ExerciseDetail refreshed after correction and exact supporting-session route; synthetic data, not phone acceptance."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-supporting-session-current-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/record-refresh-connected01/set-captures/p07-record-refresh-connected01-set-exact-supporting-session-after-correction.png",
+      "sha256": "29f795ecc7ea105353acde54eee98d3516c49f85fa4b48342359c66d1eb76a7a",
+      "scope": "Final APK, shipping AppNav supporting-session return with exact corrected row spoken/visible readout; synthetic data. Long synthetic session title clamps in the existing header; complete-label closure remains P19."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-set-conflict-current-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/finished-set-conflict-final03/set-captures/p07-finished-set-conflict-final03-set-conflict-recovery-reachable.png",
+      "sha256": "3db0ed944c432ef572281e69ed7c3ba933948a2b9ee05f92629a7dc13297be32",
+      "scope": "Final APK, AppNav read-only conflict recovery with one set of reachable private actions; not phone acceptance."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-flat-loaded-values-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/receipt-chart-acceptance01/notes-captures/p07-receipt-chart-acceptance01-notes-chart-flat-loaded-lb-data.png",
+      "sha256": "e3cc2bfbdcb057b467c832f31ba2bc7f86e130ef21be81a2404d867667c9862c",
+      "scope": "Final APK, native Estimated1RM component equivalent date/value list in pounds; not AppNav, storage mutation or phone evidence."
+    }
+  ],
+  "remaining": [
+    "Final exact receipt/criterion/input review seals.",
+    "P07 PR/merge, exact integration input proof, shortest affected AppNav route and feature branch retirement.",
+    "P19 full navigation/layout/required accessibility matrix and P20 physical/owner acceptance.",
+    "Signed Drop A after P10; latest delivered Debug125 remains unchanged."
+  ],
+  "delivery": "Latest signed delivery remains Debug125 at 587e9577ee30f1962fa0a6db1a6acd2aad0b642c. No P07 distribution APK; Drop A follows P10.",
+  "criterionEvidence": {
+    "UX05-AC01": {
+      "suites": [
+        "WorkoutSummaryViewModelTest",
+        "SummaryDetailSavedWorkRenderTest"
+      ],
+      "native": [
+        "receipt-chart-acceptance01"
+      ],
+      "scope": "Real VM/storage missing/deleted/read-fault/confirmed-computation-fault/no-work invariants plus native constructed Content states; no native repository-fault/restore-over injection claim.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.WorkoutSummaryViewModelTest.xml",
+          "sha256": "ee9b39aa5584eeb56fb3d08b6c65f24892c99ef9b6d66f32b58f50e0caeb9872",
+          "methods": [
+            "finishedWorkingSessionBuildsVolumeSetsTitleAndNotes",
+            "artworkAndNamesUseTheReadSessionWhenCatalogChangesDuringSummaryComputation",
+            "aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing",
+            "aComputationFaultDoesNotPublishReadIdentityAndRetryPreservesSavedRows",
+            "missingSessionResolvesMissingInsteadOfSpinning",
+            "summaryLoadsOnceAndDoesNotChangeAfterHistoricalRepair",
+            "savedExerciseArtworkUsesExactIdsEvenWhenNamesCollide",
+            "aBodyweightOnlySessionHeadlinesReps",
+            "warmupOnlySessionIsSavedButHasNoSummaryWork",
+            "blankSessionIdResolvesMissingInsteadOfSpinning",
+            "anUnreadableRowIsUnavailableNotMissingAndNotSaved",
+            "matchingAcknowledgedCorrectionReloadsButAnotherSessionCannot",
+            "finishedEmptySessionDoesNotPublishUnworkedExerciseArtwork",
+            "failedRetryClearsReadIdentityWhileLoadingAndWhenTheSessionHasGone",
+            "setOnlyLegacyWorkoutKeepsExactIdentityWithoutBorrowingTheNamedCatalogLift",
+            "acknowledgedDeletedSessionBecomesMissingInsteadOfRetainingSavedTotals",
+            "retryIsANoOpUnlessTheLastReadThrew"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.SummaryDetailSavedWorkRenderTest.xml",
+          "sha256": "da40219df5b4d7769dd5d1e3bd5b6cbbc6ee555c558b1a8e90f3d82e45122ab7",
+          "methods": [
+            "tabletLargestText",
+            "tabletDefaultText",
+            "sameMuscleAndFallbackImagesRemainBoundToExactExerciseIds",
+            "rtlLargestTextAndReducedMotion",
+            "landscapeLargestText",
+            "tabletLargeText",
+            "landscapeDefaultText",
+            "narrowLargestText",
+            "standardLargeText",
+            "compactResultsKeepBodyweightMixedAndHoldMeasures",
+            "standardLargestText",
+            "standardDefaultText",
+            "smallLargestText",
+            "landscapeLargeText",
+            "smallDefaultText",
+            "smallLargeText"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX05-AC02": {
+      "suites": [
+        "WorkoutSummaryViewModelTest"
+      ],
+      "native": [
+        "receipt-chart-acceptance01"
+      ],
+      "scope": "Failed-summary Retry preserves exact session/finish/set inventory on real VM/JVM; native component checks correct callback, not a native business-store fault.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.WorkoutSummaryViewModelTest.xml",
+          "sha256": "ee9b39aa5584eeb56fb3d08b6c65f24892c99ef9b6d66f32b58f50e0caeb9872",
+          "methods": [
+            "finishedWorkingSessionBuildsVolumeSetsTitleAndNotes",
+            "artworkAndNamesUseTheReadSessionWhenCatalogChangesDuringSummaryComputation",
+            "aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing",
+            "aComputationFaultDoesNotPublishReadIdentityAndRetryPreservesSavedRows",
+            "missingSessionResolvesMissingInsteadOfSpinning",
+            "summaryLoadsOnceAndDoesNotChangeAfterHistoricalRepair",
+            "savedExerciseArtworkUsesExactIdsEvenWhenNamesCollide",
+            "aBodyweightOnlySessionHeadlinesReps",
+            "warmupOnlySessionIsSavedButHasNoSummaryWork",
+            "blankSessionIdResolvesMissingInsteadOfSpinning",
+            "anUnreadableRowIsUnavailableNotMissingAndNotSaved",
+            "matchingAcknowledgedCorrectionReloadsButAnotherSessionCannot",
+            "finishedEmptySessionDoesNotPublishUnworkedExerciseArtwork",
+            "failedRetryClearsReadIdentityWhileLoadingAndWhenTheSessionHasGone",
+            "setOnlyLegacyWorkoutKeepsExactIdentityWithoutBorrowingTheNamedCatalogLift",
+            "acknowledgedDeletedSessionBecomesMissingInsteadOfRetainingSavedTotals",
+            "retryIsANoOpUnlessTheLastReadThrew"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX05-AC03": {
+      "suites": [
+        "WorkoutSummaryBuilderTest",
+        "WorkoutSummaryViewModelTest",
+        "SummaryDetailSavedWorkRenderTest"
+      ],
+      "native": [
+        "receipt-chart-acceptance01"
+      ],
+      "scope": "Bodyweight Summary headlines recorded reps; native constructed Content state is paired with actual VM/builder execution.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.WorkoutSummaryBuilderTest.xml",
+          "sha256": "87eb5cb46b73c1b7348bec4f46a0794e8ea5bd443d274f1b0d32c960dadb79d5",
+          "methods": [
+            "exactTopSetAndHighlightTiesDoNotDependOnIncomingRowOrder",
+            "highlightsLeadWithTheHeaviestWorkedLift",
+            "aMixedSessionLeadsWithKilogramsAndKeepsItsReps",
+            "summaryHoldReadbackKeepsLiteralSecondsAndDoesNotInventReps",
+            "aBackOffSessionBreaksNothing",
+            "anUnnamedSessionStillHasATitle",
+            "aBodyweightOnlySessionHeadlinesItsRepsNotZeroKilograms",
+            "aLiftWithNoPriorHistorySetsNoRecords",
+            "ascendingSetsAreOneWeightRecordNotThree",
+            "warmupsAreNotWork",
+            "theTopSetIsTheOneProgressionWouldJudge",
+            "aWarmupOnlySessionHasNoWork",
+            "aLoadedSessionWithNoTonnageFallsBackToItsSetCount"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.WorkoutSummaryViewModelTest.xml",
+          "sha256": "ee9b39aa5584eeb56fb3d08b6c65f24892c99ef9b6d66f32b58f50e0caeb9872",
+          "methods": [
+            "finishedWorkingSessionBuildsVolumeSetsTitleAndNotes",
+            "artworkAndNamesUseTheReadSessionWhenCatalogChangesDuringSummaryComputation",
+            "aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing",
+            "aComputationFaultDoesNotPublishReadIdentityAndRetryPreservesSavedRows",
+            "missingSessionResolvesMissingInsteadOfSpinning",
+            "summaryLoadsOnceAndDoesNotChangeAfterHistoricalRepair",
+            "savedExerciseArtworkUsesExactIdsEvenWhenNamesCollide",
+            "aBodyweightOnlySessionHeadlinesReps",
+            "warmupOnlySessionIsSavedButHasNoSummaryWork",
+            "blankSessionIdResolvesMissingInsteadOfSpinning",
+            "anUnreadableRowIsUnavailableNotMissingAndNotSaved",
+            "matchingAcknowledgedCorrectionReloadsButAnotherSessionCannot",
+            "finishedEmptySessionDoesNotPublishUnworkedExerciseArtwork",
+            "failedRetryClearsReadIdentityWhileLoadingAndWhenTheSessionHasGone",
+            "setOnlyLegacyWorkoutKeepsExactIdentityWithoutBorrowingTheNamedCatalogLift",
+            "acknowledgedDeletedSessionBecomesMissingInsteadOfRetainingSavedTotals",
+            "retryIsANoOpUnlessTheLastReadThrew"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.SummaryDetailSavedWorkRenderTest.xml",
+          "sha256": "da40219df5b4d7769dd5d1e3bd5b6cbbc6ee555c558b1a8e90f3d82e45122ab7",
+          "methods": [
+            "tabletLargestText",
+            "tabletDefaultText",
+            "sameMuscleAndFallbackImagesRemainBoundToExactExerciseIds",
+            "rtlLargestTextAndReducedMotion",
+            "landscapeLargestText",
+            "tabletLargeText",
+            "landscapeDefaultText",
+            "narrowLargestText",
+            "standardLargeText",
+            "compactResultsKeepBodyweightMixedAndHoldMeasures",
+            "standardLargestText",
+            "standardDefaultText",
+            "smallLargestText",
+            "landscapeLargeText",
+            "smallDefaultText",
+            "smallLargeText"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX05-AC04": {
+      "suites": [
+        "SummaryCorrectionNavigationTest",
+        "SummaryDetailSavedWorkRenderTest"
+      ],
+      "native": [
+        "done-return-native01",
+        "live-workout-native-final02"
+      ],
+      "scope": "Final-APK real AppNav Done returns once to Home with exact finished inventory/no live bar. System Back was executed on the earlier live-workout manifest; fresh final JVM shipping AppNav paths cover current integration.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SummaryCorrectionNavigationTest.xml",
+          "sha256": "59f3e2f63227a87877fc714b44f61c50e45813f2e1f78e7bf21ff6b5f2eddd8a",
+          "methods": [
+            "savedCorrectionRefreshesTheRetainedSummaryBeforeDoneReturnsHome",
+            "savedCorrectionSurvivesANewActivityWhileDetailIsOpen"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.SummaryDetailSavedWorkRenderTest.xml",
+          "sha256": "da40219df5b4d7769dd5d1e3bd5b6cbbc6ee555c558b1a8e90f3d82e45122ab7",
+          "methods": [
+            "tabletLargestText",
+            "tabletDefaultText",
+            "sameMuscleAndFallbackImagesRemainBoundToExactExerciseIds",
+            "rtlLargestTextAndReducedMotion",
+            "landscapeLargestText",
+            "tabletLargeText",
+            "landscapeDefaultText",
+            "narrowLargestText",
+            "standardLargeText",
+            "compactResultsKeepBodyweightMixedAndHoldMeasures",
+            "standardLargestText",
+            "standardDefaultText",
+            "smallLargestText",
+            "landscapeLargeText",
+            "smallDefaultText",
+            "smallLargeText"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX15-AC03": {
+      "suites": [
+        "SupportingRecordSessionTest",
+        "SessionDetailRestoredHoldSafetyRenderTest",
+        "SummaryCorrectionNavigationTest",
+        "StandingRecordsTest"
+      ],
+      "native": [
+        "record-refresh-connected01",
+        "records-chart-native05"
+      ],
+      "scope": "Final-APK actual retained record refresh after current-best correction, exact source navigation and visible corrected set. Multi-year/competing identities are JVM evidence; native competing F05 history remains P19.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.SupportingRecordSessionTest.xml",
+          "sha256": "73ad85abedc7ad73452e7b090706bd1f28129424aab39d06b66981e44f5e4237",
+          "methods": [
+            "exactSupportingSetRetainsItsStoreAndCapturedDay",
+            "collidingIdentitiesAcrossTheTwoStoresAreExplicitlyUnresolved",
+            "missingOrChangedSupportingSetCannotPointAtAnotherSession"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SessionDetailRestoredHoldSafetyRenderTest.xml",
+          "sha256": "e0064620e013a50e2830538aae3fdde14591690df4cbeef3d6df1b5b4ead193d",
+          "methods": [
+            "stopwatchStrengthStillRequiresEffortThroughItsActualEditor",
+            "anActualSavedOnlyNegativeHoldTimeNudgePreservesItsLiteralRepRepresentation",
+            "actualDeleteAndUndoRestoreTheExactTimedRowAndEveryInventoryPart",
+            "capturedThreeSecondsSaveUntouched",
+            "restoredSavedOnlyNegativeRepHoldUntouchedSavePreservesExactOriginalRepresentation",
+            "aWarmupCorrectionChangesOnlyTheRequestedFlag",
+            "cancellingAndDismissingADurationDraftKeepsTheRestoredOriginal",
+            "restoredSavedOnlyHoldEffortSaveCannotConvertOriginalToRepWork",
+            "removingAnAddTargetsActualGraphClosesAndClearsTheStaleSheet",
+            "invalidTimeTextNeverConfirmsOrMutatesTheRestoredOriginal",
+            "staleEditorSaveCannotOverwriteAChangedOriginal",
+            "restoredSavedOnlyHoldUntouchedSavePreservesExactTimedOriginalAndTruthfulOutcome",
+            "positiveRepsUnderPlannedHoldMetadataKeepTheirRepsAndStopwatchOnActualEffortSave",
+            "unknownLoadZeroWeightIsAnExplicitRefusalWithNoInventoryChange",
+            "retainedCorrectionCanRetryAgainstRoomDuringADegradedDisplayRead",
+            "capturedMaximumSecondsAndItsPlusNudgeNeverOverflow",
+            "failedDetailReadAndActualRetryRetainTheSameAddSelectionWithoutAWrite",
+            "restoredPlannedHoldUntouchedSavePreservesExactTimedOriginal",
+            "failedCorrectionKeepsTheActualDraftForOneTapRetryWithoutChangingSavedWork",
+            "restoredPlannedHoldEffortSaveKeepsOriginalTimedType",
+            "refusedUnchangedZeroWorkingWeightCannotBecomeAnAcknowledgedSaveOnRetryOrEdit",
+            "capturedTwoSecondsSaveUntouched",
+            "decrementingAShortCapturedTimeStopsAtOneSecond",
+            "restoredSavedOnlyHoldKeypadCancelWithoutEffortKeepsExactTimedOriginal",
+            "anActualPlannedHoldTimeNudgeSavesFortyFiveAsFiftySeconds",
+            "capturedSecondsAboveTheLiveTargetRangeSaveUntouched",
+            "failedAdditionalSetRetainsTheActualDraftAndCancelChecksBeforeDiscardingIt",
+            "capturedFourSecondsSaveUntouched",
+            "capturedOneSecondSavesUntouched",
+            "savedOnlyStopwatchStrengthKeepsItsRepsAndDurationOnActualEffortSave",
+            "historicalPositiveRepsUnderHoldMetadataNudgeAndSaveOneHundredAndTwoExactly"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SummaryCorrectionNavigationTest.xml",
+          "sha256": "59f3e2f63227a87877fc714b44f61c50e45813f2e1f78e7bf21ff6b5f2eddd8a",
+          "methods": [
+            "savedCorrectionRefreshesTheRetainedSummaryBeforeDoneReturnsHome",
+            "savedCorrectionSurvivesANewActivityWhileDetailIsOpen"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.StandingRecordsTest.xml",
+          "sha256": "21f9c66b5d7f34f94629a405a3bd84a3a818c2d92000ac2d831c9ab6e8d52e08",
+          "methods": [
+            "anOlderBestOutlivesAWeakerRecentLift",
+            "emptyLogHasNoRecords",
+            "theNewestSetDecidesALiftsNameAndClass",
+            "aSessionGraphProjectsOnlyFinishedWorkingSets",
+            "prSummaryIsTheGraphShapedWayIn",
+            "oneRowPerLiftNewestFirstAndCapped",
+            "aRepsLiftRanksByRepsHoweverOldTheBestIs"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX16-AC01": {
+      "suites": [],
+      "native": [
+        "records-chart-native05"
+      ],
+      "scope": "Native Jan1/Jan2/Apr1 disclosure of equal session spacing, with exact dated value list at its archived manifest.",
+      "executedXml": [],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX16-AC02": {
+      "suites": [],
+      "native": [
+        "receipt-chart-acceptance01",
+        "records-chart-native05"
+      ],
+      "scope": "Native chart descriptions and equivalent dated value lists, including irregular dates, reps and kg/lb; manual physical TalkBack remains optional P20.",
+      "executedXml": [],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX16-AC03": {
+      "suites": [
+        "ExerciseHistoryBuilderTest",
+        "BodyweightRecordsTest",
+        "SummaryDetailSavedWorkRenderTest"
+      ],
+      "native": [
+        "receipt-chart-acceptance01",
+        "records-chart-native05"
+      ],
+      "scope": "Native empty estimates/weeks, flat bodyweight reps and flat loaded estimate kg/lb readouts; actual series construction/units checked on JVM. No new schema/preference or storage conversion.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.ExerciseHistoryBuilderTest.xml",
+          "sha256": "4209c2a21ef0f3f453829eec70d42b74afae1eecc80ef2f63f799cd6c96544b6",
+          "methods": [
+            "aLoadedLiftStillEstimatesAOneRepMax",
+            "identicalSessionIdsFromDifferentSourcesStaySeparateAndStable",
+            "aBodyweightLiftIsCountedInRepsAndCarriesNoKilograms",
+            "capturedActivityDayControlsItsWeekWhileLegacyUsesSessionStartNotSetFinish",
+            "priorSetsAreCutByTheMomentTheSetWasCompleted",
+            "anActivityEntryKeepsItsKindOnTheSessionSummary",
+            "tonnageBucketsByTheConfiguredWeekStart",
+            "warmupsCountTowardNothing",
+            "sessionsComeBackNewestFirst",
+            "sessionsWithoutThisExerciseDoNotAppear",
+            "unfinishedSessionsAreNotHistory",
+            "theTopSetIsTheOneProgressionWouldJudge",
+            "otherExercisesInTheSameSessionAreIgnored",
+            "holdReadbackPreservesTheLiteralDurationWithoutAnEstimate"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.BodyweightRecordsTest.xml",
+          "sha256": "90699bb6b0750a4658c5abbe27b63fb578a4a0a26e09f378a7f35c2105b5576d",
+          "methods": [
+            "aVestGetsAHeaviestOfItsOwn",
+            "anAssistedRuleDoesNotLeakIntoTheOtherRepsClasses",
+            "equallingItIsStillNotBreakingIt",
+            "moreRepsAtTheSameAssistanceIsARecord",
+            "anEasierSetElsewhereInHistoryDoesNotUnlockABoughtRepRecord",
+            "theFirstSetOfABodyweightLiftSetsNothing",
+            "anUnassistedRepRecordSurvivesAnEasierSetInHistory",
+            "moreRepsBoughtWithMoreAssistanceIsNotARecord",
+            "aBodyweightLiftNeverClaimsAHeaviestOrAnEstimatedMax",
+            "theRepCountStillHasToBeTheHighestEverNotJustTheHighestAtThisHelp",
+            "anAssistedLiftHasNoHeaviest",
+            "moreRepsIsTheRecordABodyweightLiftChases",
+            "aLoadedLiftIsUntouched",
+            "moreRepsAtLessAssistanceIsARecord"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.SummaryDetailSavedWorkRenderTest.xml",
+          "sha256": "da40219df5b4d7769dd5d1e3bd5b6cbbc6ee555c558b1a8e90f3d82e45122ab7",
+          "methods": [
+            "tabletLargestText",
+            "tabletDefaultText",
+            "sameMuscleAndFallbackImagesRemainBoundToExactExerciseIds",
+            "rtlLargestTextAndReducedMotion",
+            "landscapeLargestText",
+            "tabletLargeText",
+            "landscapeDefaultText",
+            "narrowLargestText",
+            "standardLargeText",
+            "compactResultsKeepBodyweightMixedAndHoldMeasures",
+            "standardLargestText",
+            "standardDefaultText",
+            "smallLargestText",
+            "landscapeLargeText",
+            "smallDefaultText",
+            "smallLargeText"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX29-AC02": {
+      "suites": [
+        "ActivityDetailViewModelTest",
+        "SessionDetailViewModelTest",
+        "SummaryCorrectionNavigationTest"
+      ],
+      "native": [
+        "record-refresh-connected01",
+        "notes-process-final03"
+      ],
+      "scope": "Final-APK native strength History/source return explicitly excludes WORKOUT COMPLETE. Actual typed-cardio History stage/resume pixels show the ordinary RUN, RIDE, OR WALK kicker; entry/private Discard assert saved notes unchanged. Activity evidence is visual observation plus narrow note invariants, not an explicit native no-celebration assertion or full activity-graph entry-mutation inventory. Broader mixed/cardio AppNav inventory closure remains P14/P19.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.activity.ActivityDetailViewModelTest.xml",
+          "sha256": "d52e40b81c16e441d0a0b168e464f509fce77c983cdec71e408e72444853fe93",
+          "methods": [
+            "cardioReceiptUsesBlockMinutes",
+            "theScreenHasNoSetRepairOrRepeat",
+            "noonStampOmitsDurationAndKeepsStrengthVolume",
+            "notesPersistAndDeleteRemovesTheRow",
+            "aFailedReadIsUnavailableNotMissingAndRetries",
+            "missingActivityResolvesWithoutSpinner"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SessionDetailViewModelTest.xml",
+          "sha256": "c092045f5f7ccca77f716a5404858face0e759d4912120486460ed9021ca06d3",
+          "methods": [
+            "addSetAppendsInsideFinishedSessionWindow",
+            "dismissBlockedRepeatClearsTheOfferWithoutNavigating",
+            "addSetValidationErrorIsUserFacingAndWritesNothing",
+            "deleteSessionRemovesRowAndEmitsDeleted",
+            "aWorkingSetCorrectionOrAdditionWithoutAnEffortIsRefusedAndWritesNothing",
+            "repeatWhileLiveSurfacesBlockedAndResumeNavigatesToLive",
+            "validationErrorIsUserFacingAndCanBeAcknowledged",
+            "updateSetPreservesTimestampAndSetNumber",
+            "missingSessionResolvesWithoutSpinner",
+            "repeatWhenIdleNavigatesOnceAndCopiesNoLoggedSets",
+            "finishedSessionLoadsNotesIntoDraft",
+            "repeatMissingSessionSurfacesFailedWithoutNavigating",
+            "notesDebounceAndExitFlushBothPersist",
+            "undoWithNothingPendingIsANoOp",
+            "aFailedReadIsUnavailableNotMissingAndRetries",
+            "deleteOffersUndoAndRestoresOriginalIdentityAndTime"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SummaryCorrectionNavigationTest.xml",
+          "sha256": "59f3e2f63227a87877fc714b44f61c50e45813f2e1f78e7bf21ff6b5f2eddd8a",
+          "methods": [
+            "savedCorrectionRefreshesTheRetainedSummaryBeforeDoneReturnsHome",
+            "savedCorrectionSurvivesANewActivityWhileDetailIsOpen"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    }
+  }
+}

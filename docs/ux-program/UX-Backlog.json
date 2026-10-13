@@ -2395,15 +2395,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX05",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence; integration pending",
         "implementationPackets": [
           "P07"
         ],
-        "closurePacket": "P07"
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+        }
       }
     },
     {
@@ -2424,15 +2427,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX05",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence; integration pending",
         "implementationPackets": [
           "P07"
         ],
-        "closurePacket": "P07"
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+        }
       }
     },
     {
@@ -2453,15 +2459,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX05",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence; integration pending",
         "implementationPackets": [
           "P07"
         ],
-        "closurePacket": "P07"
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+        }
       }
     },
     {
@@ -2482,15 +2491,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX05",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence; integration pending",
         "implementationPackets": [
           "P07"
         ],
-        "closurePacket": "P07"
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+        }
       }
     },
     {
@@ -3427,7 +3439,7 @@
         ],
         "closurePacket": "P06",
         "packetEvidence": {
-          "P06": "q01/p06-history-continuity-2026-10-13.json; verified candidate, integration pending."
+          "P06": "q01/p06-history-continuity-2026-10-13.json; PR#499 integrated074f9c50, exact-tree/input/APK merged AppNav journey passed once."
         }
       }
     },
@@ -3456,7 +3468,7 @@
         ],
         "closurePacket": "P06",
         "packetEvidence": {
-          "P06": "q01/p06-history-continuity-2026-10-13.json; verified candidate, integration pending."
+          "P06": "q01/p06-history-continuity-2026-10-13.json; PR#499 integrated074f9c50, exact-tree/input/APK merged AppNav journey passed once."
         }
       }
     },
@@ -3475,16 +3487,19 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX15",
-        "implementation": "Shared scope/date mechanics verified in P06; direct supporting-session provenance and correction acceptance remain in P07 details/receipts/charts.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence; integration pending",
         "implementationPackets": [
           "P06",
           "P07"
         ],
-        "closurePacket": "P07"
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+        }
       }
     },
     {
@@ -3503,15 +3518,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX16",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence; integration pending",
         "implementationPackets": [
           "P07"
         ],
-        "closurePacket": "P07"
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+        }
       }
     },
     {
@@ -3530,15 +3548,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX16",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence; integration pending",
         "implementationPackets": [
           "P07"
         ],
-        "closurePacket": "P07"
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+        }
       }
     },
     {
@@ -3557,15 +3578,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX16",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence; integration pending",
         "implementationPackets": [
           "P07"
         ],
-        "closurePacket": "P07"
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+        }
       }
     },
     {
@@ -4659,15 +4683,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX29",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence; integration pending",
         "implementationPackets": [
           "P07"
         ],
-        "closurePacket": "P07"
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+        }
       }
     },
     {
@@ -4836,12 +4863,12 @@
       {
         "id": "P06",
         "title": "History calendar and period navigation",
-        "state": "Verified; integration pending"
+        "state": "Closed"
       },
       {
         "id": "P07",
         "title": "Details, receipts and charts",
-        "state": "Open"
+        "state": "Verified candidate; integration pending"
       },
       {
         "id": "P08",
@@ -4964,7 +4991,8 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.history.SessionDetailSavedDurationCorrectionTest.xml",
         "baselineExecutedTests": 8,
         "scope": "Integrated receipt, exact duration correction and Summary refresh; full missing/read-fault/type coverage remains.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "packetEvidenceP07": "Verified candidate, nine scoped automated criteria; integration pending. q01/p07-details-receipts-2026-10-13.json preserves exact scope/failures/manifests and P19/P20 limits."
       },
       "UX06": {
         "primaryPacket": "P04",
@@ -5055,7 +5083,8 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.history.HistoryPeriodViewModelTest.xml",
         "baselineExecutedTests": 23,
         "scope": "One period/lifetime reads and flat ledger integrated; calendar, multi-year and supporting-record journeys remain.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "packetEvidenceP07": "Verified candidate, nine scoped automated criteria; integration pending. q01/p07-details-receipts-2026-10-13.json preserves exact scope/failures/manifests and P19/P20 limits."
       },
       "UX16": {
         "primaryPacket": "P07",
@@ -5064,7 +5093,8 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.domain.ExerciseHistoryBuilderTest.xml",
         "baselineExecutedTests": 14,
         "scope": "Exercise readouts/correction integrated; complete chart axes, sparse values and equivalent list acceptance remains.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "packetEvidenceP07": "Verified candidate, nine scoped automated criteria; integration pending. q01/p07-details-receipts-2026-10-13.json preserves exact scope/failures/manifests and P19/P20 limits."
       },
       "UX17": {
         "primaryPacket": "P11",
@@ -5183,7 +5213,8 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.history.SessionDetailSavedDurationCorrectionTest.xml",
         "baselineExecutedTests": 8,
         "scope": "Exact strength/hold correction and compact receipt integrated; complete cardio/mixed capabilities remain with P13/P14.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "packetEvidenceP07": "Verified candidate, nine scoped automated criteria; integration pending. q01/p07-details-receipts-2026-10-13.json preserves exact scope/failures/manifests and P19/P20 limits."
       },
       "UX30": {
         "primaryPacket": "P01",
@@ -5216,8 +5247,8 @@
           "P06",
           "P07"
         ],
-        "existing": "Period/read/captured-date coherence and compact History ledger integrated through #487.",
-        "remaining": "Calendar, charts, lifetime drill-down and complete correction/read-error journeys."
+        "existing": "Period/read/captured-date coherence and compact History ledger integrated through #487. P06#499 now verifies calendar/period navigation, private reopening and compact readout.",
+        "remaining": "P07 charts, lifetime supporting-session drill-down, receipts and complete correction/read-error journeys; P19/P20 whole-app and physical acceptance."
       },
       "F7": {
         "owners": [

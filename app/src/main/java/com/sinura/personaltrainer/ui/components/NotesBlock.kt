@@ -107,13 +107,15 @@ fun NotesLeaveDialog(
     onRetry: () -> Unit,
     onKeepEditing: () -> Unit,
     onLeave: () -> Unit,
+    keepDraftOnLeave: Boolean = false,
 ) {
     AlertDialog(
         onDismissRequest = onKeepEditing,
         title = { Text("Notes not saved", style = InstrumentType.title) },
         text = {
             Text(
-                if (liveDraft) "Notes are not saved. Closing the app may lose this draft."
+                if (keepDraftOnLeave) "Notes are not saved to the session. The unfinished draft must be kept on this phone before leaving."
+                else if (liveDraft) "Notes are not saved. Closing the app may lose this draft."
                 else "Notes are not saved. Leaving discards these changes.",
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 style = InstrumentType.body,
@@ -139,7 +141,7 @@ fun NotesLeaveDialog(
                     modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(NotesTestTags.LEAVE),
                 ) {
                     Text(
-                        if (liveDraft) "Leave workout open" else "Leave without these changes",
+                        if (keepDraftOnLeave) "Keep draft and leave" else if (liveDraft) "Leave workout open" else "Leave without these changes",
                         style = InstrumentType.bodyStrong,
                         color = if (liveDraft) TextSecondary else Danger,
                     )
