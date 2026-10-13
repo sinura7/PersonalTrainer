@@ -137,6 +137,20 @@ class FinishedSetDraftsTest {
         assertEquals(120.0, checkNotNull(deps.workoutRepository.getSession(session.id)).sets.single().weightKg, 0.0)
     }
 
+    @Test fun conflictReleasePreservesAuthoredFieldsAndNeverBecomesImplicitDiscard() = runBlocking {
+        val service = service(); val handle = service.open(session.id); val fields = fields()
+        service.keep(handle, fields); refuseWrite = true
+        assertFalse(runCatching { service.write(handle, fields.command) }.isSuccess)
+        deps.workoutRepository.updateSet(fields.original.setId, 120.0, 7, 9, false)
+        service.release(handle, fields.command)
+        val reopened = service().open(session.id)
+        assertEquals(fields, reopened.draft)
+        assertNull(reopened.pending)
+        assertTrue(reopened.problem)
+        assertEquals(120.0, checkNotNull(deps.workoutRepository.getSession(session.id)).sets.single().weightKg, 0.0)
+        assertEquals(0, writes)
+    }
+
     @Test fun unavailableReadAndOpenRestoreJournalNeverGrantRetry() = runBlocking {
         val service = service(); val handle = service.open(session.id); val fields = fields()
         service.keep(handle, fields); unavailable = true

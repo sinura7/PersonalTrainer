@@ -369,6 +369,16 @@ internal class DraftBinding<D, C> internal constructor(
         it.copy(pending = null)
     }
 
+    /** The owning adapter has proved a conflicting outcome. Retire its command for review,
+     * preserving authored fields and their original identity; this grants no business write. */
+    suspend fun releaseForReview(expected: DraftVersion, commandIdentity: String, currentGeneration: String): DraftChange<D, C> =
+        store.change(owner = owner, codec = codec, expected = expected,
+            reconcileGeneration = currentGeneration.takeIf { it != expected.generation }) {
+            val pending = it.pending ?: throw DraftWriteRefused(DraftRejection.NO_COMMAND)
+            rejectUnless(pending.identity == commandIdentity, DraftRejection.WRONG_COMMAND)
+            it.copy(pending = null)
+        }
+
     /** A tombstone retains fencing after discard/acceptance; no queued old write can resurrect it. */
     suspend fun clear(expected: DraftVersion): DraftChange<D, C> = store.change(owner, codec, expected) {
         rejectUnless(it.pending?.phase != DraftCommandPhase.PENDING, DraftRejection.INSPECTION_REQUIRED)

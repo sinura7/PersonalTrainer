@@ -64,6 +64,9 @@ object Metrics {
     val compactWindowHeight: Dp = 400.dp
     val inputDialogMaxWidth: Dp = 560.dp
 
+    /** Bounded, scrollable unfinished fields leave the owning receipt reachable. */
+    internal val recoveryPreviewMax: Dp = 240.dp
+
     /**
      * One snap-wheel numeral. Rest length (Packet E still) and reminder
      * / onboarding wheels keep this row. Floor weight and reps left it.

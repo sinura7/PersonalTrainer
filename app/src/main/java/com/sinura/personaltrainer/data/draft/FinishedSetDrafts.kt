@@ -34,6 +34,7 @@ internal class FinishedSetHandle internal constructor(
     internal val binding: DraftBinding<FinishedSetDraft, WorkoutSetSave>,
     internal var checkpoint: DraftCheckpoint<FinishedSetDraft, WorkoutSetSave>?,
     val problem: Boolean,
+    val ownerStamp: String?,
 ) {
     val draft: FinishedSetDraft? get() = checkpoint?.draft
     val pending: WorkoutSetSave? get() = checkpoint?.pending?.value
@@ -64,14 +65,31 @@ internal class FinishedSetDrafts(
         val actual = runCatchingCancellable { readSession(sessionId) }.getOrNull()
         val draft = checkpoint?.draft
         val problem = checkpoint == null || actual == null || !actual.isFinished ||
-            (draft != null && (draft.original.sessionId != sessionId || draft.ownerStamp != stamp(actual)))
+            (draft != null && (draft.original.sessionId != sessionId || draft.ownerStamp != stamp(actual) ||
+                (checkpoint.pending == null && !sameCapturedRow(draft, actual))))
         if (!problem && checkNotNull(checkpoint).needsReconciliation) {
             checkpoint = confirmed(binding.reconcileOwner(checkNotNull(checkpoint).version, checkNotNull(checkpoint).currentGeneration))
         }
-        FinishedSetHandle(sessionId, claim, binding, checkpoint, problem)
+        FinishedSetHandle(sessionId, claim, binding, checkpoint, problem, actual?.takeIf { it.isFinished }?.let(::stamp))
     }
 
-    suspend fun keep(handle: FinishedSetHandle, draft: FinishedSetDraft) = ordered {
+    /** An orderly Close confirms the latest authored fields actually reached private storage. */
+    suspend fun keepForExit(handle: FinishedSetHandle, draft: FinishedSetDraft) = ordered {
+        check(claims[handle.sessionId] == handle.claim)
+        val current = current(handle, allowReconciliation = true)
+        if (current.draft != draft) keepLocked(handle, draft)
+        check(current(handle, allowReconciliation = true).draft == draft) { "The latest set edit has not been kept" }
+    }
+
+    suspend fun keepFrozenForExit(handle: FinishedSetHandle, draft: FinishedSetDraft, command: WorkoutSetSave) = ordered {
+        check(claims[handle.sessionId] == handle.claim)
+        val current = current(handle, allowReconciliation = true)
+        check(current.draft == draft) { "The latest set edit has not been kept" }
+        check(draft.command == command && (current.pending == null || current.pending?.value == command))
+    }
+
+    suspend fun keep(handle: FinishedSetHandle, draft: FinishedSetDraft) = ordered { keepLocked(handle, draft) }
+    private suspend fun keepLocked(handle: FinishedSetHandle, draft: FinishedSetDraft) {
         active(handle)
         require(draft.original.sessionId == handle.sessionId)
         val actual = checkNotNull(readSession(handle.sessionId))
@@ -80,7 +98,7 @@ internal class FinishedSetDrafts(
         check(current.pending == null)
         // A retained different editor cannot be overwritten by a late click or a new row.
         check(current.draft == null || current.draft?.original == draft.original)
-        if (current.draft == draft) return@ordered
+        if (current.draft == draft) return
         val result = handle.binding.checkpoint(current.version, draft)
         handle.checkpoint = if (result is DraftChange.Written) result.checkpoint else {
             val observed = read(handle.binding)
@@ -169,11 +187,25 @@ internal class FinishedSetDrafts(
 
     /** Edit values may release only a proven uncommitted command. Conflict review uses explicit private Discard. */
     suspend fun release(handle: FinishedSetHandle, command: WorkoutSetSave) = ordered {
-        active(handle)
-        check(inspectLocked(handle, command) == WorkoutSetSaveResolution.UNSAVED)
-        val current = current(handle)
-        current.pending?.let { pending ->
-            handle.checkpoint = confirmed(handle.binding.resumeEditing(current.version, pending.identity))
+        check(claims[handle.sessionId] == handle.claim)
+        val before = current(handle, allowReconciliation = true)
+        check(before.draft?.command == command && (before.pending == null || before.pending?.value == command))
+        when (inspectSaved(command)) {
+            WorkoutSetSaveResolution.SAVED -> error("Confirm the saved result before closing its command")
+            WorkoutSetSaveResolution.UNSAVED -> {
+                if (before.needsReconciliation) {
+                    // A changed generation cannot make absence a retry permission. Private
+                    // release for review keeps the old owner/baseline attached to the text.
+                    before.pending?.let { handle.checkpoint = confirmed(handle.binding.releaseForReview(before.version, it.identity, before.currentGeneration)) }
+                } else {
+                    inspectLocked(handle, command)
+                    val current = current(handle)
+                    current.pending?.let { handle.checkpoint = confirmed(handle.binding.resumeEditing(current.version, it.identity)) }
+                }
+            }
+            WorkoutSetSaveResolution.CONFLICT -> before.pending?.let {
+                handle.checkpoint = confirmed(handle.binding.releaseForReview(before.version, it.identity, before.currentGeneration))
+            }
         }
     }
 
@@ -195,6 +227,14 @@ internal class FinishedSetDrafts(
     }
     private fun active(handle: FinishedSetHandle) {
         check(claims[handle.sessionId] == handle.claim && !handle.problem && !restoreOpen())
+    }
+    private fun sameCapturedRow(draft: FinishedSetDraft, session: WorkoutSession): Boolean {
+        val original = draft.original
+        if (!original.editing) return session.exercises.any { it.exercise.id == original.exerciseId } ||
+            session.sets.any { it.exerciseId == original.exerciseId }
+        val row = session.sets.firstOrNull { it.id == original.setId } ?: return false
+        return row.sessionId == original.sessionId && row.exerciseId == original.exerciseId && row.completedAt == original.completedAt &&
+            (WorkoutSetValues.from(row) == original.values || WorkoutSetValues.from(row) == draft.values)
     }
     private suspend fun <T> ordered(block: suspend () -> T): T = withContext(dispatcher) {
         maintenance.withMaintenanceLock { serial.withLock { check(!restoreOpen()); block() } }

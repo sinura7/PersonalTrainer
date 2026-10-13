@@ -5,6 +5,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppContainer
+import com.sinura.personaltrainer.data.draft.FinishedSetDraft
+import com.sinura.personaltrainer.data.draft.FinishedSetDrafts
 import com.sinura.personaltrainer.data.draft.CompletedNoteKind
 import com.sinura.personaltrainer.data.draft.CompletedNoteOwner
 import com.sinura.personaltrainer.data.draft.CompletedNotesDrafts
@@ -76,6 +78,7 @@ class SessionDetailViewModel internal constructor(
     private val savedStateHandle: SavedStateHandle,
     container: AppDependencies,
     private val drafts: CompletedNotesDrafts?,
+    private val setDrafts: FinishedSetDrafts? = (container as? AppContainer)?.finishedSetDrafts,
 ) : AppViewModel(application, container) {
     @JvmOverloads constructor(application: Application, savedStateHandle: SavedStateHandle, container: AppDependencies = application.appContainer()) :
         this(application, savedStateHandle, container, (container as? AppContainer)?.completedNotesDrafts)
@@ -191,25 +194,45 @@ class SessionDetailViewModel internal constructor(
     private val savedEditOriginal = SavedStateWorkoutSave(savedStateHandle, "history.editorOriginal.v1")
     private val _editorOriginal = MutableStateFlow(savedEditOriginal.read(sessionId))
     internal val editorOriginal: StateFlow<WorkoutSetSave?> = _editorOriginal.asStateFlow()
+    internal val finishedSetForm: FinishedSetForm? = setDrafts?.let { store ->
+        FinishedSetForm(store = store, sessionId = sessionId, scope = viewModelScope,
+            operationPending = { historySaves.pending || notesExitIsActive() || mutating.get() },
+            onPending = { command ->
+                try { historySaves.restorePrivate(command) } catch (failure: Exception) {
+                    historySaves.restorationUnavailable()
+                    throw failure
+                }
+                viewModelScope.launch { historySaves.reconcile(command, retryWrite = false) }
+            })
+    }
+    internal val finishedSetState: StateFlow<FinishedSetFormState> = finishedSetForm?.recovery
+        ?: MutableStateFlow(FinishedSetFormState(ready = true))
     private val historySaves: FloorSetSaves = FloorSetSaves(
         sessionId = sessionId,
         cache = WorkoutDraftCache(),
         saved = SavedStateWorkoutSave(savedStateHandle, "history.pendingSet.v1"),
-        write = container.workoutRepository::saveFinishedSet,
+        write = { command -> finishedSetForm?.write(command) ?: container.workoutRepository.saveFinishedSet(command) },
         inspect = { command ->
             val receipt = container.workoutRepository.inspectFinishedSetSaveReceipt(command)
             receipt.row?.let { acknowledgeSetCorrection(command, it) }
-            receipt.resolution
+            finishedSetForm?.inspect(command) ?: receipt.resolution
         },
         // Inspection establishes the finished owner from Room, and the write checks
         // it again transactionally. A degraded display observer cannot block Retry.
         sessionFound = { true },
         onSaved = { command, result, _ ->
             result?.row?.let { acknowledgeSetCorrection(command, it) }
+            finishedSetForm?.acknowledgeSaved()
             finishSetEditor(command)
         },
-        onReleased = { command, conflict -> if (cancelPendingSet || conflict) finishSetEditor(command) },
+        onReleased = { command, conflict -> if (cancelPendingSet || conflict) {
+            finishedSetForm?.hideKept()
+            finishSetEditor(command)
+        } },
         onRejected = {},
+        beforeRelease = { command -> finishedSetForm?.release(command) },
+        afterSaved = { command -> finishedSetForm?.settle(command) },
+        onSettlementUnavailable = { finishedSetForm?.cleanupFailed() },
     )
     internal val setSave: StateFlow<WorkoutSaveState> = historySaves.operation
     private val notesExitPending = MutableStateFlow(false)
@@ -239,10 +262,22 @@ class SessionDetailViewModel internal constructor(
         )
 
     init {
+        finishedSetForm?.start()
+        finishedSetForm?.let { form ->
+            viewModelScope.launch {
+                form.awaitInitial()
+                historySaves.keepRestored()?.takeIf { !form.privateCommandRestored }?.let { command ->
+                    runCatchingCancellable {
+                        form.recoverFramework(command)
+                        historySaves.reconcile(command, retryWrite = false)
+                    }.onFailure { historySaves.restorationUnavailable() }
+                }
+            }
+        }
         if (completedOwnerVerified) completedNotes.start()
         val completed = _setEditorExit.value
         if (completed != null) historySaves.clear(completed)
-        else historySaves.keepRestored()?.let { command ->
+        else if (finishedSetForm == null) historySaves.keepRestored()?.let { command ->
             // Inspect on recreation; restoring state never silently repeats a write.
             viewModelScope.launch { historySaves.reconcile(command, retryWrite = false) }
         }
@@ -365,9 +400,10 @@ class SessionDetailViewModel internal constructor(
     internal fun saveCorrection(
         setId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean, durationSeconds: Int?,
     ) {
-        if (!canSaveSet()) return
+        if (!canSaveSet() || finishedSetForm?.allowsInput() == false) return
         val displayed = uiState.value.session?.sets?.firstOrNull { it.id == setId }
-        val snapshot = _editorOriginal.value?.takeIf { it.setId == setId }
+        val snapshot = finishedSetState.value.draft?.original?.takeIf { it.editing && it.setId == setId }
+            ?: _editorOriginal.value?.takeIf { it.setId == setId }
         val original = displayed?.let { row -> snapshot?.let { frozen ->
             row.copy(sessionId = frozen.sessionId, exerciseId = frozen.exerciseId,
                 weightKg = frozen.values.weightKg, reps = frozen.values.reps, rpe = frozen.values.rpe,
@@ -379,20 +415,84 @@ class SessionDetailViewModel internal constructor(
         }
         val timed = original.reps < 1 && (original.durationSeconds ?: 0) > 0
         if (!validEditorEffort(rpe, isWarmup, timed || reps == 0)) return
+        val values = WorkoutSetValues(weightKg, if (timed) original.reps else reps, rpe, isWarmup, durationSeconds ?: original.durationSeconds)
+        finishedSetForm?.update(values)
         startSetSave(WorkoutSetSave(
             sessionId = sessionId, exerciseId = original.exerciseId, setId = original.id, completedAt = original.completedAt,
-            values = WorkoutSetValues(weightKg, if (timed) original.reps else reps, rpe, isWarmup, durationSeconds ?: original.durationSeconds),
+            values = values,
             original = WorkoutSetValues.from(original),
         ))
     }
 
     /** Freeze the row the editor actually opened, before any later observation replaces it. */
-    internal fun beginSetEdit(set: SetLog) {
-        if (!canSaveSet() || set.sessionId != sessionId) return
+    internal fun beginSetEdit(set: SetLog): Boolean {
+        if (!canSaveSet() || set.sessionId != sessionId) return false
         val original = WorkoutSetSave(set.sessionId, set.exerciseId, set.id, set.completedAt, WorkoutSetValues.from(set))
+        val session = uiState.value.session ?: return false
+        val owned = original.copy(original = original.values)
+        if (finishedSetForm?.begin(FinishedSetDraft(FinishedSetDrafts.stamp(session), owned, owned.values)) == false) return false
         savedEditOriginal.write(original)
         _editorOriginal.value = original
+        return true
     }
+
+    internal fun beginAdditionalSet(exerciseId: String): Boolean {
+        if (!canSaveSet()) return false
+        val session = uiState.value.session?.takeIf { it.isFinished } ?: return false
+        val retained = finishedSetState.value.draft?.takeIf { !it.original.editing && it.original.exerciseId == exerciseId }
+        if (retained != null) return finishedSetForm?.begin(retained) != false
+        val previous = session.setsFor(exerciseId).lastOrNull()
+        val original = WorkoutSetSave(sessionId = sessionId, exerciseId = exerciseId, setId = UUID.randomUUID().toString(),
+            completedAt = FinishedSessionEdits.timestampForAddedSet(session.startedAt, checkNotNull(session.finishedAt), session.sets.maxOfOrNull { it.completedAt }),
+            values = WorkoutSetValues(previous?.weightKg ?: 0.0, previous?.reps ?: 5, null, false, null))
+        return finishedSetForm?.begin(FinishedSetDraft(FinishedSetDrafts.stamp(session), original, original.values)) != false
+    }
+
+    internal fun closeHistoricalEditor(onKept: () -> Unit) {
+        val form = finishedSetForm
+        if (form == null) onKept() else {
+            if (historySaves.operation.value.busy || notesExitIsActive() || mutating.get() || form.isClosing) return
+            val pending = historySaves.operation.value.command
+            val kept: () -> Unit = {
+                pending?.let { historySaves.clear(it) }
+                onKept()
+            }
+            form.close(onKept = kept, pending = pending)
+        }
+    }
+    internal fun discardHistoricalEditor(onDiscarded: () -> Unit) {
+        val form = finishedSetForm
+        if (form == null) { onDiscarded(); return }
+        if (historySaves.operation.value.busy || notesExitIsActive() || form.isClosing || !mutating.compareAndSet(false, true)) return
+        viewModelScope.launch {
+            var accepted = false
+            try {
+                val framework = historySaves.operation.value.command
+                val private = form.retainedCommand
+                // Explicit abandonment is private-only. Establish both uncertain identities
+                // first, so unavailable reads cannot masquerade as unsaved training.
+                for (command in listOfNotNull(framework, private).distinct()) {
+                    val receipt = container.workoutRepository.inspectFinishedSetSaveReceipt(command)
+                    receipt.row?.let { acknowledgeSetCorrection(command, it) }
+                }
+                form.discardAfterInspection()
+                framework?.let { historySaves.clear(it) }
+                savedEditOriginal.clear()
+                _editorOriginal.value = null
+                accepted = true
+            } catch (failure: Exception) {
+                if (failure is kotlinx.coroutines.CancellationException) throw failure
+                form.recoveryFailed("Could not confirm the saved sets. Your unfinished edit is retained. Read again before discarding.")
+                historySaves.restorationUnavailable()
+            } finally { mutating.set(false) }
+            if (accepted) onDiscarded()
+        }
+    }
+    internal fun retryHistoricalDraft() {
+        if (historySaves.operation.value.busy || notesExitIsActive() || mutating.get()) return
+        finishedSetForm?.readAgain(allowPending = true)
+    }
+
 
     internal fun dismissSetEdit(setId: String) {
         if (historySaves.pending || _editorOriginal.value?.setId != setId) return
@@ -402,9 +502,17 @@ class SessionDetailViewModel internal constructor(
     }
 
     internal fun saveAdditionalSet(exerciseId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
-        if (!canSaveSet()) return
+        if (!canSaveSet() || finishedSetForm?.allowsInput() == false) return
         val session = uiState.value.session?.takeIf { it.isFinished } ?: return
         if (!validEditorEffort(rpe, isWarmup, isHold = false)) return
+        finishedSetForm?.let { form ->
+            val draft = form.recovery.value.draft ?: return
+            if (draft.original.editing || draft.original.exerciseId != exerciseId) return
+            val values = WorkoutSetValues(weightKg, reps, rpe, isWarmup, null)
+            form.update(values)
+            startSetSave(draft.original.copy(values = values))
+            return
+        }
         startSetSave(WorkoutSetSave(
             sessionId, exerciseId, UUID.randomUUID().toString(),
             FinishedSessionEdits.timestampForAddedSet(session.startedAt, checkNotNull(session.finishedAt), session.sets.maxOfOrNull { it.completedAt }),
@@ -413,9 +521,9 @@ class SessionDetailViewModel internal constructor(
     }
 
     private fun canSaveSet(): Boolean = !historySaves.pending && _setEditorExit.value == null &&
-        !mutating.get() && !notesExitIsActive()
+        !mutating.get() && !notesExitIsActive() && finishedSetForm?.canBegin() != false
 
-    private fun setOperationOwned(): Boolean = historySaves.pending || _setEditorExit.value != null
+    private fun setOperationOwned(): Boolean = historySaves.pending || _setEditorExit.value != null || finishedSetForm?.isClosing == true
 
     private fun validEditorEffort(rpe: Int?, isWarmup: Boolean, isHold: Boolean): Boolean {
         val violation = SetLogRules.validateEffort(rpe, isWarmup, isHold) ?: return true
@@ -431,6 +539,7 @@ class SessionDetailViewModel internal constructor(
     }
 
     internal fun retrySetSave() {
+        if (finishedSetForm?.isClosing == true || notesExitIsActive() || mutating.get()) return
         val command = historySaves.beginRetry() ?: return
         cancelPendingSet = false
         viewModelScope.launch { historySaves.reconcile(command, retryWrite = true) }
@@ -438,6 +547,7 @@ class SessionDetailViewModel internal constructor(
 
     /** Cancel/Edit first establish whether the frozen write already committed. */
     internal fun releaseSetSave(cancel: Boolean) {
+        if (finishedSetForm?.isClosing == true || notesExitIsActive() || mutating.get()) return
         val command = historySaves.beginEdit() ?: return
         cancelPendingSet = cancel
         viewModelScope.launch { historySaves.reconcile(command, retryWrite = false, releaseUnwritten = true) }

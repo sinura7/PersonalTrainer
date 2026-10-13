@@ -43,6 +43,8 @@ internal class CompletedNotesForm(
     private val initial = CompletableDeferred<Unit>()
     private var handle: CompletedNotesHandle? = null
     private var latestRaw: String? = saved[RAW_KEY]
+    // A reconstructed Android snapshot is a fallback, not a newer durable revision.
+    private var authoredThisVisit = false
     private var revision = 0L
     private var needsReopen = false
     private var consumer: Job? = null
@@ -89,6 +91,7 @@ internal class CompletedNotesForm(
                             store.save(checkNotNull(handle), request.raw)
                             if (latestRaw == request.raw) {
                                 latestRaw = null
+                                authoredThisVisit = false
                                 saved.remove<String>(RAW_KEY)
                                 mutable.value = mutable.value.copy(resumed = false, kept = false)
                             }
@@ -98,6 +101,7 @@ internal class CompletedNotesForm(
                             if (handle == null) reopen(restore = false)
                             store.discard(checkNotNull(handle))
                             latestRaw = null
+                            authoredThisVisit = false
                             saved.remove<String>(RAW_KEY)
                             val next = store.open(owner)
                             handle = next
@@ -137,6 +141,7 @@ internal class CompletedNotesForm(
         if (store == null) return true
         if (discardReserved || !mutable.value.ready) return false
         latestRaw = raw
+        authoredThisVisit = true
         saved[RAW_KEY] = raw
         revision++
         mutable.value = mutable.value.copy(keeping = true, kept = false)
@@ -154,6 +159,7 @@ internal class CompletedNotesForm(
     suspend fun keepForExit(raw: String): Boolean {
         if (store == null || discardReserved) return false
         latestRaw = raw
+        authoredThisVisit = true
         saved[RAW_KEY] = raw
         val sequence = ++revision
         return runCatchingCancellable { send { Request.Keep(raw, sequence, it, retaining = true) } }.isSuccess
@@ -210,7 +216,7 @@ internal class CompletedNotesForm(
         // Readable authored text is independent of pending-command cleanup. Expose it even
         // when cleanup cannot complete; reconstruction never authorizes a business write.
         if (restore) {
-            val raw = latestRaw ?: opened.raw
+            val raw = if (authoredThisVisit) latestRaw ?: opened.raw else opened.raw ?: latestRaw
             if (raw != null) {
                 onRecoveredDraft()
                 latestRaw = raw

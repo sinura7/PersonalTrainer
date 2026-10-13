@@ -20,6 +20,7 @@ internal interface WorkoutNumberEntries {
     val exerciseId: String?
     fun put(value: WorkoutNumberDraft)
     fun clear(field: WorkoutNumberField)
+    fun allowsInput(): Boolean = true
 }
 internal val LocalWorkoutNumbers = staticCompositionLocalOf<WorkoutNumberEntries?> { null }
 
@@ -37,7 +38,7 @@ internal fun WorkoutNumberEntry(field: WorkoutNumberField, unit: WeightUnit? = n
     val owner = port?.exerciseId
     val retention = if (port == null) null else object : NumberEntryRetention {
         override val initial = draft?.let { TextFieldValue(it.text, TextRange(it.selectionStart, it.selectionEnd)) }
-        override fun allowsInput(): Boolean = port.exerciseId == owner
+        override fun allowsInput(): Boolean = port.exerciseId == owner && port.allowsInput()
         override fun changed(value: TextFieldValue) = port.put(WorkoutNumberDraft(
             exerciseId = owner, field = field, text = value.text, weightUnit = draft?.weightUnit ?: unit,
             selectionStart = value.selection.start, selectionEnd = value.selection.end, open = true,

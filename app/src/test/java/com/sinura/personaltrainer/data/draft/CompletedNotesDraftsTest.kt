@@ -334,6 +334,46 @@ class CompletedNotesDraftsTest {
         } finally { scope.cancel() }
     }
 
+    @Test fun olderFrameworkSnapshotCannotReplaceNewerDurableAuthoredNotes() = runBlocking {
+        val store = service()
+        store.keep(store.open(owner), "Newer durable words")
+        val saved = SavedStateHandle(mapOf("completed.notes.raw.v1" to "Older snapshot words"))
+        var restored = ""
+        val scope = CoroutineScope(SupervisorJob() + io)
+        try {
+            val form = CompletedNotesForm(store = store, owner = owner, saved = saved, scope = scope,
+                restoreText = { raw, _ -> restored = raw }, resetText = { restored = it.orEmpty() })
+            form.start(); form.awaitInitial()
+            assertEquals("Newer durable words", restored)
+            assertEquals("Newer durable words", saved.get<String>("completed.notes.raw.v1"))
+            assertTrue(form.keepForExit(restored))
+            form.save(restored)
+            assertEquals("Newer durable words", records[owner]?.notes)
+            assertEquals(1, writes)
+        } finally { scope.cancel() }
+    }
+
+    @Test fun failedKeepThenReadAgainStillPreservesNewerInVisitAuthoredNotes() = runBlocking {
+        val store = service()
+        store.keep(store.open(owner), "Older durable words")
+        var restored = ""
+        val scope = CoroutineScope(SupervisorJob() + io)
+        try {
+            val form = CompletedNotesForm(store = store, owner = owner, saved = SavedStateHandle(), scope = scope,
+                restoreText = { raw, _ -> restored = raw }, resetText = { restored = it.orEmpty() })
+            form.start(); form.awaitInitial()
+            files.failBeforeNext = true
+            assertTrue(form.edit("Newer live words"))
+            assertFalse(form.state.value.ready)
+            form.retryPrivate()
+            assertEquals("Newer live words", restored)
+            assertTrue(form.keepForExit(restored))
+            assertEquals("Newer live words", service().open(owner).raw)
+            assertEquals("Original", records[owner]?.notes)
+            assertEquals(0, writes)
+        } finally { scope.cancel() }
+    }
+
     private fun service(loseAcceptanceAck: Boolean = false) = CompletedNotesDrafts(
         store = DurableDraftStore(root, io, files), maintenance = deps.dbMaintenance,
         restoreOpen = { restoreOpen }, dispatcher = io, nowMillis = { atMs },
