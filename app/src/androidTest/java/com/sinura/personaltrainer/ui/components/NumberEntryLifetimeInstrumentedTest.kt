@@ -62,14 +62,46 @@ class NumberEntryLifetimeInstrumentedTest {
             owner = "owner-b"
             rawEntries.value = rawEntries.value + current
             oldText(AnnotatedString("99")); oldConfirm(); oldCancel()
+            assertTrue(accepted.isEmpty())
+            assertEquals(current, rawEntries.value.single { it.exerciseId == "owner-b" })
         }
         compose.waitForIdle()
         assertTrue(accepted.isEmpty())
-        assertEquals(current, rawEntries.value.single { it.exerciseId == "owner-b" })
+        assertEquals("13", rawEntries.value.single { it.exerciseId == "owner-b" }.text)
         compose.runOnIdle { showing.value = true }
         compose.onNodeWithText("Set").performClick()
         assertEquals(listOf("owner-b" to 13), accepted)
         assertTrue(rawEntries.value.none { it.exerciseId == "owner-b" })
+    }
+
+    @Test fun pendingRefusedConfirmationRejectsOldCancelAndRemainsRetryable() {
+        val showing = mutableStateOf(true)
+        val blocked = mutableStateOf(false)
+        var hold = true
+        val accepted = mutableListOf<Int>()
+        compose.setContent {
+            if (showing.value) NumberEntryDialog(
+                title = "Weight", unitLabel = null, initial = "8", decimal = false,
+                helper = "Enter a value", parse = String::toIntOrNull,
+                onConfirm = {}, onDismiss = { if (!blocked.value) showing.value = false },
+                onConfirmAccepted = {
+                    if (hold) { blocked.value = true; false } else { accepted += it; true }
+                },
+                confirmEnabled = !blocked.value, dismissEnabled = !blocked.value,
+                inputEnabled = !blocked.value, onInputAllowed = { !blocked.value },
+            )
+        }
+        val oldConfirm = checkNotNull(compose.onNodeWithTag(NumberEntryTags.CONFIRM).fetchSemanticsNode().config[SemanticsActions.OnClick].action)
+        val oldCancel = checkNotNull(compose.onNodeWithText("Cancel").fetchSemanticsNode().config[SemanticsActions.OnClick].action)
+        compose.runOnIdle { oldConfirm(); oldCancel() }
+        compose.waitForIdle()
+        assertTrue(showing.value); assertTrue(accepted.isEmpty())
+        compose.runOnIdle { hold = false; blocked.value = false }
+        val currentText = checkNotNull(compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode().config[SemanticsActions.SetText].action)
+        compose.runOnIdle { currentText(AnnotatedString("11")) }
+        compose.onNodeWithText("Set").performClick()
+        assertEquals(listOf(11), accepted)
+        compose.onNodeWithTag(NumberEntryTags.FIELD).assertDoesNotExist()
     }
 
     private fun checkRetiredCallbacks(confirm: Boolean) {

@@ -116,7 +116,7 @@ fun <T> NumberEntryDialog(
     }
 
     AlertDialog(
-        onDismissRequest = { if (dismissEnabled && retired.compareAndSet(false, true)) { retention?.closed(); onDismiss() } },
+        onDismissRequest = { if (dismissEnabled && onInputAllowed() && retention?.allowsInput() != false && retired.compareAndSet(false, true)) { retention?.closed(); onDismiss() } },
         title = { Text(title, style = InstrumentType.title) },
         text = {
             Column(
@@ -164,7 +164,7 @@ fun <T> NumberEntryDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = { if (dismissEnabled && retired.compareAndSet(false, true)) { retention?.discarded(); onDismiss() } },
+                onClick = { if (dismissEnabled && onInputAllowed() && retention?.allowsInput() != false && retired.compareAndSet(false, true)) { retention?.discarded(); onDismiss() } },
                 enabled = dismissEnabled,
                 modifier = Modifier.heightIn(min = Metrics.touchMin).widthIn(min = Metrics.touchMin),
             ) {
