@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -36,12 +37,13 @@ internal fun WorkoutNumberEntry(field: WorkoutNumberField, unit: WeightUnit? = n
     val owner = port?.exerciseId
     val retention = if (port == null) null else object : NumberEntryRetention {
         override val initial = draft?.let { TextFieldValue(it.text, TextRange(it.selectionStart, it.selectionEnd)) }
+        override fun allowsInput(): Boolean = port.exerciseId == owner
         override fun changed(value: TextFieldValue) = port.put(WorkoutNumberDraft(
             exerciseId = owner, field = field, text = value.text, weightUnit = draft?.weightUnit ?: unit,
             selectionStart = value.selection.start, selectionEnd = value.selection.end, open = true,
         ))
-        override fun closed() { port.entries.value.firstOrNull { it.exerciseId == owner && it.field == field }?.let { port.put(it.copy(open = false)) } }
-        override fun discarded() = port.clear(field)
+        override fun closed() { if (allowsInput()) port.entries.value.firstOrNull { it.exerciseId == owner && it.field == field }?.let { port.put(it.copy(open = false)) } }
+        override fun discarded() { if (allowsInput()) port.clear(field) }
     }
-    CompositionLocalProvider(LocalNumberEntryRetention provides retention, content = content)
+    key(port, owner, field) { CompositionLocalProvider(LocalNumberEntryRetention provides retention, content = content) }
 }

@@ -29,6 +29,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -362,9 +363,13 @@ class WorkoutPrivateRecoveryTest {
             com.sinura.personaltrainer.domain.WorkoutSetValues(42.5, 9, 8, false, 33)))
         val original = deps.workoutRepository.getSession(fixture.session.id)!!.sets.single()
         val first = active(); ready(first)
+        first.selectExercise(fixture.exercise.id)
+        first.uiState.awaitFirst { it.canLog && it.selectedExerciseId == fixture.exercise.id }
         first.setWeight(91.5)
         first.numberEntry.put(WorkoutNumberDraft(fixture.exercise.id, WorkoutNumberField.WEIGHT, "82.", WeightUnit.LBS, 3, 3, false))
         first.requestNotesExit(); first.exitRequested.awaitFirst { it == WorkoutExit.Kept }
+        assertTrue(deps.workoutDraftCache.all(fixture.session.id).containsKey(fixture.exercise.id))
+        assertEquals(fixture.exercise.id, first.numberEntry.entries.value.single().exerciseId)
         forget(first)
         deps.workoutRepository.removeExerciseFromSession(fixture.session.id, fixture.session.exercises.single().id)
         val reopened = active()
@@ -384,6 +389,58 @@ class WorkoutPrivateRecoveryTest {
         final.privateRecovery.awaitFirst { it.phase == WorkoutPrivatePhase.READY }
         final.uiState.awaitFirst { it.canLog && it.selectedExerciseId == survivor.id }
         assertEquals(listOf(original), deps.workoutRepository.getSession(fixture.session.id)!!.sets)
+    }
+
+    @Test fun revokedReleaseCannotClearTheNewEditorsPendingCommandOrEntry() = runBlocking {
+        val released = CompletableDeferred<Unit>()
+        val resume = CompletableDeferred<Unit>()
+        val root = service()
+        var entryNumber = 0
+        install(object : WorkoutDraftPersistence by root {
+            override fun forEntry(): WorkoutDraftPersistence {
+                val child = root.forEntry()
+                val holdRelease = entryNumber++ == 0
+                return object : WorkoutDraftPersistence by child {
+                    override suspend fun releaseSet(command: WorkoutSetSave) {
+                        child.releaseSet(command)
+                        if (holdRelease) { released.complete(Unit); resume.await() }
+                    }
+                }
+            }
+        })
+        val survivor = insertTestExercise(deps, "new-owner-survivor", "New owner survivor")
+        deps.workoutRepository.addExerciseToSession(fixture.session.id, survivor, 3, 8, 40.0, 90)
+        val command = WorkoutSetSave(fixture.session.id, fixture.exercise.id, "held-release", fixture.session.startedAt,
+            com.sinura.personaltrainer.domain.WorkoutSetValues(99.0, 19, 9, false, 23))
+        val handle = SavedStateHandle(mapOf("sessionId" to fixture.session.id))
+        com.sinura.personaltrainer.workout.SavedStateWorkoutSave(handle).write(command)
+        deps.workoutRepository.removeExerciseFromSession(fixture.session.id, fixture.session.exercises.single().id)
+        val older = active(handle)
+        older.primaryAction.awaitFirst { it.kind == WorkoutPrimaryKind.REVIEW_SAVE && it.enabled }
+        older.editFailedSave()
+        withTimeout(5_000) { released.await() }
+        val newer = active()
+        newer.primaryAction.awaitFirst { it.kind == WorkoutPrimaryKind.REVIEW_SAVE && it.enabled }
+        val staged = deps.workoutDraftCache.all(fixture.session.id)
+        assertEquals(command, deps.workoutDraftCache.pendingSave(fixture.session.id))
+        resume.complete(Unit)
+        older.privateRecovery.awaitFirst { it.phase == WorkoutPrivatePhase.CONFLICT }
+        older.uiState.awaitFirst { !it.logging }
+        assertEquals(command, deps.workoutDraftCache.pendingSave(fixture.session.id))
+        assertEquals(staged, deps.workoutDraftCache.all(fixture.session.id))
+        assertEquals(command, newer.uiState.value.save.command)
+        newer.editFailedSave()
+        newer.uiState.awaitFirst { !it.save.pending && it.canLog && it.selectedExerciseId == survivor.id }
+        newer.setWeight(44.5); newer.setReps(11); newer.setRpe(8); newer.setNotes("New owner notes")
+        newer.numberEntry.put(WorkoutNumberDraft(survivor.id, WorkoutNumberField.WEIGHT, "88.", WeightUnit.LBS, 3, 3, false))
+        newer.requestNotesExit(); newer.exitRequested.awaitFirst { it == WorkoutExit.Kept }
+        forget(newer)
+        val reopened = active()
+        reopened.privateRecovery.awaitFirst { it.phase == WorkoutPrivatePhase.READY }
+        val restored = reopened.uiState.awaitFirst { it.canLog && it.notes == "New owner notes" }
+        assertEquals(44.5, restored.draft.weightKg, 0.0); assertEquals(11, restored.draft.reps); assertEquals(8, restored.draft.rpe)
+        assertEquals("88.", reopened.numberEntry.entries.value.single().text)
+        assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty())
     }
 
     private class FaultFiles : DraftFileIO {

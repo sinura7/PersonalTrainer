@@ -29,6 +29,49 @@ class NumberEntryLifetimeInstrumentedTest {
     @Test fun cancelRejectsQueuedTextAndConfirmation() = checkRetiredCallbacks(confirm = false)
     @Test fun acceptedValueRejectsQueuedTextAndSecondConfirmation() = checkRetiredCallbacks(confirm = true)
 
+    @Test fun queuedPreviousOwnerActionsCannotEditOrClearCurrentOwnerBeforeRecomposition() {
+        val showing = mutableStateOf(true)
+        var owner = "owner-a"
+        val rawEntries = MutableStateFlow<List<WorkoutNumberDraft>>(emptyList())
+        val accepted = mutableListOf<Pair<String, Int>>()
+        val port = object : WorkoutNumberEntries {
+            override val exerciseId get() = owner
+            override val entries = rawEntries
+            override fun put(value: WorkoutNumberDraft) {
+                entries.value = entries.value.filterNot { it.exerciseId == value.exerciseId && it.field == value.field } + value
+            }
+            override fun clear(field: WorkoutNumberField) {
+                entries.value = entries.value.filterNot { it.exerciseId == owner && it.field == field }
+            }
+        }
+        compose.setContent {
+            CompositionLocalProvider(LocalWorkoutNumbers provides port) {
+                if (showing.value) WorkoutNumberEntry(field = WorkoutNumberField.REPS) { NumberEntryDialog(
+                    title = "Reps", unitLabel = null, initial = "8", decimal = false,
+                    helper = "Enter repetitions", parse = String::toIntOrNull,
+                    onConfirm = { accepted += owner to it }, onDismiss = { showing.value = false },
+                ) }
+            }
+        }
+        val oldText = checkNotNull(compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode().config[SemanticsActions.SetText].action)
+        val oldConfirm = checkNotNull(compose.onNodeWithTag(NumberEntryTags.CONFIRM).fetchSemanticsNode().config[SemanticsActions.OnClick].action)
+        val oldCancel = checkNotNull(compose.onNodeWithText("Cancel").fetchSemanticsNode().config[SemanticsActions.OnClick].action)
+        val current = WorkoutNumberDraft("owner-b", WorkoutNumberField.REPS, "13", null, 2, 2, false)
+        compose.runOnIdle {
+            // All old callbacks arrive in this same UI task, before Compose can dispose A.
+            owner = "owner-b"
+            rawEntries.value = rawEntries.value + current
+            oldText(AnnotatedString("99")); oldConfirm(); oldCancel()
+        }
+        compose.waitForIdle()
+        assertTrue(accepted.isEmpty())
+        assertEquals(current, rawEntries.value.single { it.exerciseId == "owner-b" })
+        compose.runOnIdle { showing.value = true }
+        compose.onNodeWithText("Set").performClick()
+        assertEquals(listOf("owner-b" to 13), accepted)
+        assertTrue(rawEntries.value.none { it.exerciseId == "owner-b" })
+    }
+
     private fun checkRetiredCallbacks(confirm: Boolean) {
         val showing = mutableStateOf(true)
         val rawEntries = MutableStateFlow<List<WorkoutNumberDraft>>(emptyList())

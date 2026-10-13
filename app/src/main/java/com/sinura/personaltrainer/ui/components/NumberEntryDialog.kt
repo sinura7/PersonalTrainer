@@ -88,7 +88,7 @@ fun <T> NumberEntryDialog(
     DisposableEffect(Unit) { onDispose { retired.set(true) } }
     val view = LocalView.current
     val confirm: (Boolean) -> Unit = { haptic ->
-        if (confirmEnabled && !retired.get() && onInputAllowed()) {
+        if (confirmEnabled && !retired.get() && onInputAllowed() && retention?.allowsInput() != false) {
             // A queued Set or IME action may come from the frame before the latest edit.
             // Read the authored field now; the old frame's parsed value is display state.
             parse(text.text)?.let { value ->
@@ -106,13 +106,13 @@ fun <T> NumberEntryDialog(
         }
     }
     LaunchedEffect(Unit) {
-        if (!retired.get()) retention?.changed(text)
+        if (!retired.get() && retention?.allowsInput() != false) retention?.changed(text)
         // The dialog's window attaches a frame after this composes, and requesting focus
         // before the node exists throws. Wait one frame, and treat it as best effort even
         // then: the keyboard opening by itself is a convenience, and losing that race must
         // not take the app down mid-set.
         withFrameNanos { }
-        if (!retired.get()) runCatchingCancellable { focus.requestFocus() }
+        if (!retired.get() && retention?.allowsInput() != false) runCatchingCancellable { focus.requestFocus() }
     }
 
     AlertDialog(
@@ -125,7 +125,7 @@ fun <T> NumberEntryDialog(
             ) {
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { if (!retired.get() && inputEnabled && onInputAllowed()) { text = it; retention?.changed(it) } },
+                    onValueChange = { if (!retired.get() && inputEnabled && onInputAllowed() && retention?.allowsInput() != false) { text = it; retention?.changed(it) } },
                     readOnly = !inputEnabled,
                     singleLine = true,
                     isError = text.text.isNotBlank() && parsed == null,

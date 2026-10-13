@@ -299,7 +299,15 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         },
         onReleased = { command, conflict -> releaseSave(command, conflict) },
         onRejected = { _logFeedback.tryEmit(LogCommitFeedback.REJECT) },
-        beforeRelease = { command -> durability?.releaseSet(command) },
+        beforeRelease = { command ->
+            durability?.releaseSet(command)
+            // A newer editor can claim ownership while the IO result waits to resume here.
+            // Fence shared-cache cleanup as well as the subsequent entry callback.
+            if (durability?.ownsEntry(sessionId) == false) {
+                privateDrafts.ownershipLost()
+                throw com.sinura.personaltrainer.workout.WorkoutCheckpointConflict()
+            }
+        },
         afterSaved = { command -> privateCheckpoint()?.let { durability?.settleSet(command, it) } },
         onSettlementUnavailable = { privateDrafts.preservationFailed() },
     )
@@ -1793,6 +1801,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * earlier refusal is cleared.
      */
     private fun releaseSave(command: WorkoutSetSave, conflict: Boolean) {
+        if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return }
         if (conflict) {
             editingSetId.value = null
             clearEditingOriginal()

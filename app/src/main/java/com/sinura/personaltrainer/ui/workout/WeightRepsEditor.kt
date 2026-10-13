@@ -115,11 +115,11 @@ internal fun WeightRepsEditor(
     val meaning = loadClass.weightMeaning
     val showWeight = meaning != WeightMeaning.NONE
     val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
-    var typingWeight by rememberSaveable { mutableStateOf(false) }
-    var typingReps by rememberSaveable { mutableStateOf(false) }
-    var typingHold by rememberSaveable { mutableStateOf(false) }
     val numberPort = LocalWorkoutNumbers.current
     val numberOwner = numberPort?.exerciseId
+    var typingWeight by rememberSaveable(numberOwner) { mutableStateOf(false) }
+    var typingReps by rememberSaveable(numberOwner) { mutableStateOf(false) }
+    var typingHold by rememberSaveable(numberOwner) { mutableStateOf(false) }
     val retainedWeight = retainedNumber(WorkoutNumberField.WEIGHT)
     val retainedReps = retainedNumber(WorkoutNumberField.REPS)
     val retainedHold = retainedNumber(WorkoutNumberField.HOLD_SECONDS)
