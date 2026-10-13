@@ -1,6 +1,6 @@
 {
   "packet": "P04 — Complete workout continuity",
-  "state": "In progress — final native checks passed; complete gate and review seals pending",
+  "state": "In progress — ten assigned automated tasks exercised; complete gate, review seals and integration pending",
   "base": "f7a403892e9028066b88819e9b2031a869d6d9e4",
   "architecture": "ADR-033",
   "problem": "Workout entry, raw keypads, timed work and Delete/Undo relied on process or framework restoration. Reopening and uncertain writes require durable, owner-scoped recovery without changing saved records.",
@@ -110,6 +110,27 @@
       "result": "PASS",
       "scope": "Actual process termination and fresh AppNav reopening after completed checkpoints/admission. Partial original-unit text, clock, accepted numeric entry and exact frozen timed set restored. Same source/APKs as nativeFinal02; no guarantee for unfinished IO or physical timing."
     },
+    "reminderRepeatTarget01": {
+      "freshAppTests": 9,
+      "result": "PASS",
+      "scope": "Real MainActivity/AppNav planned-reminder reconstruction followed by repeated identical occurrence/delivery envelopes, one floor, one Back to Home and the same live session. Complete static checks passed; this is targeted execution, not the complete gate."
+    },
+    "nativePermissionContract03": {
+      "freshTests": 1,
+      "result": "PASS",
+      "scope": "Expanded same-session native walkthrough: actual production rest-notification PendingIntent twice, observed Android delivery, one hardware Back to Home, actual notification Settings off/on with foreground/resume proof, accepted permission guard, retained92.5kg/6/RPE7, eight exact logs/correction/Delete/Undo, hardware Back from Summary and identical History rows/451kg. Original Done coverage remains separately archived; physical acceptance is excluded.",
+      "appApkSha256": "B513398DE8C5CA84892EE22B6CD498B5F0D4A8ADF7B8E563F81AF29A1C833AB9",
+      "testApkSha256": "14B5CFC99A995BB34D1A03628BC5062A5B1C7933EC17B21466D527E8600F7C80",
+      "sourceStable": true
+    },
+    "acceptanceFollowup": {
+      "reviewMap": "reviews/independent-p04-acceptance-map.md",
+      "assignedAutomatedTasks": 10,
+      "exercisedAssignedTasks": 10,
+      "scope": "Seven existing direct proofs plus repeated planned reminder/recreation/Back, actual changed-permission return and hardware Back from completed Summary. Complete gate, exact-source review seals, integration and P20 physical acceptance remain pending."
+    },
+    "full04": "Cancelled before app-unit execution to close three narrowly identified UX22 evidence gaps. Standalone compilation was incomplete; no complete standalone/app/gate pass claimed. Original logs and cancellation receipt retained.",
+    "nativeAcceptanceFailures": "Original native-acceptance01–09, number-diagnosis/correction/foreground and permission-contract01–02 attempts retained. Corrected reconstructed notification flags to the production PendingIntent, awaited actual delivery and numeric-dialog closure, used system Back for the external Settings package, and proved foreground/resumed return. Overbroad 'no dialog' treated the accepted missing-permission guard as a numeric-Cancel failure; global screenshot and successful clear trace resolved that misinterpretation. Speculative production effects and all probes were reverted. One probe attempt compiled main but did not package it; its provenance rejection is explicit. Dedicated expected-guard capture preserves normal prompt checks, and exact readiness assertions now include the implemented resumed cue. These failures are not evidence of a numeric production defect or a Windows-only issue.",
     "full03RepairsTarget01": {
       "freshAppTests": 10,
       "failures": 0,

@@ -1,11 +1,14 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.content.Intent
+import android.accessibilityservice.AccessibilityService
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.SystemClock
+import android.provider.Settings
 import android.net.ConnectivityManager
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.KeyEvent
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
@@ -41,6 +44,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
@@ -54,6 +59,7 @@ import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.PhoneCapabilitySnapshot
 import com.sinura.personaltrainer.domain.RestNudgeCopy
+import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.domain.RestExteriorPermissions
 import com.sinura.personaltrainer.domain.RestExteriorPermissionCopy
 import com.sinura.personaltrainer.domain.SavePosture
@@ -63,6 +69,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.timer.AndroidPhoneCapabilities
+import com.sinura.personaltrainer.timer.RestTimerNotifications
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.components.SessionLogTags
 import com.sinura.personaltrainer.ui.components.SetTableLine
@@ -93,11 +100,12 @@ import org.junit.runner.RunWith
 
 /**
  * One synthetic workout through MainActivity's real AppNav, production ViewModels and Room.
- * Home starts the live session; no deep link, test-host navigation or direct entry mutation.
+ * Home starts the live session; repeated rest-notification delivery and system Settings then
+ * return to that same authored entry. No test-host navigation or direct entry mutation.
  *
  * Fixture setup creates a routine and separate prior history solely to suppress a first-ever
  * record overlay. During the journey all mutations use rendered controls. Rest is observed
- * running and skipped through its Android accessibility action; expiry, notifications and
+ * running and skipped through its Android accessibility action; expiry, notification posting and
  * lock-screen behavior are outside this test. Captures are observations, not owner acceptance.
  * The fixture is offline with verified Android permissions. It does not exercise the remote
  * debug updater. A named disposable Temper AVD, or disposable CI emulator explicitly opting
@@ -142,7 +150,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
     val rules: RuleChain = RuleChain.outerRule(seedRule).around(compose)
 
     @Test
-    fun homeStart_manualResult_rest_switch_correct_finish_done_history_sameSession() {
+    fun homeStart_manualResult_rest_switch_correct_finish_back_history_sameSession() {
         awaitTag("navigation-home")
         compose.onNodeWithTag("navigation-home").assertIsSelected()
         assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
@@ -231,23 +239,24 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(7)).assertIsSelected()
         assertReadiness("Ready to log your entry.")
         assertEquals(listOf(original.id), session().sets.map { it.id })
+        verifyNotificationAndSettingsReturn(original.id)
 
         scrollFloorTo(WorkoutTestTags.setChip(original.id))
         captureWindow("saved-set-before-scroll")
         compose.revealFloorControlAboveTempo(WorkoutTestTags.setChip(original.id))
         captureWindow("saved-set-after-scroll")
         compose.onNodeWithTag(WorkoutTestTags.setChip(original.id)).performClick()
-        assertReadiness("Save changes updates this saved set.")
+        assertReadiness("Draft resumed. Save changes updates this saved set.")
         enterNumbers(85.0, 3)
         // Editing restores the saved effort, not the departing unsaved draft's 7.
         val savedEffort = checkNotNull(original.rpe)
         compose.revealFloorControlAboveTempo(WorkoutTestTags.rpeChoice(savedEffort))
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(savedEffort)).assertIsDisplayed().assertIsSelected().performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsNotEnabled()
-        assertReadiness("Choose effort to save this correction.")
+        assertReadiness("Draft resumed. Choose effort to save this correction.")
         assertEquals(listOf(original.id), session().sets.map { it.id })
         chooseEffort(9)
-        assertReadiness("Save changes updates this saved set.")
+        assertReadiness("Draft resumed. Save changes updates this saved set.")
         assertPrimaryTarget()
         captureWindow("quiet-correction-ready")
         compose.onNodeWithText("Save changes").assertIsDisplayed()
@@ -261,7 +270,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         assertEquals(original.setNumber, corrected.setNumber)
         assertFalse("correcting a saved set does not start another rest", container.restTimerStore.current().running)
         awaitEntryWithoutEffort()
-        assertReadiness("Choose effort to log this set.")
+        assertReadiness("Draft resumed. Choose effort to log this set.")
 
         // Eight actual logs share one AppNav session. Continue beyond the second lift's
         // prescription explicitly, including logs while its rest timer is still running.
@@ -327,9 +336,11 @@ class ConnectedWorkoutJourneyInstrumentedTest {
             .performScrollToNode(hasText("Top set $setLine"))
         compose.onNodeWithText("Top set $setLine").assertIsDisplayed()
 
-        // This is production AppNav: Done must return to Home, then the real History tab
+        // System Back must return to Home without resurrecting the finished workout. Done
+        // remains separately covered by the original native journey and Summary JVM paths.
+        // The real History tab
         // must lead to the same finished session rather than mounting a test-host screen.
-        compose.onNodeWithTag(SummaryTags.DONE).performClick()
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
         awaitTag("navigation-home")
         compose.onNodeWithTag("navigation-home").assertIsSelected()
         compose.onNodeWithTag(SummaryTags.DONE).assertDoesNotExist()
@@ -575,11 +586,19 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         val weight = compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode()
         assertEquals(weightKg, checkNotNull(NumericEntry.parseWeightKg(weight.config[SemanticsProperties.EditableText].text, WeightUnit.KG)), EPSILON)
         compose.onNodeWithText("Cancel").performClick()
+        awaitNumericDialogClosed()
         compose.revealFloorControlAboveTempo(WorkoutTestTags.REPS_STEPPER)
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).performClick()
         val repetitions = compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode()
         assertEquals(reps, NumericEntry.parseReps(repetitions.config[SemanticsProperties.EditableText].text))
         compose.onNodeWithText("Cancel").performClick()
+        awaitNumericDialogClosed()
+    }
+
+    private fun awaitNumericDialogClosed() {
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD)).fetchSemanticsNodes().isEmpty()
+        }
     }
 
     private fun chooseEffort(value: Int) {
@@ -628,7 +647,101 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onAllNodes(isDialog()).assertCountEquals(0)
     }
 
-    private fun clickVisibleAndroidText(label: String) {
+    private fun verifyNotificationAndSettingsReturn(originalSetId: String) {
+        val context = ApplicationProvider.getApplicationContext<PersonalTrainerApp>()
+        val notification = RestTimerNotifications.openAppIntent(context, checkNotNull(sessionId))
+        repeat(2) {
+            lateinit var previousIntent: Intent
+            scenarioRule.scenario.onActivity { previousIntent = it.intent }
+            notification.send()
+            // A floor node already exists. Wait for Android's actual onNewIntent delivery
+            // before letting AppNav settle, or a late tap could arrive after the Back check.
+            awaitCondition("notification delivery reaches the Activity") {
+                var received = false
+                scenarioRule.scenario.onActivity { received = it.intent !== previousIntent }
+                received
+            }
+            compose.waitForIdle()
+            awaitTag(WorkoutTestTags.CONTENT)
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.CONTENT)).assertCountEquals(1)
+            assertDraftNumbers(92.5, 6)
+            assertEquals(listOf(originalSetId), session().sets.map { it.id })
+        }
+        assertNoBlockingDialogs()
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        awaitTag("navigation-home")
+        compose.onNodeWithTag("navigation-home").assertIsSelected()
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).assertDoesNotExist()
+        compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).performClick()
+        awaitTag(WorkoutTestTags.CONTENT)
+        assertDraftNumbers(92.5, 6)
+
+        val notifications = NotificationManagerCompat.from(context)
+        assertTrue("fixture starts with notifications enabled", notifications.areNotificationsEnabled())
+        fun changeInSystemSettings(enabled: Boolean) {
+            scenarioRule.scenario.onActivity { activity ->
+                activity.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
+            }
+            clickVisibleAndroidText("Show notifications", expectedPackage = "com.android.settings")
+            awaitCondition("system notification choice accepted") {
+                notifications.areNotificationsEnabled() == enabled
+            }
+            // The Settings window belongs to another package; use Android's system Back
+            // action rather than app-scoped Instrumentation input injection.
+            assertTrue(InstrumentationRegistry.getInstrumentation().uiAutomation
+                .performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK))
+            awaitCondition("workout is resumed in the foreground after Settings") {
+                val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow
+                try {
+                    root?.packageName?.toString() == context.packageName &&
+                        scenarioRule.scenario.state == Lifecycle.State.RESUMED
+                } finally { root?.recycle() }
+            }
+            awaitTag(WorkoutTestTags.CONTENT)
+        }
+        try {
+            changeInSystemSettings(false)
+            compose.waitUntil(30_000) {
+                compose.onAllNodes(hasText(RestNotificationCopy.RECOVERY_TITLE)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(RestNotificationCopy.RECOVERY_TITLE).assertIsDisplayed()
+            // The accepted permission guard covers entry while the capability is missing.
+            // Observe retained state without interacting with controls behind that dialog.
+            compose.waitUntil(30_000) {
+                compose.onAllNodes(hasText(RestExteriorPermissionCopy.BLOCKING_TITLE)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(RestExteriorPermissionCopy.BLOCKING_TITLE).assertIsDisplayed()
+            val retained = checkNotNull(container.workoutDraftCache.getLift(checkNotNull(sessionId), fixture.first.id))
+            assertEquals(92.5, retained.weightKg, EPSILON)
+            assertEquals(6, retained.reps)
+            assertEquals(7, retained.rpe)
+            assertEquals(listOf(originalSetId), session().sets.map { it.id })
+            capturePermissionGuard()
+            changeInSystemSettings(true)
+            compose.waitUntil(30_000) {
+                compose.onAllNodes(hasText(RestNotificationCopy.RECOVERY_TITLE)).fetchSemanticsNodes().isEmpty() &&
+                    compose.onAllNodes(hasText(RestExteriorPermissionCopy.BLOCKING_TITLE)).fetchSemanticsNodes().isEmpty()
+            }
+            assertNoBlockingDialogs()
+            assertDraftNumbers(92.5, 6)
+            scrollFloorTo(WorkoutTestTags.rpeChoice(7))
+            compose.onNodeWithTag(WorkoutTestTags.rpeChoice(7)).assertIsSelected()
+            assertReadiness("Draft resumed. Ready to log your entry.")
+            assertEquals(listOf(originalSetId), session().sets.map { it.id })
+        } finally {
+            if (!notifications.areNotificationsEnabled()) changeInSystemSettings(true)
+        }
+    }
+
+    private fun capturePermissionGuard() {
+        compose.onNodeWithText(RestExteriorPermissionCopy.BLOCKING_TITLE).assertIsDisplayed()
+        val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+        try { NativeArtifacts.write("connected-workout-system-settings-return-notifications-off-api${Build.VERSION.SDK_INT}", bitmap) }
+        finally { bitmap.recycle() }
+    }
+
+    private fun clickVisibleAndroidText(label: String, expectedPackage: String = "com.sinura.personaltrainer.debug") {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         awaitCondition("visible Android $label action") {
             val root = automation.rootInActiveWindow ?: return@awaitCondition false
@@ -653,7 +766,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
                     }
                     return false
                 }
-                root.packageName?.toString() == "com.sinura.personaltrainer.debug" && click(root)
+                root.packageName?.toString() == expectedPackage && click(root)
             } finally { root.recycle() }
         }
     }
