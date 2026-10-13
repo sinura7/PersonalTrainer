@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -63,12 +65,11 @@ import org.robolectric.annotation.Config
  * five were the adversarial T3 review's probes pb, pf, pg, ph and pi.
  *
  * Built as FloorSessionNotesCharacterisationTest builds it (real in-memory Room, a real
- * SavedStateHandle, an unconfined Main), with one change, so that no wait rests on how fast another
- * thread happens to be: a session row, and the answer to a notes write, reach the screen only on
- * the test's own thread, when the test runs the scheduler ([testThread]), as on a phone they reach
- * it on the main thread. What they resume then runs inline, so when a wait that runs them returns,
- * the screen has handled what it waited for. The database is seeded and read past the doors
- * ([unheld]), which a test thread blocked in `runBlocking` could not run.
+ * SavedStateHandle), with Main confined to the test's scheduler ([testThread]). Real Room
+ * confirmations must return to this owner before touching Main-owned state, just as on a phone.
+ * Bounded waits run only current scheduled work; they do not advance the typing debounce.
+ * The dependency IO lane remains unconfined so direct repository/use-case calls in `runBlocking`
+ * can finish without waiting on an unpumped Main scheduler. Database setup/readback uses [unheld].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -122,8 +123,8 @@ class FloorSessionNotesMoveCharacterisationTest {
     @Before
     fun setUp() {
         dispatcher = UnconfinedTestDispatcher()
-        Dispatchers.setMain(dispatcher)
         testThread = StandardTestDispatcher(scheduler = dispatcher.scheduler, name = "test thread")
+        Dispatchers.setMain(testThread)
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
@@ -147,6 +148,23 @@ class FloorSessionNotesMoveCharacterisationTest {
         if (::dispatcher.isInitialized) dispatcher.scheduler.advanceUntilIdle()
         if (::deps.isInitialized) deps.close()
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun roomReadConfirmationReturnsToTheMainOwnerThread() = runBlocking<Unit> {
+        val ownerThread = Thread.currentThread().id
+        val sessionId = seedLegExtension(deps = deps, loggedSets = emptyList())
+        unheld.updateSessionNotes(sessionId, "stored")
+        val vm = viewModel(handleFor(sessionId))
+        val returned = CompletableDeferred<Pair<Long, String?>>()
+        vm.viewModelScope.launch {
+            val row = unheld.getSession(sessionId)
+            returned.complete(Thread.currentThread().id to row?.notes)
+        }
+        runUntil(what = "the real Room confirmation returned", read = { returned.isCompleted }) { it }
+        val (returnedThread, notes) = returned.await()
+        assertEquals("the actual database result is retained", "stored", notes)
+        assertEquals("Main-owned notes state cannot resume on a Room worker", ownerThread, returnedThread)
     }
 
     @Test
@@ -404,15 +422,16 @@ class FloorSessionNotesMoveCharacterisationTest {
         vm.setNotes("")
         awaitScreen(vm, "clear failed without losing its empty draft") { it.notesSave.status == NotesSaveStatus.FAILED }
         vm.requestNotesExit(leaveWithDraft = true)
+        runUntil(what = "the retained failed clear allows exit", read = { vm.exitRequested.value }) { it == WorkoutExit.Kept }
         assertEquals(WorkoutExit.Kept, vm.exitRequested.value)
         assertTrue(deps.workoutDraftCache.hasPendingNotes(sessionId))
         val before = checkNotNull(unheld.getSession(sessionId))
         deps.restTimerController.start(90, sessionId)
         val bar = LiveSessionBarViewModel(ApplicationProvider.getApplicationContext(), deps)
         try {
-            bar.uiState.awaitFirst { it?.canFinish == true }
+            awaitMainFlow(flow = bar.uiState, matches = { it?.canFinish == true })
             bar.finishFromBar()
-            assertEquals(EndWorkoutCopy.BAR_NOTES_PENDING, bar.actionError.awaitFirst { it != null })
+            assertEquals(EndWorkoutCopy.BAR_NOTES_PENDING, awaitMainFlow(flow = bar.actionError, matches = { it != null }))
             assertNull(bar.finishedNavigation.value)
             assertEquals(before, unheld.getSession(sessionId))
             assertTrue(deps.restTimerStore.current().running)
@@ -435,7 +454,7 @@ class FloorSessionNotesMoveCharacterisationTest {
             assertEquals(before.copy(notes = ""), unheld.getSession(sessionId))
             assertFalse("confirmed reopen retires the older settled guard", deps.workoutDraftCache.hasPendingNotes(sessionId))
             bar.finishFromBar()
-            assertEquals(sessionId, bar.finishedNavigation.awaitFirst { it != null })
+            assertEquals(sessionId, awaitMainFlow(flow = bar.finishedNavigation, matches = { it != null }))
             val finished = checkNotNull(unheld.getSession(sessionId))
             assertEquals("", finished.notes)
             assertEquals(before.sets, finished.sets)
@@ -704,7 +723,9 @@ class FloorSessionNotesMoveCharacterisationTest {
 
         vm.setNotes("final words")
         vm.finishWorkout() // at once: no typing pause, and no Back
-        val finished = unheld.awaitSession(sessionId) { it.finishedAt != null }
+        val finished = checkNotNull(runUntil(what = "explicit Finish committed inside the typing pause", read = {
+            runBlocking { unheld.getSession(sessionId) }
+        }) { it?.finishedAt != null })
         assertEquals("Finish inside a typing pause keeps the last words", "final words", finished.notes)
         assertEquals("Finish carried them itself; no notes write ran", emptyList<String>(), writesStarted.toList())
     }
@@ -966,7 +987,7 @@ class FloorSessionNotesMoveCharacterisationTest {
         shows: (ActiveWorkoutUiState) -> Boolean,
     ): ActiveWorkoutUiState = runUntil(what = what, read = { vm.uiState.value }, done = shows)
 
-    /** Runs the notes writes' answers until [notes] has landed; the screen has taken that answer when this returns. */
+    /** Proves SQL landing; the later readback and save-state publication may still be pending. */
     private suspend fun awaitWriteLanded(notes: String) {
         runUntil(
             what = "the notes write of \"$notes\" landing (writes started: $writesStarted)",
@@ -975,14 +996,14 @@ class FloorSessionNotesMoveCharacterisationTest {
     }
 
     private suspend fun awaitHistoryEntered(vm: ActiveWorkoutViewModel) {
-        try {
-            withTimeout(TestWaits.FLOW_MS) { historyEntered.await() }
-        } catch (timedOut: TimeoutCancellationException) {
-            throw AssertionError(
-                "the prefill never reached its first history read; uiState was ${vm.uiState.value}",
-                timedOut,
-            )
-        }
+        runUntil(what = "the first history read; uiState was ${vm.uiState.value}", read = { historyEntered.isCompleted }) { it }
+    }
+
+    /** Keep a real subscriber while pumping Main, without moving the typing clock. */
+    private suspend fun <T> awaitMainFlow(flow: Flow<T>, matches: (T) -> Boolean): T = coroutineScope {
+        val returned = async { flow.awaitFirst(matches) }
+        runUntil(what = "the Main-owned flow result", read = { returned.isCompleted }) { it }
+        returned.await()
     }
 
     /** [pollUntil], running what was sent to [testThread] before each read. */
