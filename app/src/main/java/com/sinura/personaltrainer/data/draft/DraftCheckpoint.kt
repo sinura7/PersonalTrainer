@@ -4,7 +4,7 @@ import com.google.gson.JsonElement
 
 /** Private recovery identities, never catalogue/session records or backup content. */
 internal enum class DraftForm {
-    CUSTOM_EXERCISE, WORKOUT, ROUTINE, LIBRARY, CARDIO, ACTIVITY, ONBOARDING, HOME,
+    CUSTOM_EXERCISE, WORKOUT, ROUTINE, LIBRARY, CARDIO, ACTIVITY, ONBOARDING, HOME, HISTORY,
 }
 
 internal data class DraftOwner(val form: DraftForm, val identity: String) {

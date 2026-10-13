@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.data.draft.HistoryPeriodDrafts
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.BlockReview
@@ -45,6 +47,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -101,11 +104,19 @@ data class FinishedBlock(
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class HistoryViewModel @JvmOverloads constructor(
+class HistoryViewModel internal constructor(
     application: Application,
     private val savedStateHandle: SavedStateHandle?,
-    container: AppDependencies = application.appContainer(),
+    container: AppDependencies,
+    periodDrafts: HistoryPeriodDrafts?,
 ) : AppViewModel(application, container) {
+    @JvmOverloads
+    constructor(
+        application: Application,
+        savedStateHandle: SavedStateHandle?,
+        container: AppDependencies = application.appContainer(),
+    ) : this(application, savedStateHandle, container, (container as? AppContainer)?.historyPeriodDrafts)
+
     /** Legacy callers keep in-memory selection; only an owner-provided handle persists it. */
     constructor(application: Application, container: AppDependencies) :
         this(application, null, container)
@@ -115,10 +126,48 @@ class HistoryViewModel @JvmOverloads constructor(
 
     private val initialToday = civilToday()
     private val today = MutableStateFlow(initialToday)
-    private val periodSelection = MutableStateFlow(restoredSelection(initialToday))
+    private val savedSelection = decodedSavedSelection()
+    private val periodSelection = MutableStateFlow(savedSelection ?: currentMonth())
+    internal val requestedPeriod = periodSelection.asStateFlow()
+    internal val periodMemory = HistoryPeriodMemory(periodDrafts, viewModelScope)
+    private val navigationReady = MutableStateFlow(periodMemory.snapshot.value.loaded)
+    internal val periodNavigationReady = navigationReady.asStateFlow()
+    private val resumed = MutableStateFlow<HistoryPeriodSelection?>(null)
+    internal val resumedPeriod = resumed.asStateFlow()
+    private var explicitSelectionRevision = 0L
+    private var privateSelectionApplied = false
 
     init {
-        saveSelection(periodSelection.value)
+        // A provisional fallback is not an authored or restored selection. Recording it
+        // before private hydration would let recreation overwrite the remembered period.
+        if (savedSelection != null || periodMemory.snapshot.value.loaded) saveSelection(periodSelection.value)
+        viewModelScope.launch {
+            periodMemory.snapshot.collect { memory ->
+                if (periodMemory.consumeReset(memory.resetSerial)) {
+                    explicitSelectionRevision++
+                    privateSelectionApplied = true
+                    resumed.value = null
+                    publishSelection(currentMonth())
+                    navigationReady.value = true
+                }
+                if (!privateSelectionApplied && memory.loaded) {
+                    if (memory.error == null) {
+                        privateSelectionApplied = true
+                        if (explicitSelectionRevision == 0L) {
+                            if (savedSelection != null) {
+                                // Framework restoration may be newer than the last acknowledged keep.
+                                periodMemory.choose(periodSelection.value)
+                            } else {
+                                val restored = memory.restored
+                                publishSelection(restored ?: periodSelection.value)
+                                resumed.value = restored
+                            }
+                        }
+                    }
+                    navigationReady.value = true
+                }
+            }
+        }
     }
 
     private val _navigateToSession = MutableStateFlow<String?>(null)
@@ -485,6 +534,14 @@ class HistoryViewModel @JvmOverloads constructor(
     fun showCurrentMonth() = showCurrentPeriod()
 
     private fun setSelection(selection: HistoryPeriodSelection) {
+        if (!periodMemory.choose(selection)) return
+        explicitSelectionRevision++
+        resumed.value = null
+        navigationReady.value = true
+        publishSelection(selection)
+    }
+
+    private fun publishSelection(selection: HistoryPeriodSelection) {
         saveSelection(selection)
         periodSelection.value = selection
     }
@@ -496,7 +553,10 @@ class HistoryViewModel @JvmOverloads constructor(
         handle[SAVED_FOLLOW_TODAY] = selection.followToday
     }
 
-    private fun restoredSelection(currentToday: CivilDate): HistoryPeriodSelection {
+    private fun currentMonth(): HistoryPeriodSelection =
+        HistoryPeriodSelection(AnalyticsHorizon.MONTH, today.value.epochDay, true)
+
+    private fun decodedSavedSelection(): HistoryPeriodSelection? {
         val handle = savedStateHandle
         val restored = runCatching {
             val name = handle?.get<Any?>(SAVED_HORIZON) as? String ?: return@runCatching null
@@ -504,7 +564,7 @@ class HistoryViewModel @JvmOverloads constructor(
             val follow = handle.get<Any?>(SAVED_FOLLOW_TODAY) as? Boolean ?: return@runCatching null
             HistoryPeriodSelection(AnalyticsHorizon.valueOf(name), anchor, follow)
         }.getOrNull()
-        return restored ?: HistoryPeriodSelection(AnalyticsHorizon.MONTH, currentToday.epochDay, true)
+        return restored
     }
 
     private fun supportedDay(epochDay: Long): Boolean =

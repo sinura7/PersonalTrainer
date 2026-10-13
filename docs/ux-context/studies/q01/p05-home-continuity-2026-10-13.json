@@ -1,6 +1,6 @@
 {
   "packet": "P05",
-  "state": "Verified for integration; actual trunk journey remains required before P06",
+  "state": "Integrated; bounded Home implementation closed. Full cross-area and physical acceptance remain P19/P20.",
   "base": "830f82a8d9640994053186001a11fa4e04365398",
   "architecture": [
     "ADR-017",
@@ -64,7 +64,7 @@
     "assets/p05-home-current-2026-10-13.png",
     "assets/p05-day-picker-font20-2026-10-13.png"
   ],
-  "next": "Merge exact candidate and rerun the shortest affected actual Home AppNav journey; then P06. Drop A after P10; whole-app integration P19 and physical acceptance P20 remain open.",
+  "next": "P06 History continuity and calendar navigation. Latest signed Debug125; Drop A follows P10.",
   "followupFindings": [
     {
       "owner": "P07",
@@ -86,5 +86,32 @@
       "counterevidence": "Peer hosted run38357561656 and current native05 passed; those do not erase this failure or establish a host-only cause.",
       "review": "reviews/p05-hosted-another-set-supplement.md"
     }
-  ]
+  ],
+  "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/498",
+  "integration": {
+    "packet": "P05",
+    "state": "Integrated",
+    "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/498",
+    "merge": "eb3a57976803268e81abb4847e0c30e7839f2cbc",
+    "tree": "fe7beae1c8bc4e91aa61642838d531d9aa998ec0",
+    "candidate": "83639aa148987b8c14c83accba10a92997c918b3",
+    "reviewedCode": "2b956ad4a8b55e9492d15c424bc7994bfb47f052",
+    "identicalExecutionInputs": 1608,
+    "reusedAppTests": 4449,
+    "reusedStandaloneTests": 1707,
+    "freshMergedHomeAppNavJourney": 1,
+    "apks": {
+      "app": "137D0BC14C07E48434E3AA06DD50C08A358C3EDEDF8AD7A998D5D5D15B15D3FE",
+      "tests": "E8B1B18B7C14F6D3284DCE415FBBC349D654A6677F2932E654AF947CE3CB7E44"
+    },
+    "finalReviewHashes": {
+      "independent": "F100D57AD6A844697751575D463934D1520B8690763C29555B9CBFDF70290130",
+      "adversarial": "8C1C46FFE3D42BA687E4FEB356E6DFCF92A387001F45DE1627572EC4C9E83AFF"
+    },
+    "criticalHighPacketFindings": 0,
+    "openObservations": "Prior P04 hosted custom Close and Another set visibility gaps remain medium/open for P19. Existing completed cardio duplicate-duration copy belongs to P07.",
+    "physicalAcceptance": "P20 unobserved; owner testing begins after development.",
+    "latestSignedDrop": 125,
+    "nextPacket": "P06"
+  }
 }

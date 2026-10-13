@@ -747,12 +747,14 @@ open class HistoryPeriodTestHost {
         assertWords(reachTag(HistoryTags.RANGE_TITLE), expected)
         val spoken = readoutSpoken()
         assertTrue(spoken.contains(expected))
-        assertTrue(spoken.contains("days") && spoken.contains("sets"))
         val totals = checkNotNull(history.uiState.value.horizonTotals)
+        val dayLabel = if (totals.trainedDays == 1) "day" else "days"
+        assertTrue(spoken.split(", ").contains("${totals.trainedDays} $dayLabel"))
+        assertTrue(spoken.split(", ").contains("${totals.workingSets} sets"))
         assertTrue(spoken.contains(HistoryCopy.activeDuration(totals.activeMinutes)))
         for ((tag, value, label) in listOf(
             Triple(HistoryTags.SESSION_COUNT, totals.sessionCount.toString(), HistoryCopy.sessionsLabel(totals.sessionCount)),
-            Triple(HistoryTags.TRAINED_DAYS, totals.trainedDays.toString(), "days"),
+            Triple(HistoryTags.TRAINED_DAYS, totals.trainedDays.toString(), dayLabel),
             Triple(HistoryTags.WORKING_SETS, totals.workingSets.toString(), "sets"),
             Triple(HistoryTags.ACTIVE_TIME, HistoryCopy.activeDuration(totals.activeMinutes), "active time"),
         )) {
