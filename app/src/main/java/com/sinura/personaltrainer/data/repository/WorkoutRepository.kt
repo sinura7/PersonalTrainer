@@ -1057,7 +1057,7 @@ class WorkoutRepository(
      *
      * Restoring the original `completedAt` is what makes undo a true reversal: a set
      * re-inserted with a fresh timestamp would land on today's body map and could re-date a
-     * record. No-ops if the session has since gone.
+     * record. A missing owner is a conflict, so Undo cannot announce an unsaved restoration.
      */
     suspend fun restoreSet(set: DeletedSet) = serialized {
         check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }

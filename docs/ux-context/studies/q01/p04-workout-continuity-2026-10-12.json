@@ -8,7 +8,8 @@
     "source": "workout-recovery-concept.html",
     "image": "assets/workout-recovery-concept-2026-10-12.png",
     "shownBeforeNativeChanges": true,
-    "scope": "Connected synthetic concept; Android continuity is established separately. Retain Debug125 compact illustrated layout."
+    "scope": "Connected synthetic concept; Android continuity is established separately. Retain Debug125 compact illustrated layout.",
+    "nativeImage": "assets/workout-recovery-unavailable-native-2026-10-12.png"
   },
   "decision": {
     "chosen": "Adopt P02 private checkpoints and frozen commands in the existing workout. Show resumed state, Keep entry on preservation failure, and Check again with explicit private-entry discard for unreadable/conflicting drafts.",
@@ -82,7 +83,19 @@
         "force-stop/resume-pending"
       ],
       "scope": "Actual AppNav, real process termination proof, original partial kg text despite lb settings, completed82.0 confirmed then Cancel preserves durable82kg with no record, restored running clock, exact frozen47.5kg/11/RPE8/23sec accepted once. Completed checkpoints/admissions only; no instantaneous in-flight IO guarantee or phone claim."
-    }
+    },
+    "nativeFinal01": "67 checks passed as executed at908de79c with stable sources/APKs. Subsequent visual review rejected recovery-panel closure because a late duplicate snackbar covered its actions. Preserve the pass and overriding limitation; final corrected native rerun required.",
+    "full02": "Standalone1707 passed; unfiltered app task reported GymChromeTest inline-prelude literal and missing-session Undo no-op assertions. Cancelled after visual duplicate-panel discovery to change execution inputs. Original logs/assessment retained; no complete app count or full-gate pass claimed.",
+    "recoveryOverlayBuild01": "Android test compilation rejected an invalid assertDoesNotExist import; removed it because the assertion is a framework member. Original failed build retained.",
+    "overlayContractTarget01": {
+      "freshAppTests": 51,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStable": true,
+      "scope": "Fresh static checks, GymChrome shared-component assertion, SessionRepair no-recreated-data/explicit conflict, durable actor/controller regressions and both APKs. Not the complete unfiltered gate."
+    },
+    "nativeRecoveryLayout03": "PASS26 fresh settled-state profiles. Await FOUND/error before inspecting UI, reject duplicate banner, touch Check again and prove another read. Required viewport/font/RTL and native-rounded targets preserved; actual font2 unavailable preview reviewed. Final full/native exact-candidate gate pending."
   },
   "boundaries": [
     "Physical touch, system timing, sound/haptics and performance remain P20.",

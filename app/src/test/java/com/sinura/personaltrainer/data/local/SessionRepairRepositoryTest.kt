@@ -251,13 +251,15 @@ class SessionRepairRepositoryTest {
     }
 
     @Test
-    fun restoreSetNoOpsWhenTheSessionIsGone() = runBlocking {
+    fun restoreSetReportsConflictWithoutRecreatingAMissingSession() = runBlocking {
         insertSession(SESSION, startedAt = START, finishedAt = FINISH)
         insertSet(id = "s1", sessionId = SESSION, exerciseId = SQUAT, setNumber = 1, completedAt = START + 100)
         val removed = repository.deleteSet("s1")
         repository.deleteFinishedSession(SESSION)
 
-        repository.restoreSet(removed!!)
+        val failure = runCatching { repository.restoreSet(removed!!) }.exceptionOrNull()
+        assertTrue(failure is WorkoutRepository.SetSaveConflict)
+        assertNull(database.workoutDao().getSessionRow(SESSION))
 
         assertEquals(0, database.workoutDao().setsForExercise(SESSION, SQUAT).size)
     }

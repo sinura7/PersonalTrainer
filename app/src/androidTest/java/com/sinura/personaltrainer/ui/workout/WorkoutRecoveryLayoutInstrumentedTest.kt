@@ -19,6 +19,8 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -30,6 +32,7 @@ import com.sinura.personaltrainer.workout.WorkoutDraftPersistence
 import com.sinura.personaltrainer.workout.WorkoutDraftRestore
 import com.sinura.personaltrainer.workout.WorkoutEntryCheckpoint
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -43,17 +46,21 @@ class WorkoutRecoveryLayoutInstrumentedTest(private val width: Int, private val 
     @get:Rule val compose = createComposeRule()
     private val fixture = WorkoutEntryFixture()
     private val previous = checkNotNull(fixture.container.workoutDraftCache.persistence)
+    private val reads = AtomicInteger()
     @After fun cleanup() { try { fixture.close() } finally { fixture.container.workoutDraftCache.persistence = previous } }
 
     @Test fun recoveryActionAndEssentialTextRemainReachable() {
         fixture.container.workoutDraftCache.persistence = object : WorkoutDraftPersistence by previous {
             override fun forEntry(): WorkoutDraftPersistence = this
-            override suspend fun open(sessionId: String): WorkoutDraftRestore = when (scenario.substringBefore('-')) {
+            override suspend fun open(sessionId: String): WorkoutDraftRestore {
+                reads.incrementAndGet()
+                return when (scenario.substringBefore('-')) {
                 "unavailable" -> WorkoutDraftRestore.ReadUnavailable
                 "conflict" -> WorkoutDraftRestore.OwnerConflict("Injected changed owner")
                 else -> when (val result = previous.open(sessionId)) {
                     is WorkoutDraftRestore.ReadyEntry -> result.copy(resumed = scenario.startsWith("resumed"))
                     else -> result
+                }
                 }
             }
             override suspend fun checkpoint(entry: WorkoutEntryCheckpoint) {
@@ -78,6 +85,11 @@ class WorkoutRecoveryLayoutInstrumentedTest(private val width: Int, private val 
             else -> WorkoutPrivatePhase.READY
         }
         compose.waitUntil(30000) { fixture.vm.privateRecovery.value.phase == phase }
+        compose.waitUntil(30000) {
+            val state = fixture.vm.uiState.value
+            state.loadState == SessionLoadState.FOUND &&
+                (if (phase == WorkoutPrivatePhase.READY) state.canLog else state.error != null)
+        }
         GoldenCapture.awaitViewport(compose, width, height)
         val root = compose.onNodeWithTag(GoldenCapture.DefaultTag).fetchSemanticsNode()
         val action = if (scenario.startsWith("keep")) compose.onNodeWithTag("workout-keep-entry").assertIsDisplayed().assertIsEnabled()
@@ -86,7 +98,12 @@ class WorkoutRecoveryLayoutInstrumentedTest(private val width: Int, private val 
             compose.onNodeWithText("Draft resumed. Choose effort to log this set.").assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         } else {
+            compose.onNodeWithText("Something failed").assertDoesNotExist()
             compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Check again"))
+            val before = reads.get()
+            compose.onNodeWithText("Check again").assertIsDisplayed().assertIsEnabled().performTouchInput { click(center) }
+            compose.waitUntil(30000) { reads.get() > before && fixture.vm.privateRecovery.value.phase == phase }
+            compose.onNodeWithText("Something failed").assertDoesNotExist()
             compose.onNodeWithText("Check again").assertIsDisplayed().assertIsEnabled()
         }
         val bounds = action.fetchSemanticsNode().boundsInRoot

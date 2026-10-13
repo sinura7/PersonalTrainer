@@ -454,8 +454,9 @@ private fun ActiveWorkoutContent(
     CompositionLocalProvider(LocalWorkoutNumbers provides viewModel.numberEntry) {
     Scaffold(
         snackbarHost = {
-            val errorBanner = state.error != null && !logBarVisible
-            val undoTop = undoEntries.lastOrNull()?.offer.takeIf { !logBarVisible }
+            // Private recovery owns its message and actions, including while Check again loads.
+            val errorBanner = state.error != null && !logBarVisible && privateRecovery.canEnter
+            val undoTop = undoEntries.lastOrNull()?.offer.takeIf { !logBarVisible && privateRecovery.canEnter }
             if (errorBanner || undoTop != null) {
                 Column(
                     modifier = Modifier
