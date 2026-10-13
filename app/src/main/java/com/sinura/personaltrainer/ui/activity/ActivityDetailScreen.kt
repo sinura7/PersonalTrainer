@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -27,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -52,7 +53,9 @@ import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.NotesBlock
+import com.sinura.personaltrainer.ui.components.CompletedReceiptNotes
+import com.sinura.personaltrainer.ui.components.NotesLeaveDialog
+import com.sinura.personaltrainer.ui.components.CompletedNotesConflict
 import com.sinura.personaltrainer.ui.components.OutlinedMarks
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -66,6 +69,7 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.units.DateCopy
 
 @Composable
 fun ActivityDetailScreen(
@@ -76,19 +80,23 @@ fun ActivityDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val deleted by viewModel.deleted.collectAsStateWithLifecycle()
+    val notesRecovery by viewModel.notesRecovery.collectAsStateWithLifecycle()
+    val notesExitRequested by viewModel.notesExitRequested.collectAsStateWithLifecycle()
+    val notesExitBlocked by viewModel.notesExitBlocked.collectAsStateWithLifecycle()
+    val notesExiting by viewModel.notesExiting.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
-    val leave = {
-        viewModel.persistNotesForExit()
-        onBack()
-    }
+    val leave = viewModel::requestNotesExit
     BackHandler(onBack = leave)
 
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(deleted) {
-        if (deleted) onBack()
+    LaunchedEffect(deleted, notesExitRequested) {
+        if (deleted || notesExitRequested) {
+            viewModel.onNotesExitHandled()
+            onBack()
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -104,6 +112,7 @@ fun ActivityDetailScreen(
                 state.failed -> Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
                         .padding(Metrics.gutter),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                 ) {
@@ -121,18 +130,24 @@ fun ActivityDetailScreen(
                     ) {
                         Text(ActivityDetailCopy.missingAction(celebration))
                     }
+                    CompletedNotesConflict(raw = state.notes, state = notesRecovery, onRetry = viewModel::retryPrivateNotes,
+                        onDiscard = viewModel::discardPrivateNotes, allowDiscard = !notesExiting && !notesExitRequested && !state.notesSave.busy)
                 }
-                state.missing || state.session == null -> EmptyState(
-                    scene = EmptyScene.GONE,
-                    title = ActivityDetailCopy.MISSING_TITLE,
-                    body = ActivityDetailCopy.MISSING_BODY,
-                    actionLabel = ActivityDetailCopy.missingAction(celebration),
-                    onAction = leave,
-                    actionTag = ActivityDetailTags.DONE,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(Metrics.gutter),
-                )
+                state.missing || state.session == null -> Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    EmptyState(
+                        scene = EmptyScene.GONE,
+                        title = ActivityDetailCopy.MISSING_TITLE,
+                        body = ActivityDetailCopy.MISSING_BODY,
+                        actionLabel = ActivityDetailCopy.missingAction(celebration),
+                        onAction = leave,
+                        actionTag = ActivityDetailTags.DONE,
+                    )
+                    CompletedNotesConflict(raw = state.notes, state = notesRecovery, onRetry = viewModel::retryPrivateNotes,
+                        onDiscard = viewModel::discardPrivateNotes, allowDiscard = !notesExiting && !notesExitRequested && !state.notesSave.busy)
+                }
                 else -> {
                     val session = state.session!!
                     if (!celebration) {
@@ -148,6 +163,7 @@ fun ActivityDetailScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
+                            .testTag(ActivityDetailTags.CONTENT)
                             .padding(horizontal = Metrics.gutter),
                         contentPadding = PaddingValues(
                             top = if (celebration) Metrics.space4 else Metrics.space2,
@@ -174,11 +190,17 @@ fun ActivityDetailScreen(
                             )
                         }
                         item {
-                            NotesBlock(
+                            CompletedReceiptNotes(
                                 notes = state.notes,
+                                state = notesRecovery,
+                                save = state.notesSave,
                                 expanded = notesOpen,
                                 onToggle = { notesOpen = !notesOpen },
                                 onChange = viewModel::setNotes,
+                                onRetrySave = viewModel::retryNotesSave,
+                                onRetryPrivate = viewModel::retryPrivateNotes,
+                                onDiscard = viewModel::discardPrivateNotes,
+                                allowActions = !notesExiting && !notesExitRequested,
                             )
                         }
                         if (session.strengthBlocks.isNotEmpty()) {
@@ -227,6 +249,13 @@ fun ActivityDetailScreen(
             },
             onDismiss = { confirmDelete = false },
             destructive = true,
+        )
+    }
+    if (notesExitBlocked) {
+        NotesLeaveDialog(
+            saveState = state.notesSave, liveDraft = false, keepDraftOnLeave = viewModel.durableNotes,
+            onRetry = viewModel::requestNotesExit, onKeepEditing = viewModel::keepEditingNotes,
+            onLeave = viewModel::leaveWithoutNotes,
         )
     }
 }
@@ -302,16 +331,9 @@ private fun ActivityReceiptHero(
                 session.title,
                 style = InstrumentType.title,
                 color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        } else {
-            Text(
-                ActivityDetailCopy.modalityCaption(session),
-                style = InstrumentType.body,
-                color = TextSecondary,
             )
         }
+        Text(DateCopy.civilDate(session.localEpochDay), style = InstrumentType.caption, color = TextSecondary)
         if (celebration) {
             val cardioLead = session.isCardioOnly || (volumeKg <= 0.0 && durationMinutes > 0)
             if (cardioLead) {
@@ -461,7 +483,7 @@ private fun CardioRows(block: CardioBlock, unit: WeightUnit) {
     GroupedList {
         InstrumentRow(
             title = CardioCopy.name(block.type),
-            subtitle = ActivityDetailCopy.cardioSubtitle(
+            subtitle = ActivityDetailCopy.recordedCardioSubtitle(
                 block,
                 DistanceUnit.fromWeight(unit),
             ),
@@ -470,6 +492,7 @@ private fun CardioRows(block: CardioBlock, unit: WeightUnit) {
 }
 
 object ActivityDetailTags {
+    const val CONTENT = "activity-detail-content"
     const val DONE = "activity-detail-done"
     const val BACK = "activity-detail-back"
     const val RETRY = "activity-detail-retry"

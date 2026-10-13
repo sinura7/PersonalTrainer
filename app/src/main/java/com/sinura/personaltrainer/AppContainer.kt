@@ -97,6 +97,9 @@ class AppContainer(context: Context) : AppDependencies {
     internal val historyPeriodDrafts: com.sinura.personaltrainer.data.draft.HistoryPeriodDrafts by lazy {
         com.sinura.personaltrainer.data.draft.HistoryPeriodDrafts(durableDrafts)
     }
+    internal val completedNotesDrafts: com.sinura.personaltrainer.data.draft.CompletedNotesDrafts by lazy {
+        com.sinura.personaltrainer.data.draft.completedNotesDrafts(durableDrafts, this) { backupService.restoreInProgress() }
+    }
     private var openedWorkoutDrafts: DurableWorkoutDrafts? = null
     internal val durableWorkoutDrafts: DurableWorkoutDrafts by lazy {
         DurableWorkoutDrafts(

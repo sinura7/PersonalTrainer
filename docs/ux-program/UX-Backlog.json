@@ -3427,7 +3427,7 @@
         ],
         "closurePacket": "P06",
         "packetEvidence": {
-          "P06": "q01/p06-history-continuity-2026-10-13.json; verified candidate, integration pending."
+          "P06": "q01/p06-history-continuity-2026-10-13.json; PR#499 integrated074f9c50, exact-tree/input/APK merged AppNav journey passed once."
         }
       }
     },
@@ -3456,7 +3456,7 @@
         ],
         "closurePacket": "P06",
         "packetEvidence": {
-          "P06": "q01/p06-history-continuity-2026-10-13.json; verified candidate, integration pending."
+          "P06": "q01/p06-history-continuity-2026-10-13.json; PR#499 integrated074f9c50, exact-tree/input/APK merged AppNav journey passed once."
         }
       }
     },
@@ -4836,12 +4836,12 @@
       {
         "id": "P06",
         "title": "History calendar and period navigation",
-        "state": "Verified; integration pending"
+        "state": "Closed"
       },
       {
         "id": "P07",
         "title": "Details, receipts and charts",
-        "state": "Open"
+        "state": "In progress"
       },
       {
         "id": "P08",
@@ -5216,8 +5216,8 @@
           "P06",
           "P07"
         ],
-        "existing": "Period/read/captured-date coherence and compact History ledger integrated through #487.",
-        "remaining": "Calendar, charts, lifetime drill-down and complete correction/read-error journeys."
+        "existing": "Period/read/captured-date coherence and compact History ledger integrated through #487. P06#499 now verifies calendar/period navigation, private reopening and compact readout.",
+        "remaining": "P07 charts, lifetime supporting-session drill-down, receipts and complete correction/read-error journeys; P19/P20 whole-app and physical acceptance."
       },
       "F7": {
         "owners": [

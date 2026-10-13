@@ -1,6 +1,6 @@
 {
   "packet": "P06",
-  "state": "Verified candidate; integration pending. Physical and whole-programme acceptance remain P19/P20.",
+  "state": "Integrated; bounded P06 development acceptance complete. Physical and whole-programme acceptance remain P19/P20.",
   "base": "eb3a57976803268e81abb4847e0c30e7839f2cbc",
   "candidate": "814ae9398d986a8c8f18be7b58dd5e5a45ab6f0d",
   "architecture": [
@@ -227,5 +227,43 @@
   "nativePreviews": [
     "assets/p06-history-current-2026-10-13.png",
     "assets/p06-history-reset-font20-2026-10-13.png"
-  ]
+  ],
+  "integration": {
+    "packet": "P06",
+    "state": "Integrated",
+    "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/499",
+    "merge": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+    "tree": "f9611eedbc4e3c8c6c353660c31da951148b7269",
+    "candidate": "06ef71691da27eff55b13c8632840dc75d53d137",
+    "reviewedCode": "814ae9398d986a8c8f18be7b58dd5e5a45ab6f0d",
+    "identicalExecutionInputs": 1615,
+    "freshOriginalAppTests": 4467,
+    "freshOriginalStandaloneTests": 1707,
+    "finalGateJvmTests": "Reused verified unchanged execution inputs; no repeated JVM execution",
+    "freshNativeMatrixTests": 19,
+    "freshProcessPhases": 2,
+    "freshLargeAppNavTests": 1,
+    "freshMergedHistoryAppNavJourney": 1,
+    "apks": {
+      "app": "80878B3BC794A4CE39503C83F9140133FA47E53007C0EB3AC62F2DAD98077FB4",
+      "tests": "4D034C70E41009F7CC87A0A260AAC53095F1F5DC130B3A5E6F8976C67843451A"
+    },
+    "finalReviewHashes": {
+      "independent": {
+        "path": "native-gate-final-seal-814ae939-20261013.md",
+        "sha256": "026B690C05080D7215219A279CF5BE79023B392ED4BB2774C9803F3A527BE155"
+      },
+      "adversarial": {
+        "path": "p06-adversarial-final-receipt-source-seal.md",
+        "sha256": "469FB4E5F22521828D6A6EC5DAE90190733AD6B392304DC71A4D6112454383BE"
+      }
+    },
+    "criticalHighPacketFindings": 0,
+    "originalFailureLimits": "Original native threading cause unclassified; prior P04 hosted and native03 observations remain P19. Physical acceptance remains P20. Local APKs are not distribution drops.",
+    "physicalAcceptance": "P20 unobserved; after development",
+    "latestSignedDrop": 125,
+    "nextPacket": "P07",
+    "nextSignedMilestone": "Drop A after P10"
+  },
+  "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/499"
 }

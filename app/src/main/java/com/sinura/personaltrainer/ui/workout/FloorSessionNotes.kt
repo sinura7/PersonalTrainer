@@ -95,6 +95,20 @@ internal class FloorSessionNotes(
         publish()
     }
 
+    /** Completed-detail private discard ends its temporary pause after confirmed private cleanup. */
+    internal fun resetAfterPrivateDiscard(stored: String?) {
+        terminal = false
+        resetUnhydrated()
+        if (stored == null) sessionMissing() else sessionRead(stored)
+    }
+
+    internal fun resumeAfterFailedDiscard() {
+        terminal = false
+        pausedDiscardRevision = revision
+        if (hasUserDraft) failedRevision = revision
+        publish()
+    }
+
     fun sessionMissing() {
         missing = true
         lastPersisted = null

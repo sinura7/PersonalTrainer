@@ -61,6 +61,15 @@ data class ExerciseHistory(
     val hasHistory: Boolean get() = sessions.isNotEmpty()
 }
 
+/** Resolve the actual supporting set across both stores; ambiguous identities never navigate. */
+internal fun supportingRecordSession(record: PersonalRecord, sessions: List<ExerciseSessionSummary>): ExerciseSessionSummary? =
+    sessions.singleOrNull { session ->
+        session.sessionId == record.sessionId && session.sets.any { set ->
+            set.setId == record.setId && set.completedAt == record.achievedAt &&
+                set.weightKg == record.weightKg && set.reps == record.reps
+        }
+    }
+
 /**
  * One working set with just enough of its session attached to summarise it.
  *

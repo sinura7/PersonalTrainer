@@ -2,6 +2,8 @@ package com.sinura.personaltrainer.ui.history
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +54,8 @@ import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
+import com.sinura.personaltrainer.ui.components.CompletedReceiptNotes
+import com.sinura.personaltrainer.ui.components.CompletedNotesConflict
 import com.sinura.personaltrainer.ui.components.NotesLeaveDialog
 import com.sinura.personaltrainer.ui.components.NotesSaveState
 import com.sinura.personaltrainer.ui.components.ScreenHeader
@@ -107,6 +112,7 @@ fun SessionDetailScreen(
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
     val notesExitRequested by viewModel.notesExitRequested.collectAsStateWithLifecycle()
     val notesExitBlocked by viewModel.notesExitBlocked.collectAsStateWithLifecycle()
+    val notesRecovery by viewModel.notesRecovery.collectAsStateWithLifecycle()
     val setSave by viewModel.setSave.collectAsStateWithLifecycle()
     val setEditorExit by viewModel.setEditorExit.collectAsStateWithLifecycle()
     val editorOriginal by viewModel.editorOriginal.collectAsStateWithLifecycle()
@@ -225,7 +231,10 @@ fun SessionDetailScreen(
                 }
                 // Before the missing branch on purpose: a failed read also has no session,
                 // and it must not be shown as a deleted one.
-                state.failed -> {
+                state.failed -> Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
                     EmptyState(
                         scene = EmptyScene.RETRY,
                         title = DataHealthCopy.SESSION_TITLE,
@@ -233,18 +242,24 @@ fun SessionDetailScreen(
                         actionLabel = DataHealthCopy.RETRY,
                         onAction = viewModel::retry,
                         actionTag = SessionDetailTestTags.RETRY,
-                        modifier = Modifier.padding(Metrics.gutter),
                     )
+                    TextButton(onClick = leave) { Text("Back") }
+                    CompletedNotesConflict(raw = state.notes, state = notesRecovery, onRetry = viewModel::retryPrivateNotes,
+                        onDiscard = viewModel::discardPrivateNotes, allowDiscard = !state.notesExiting && !state.notesSave.busy && !setSave.pending)
                 }
-                state.missing || session == null -> {
+                state.missing || session == null -> Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
                     EmptyState(
                         scene = EmptyScene.GONE,
                         title = "Session not found",
                         body = "This workout is no longer on this phone.",
                         actionLabel = "Back",
                         onAction = leave,
-                        modifier = Modifier.padding(Metrics.gutter),
                     )
+                    CompletedNotesConflict(raw = state.notes, state = notesRecovery, onRetry = viewModel::retryPrivateNotes,
+                        onDiscard = viewModel::discardPrivateNotes, allowDiscard = !state.notesExiting && !state.notesSave.busy && !setSave.pending)
                 }
                 else -> {
                     val lifts = session.filledLifts()
@@ -270,11 +285,21 @@ fun SessionDetailScreen(
                                 notes = state.notes,
                                 notesSave = state.notesSave,
                                 notesExpanded = notesOpen,
-                                notesEnabled = !state.notesExiting,
+                                notesEnabled = !state.notesExiting && (session.isFinished.not() || notesRecovery.ready),
                                 onToggleNotes = { notesOpen = !notesOpen },
                                 onNotesChange = viewModel::setNotes,
                                 onRetryNotes = viewModel::retryNotesSave,
                                 unit = unit,
+                                notesContent = if (session.isFinished) {
+                                    {
+                                        CompletedReceiptNotes(
+                                            notes = state.notes, state = notesRecovery, save = state.notesSave, expanded = notesOpen,
+                                            onToggle = { notesOpen = !notesOpen }, onChange = viewModel::setNotes,
+                                            onRetrySave = viewModel::retryNotesSave, onRetryPrivate = viewModel::retryPrivateNotes,
+                                            onDiscard = viewModel::discardPrivateNotes, allowActions = !state.notesExiting,
+                                        )
+                                    }
+                                } else null,
                             )
                         }
                         if (lifts.isEmpty()) {
@@ -341,6 +366,7 @@ fun SessionDetailScreen(
         NotesLeaveDialog(
             saveState = state.notesSave.copy(busy = state.notesSave.busy || state.notesExiting),
             liveDraft = false,
+            keepDraftOnLeave = viewModel.durableCompletedNotes,
             onRetry = { viewModel.requestNotesExit() },
             onKeepEditing = {
                 viewModel.keepEditingNotes()
@@ -505,6 +531,7 @@ private fun SessionReceipt(
     onNotesChange: (String) -> Unit,
     onRetryNotes: () -> Unit,
     unit: WeightUnit,
+    notesContent: (@Composable () -> Unit)? = null,
 ) {
     // The headline is whichever unit this session was actually done in. A calisthenics day
     // reading a giant "0 kg" would be the bodyweight stand-in's failure inverted: instead of
@@ -547,7 +574,7 @@ private fun SessionReceipt(
             )
         }
         HairlineDivider(startIndent = 0.dp)
-        NotesBlock(
+        if (notesContent != null) notesContent() else NotesBlock(
             notes = notes,
             expanded = notesExpanded,
             onToggle = onToggleNotes,

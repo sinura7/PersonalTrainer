@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.repository
 
 import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.backup.RestoreJournal
+import com.sinura.personaltrainer.data.draft.CompletedNoteRecord
 import com.sinura.personaltrainer.data.local.AppRoomDatabase
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
@@ -1180,6 +1181,16 @@ class WorkoutRepository(
     internal suspend fun updateLiveNotesIfUnchanged(sessionId: String, before: String, intended: String) = database.withTransaction {
         val row = workoutDao.getSessionRow(sessionId) ?: throw SetSaveConflict()
         if (row.finishedAt != null || row.notes.trim() != before) throw SetSaveConflict()
+        workoutDao.updateSessionNotes(id = sessionId, notes = intended)
+    }
+
+    /** Private completed-note admission owns maintenance; compare again inside the transaction. */
+    internal suspend fun updateCompletedNotesIfUnchanged(sessionId: String, before: CompletedNoteRecord, intended: String) = database.withTransaction {
+        val row = workoutDao.getSessionRow(sessionId) ?: throw SetSaveConflict()
+        if (row.finishedAt == null || row.notes.trim() != before.notes ||
+            CompletedNoteRecord.strengthIdentity(row.id, row.date, row.startedAt, row.finishedAt) != before.identity) {
+            throw SetSaveConflict()
+        }
         workoutDao.updateSessionNotes(id = sessionId, notes = intended)
     }
 

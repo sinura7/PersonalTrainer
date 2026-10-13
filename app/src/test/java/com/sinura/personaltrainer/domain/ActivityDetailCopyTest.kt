@@ -68,6 +68,19 @@ class ActivityDetailCopyTest {
         )
     }
 
+    @Test fun recordedReceiptKeepsSecondsAndIndependentDisplayDistanceWithoutChangingValues() {
+        val block = cardioSession().cardioBlocks.first().copy(elapsedSeconds = 627L, distanceMeters = 1_234.5, indoor = true)
+        assertEquals("10:27 elapsed · 1.2345 km · Indoor", ActivityDetailCopy.recordedCardioSubtitle(block, DistanceUnit.KM))
+        assertEquals("10:27 elapsed · 0.8 mi · Indoor", ActivityDetailCopy.recordedCardioSubtitle(block, DistanceUnit.MI))
+        assertEquals(627L, block.elapsedSeconds)
+        assertEquals(1_234.5, block.distanceMeters)
+    }
+
+    @Test fun recordedReceiptSupportsHoursAndMissingOptionalDistance() {
+        val block = cardioSession().cardioBlocks.first().copy(elapsedSeconds = 3_701L, distanceMeters = null)
+        assertEquals("1:01:41 elapsed", ActivityDetailCopy.recordedCardioSubtitle(block, DistanceUnit.KM))
+    }
+
     private fun cardioSession() = ActivitySession(
         id = "a1",
         status = ActivityStatus.COMPLETED,

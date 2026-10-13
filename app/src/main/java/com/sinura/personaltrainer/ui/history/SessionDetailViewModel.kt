@@ -4,6 +4,11 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.AppContainer
+import com.sinura.personaltrainer.data.draft.CompletedNoteKind
+import com.sinura.personaltrainer.data.draft.CompletedNoteOwner
+import com.sinura.personaltrainer.data.draft.CompletedNotesDrafts
+import com.sinura.personaltrainer.ui.components.CompletedNotesForm
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
@@ -66,12 +71,21 @@ data class SessionDetailUiState(
  * it happened.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class SessionDetailViewModel @JvmOverloads constructor(
+class SessionDetailViewModel internal constructor(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
-    container: AppDependencies = application.appContainer(),
+    container: AppDependencies,
+    private val drafts: CompletedNotesDrafts?,
 ) : AppViewModel(application, container) {
+    @JvmOverloads constructor(application: Application, savedStateHandle: SavedStateHandle, container: AppDependencies = application.appContainer()) :
+        this(application, savedStateHandle, container, (container as? AppContainer)?.completedNotesDrafts)
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
+    private var completedOwnerVerified = savedStateHandle.get<Boolean>("completed.notes.ownerVerified.v1") == true
+
+    private fun retainCompletedOwner() {
+        completedOwnerVerified = true
+        savedStateHandle["completed.notes.ownerVerified.v1"] = true
+    }
 
     internal val summaryNeedsRefresh: Boolean
         get() = savedStateHandle.get<Boolean>("history.summaryDirty.v1") == true
@@ -112,10 +126,11 @@ class SessionDetailViewModel @JvmOverloads constructor(
         )
 
     private val notesOwner = Any()
-    private val sessionNotes = FloorSessionNotes(
+    private val sessionNotes: FloorSessionNotes = FloorSessionNotes(
         sessionId = sessionId,
         write = { notes ->
-            container.workoutDraftCache.withNotesWrite(sessionId) {
+            if (completedOwnerVerified && drafts != null) completedNotes.save(notes)
+            else container.workoutDraftCache.withNotesWrite(sessionId) {
                 container.workoutRepository.updateSessionNotes(sessionId, notes)
             }
         },
@@ -127,13 +142,31 @@ class SessionDetailViewModel @JvmOverloads constructor(
             }
         },
         onUnconfirmed = { pending, busy, notes ->
-            val live = load.value.value?.isFinished != true
+            val live = !completedOwnerVerified && load.value.value?.isFinished != true
             if (live && pending) container.workoutDraftCache.putSessionNotes(sessionId, notes)
             container.workoutDraftCache.markNotesPending(
                 sessionId = sessionId, owner = notesOwner, pending = live && pending, busy = busy, notes = notes,
             )
         },
     )
+    private val completedNotes: CompletedNotesForm = CompletedNotesForm(
+        store = drafts.takeIf { sessionId.isNotBlank() }, owner = CompletedNoteOwner(CompletedNoteKind.STRENGTH, sessionId),
+        saved = savedStateHandle, scope = viewModelScope,
+        restoreText = sessionNotes::restore,
+        resetText = sessionNotes::resetAfterPrivateDiscard,
+        onRecoveredSaved = ::acknowledgeNotesChange,
+        onRecoveredDraft = ::retainCompletedOwner,
+    )
+    internal val notesRecovery = completedNotes.state
+    internal val durableCompletedNotes: Boolean get() = drafts != null && completedOwnerVerified
+    internal fun retryPrivateNotes() { if (!notesExitIsActive()) completedNotes.retryPrivate() }
+    internal fun discardPrivateNotes() {
+        if (!canBeginNotesExit() || sessionNotes.saveState.value.busy || !completedNotes.beginDiscard()) return
+        sessionNotes.abandonPendingWrites()
+        viewModelScope.launch {
+            if (!completedNotes.discard()) sessionNotes.resumeAfterFailedDiscard()
+        }
+    }
 
     private val errors = ErrorSlot()
     val error: StateFlow<String?> = errors.messages
@@ -206,6 +239,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
         )
 
     init {
+        if (completedOwnerVerified) completedNotes.start()
         val completed = _setEditorExit.value
         if (completed != null) historySaves.clear(completed)
         else historySaves.keepRestored()?.let { command ->
@@ -214,8 +248,20 @@ class SessionDetailViewModel @JvmOverloads constructor(
         }
         viewModelScope.launch {
             load.collect { load ->
+                if (load.missing || load.failed) {
+                    // A fresh entry may have no framework state. Inspect private completed
+                    // notes read-only so a missing/unavailable owner cannot hide the draft.
+                    completedNotes.start()
+                    completedNotes.awaitInitial()
+                }
                 if (load.missing) sessionNotes.sessionMissing()
                 val current = load.value ?: return@collect
+                if (current.isFinished) {
+                    retainCompletedOwner()
+                    completedNotes.start()
+                    completedNotes.awaitInitial()
+                    completedNotes.dataAvailable()
+                }
                 sessionNotes.sessionRead(current.notes)
                 // Room may acknowledge a committed write after its direct readback failed.
                 // The token also survives owner reconstruction; ordinary hydration is not a change.
@@ -229,6 +275,10 @@ class SessionDetailViewModel @JvmOverloads constructor(
 
     fun setNotes(value: String) {
         if (notesExitIsActive()) return
+        if (durableCompletedNotes) {
+            if (!notesRecovery.value.ready) return
+            if (!completedNotes.edit(value)) return
+        }
         container.workoutDraftCache.editSessionNotes(sessionId) { sessionNotes.edit(value) }
     }
 
@@ -262,9 +312,9 @@ class SessionDetailViewModel @JvmOverloads constructor(
 
     /** Retry keeps the original destination; no new session or navigation precedes notes. */
     private fun beginNotesExit(intent: NotesExitIntent, leaveWithoutChanges: Boolean = false) {
-        if (!canBeginNotesExit()) return
+        if (!canBeginNotesExit() || completedNotes.isDiscarding) return
         if (leaveWithoutChanges && sessionNotes.saveState.value.busy) return
-        if (leaveWithoutChanges && intent == NotesExitIntent.Back) {
+        if (leaveWithoutChanges && intent == NotesExitIntent.Back && !durableCompletedNotes) {
             if (!sessionNotes.abandonPendingWrites()) return
             pendingNotesExit = null
             _notesExitBlocked.value = false
@@ -276,8 +326,10 @@ class SessionDetailViewModel @JvmOverloads constructor(
         notesExitPending.value = true
         viewModelScope.launch {
             try {
-                val ready = if (leaveWithoutChanges) sessionNotes.discardDraftForForward()
-                    else sessionNotes.writeNow()
+                val saved = if (leaveWithoutChanges && !durableCompletedNotes) sessionNotes.discardDraftForForward()
+                    else if (leaveWithoutChanges) false else sessionNotes.writeNow()
+                val ready = if (durableCompletedNotes && (!saved || completedNotes.hasUnfinished))
+                    completedNotes.keepForExit(sessionNotes.text.value) else saved
                 if (ready) {
                     pendingNotesExit = null
                     when (intent) {
