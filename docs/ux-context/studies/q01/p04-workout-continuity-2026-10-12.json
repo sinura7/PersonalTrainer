@@ -1,6 +1,6 @@
 {
   "packet": "P04 — Complete workout continuity",
-  "state": "Verified candidate — integration pending; physical acceptance remains P20",
+  "state": "Integrated at e21ee990; focused corrective packet in progress after subsequent native failures; physical acceptance remains P20",
   "base": "f7a403892e9028066b88819e9b2031a869d6d9e4",
   "architecture": "ADR-033",
   "problem": "Workout entry, raw keypads, timed work and Delete/Undo relied on process or framework restoration. Reopening and uncertain writes require durable, owner-scoped recovery without changing saved records.",
@@ -190,5 +190,18 @@
     "Physical touch, system timing, sound/haptics and performance remain P20.",
     "Cross-app acceptance criteria remain owned by their named packets and P19.",
     "Latest signed delivery remains Debug125; next milestone publication follows P10."
-  ]
+  ],
+  "correctiveNativeContracts": {
+    "base": "e21ee990b073cb0ce8697b6b90bd018f250fde5e",
+    "originalHostedRuns": [
+      38344380459,
+      38344374417
+    ],
+    "baseline": "completion-baseline01: 15 executed, four failed; numeric-red01: two executed, two failed. Original reports retained.",
+    "problem": "Released removed-owner commands leave orphaned staged fields; retired numeric callbacks can republish/confirm input after dismissal.",
+    "change": "Prune only owners proven absent by successful session reads; preserve survivor values/notes. Retire numeric input/confirmation/focus callbacks and read live retention before reopening. Pin unadmitted-command and incompatible-raw-checkpoint fixtures separately.",
+    "acceptance": "Return/Close/reopen with exact surviving values and no removed command write; explicit raw-owner conflict discard preserves saved rows; canceled/accepted old callbacks cannot mutate or reopen; fresh dialog input remains accepted; affected actual AppNav and layout cases pass.",
+    "verification": "In progress; original failures are not passes.",
+    "deployment": "No version/drop in this correction; milestone A remains after P10."
+  }
 }

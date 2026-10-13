@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * One typed number, confirmed explicitly. D-08's tap-to-type on the
@@ -82,9 +84,11 @@ fun <T> NumberEntryDialog(
     val parsed = parse(text.text)
     val suffixSlot: (@Composable () -> Unit)? = unitLabel?.let { label -> { Text(label) } }
     val focus = remember { FocusRequester() }
+    val retired = remember { AtomicBoolean(false) }
+    DisposableEffect(Unit) { onDispose { retired.set(true) } }
     val view = LocalView.current
     val confirm: (Boolean) -> Unit = { haptic ->
-        if (confirmEnabled) {
+        if (confirmEnabled && !retired.get() && onInputAllowed()) {
             // A queued Set or IME action may come from the frame before the latest edit.
             // Read the authored field now; the old frame's parsed value is display state.
             parse(text.text)?.let { value ->
@@ -93,6 +97,7 @@ fun <T> NumberEntryDialog(
                     true
                 }
                 if (accepted) {
+                    retired.set(true)
                     retention?.discarded()
                     if (haptic) Haptics.tick(view)
                     onDismiss()
@@ -101,17 +106,17 @@ fun <T> NumberEntryDialog(
         }
     }
     LaunchedEffect(Unit) {
-        retention?.changed(text)
+        if (!retired.get()) retention?.changed(text)
         // The dialog's window attaches a frame after this composes, and requesting focus
         // before the node exists throws. Wait one frame, and treat it as best effort even
         // then: the keyboard opening by itself is a convenience, and losing that race must
         // not take the app down mid-set.
         withFrameNanos { }
-        runCatchingCancellable { focus.requestFocus() }
+        if (!retired.get()) runCatchingCancellable { focus.requestFocus() }
     }
 
     AlertDialog(
-        onDismissRequest = { if (dismissEnabled) { retention?.closed(); onDismiss() } },
+        onDismissRequest = { if (dismissEnabled && retired.compareAndSet(false, true)) { retention?.closed(); onDismiss() } },
         title = { Text(title, style = InstrumentType.title) },
         text = {
             Column(
@@ -120,7 +125,7 @@ fun <T> NumberEntryDialog(
             ) {
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { if (inputEnabled && onInputAllowed()) { text = it; retention?.changed(it) } },
+                    onValueChange = { if (!retired.get() && inputEnabled && onInputAllowed()) { text = it; retention?.changed(it) } },
                     readOnly = !inputEnabled,
                     singleLine = true,
                     isError = text.text.isNotBlank() && parsed == null,
@@ -159,7 +164,7 @@ fun <T> NumberEntryDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = { retention?.discarded(); onDismiss() },
+                onClick = { if (dismissEnabled && retired.compareAndSet(false, true)) { retention?.discarded(); onDismiss() } },
                 enabled = dismissEnabled,
                 modifier = Modifier.heightIn(min = Metrics.touchMin).widthIn(min = Metrics.touchMin),
             ) {

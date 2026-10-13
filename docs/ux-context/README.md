@@ -28,7 +28,7 @@ UX roadmap and physical acceptance are unfinished.
 
 **Earlier planning estimate, retained for history:** the approximately **55%** figure predates the accepted P01–P20 completion train. It is not a current measured usability percentage. Current progress follows the reconciled 97 criteria (96 required), with implementation, bounded automated evidence, whole-app integration and physical acceptance recorded separately in the existing backlog.
 
-P04’s verified candidate supplies durable workout entry, exact interrupted-save recovery and a complete same-session native journey. Ten assigned criteria have scoped automated evidence; integration is pending and physical acceptance remains P20. The original failures are retained alongside the final fresh app4433/standalone1707 and native67/process4 receipts. Latest signed delivery remains Debug125; Drop A follows P10.
+P04 integrated through [PR #496](https://github.com/sinura7/PersonalTrainer/pull/496) at `e21ee990`. Ten assigned criteria have scoped automated evidence; physical acceptance remains P20. The original fresh app4433/standalone1707 and native67/process4 receipts remain intact. Subsequent hosted native runs exposed removed-owner recovery and numeric-dialog failures. The removed-owner baseline reproduced four failures in 15 local native cases; a controlled retired-dialog regression reproduced two failures. A focused corrective packet addresses these findings before P05 resumes; they are not described as passed. Latest signed delivery remains Debug125; Drop A follows P10.
 
 | Area | Implemented in the current integrated work | Remaining roadmap work |
 |---|---|---|

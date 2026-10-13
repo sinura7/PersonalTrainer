@@ -297,7 +297,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             if (durability?.ownsEntry(sessionId) == false) privateDrafts.ownershipLost()
             else acknowledgeSave(command, result, recovered)
         },
-        onReleased = { _, conflict -> releaseSave(conflict) },
+        onReleased = { command, conflict -> releaseSave(command, conflict) },
         onRejected = { _logFeedback.tryEmit(LogCommitFeedback.REJECT) },
         beforeRelease = { command -> durability?.releaseSet(command) },
         afterSaved = { command -> privateCheckpoint()?.let { durability?.settleSet(command, it) } },
@@ -598,6 +598,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     savedSetAwaitingRow?.let { id -> if (current.sets.any { it.id == id }) savedSetAwaitingRow = null }
                     val resolved = current.resolveSelectedExerciseId(selectedExerciseId.value)
                     if (!saves.pending && resolved != selectedExerciseId.value) {
+                        selectedExerciseId.value?.takeIf { id ->
+                            read.loadState == SessionLoadState.FOUND && current.exercises.none { it.exercise.id == id }
+                        }?.let(::retireRemovedEntry)
                         if (resolved == null) {
                             clearLiftSelection()
                         } else {
@@ -1789,16 +1792,33 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * already cleared. After a conflict the edit is let go too; after an unwritten set, Log's
      * earlier refusal is cleared.
      */
-    private fun releaseSave(conflict: Boolean) {
+    private fun releaseSave(command: WorkoutSetSave, conflict: Boolean) {
         if (conflict) {
             editingSetId.value = null
             clearEditingOriginal()
+            val read = sessionReader.observations.value
+            if (read.loadState == SessionLoadState.FOUND &&
+                read.session?.exercises?.none { it.exercise.id == command.exerciseId } == true) {
+                retireRemovedEntry(command.exerciseId)
+            }
             reconcileSelectionAfterSave()
             persistDraft()
         } else {
             error.clearFrom(source = ERR_LOG_SET, before = error.mark())
             reconcileSelectionAfterSave()
         }
+    }
+
+    /** Retire only an owner proven absent by a successful session read, after save inspection. */
+    private fun retireRemovedEntry(exerciseId: String) {
+        // Clearing selection first saves/stops its clock. Remove those copies afterwards so
+        // applySelection cannot persist the released command's draft back into the checkpoint.
+        if (selectedExerciseId.value == exerciseId) clearLiftSelection()
+        draftCache.removeLift(sessionId, exerciseId)
+        savedDraft.removeLift(exerciseId)
+        numberEntries.value = numberEntries.value.filterNot { it.exerciseId == exerciseId }
+        clocks.forgetStopwatch(exerciseId)
+        if (pendingResumeDraft?.exerciseId == exerciseId) pendingResumeDraft = null
     }
 
     private fun restoreSaveDraft(command: WorkoutSetSave) {

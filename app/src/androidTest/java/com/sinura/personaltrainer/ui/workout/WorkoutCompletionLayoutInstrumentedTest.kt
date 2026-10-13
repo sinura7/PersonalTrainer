@@ -61,7 +61,10 @@ class WorkoutCompletionLayoutInstrumentedTest(
     @Test fun primaryActionAndRecoveryRemainReachable() {
         // Edit-denied plans two sets so one is still to come after the edit stands down: a
         // complete dock (Next or Finish) deliberately gives the honesty row no room.
-        fixture.seed(targetSets = if (scenario == "edit-denied") 2 else 1)
+        // Removed-command recovery starts without a raw private checkpoint. A checkpoint
+        // whose owner changed has a separate conflict/discard contract, not Review save.
+        fixture.seed(targetSets = if (scenario == "edit-denied") 2 else 1,
+            startViewModel = !scenario.startsWith("removed"))
         if (scenario == "next" || scenario == "removed-owner") fixture.addNextExercise(longName = true, targetSets = 3)
         val repo = fixture.container.workoutRepository
         val sessionId = fixture.sessionId
@@ -216,7 +219,13 @@ class WorkoutCompletionLayoutInstrumentedTest(
                 chooseEffort()
             }
             compose.waitUntil(15_000) { fixture.vm.primaryAction.value.kind == expected && fixture.vm.primaryAction.value.enabled }
+            compose.waitUntil(15_000) { fixture.vm.privateRecovery.value.phase == WorkoutPrivatePhase.READY }
+            val current = runBlocking(Dispatchers.IO) { checkNotNull(repo.getSession(sessionId)) }
+            assertTrue(fixture.container.workoutDraftCache.all(sessionId).keys.all { id -> current.exercises.any { it.exercise.id == id } })
+            assertTrue(fixture.vm.numberEntry.entries.value.all { entry -> current.exercises.any { it.exercise.id == entry.exerciseId } })
             assertTrue(runBlocking(Dispatchers.IO) { repo.getSession(sessionId)!!.sets.isEmpty() })
+            compose.runOnIdle { fixture.vm.requestNotesExit() }
+            compose.waitUntil(15_000) { fixture.vm.exitRequested.value == WorkoutExit.Kept }
         }
     }
 

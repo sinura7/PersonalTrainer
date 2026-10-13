@@ -30,7 +30,8 @@ internal class WorkoutEntryFixture {
     lateinit var vm: ActiveWorkoutViewModel
         private set
 
-    fun seed(exerciseId: String = "ex-barbell-back-squat", targetSets: Int = 12, longName: Boolean = false) {
+    fun seed(exerciseId: String = "ex-barbell-back-squat", targetSets: Int = 12, longName: Boolean = false,
+        startViewModel: Boolean = true) {
         check(Build.HARDWARE in setOf("ranchu", "goldfish"))
         runBlocking(Dispatchers.IO) {
             container.restTimerController.stop()
@@ -65,7 +66,7 @@ internal class WorkoutEntryFixture {
             val planned = checkNotNull(container.routineRepository.getById(routine.id))
             sessionId = container.workoutRepository.startRoutine(planned).id
         }
-        vm = ActiveWorkoutViewModel(
+        if (startViewModel) vm = ActiveWorkoutViewModel(
             application = app,
             savedStateHandle = SavedStateHandle(mapOf("sessionId" to sessionId)),
             container = container,
