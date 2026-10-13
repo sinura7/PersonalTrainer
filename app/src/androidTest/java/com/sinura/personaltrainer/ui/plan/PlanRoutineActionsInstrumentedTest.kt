@@ -111,7 +111,7 @@ class PlanRoutineActionsInstrumentedTest {
         capture("plan-routine-edit-return-font20")
     }
 
-    @Test fun equalTimeUpActionChangesHomePlanAndFutureOrderWithoutChangingHistory() {
+    @Test fun equalTimeUpActionChangesHomeAndPlanOrderWithoutChangingHistory() {
         val today = java.time.LocalDate.now().toEpochDay()
         val ownedRules = read { container.plannerRepository.rules().filter { it.routineId in setOf(routine.id, other.id) }.map { it.id } }
         val before = read { container.plannerRepository.occurrencesBetween(today, today).filter { it.ruleId in ownedRules } }

@@ -719,6 +719,36 @@
       "fullGate": false,
       "sourceStable": true,
       "apks": null
+    },
+    "final-full16": {
+      "receipt": "scheduling-recovery/final-full16/summary.json",
+      "sha256": "e369d185786db0647fed655ab6ae4e69a5839c98f034b2ce4fcc7aa16680ec65",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": true,
+      "sourceStable": true,
+      "apks": null
+    },
+    "impact-target18": {
+      "receipt": "scheduling-recovery/impact-target18/summary.json",
+      "sha256": "1bc5fa496f527c035d10a762ad7051fe23df0cb0c689313e132f68d032a032af",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "freshJvm": 1,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "review-fixes-target17": {
+      "receipt": "scheduling-recovery/review-fixes-target17/summary.json",
+      "sha256": "6515aa3dee98b4a2d6bd710b326b87172f965deec5a5a0e90308723f65617905",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "freshJvm": 45,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
     }
   },
   "originalFailures": {
@@ -729,7 +759,10 @@
     "native-ui-target06": "Compiled then typed-state static coverage declined two new generic state sites; zero tests. Explicitly typed composable state parameters; state flow named updates.",
     "native-ui-target07": "56 fresh tests,1 initialization failure; new presenter setup returned a list instead of JUnit void. Changed setup to a Unit block; all prior assertions preserved.",
     "native-candidate09": "58 focused JVM tests passed; overall run failed native fixture compilation because addExercise requires an Exercise and targets, rather than exerciseId. Fixed fixture arguments; original failure preserved.",
-    "connected-native01": "Native fixture awaited nonexistent navigation-plan; shipping Plan tag is navigation-routines. Corrected selector; original output and misleading whole-Home initial capture retained, not counted as the preview."
+    "connected-native01": "Native fixture awaited nonexistent navigation-plan; shipping Plan tag is navigation-routines. Corrected selector; original output and misleading whole-Home initial capture retained, not counted as the preview.",
+    "review-fixes-target15": "Compilation succeeded but two new mixed-argument fixture constructors grew the static ratchet; no tests executed. Converted both to fully named arguments without changing the baseline.",
+    "final-full16": "Fresh standalone preflight passed1715. Unfiltered app run exposed two raw failures: ordering wrongly rejected a completed anchor for future-rule changes; existing render assertion expected superseded deletion wording. Stopped the verified owned Gradle client after diagnosis. Source/ref stable; app run incomplete, aggregate executed count unavailable (zero fresh completed XML is not zero tests run). Original logs/cancellation receipt retained. Corrected ordering and updated impact assertions without weakening saved-record checks; fresh complete gate remains required.",
+    "review-fixes-target17": "45 fresh tests;44 passed, one revised caption assertion failed because assertTextContains defaults to exact matching. Native semantics contained the correct weekly/date/history paragraph. Set substring=true; preserved all recorded-value assertions. impact-target18 then passed the exact same deletion journey and assembled native/debug/release APKs."
   },
   "nativeEvidence": {
     "layoutReceipt": "scheduling-recovery/layout01-layouts.json",

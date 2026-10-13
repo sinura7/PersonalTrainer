@@ -162,21 +162,25 @@ class PlannerRepository(
         if (moves.isEmpty()) return
         val nowMs = time.nowMillis()
         database.withTransaction {
-            val selected = moves.map { move ->
+            // Public callers may supply moves in source-row order; the requested hours
+            // establish order, with input order breaking ties. Settled rows can anchor
+            // future-rule changes but their saved occurrences are never rewritten.
+            val orderedMoves = moves.sortedBy { it.hour }
+            val selected = orderedMoves.map { move ->
                 checkNotNull(dao.getOccurrence(move.occurrenceId)) { "The selected session no longer exists" }
-                    .also { check(it.ruleId == move.ruleId && it.status == OccurrenceStatus.PLANNED.name) {
+                    .also { check(it.ruleId == move.ruleId) {
                         "The selected session changed; review the day again"
                     } }
             }
             check(moves.map { it.occurrenceId }.distinct().size == moves.size)
             check(selected.map { it.localEpochDay }.distinct().size == 1)
             val originalMinutes = selected.map { it.hour * 60 + it.minute }.sorted()
-            val slots = DayBlockOrder.distinctMinutes(moves.mapIndexed { index, move ->
+            val slots = DayBlockOrder.distinctMinutes(orderedMoves.mapIndexed { index, move ->
                 move.hour.coerceIn(0, 23) * 60 + originalMinutes[index] % 60
             })
             val updated = mutableListOf<ScheduleOccurrence>()
             val touchedRules = mutableListOf<ScheduleRule>()
-            for ((index, move) in moves.withIndex()) {
+            for ((index, move) in orderedMoves.withIndex()) {
                 val nextHour = slots[index] / 60
                 val nextMinute = slots[index] % 60
                 val occRow = selected[index]
