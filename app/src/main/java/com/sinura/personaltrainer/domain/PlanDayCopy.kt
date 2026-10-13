@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.domain
 
+internal const val SCHEDULE_ORDER_COPY =
+    "Order changes remaining planned sessions and their reminders. Weekly sessions keep this order next week. Completed sessions stay unchanged."
+
 /**
  * Plan day page: schedule blocks, not a start surface.
  */

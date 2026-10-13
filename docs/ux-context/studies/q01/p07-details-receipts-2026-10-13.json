@@ -1,6 +1,6 @@
 {
   "packet": "P07",
-  "state": "Verified P07 implementation candidate; final independent/adversarial receipt/input seals clear. PR and exact-input trunk integration pending; P19/P20 remain open.",
+  "state": "Integrated through PR500 at 1ab4c1ab; bounded P07 development acceptance complete. P19/P20 remain open.",
   "base": "074f9c5057caa033eca1c530dd98812cb76e77e1",
   "architecture": [
     "ADR-026",
@@ -1480,7 +1480,7 @@
           ]
         }
       ],
-      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+      "state": "Bounded automated evidence integrated through PR500 at 1ab4c1ab; exact inputs and fresh merged journey verified. P19/P20 open."
     },
     "UX05-AC02": {
       "suites": [
@@ -1515,7 +1515,7 @@
           ]
         }
       ],
-      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+      "state": "Bounded automated evidence integrated through PR500 at 1ab4c1ab; exact inputs and fresh merged journey verified. P19/P20 open."
     },
     "UX05-AC03": {
       "suites": [
@@ -1593,7 +1593,7 @@
           ]
         }
       ],
-      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+      "state": "Bounded automated evidence integrated through PR500 at 1ab4c1ab; exact inputs and fresh merged journey verified. P19/P20 open."
     },
     "UX05-AC04": {
       "suites": [
@@ -1637,7 +1637,7 @@
           ]
         }
       ],
-      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+      "state": "Bounded automated evidence integrated through PR500 at 1ab4c1ab; exact inputs and fresh merged journey verified. P19/P20 open."
     },
     "UX15-AC03": {
       "suites": [
@@ -1720,7 +1720,7 @@
           ]
         }
       ],
-      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+      "state": "Bounded automated evidence integrated through PR500 at 1ab4c1ab; exact inputs and fresh merged journey verified. P19/P20 open."
     },
     "UX16-AC01": {
       "suites": [],
@@ -1729,7 +1729,7 @@
       ],
       "scope": "Native Jan1/Jan2/Apr1 disclosure of equal session spacing, with exact dated value list at its archived manifest.",
       "executedXml": [],
-      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+      "state": "Bounded automated evidence integrated through PR500 at 1ab4c1ab; exact inputs and fresh merged journey verified. P19/P20 open."
     },
     "UX16-AC02": {
       "suites": [],
@@ -1739,7 +1739,7 @@
       ],
       "scope": "Native chart descriptions and equivalent dated value lists, including irregular dates, reps and kg/lb; manual physical TalkBack remains optional P20.",
       "executedXml": [],
-      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+      "state": "Bounded automated evidence integrated through PR500 at 1ab4c1ab; exact inputs and fresh merged journey verified. P19/P20 open."
     },
     "UX16-AC03": {
       "suites": [
@@ -1816,7 +1816,7 @@
           ]
         }
       ],
-      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+      "state": "Bounded automated evidence integrated through PR500 at 1ab4c1ab; exact inputs and fresh merged journey verified. P19/P20 open."
     },
     "UX29-AC02": {
       "suites": [
@@ -1873,7 +1873,90 @@
           ]
         }
       ],
-      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+      "state": "Bounded automated evidence integrated through PR500 at 1ab4c1ab; exact inputs and fresh merged journey verified. P19/P20 open."
     }
-  }
+  },
+  "integration": {
+    "packet": "P07",
+    "candidate": "2d329a23ce6ae7811525a5228e32578e2b66f379",
+    "merge": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+    "tree": "fc983e17d808160e826dd186359ecd2a6d968835",
+    "identicalExecutionInputs": 1634,
+    "sourceAndApksMatch": true,
+    "apks": {
+      "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D",
+      "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E"
+    },
+    "scope": "P07 bounded development acceptance integrated at exact tree/input/APK match; one fresh merged historical correction → retained record refresh → exact source → History AppNav route passed. P19/P20 whole-programme acceptance stays open.",
+    "state": "Integrated",
+    "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/500",
+    "freshOriginalAppTests": 4521,
+    "freshOriginalStandaloneTests": 1712,
+    "finalGateReuse": "Verified identical JVM/standalone execution inputs and intact archived full02 outputs; fresh full04 statics/lint/native assembly, zero repeated JVM/standalone executions.",
+    "freshFinalApkNativeExecutions": 13,
+    "actualProcessPhases": 4,
+    "freshMergedAppNavJourney": 1,
+    "criticalHighFindings": 0,
+    "physicalAcceptance": "P20 unobserved, after development",
+    "latestSignedDrop": 125,
+    "nextPacket": "P08",
+    "nextSignedMilestone": "Drop A after P10",
+    "hostedChecks": {
+      "baseRefOid": "074f9c5057caa033eca1c530dd98812cb76e77e1",
+      "headRefOid": "2d329a23ce6ae7811525a5228e32578e2b66f379",
+      "number": 500,
+      "state": "OPEN",
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-13T21:02:05Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/sinura7/PersonalTrainer/actions/runs/38463663118/job/115524967299",
+          "name": "Tests, lint, debug build",
+          "startedAt": "2026-10-13T20:32:47Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-13T21:00:59Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/sinura7/PersonalTrainer/actions/runs/38463654602/job/115524936633",
+          "name": "Tests, lint, debug build",
+          "startedAt": "2026-10-13T20:32:43Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-13T20:54:22Z",
+          "conclusion": "FAILURE",
+          "detailsUrl": "https://github.com/sinura7/PersonalTrainer/actions/runs/38463663118/job/115524966751",
+          "name": "Instrumented smoke (non-blocking)",
+          "startedAt": "2026-10-13T20:32:48Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-10-13T20:52:38Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/sinura7/PersonalTrainer/actions/runs/38463654602/job/115524937347",
+          "name": "Instrumented smoke (non-blocking)",
+          "startedAt": "2026-10-13T20:32:44Z",
+          "status": "COMPLETED",
+          "workflowName": "CI"
+        }
+      ]
+    },
+    "hostedNativeObservation": {
+      "push": "PASS separate exact-candidate hosted run",
+      "pullRequest": "FAIL one of 306 tests: historical fixture scrolls to Current after waiting only for an unconditional list container; failure precedes any set editor/write.",
+      "disposition": "Both narrow reviews found insufficient fixture readiness, no demonstrated C/H application defect or missing bounded P07 criterion. Actual loading/unavailable branch and duration remain unproven; no host-only claim.",
+      "followUpOwner": "P19",
+      "followUp": "Wait for ready History content and retain diagnostic read/navigation state; preserve downstream exact identity/time/unit/inventory assertions.",
+      "originalLogSha256": "e95c3af8e88df1144995a9ed6783f7ebc912374e88455fe2e915c3c37aa12d0e"
+    }
+  },
+  "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/500"
 }

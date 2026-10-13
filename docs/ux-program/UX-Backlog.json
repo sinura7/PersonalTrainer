@@ -2399,13 +2399,13 @@
         "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence; integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P07"
         ],
         "closurePacket": "P07",
         "packetEvidence": {
-          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
         }
       }
     },
@@ -2431,13 +2431,13 @@
         "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence; integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P07"
         ],
         "closurePacket": "P07",
         "packetEvidence": {
-          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
         }
       }
     },
@@ -2463,13 +2463,13 @@
         "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence; integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P07"
         ],
         "closurePacket": "P07",
         "packetEvidence": {
-          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
         }
       }
     },
@@ -2495,13 +2495,13 @@
         "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence; integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P07"
         ],
         "closurePacket": "P07",
         "packetEvidence": {
-          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
         }
       }
     },
@@ -3491,14 +3491,14 @@
         "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence; integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P06",
           "P07"
         ],
         "closurePacket": "P07",
         "packetEvidence": {
-          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
         }
       }
     },
@@ -3522,13 +3522,13 @@
         "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence; integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P07"
         ],
         "closurePacket": "P07",
         "packetEvidence": {
-          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
         }
       }
     },
@@ -3552,13 +3552,13 @@
         "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence; integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P07"
         ],
         "closurePacket": "P07",
         "packetEvidence": {
-          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
         }
       }
     },
@@ -3582,13 +3582,13 @@
         "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence; integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P07"
         ],
         "closurePacket": "P07",
         "packetEvidence": {
-          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
         }
       }
     },
@@ -4687,13 +4687,13 @@
         "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence; integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P07"
         ],
         "closurePacket": "P07",
         "packetEvidence": {
-          "P07": "Verified candidate ba187e35181a87bcd585f4a5a3c6856a400a3eed; q01/p07-details-receipts-2026-10-13.json#criterionEvidence; exact trunk integration pending."
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
         }
       }
     },
@@ -4868,12 +4868,12 @@
       {
         "id": "P07",
         "title": "Details, receipts and charts",
-        "state": "Verified candidate; integration pending"
+        "state": "Closed"
       },
       {
         "id": "P08",
         "title": "Scheduling, ordering and missed work",
-        "state": "Open"
+        "state": "In progress"
       },
       {
         "id": "P09",
@@ -5247,8 +5247,8 @@
           "P06",
           "P07"
         ],
-        "existing": "Period/read/captured-date coherence and compact History ledger integrated through #487. P06#499 now verifies calendar/period navigation, private reopening and compact readout.",
-        "remaining": "P07 charts, lifetime supporting-session drill-down, receipts and complete correction/read-error journeys; P19/P20 whole-app and physical acceptance."
+        "existing": "Period/read/captured-date coherence and compact History ledger integrated through #487. P06#499 now verifies calendar/period navigation, private reopening and compact readout. P07#500 closes bounded receipts, supporting sources, durable completed notes and historical corrections.",
+        "remaining": "P19 whole-app integration/chart and accessibility scope; P20 physical acceptance. Hosted native fixture readiness issue remains explicitly recorded."
       },
       "F7": {
         "owners": [
@@ -5297,6 +5297,14 @@
     },
     "progressPolicy": "Report reconciled criteria, bounded automated evidence and required acceptance closure separately. The historical 55% is an estimate, not derived from test counts.",
     "reconciledCriteria": 97,
-    "requiredCriteria": 96
+    "requiredCriteria": 96,
+    "p19EvidenceFollowUps": [
+      {
+        "id": "P07-hosted-history-readiness",
+        "source": "q01/p07-details-receipts-2026-10-13.json#integration",
+        "observation": "Hosted PR run failed one of306 before a historical editor/write; exact-candidate push native passed. LIST exists during loading; fixture scrolls to Current before establishing ready content.",
+        "action": "Bounded ready-content wait and read/navigation diagnostics; preserve exact downstream saved-record assertions. No host-only cause or C/H app defect established."
+      }
+    ]
   }
 }

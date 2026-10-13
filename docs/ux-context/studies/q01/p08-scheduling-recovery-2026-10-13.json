@@ -1,0 +1,752 @@
+{
+  "packet": "P08",
+  "state": "Native scheduling/recovery implemented. Two preliminary review findings repaired; final gate, review closure and integration pending.",
+  "base": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+  "architecture": [
+    "ADR-012",
+    "ADR-015",
+    "ADR-017",
+    "ADR-020",
+    "ADR-021",
+    "ADR-026",
+    "ADR-033"
+  ],
+  "problem": "Missed-work choices wrote immediately without a durable preview or exact Retry. Reordering rewrote settled occurrence times and left already-generated future rows behind rule hours.",
+  "concept": {
+    "file": "scheduling-preparation/scheduling-concept.html",
+    "url": "http://127.0.0.1:8883/build/ux-context/runs/scheduling-preparation/scheduling-concept.html",
+    "scope": "Shown before P08 native changes; synthetic browser concept, not native or physical acceptance."
+  },
+  "decision": "Retain weekly Plan/date-only Home semantics and accessible ordering. One schedule-owned private proposal retains the exact week, baseline and policy result. Confirm records an immutable command before mutation; changed/unavailable data never authorizes replay.",
+  "behavior": [
+    "Read-only transactional previews; frozen dates/IDs and expected rules/occurrences compared in the commit transaction.",
+    "Private typed schedule checkpoint, synchronous UI reservation, maintenance/restore guard, generation/version/visit fencing and exact readback.",
+    "Back/Close keeps the durable proposal. Reopening identifies it without opening a form or applying it. Explicit Discard changes only private work.",
+    "Conflict requires explicit fresh review, which retains the old proposal until a replacement is readable; another Confirm remains necessary.",
+    "Home and Plan share the private owner and render normal, checking, failure, unavailable and recovery states with one primary action.",
+    "Planned rows and generated future rows follow ordering; settled rows retain their exact saved values. Completed rows expose no reorder controls.",
+    "Scope/reminder consequences and affected routine-deletion weekdays are explicit. Existing illustrations, routine management and navigation remain.",
+    "Targeted shrinker retention preserves reflected private checkpoint fields across build variants; no Room/public/backup-format change."
+  ],
+  "criteria": {
+    "UX11-AC01": {
+      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "physical": "Unobserved P20",
+      "evidence": [
+        "PlanRoutineActionsInstrumentedTest.optionsEditRenamesOnlyChosenTemplateAndKeepsCapturedWorkout",
+        "Existing editor write-through scope; P09 owns staged recovery"
+      ]
+    },
+    "UX11-AC02": {
+      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "physical": "Unobserved P20",
+      "evidence": [
+        "PlanRoutineActionsInstrumentedTest options edit/delete; direct visible controls and no long-press required",
+        "DayBlockOrderTest; equal-time native Up action"
+      ]
+    },
+    "UX11-AC03": {
+      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "physical": "Unobserved P20",
+      "evidence": [
+        "RoutineDeletionCopyTest moved-date/one-off/past-outcome disclosures",
+        "PlanRoutineActionsInstrumentedTest.optionsDeleteCancelAndConfirmKeepHistoryAndOtherPlannedBlock"
+      ]
+    },
+    "UX13-AC01": {
+      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "physical": "Unobserved P20",
+      "evidence": [
+        "PlanViewModelTest.addAuxiliaryOnceDisablesTheRuleAfterMintingThisWeek",
+        "PlannerRepositoryTest.setRuleEnabledStopsNextWeekGeneration",
+        "Native weeklyRemove/add scope; accepted current Plan weekly/Home starts supersede obsolete Home Add"
+      ]
+    },
+    "UX13-AC02": {
+      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "physical": "Unobserved P20",
+      "evidence": [
+        "MissedWorkPreviewTest.orderingKeepsCompletedRowsExactAndUpdatesAlreadyGeneratedFutureRows",
+        "equalTimeReorderPersistsRequestedOrderForThisAndAlreadyGeneratedNextWeek",
+        "PlanDayWriteRecoveryTest.reorderFailureRollsBackAndRetryAppliesTheAcceptedOrderExactlyOnce"
+      ]
+    },
+    "UX13-AC03": {
+      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "physical": "Unobserved P20",
+      "evidence": [
+        "MissedWorkWorkflowInstrumentedTest real Home preview→Plan same proposal→Confirm→same exact dated row on Home/Plan",
+        "Native equal-time Up route across both destinations"
+      ]
+    },
+    "UX14-AC01": {
+      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "physical": "Unobserved P20",
+      "evidence": [
+        "MissedWorkPreviewTest all four choices/read-only preview/week boundary/unchanged next-week rules",
+        "Actual native conflict→Review current→Confirm route"
+      ]
+    },
+    "UX14-AC02": {
+      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "physical": "Unobserved P20",
+      "evidence": [
+        "MissedWorkPreviewTest.allFourPolicyPreviewsPreserveACompletedOccurrenceAndWeeklyRules",
+        "Native exact before/after inventory and completed values"
+      ]
+    },
+    "UX14-AC03": {
+      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "physical": "Unobserved P20",
+      "evidence": [
+        "MissedWorkDraftsTest immutable pending/exact Retry/lost acknowledgement/unavailable/conflict/restore fencing",
+        "MissedWorkFormTest duplicate reservation",
+        "External force-stop/resume native command proof"
+      ]
+    }
+  },
+  "verification": {
+    "foundation-target01": {
+      "startedAtUtc": "2026-10-13T21:14:51.9389933Z",
+      "endedAtUtc": "2026-10-13T21:16:04.4905747Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+      "sourceFilesBefore": 1638,
+      "sourceFilesAfter": 1638,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 614,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "foundation-target02": {
+      "startedAtUtc": "2026-10-13T21:16:40.0668171Z",
+      "endedAtUtc": "2026-10-13T21:17:37.7430169Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+      "sourceFilesBefore": 1638,
+      "sourceFilesAfter": 1638,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 614,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "foundation-target03": {
+      "startedAtUtc": "2026-10-13T21:19:38.5054874Z",
+      "endedAtUtc": "2026-10-13T21:23:54.5547448Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+      "sourceFilesBefore": 1638,
+      "sourceFilesAfter": 1638,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 32,
+        "failures": 11,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 3,
+      "freshXmlFiles": 3,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 32,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "foundation-target04": {
+      "startedAtUtc": "2026-10-13T21:25:33.8497408Z",
+      "endedAtUtc": "2026-10-13T21:29:40.3062601Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+      "sourceFilesBefore": 1638,
+      "sourceFilesAfter": 1638,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 32,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 3,
+      "freshXmlFiles": 3,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 32,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "native-ui-target05": {
+      "startedAtUtc": "2026-10-13T21:39:50.6080808Z",
+      "endedAtUtc": "2026-10-13T21:40:37.5421733Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+      "sourceFilesBefore": 1641,
+      "sourceFilesAfter": 1641,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 3,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "native-ui-target06": {
+      "startedAtUtc": "2026-10-13T21:42:17.4165994Z",
+      "endedAtUtc": "2026-10-13T21:42:59.4019613Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+      "sourceFilesBefore": 1641,
+      "sourceFilesAfter": 1641,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 3,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "native-ui-target07": {
+      "startedAtUtc": "2026-10-13T21:46:00.1557341Z",
+      "endedAtUtc": "2026-10-13T21:50:19.7824117Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+      "sourceFilesBefore": 1641,
+      "sourceFilesAfter": 1641,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 56,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 7,
+      "freshXmlFiles": 7,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 56,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "native-ui-target08": {
+      "startedAtUtc": "2026-10-13T21:51:36.8615301Z",
+      "endedAtUtc": "2026-10-13T21:55:42.2249579Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
+      "sourceFilesBefore": 1641,
+      "sourceFilesAfter": 1641,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 58,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 7,
+      "freshXmlFiles": 7,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 58,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    },
+    "compact-connected03": {
+      "receipt": "scheduling-recovery/compact-connected03/summary.json",
+      "sha256": "42ff231799c2224ad1288a16e70daed636076901faf37a9173e2a72f8dc1ade6",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094",
+        "tests": "030893A1E921A941629811D3854D3555B82E25B51B7815EFCB9CB2F9A85DB50C"
+      }
+    },
+    "compact-native13": {
+      "receipt": "scheduling-recovery/compact-native13/summary.json",
+      "sha256": "57e94ed28d5e9aedaeb60934f2ce56de3672fdcdb5e28f66b99fcae29d88dd12",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "compact-process02": {
+      "receipt": "scheduling-recovery/compact-process02/summary.json",
+      "sha256": "e2021b940aff9309255fd569b6f4448b26c3af9ccb44e7278633c1baa6c11ef2",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "conflict-native01": {
+      "receipt": "scheduling-recovery/conflict-native01/summary.json",
+      "sha256": "51a2a944bd30413316e934b45b8c33e5e1450dff904e7efb5ae2ddc3a844a753",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094",
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417"
+      }
+    },
+    "connected-native01": {
+      "receipt": "scheduling-recovery/connected-native01/summary.json",
+      "sha256": "159697c21167575a81d933a2f44635bac67b8fa113d48a13569a1a9e329f19c9",
+      "result": "FAIL",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "app": "4BB0EC32BB2210C27827C7FCF1B47C37961908230178A97C25E2E569086078AD",
+        "tests": "0480848F55705B691A6FDAA251B8A9609FB220883F127D2969CAEE89B91BCA5B"
+      }
+    },
+    "connected-native02": {
+      "receipt": "scheduling-recovery/connected-native02/summary.json",
+      "sha256": "6bdc8937e655f9493cca4f9c6e7b14d0efb9ecb270f43d0e316f24d1e79e66ae",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "app": "4BB0EC32BB2210C27827C7FCF1B47C37961908230178A97C25E2E569086078AD",
+        "tests": "722BD61CE13A96AD79FFC7F2263CAA6020EDCA6FBDD3033AC3C7CB967B4763C9"
+      }
+    },
+    "layout01-360x640-font10": {
+      "receipt": "scheduling-recovery/layout01-360x640-font10/summary.json",
+      "sha256": "ccee249f2bfa69065df504e1d8a91a4b1f869e2894f1bbfbf215290964bea128",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-360x640-font16": {
+      "receipt": "scheduling-recovery/layout01-360x640-font16/summary.json",
+      "sha256": "63aaf43051bb5e6d2e7892377c987baf949cfa55537fa52bcfdf253a2d1e7654",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-360x640-font20": {
+      "receipt": "scheduling-recovery/layout01-360x640-font20/summary.json",
+      "sha256": "0f35e038fa201ce83ff3d3000e617cb3a4f5a85eb4814d8c83cb3b83b04d7fa4",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-360x800-font10": {
+      "receipt": "scheduling-recovery/layout01-360x800-font10/summary.json",
+      "sha256": "eb3d3dd542b4dea44bdeafe787bfcc6ad0c065234fe98d1dbd036ff627830ae9",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-360x800-font16": {
+      "receipt": "scheduling-recovery/layout01-360x800-font16/summary.json",
+      "sha256": "871d70b1275bd3939ac2de6f6cf079824fdee97aaeaba71755a8100f1b0a258c",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-360x800-font20": {
+      "receipt": "scheduling-recovery/layout01-360x800-font20/summary.json",
+      "sha256": "03688b3305fad9ea0c389b02434eac6f26c4eddbfa5d4de112f0134a73744d69",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-412x840-font10": {
+      "receipt": "scheduling-recovery/layout01-412x840-font10/summary.json",
+      "sha256": "ec6d3d472c0d81bb5900e9301b804bc683f6e7617a56ab89780896a07da3577e",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-412x840-font16": {
+      "receipt": "scheduling-recovery/layout01-412x840-font16/summary.json",
+      "sha256": "5f74518736d0c69a4c40803a385ad02b539e78b34827521059adf79f3c9dba24",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-412x840-font20": {
+      "receipt": "scheduling-recovery/layout01-412x840-font20/summary.json",
+      "sha256": "2d522dcb7c444bfeb7bbcd146149bc0b44f82cdee535869592c257476286e03c",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-600x960-font10": {
+      "receipt": "scheduling-recovery/layout01-600x960-font10/summary.json",
+      "sha256": "dffc960de2a9d7aee75a8cd0930a6551379510a2eeeb08d002fb2d6567135f41",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-600x960-font16": {
+      "receipt": "scheduling-recovery/layout01-600x960-font16/summary.json",
+      "sha256": "d149ec4a08c3ed3a8443566be00a79b69982d997aa30f8c26ce897e8d8042c30",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-600x960-font20": {
+      "receipt": "scheduling-recovery/layout01-600x960-font20/summary.json",
+      "sha256": "12057e788dc2df9e0473a953f0ceb21199020784fb77c3df63eacbb65f9d128c",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-800x360-font10": {
+      "receipt": "scheduling-recovery/layout01-800x360-font10/summary.json",
+      "sha256": "97a8fc3d89cc29a57466761df2472e0cab6ba1eaf3286372502242d9060f411e",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-800x360-font16": {
+      "receipt": "scheduling-recovery/layout01-800x360-font16/summary.json",
+      "sha256": "e0c6149c91212aa27b950517196c933a94a3f40a87f549af4604902b01705854",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "layout01-800x360-font20": {
+      "receipt": "scheduling-recovery/layout01-800x360-font20/summary.json",
+      "sha256": "b61af0b681bf225f17705af0e53999f5373738dbcc51f23baeafdcc5bb1c64d9",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "B2C3D85751B35C8B630DE18FF5AEF99DDF4E7C76C9D154A6DD4F2B5B85AB9417",
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094"
+      }
+    },
+    "native-assembly10": {
+      "receipt": "scheduling-recovery/native-assembly10/summary.json",
+      "sha256": "6223f19ffcf5d4f0574082ae70172363033b08e53af58b8882cd273bcde6c4b5",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "native-assembly11": {
+      "receipt": "scheduling-recovery/native-assembly11/summary.json",
+      "sha256": "6d772d9ec7d32d8f7704a8cc288df7536743817a228ab6394f8fbcd870453923",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "native-assembly12": {
+      "receipt": "scheduling-recovery/native-assembly12/summary.json",
+      "sha256": "d6eb21fe32ea9a02a8f9a40ba07a629a615da600c0377def07cdd83d83a35975",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "native-candidate09": {
+      "receipt": "scheduling-recovery/native-candidate09/summary.json",
+      "sha256": "567fbf0502b8091f139e58183e1f0b64205ea57507452b47cf9a8f8200fdf943",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "freshJvm": 58,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "process-native01": {
+      "receipt": "scheduling-recovery/process-native01/summary.json",
+      "sha256": "0609db6eb0be99a5994ac8e2108c72143001aa5e75bed172017292691d23422e",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "recovery-native14": {
+      "receipt": "scheduling-recovery/recovery-native14/summary.json",
+      "sha256": "55b0d6cf5aa5c7de117ba7bc555f56199429f97064c4f19d3fc6059e18e9c30c",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "routine-native01": {
+      "receipt": "scheduling-recovery/routine-native01/summary.json",
+      "sha256": "359e3ecf753bac296f02f2e40eb89dabc83f3254de9bd5bfff312868337a2604",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 4,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "app": "8677D6EC3A13B14BD3F5FDD1E3926AD3712D3C1781858AFBEEB84DF24ADFA094",
+        "tests": "030893A1E921A941629811D3854D3555B82E25B51B7815EFCB9CB2F9A85DB50C"
+      }
+    },
+    "review-fixes-target15": {
+      "receipt": "scheduling-recovery/review-fixes-target15/summary.json",
+      "sha256": "fb4d909e2cedd0a23e5ff3c8c4a8c563dbfa972b29886d288bdd5227deb77e75",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    }
+  },
+  "originalFailures": {
+    "foundation-target01": "Static required-argument mixed-call limit exceeded by two fixture calls; zero tests. Fixed by naming context, no baseline change.",
+    "foundation-target02": "Static lambda checker declined one fully qualified constructor callback; zero tests. Imported the constructor, no baseline change.",
+    "foundation-target03": "32 fresh tests,11 failures. Fixtures created new rules on Wednesday; accepted generator correctly skipped invented earlier Monday work. Seeded genuinely pre-existing recurrence rules instead.",
+    "native-ui-target05": "Compiled then static import heuristic mistook form::resume for coroutine resume; zero tests. Renamed the actual form action showRetainedPreview.",
+    "native-ui-target06": "Compiled then typed-state static coverage declined two new generic state sites; zero tests. Explicitly typed composable state parameters; state flow named updates.",
+    "native-ui-target07": "56 fresh tests,1 initialization failure; new presenter setup returned a list instead of JUnit void. Changed setup to a Unit block; all prior assertions preserved.",
+    "native-candidate09": "58 focused JVM tests passed; overall run failed native fixture compilation because addExercise requires an Exercise and targets, rather than exerciseId. Fixed fixture arguments; original failure preserved.",
+    "connected-native01": "Native fixture awaited nonexistent navigation-plan; shipping Plan tag is navigation-routines. Corrected selector; original output and misleading whole-Home initial capture retained, not counted as the preview."
+  },
+  "nativeEvidence": {
+    "layoutReceipt": "scheduling-recovery/layout01-layouts.json",
+    "layoutScope": "15 fresh real AppNav journeys at 360x640,360x800,412x840,800x360,600x960, fonts1/1.6/2; native profile overrides restored. These precede the later bounded deletion/order fixes; final candidate delta execution recorded separately.",
+    "conflict": "conflict-native01: changed rule prevents mutation, explicit fresh review preserves no-write behavior and requires another Confirm.",
+    "process": "compact-process02: real UI preview, durable-command fixture admission, actual external force-stop with PID proof, retained proposal on reopen, real UI Retry and exact saved inventory. No claim of killing an actual business write in flight.",
+    "routine": "routine-native01: four fresh native touch journeys at system font2 (edit/delete/scope/duplicate add), original app8677D6/test030893 pair; later fixes rerun on their final APKs.",
+    "physical": "Unobserved P20; no owner data used."
+  },
+  "scopeLimits": [
+    "Focused and native results do not substitute for the complete local gate.",
+    "P19 whole-app accessibility/RTL/IME integration and P20 physical/user/performance acceptance remain open.",
+    "Signed Debug125 unchanged; Drop A follows P10."
+  ],
+  "reviewFindings": {
+    "M1": "Deletion listed recurrence weekdays but omitted relocated planned dates, and unfinished overstated deletion of retained MISSED outcomes. Now states all PLANNED scope, enabled weekdays, actual visible-week planned dates, preserved completed sessions/past outcomes; moved/one-off regressions added.",
+    "M2": "Equal-hour rows received unchanged order keys. Now preserves distinct clock slots and minimally separates ties within the existing minute field; rules/generated future rows/reminders follow, settled rows stay exact. Domain/day-end/repository and actual native Up regression added.",
+    "state": "Fix verification and final review closure pending."
+  }
+}

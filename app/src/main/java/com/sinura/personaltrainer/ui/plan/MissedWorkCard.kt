@@ -65,6 +65,7 @@ fun MissedWorkCard(
                     text = MissedWorkCopy.MOVE,
                     onClick = onMoveRemaining,
                     enabled = mutationEnabled,
+                    modifier = Modifier.testTag(MissedWorkTags.MOVE),
                 )
                 SecondaryGymButton(
                     text = MissedWorkCopy.ADAPT,
@@ -84,4 +85,5 @@ fun MissedWorkCard(
 object MissedWorkTags {
     const val KEEP = "missed-work-keep"
     const val OTHER = "missed-work-other"
+    internal const val MOVE = "missed-work-move"
 }
