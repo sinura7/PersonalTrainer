@@ -1,6 +1,6 @@
 {
   "packet": "P07",
-  "state": "Final implementation candidate; complete fresh gate and integration pending. Notes and historical correction recovery, truthful receipts and supporting-record links implemented; no P07 closure or new Debug drop claimed.",
+  "state": "Verified P07 implementation candidate; final independent/adversarial receipt/input seals clear. PR and exact-input trunk integration pending; P19/P20 remain open.",
   "base": "074f9c5057caa033eca1c530dd98812cb76e77e1",
   "architecture": [
     "ADR-026",
@@ -199,7 +199,7 @@
       "standaloneEvidenceReused": false,
       "freshStandaloneExecution": false
     },
-    "scope": "Original full01 is a FAILED fresh complete attempt: standalone 1712 passed; app 4521 executed with 34 AbstractMethodError failures in the live numeric-entry implementation. Explicit allowsInput implementations now satisfy the interface; one fresh connected JVM journey passes at target27. Static/native assembly attempts count zero tests and never substitute for the complete gate. Current relevant native evidence includes actual AppNav workout, historical correction/conflict, two real force-stop/reopen pairs, 360x640/font2 notes and set journeys, three chart/provenance components and four numeric-entry callback components. Each attempt has its own exact input/APK manifest; pre-final duplicate-control-polish runs are retained at their executed scope. Full02 remains required; P19/P20 stay open.",
+    "scope": "Full02 freshly passed the complete standalone1712/app4521 suite,614 fresh XML, lint and both APK builds at7d24cbb6. Full04 freshly checked statics/lint/native assembly atba187e35 and reused only verified identical production/JVM/tool/environment inputs plus intact full02 outputs:0 fresh JVM/standalone,4521/1712 reused. Four Android-test paths changed. On final matching APKs,13 native executions passed:5 receipt/chart components,2 distinct AppNav acceptance routes,1 extra connected record route,1 conflict route and4 actual force-stop/reopen phases. The connected-only process-final04 archive contains no force-stop; final05 owns the actual PID termination. Older eight-log/large-text/numeric-lifetime runs retain their original manifests, not a claim of final-APK execution. Phone acceptance and P19 full navigation/layout coverage remain open.",
     "record-sources-native03": {
       "finishedUtc": "2026-10-13T15:58:38.1914830Z",
       "head": "074f9c5057caa033eca1c530dd98812cb76e77e1",
@@ -1062,6 +1062,260 @@
       "assemblyOnly": true,
       "standaloneEvidenceReused": false,
       "freshStandaloneExecution": false
+    },
+    "full02": {
+      "startedAtUtc": "2026-10-13T19:14:05.4254200Z",
+      "endedAtUtc": "2026-10-13T19:48:44.9197126Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "7d24cbb68a4cff6a26950c3ef11ca418fae8d681",
+      "sourceFilesBefore": 1632,
+      "sourceFilesAfter": 1632,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 4521,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 614,
+      "freshXmlFiles": 614,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 4521,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": true
+    },
+    "full03-native-acceptance": {
+      "startedAtUtc": "2026-10-13T19:50:27.1812938Z",
+      "endedAtUtc": "2026-10-13T19:50:53.7926069Z",
+      "exit": 1,
+      "gradleExit": 1,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "d5535a9f1f9ddcd75194ef02fca6988ef0dc4ddd",
+      "sourceFilesBefore": 1634,
+      "sourceFilesAfter": 1634,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": false,
+      "counts": {
+        "tests": 4521,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 614,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 4521,
+      "reusedEvidence": "build/ux-context/runs/details-receipts/full02",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": true,
+      "freshStandaloneExecution": false,
+      "standaloneEvidenceReference": "build/ux-context/runs/details-receipts/full02"
+    },
+    "full04-native-acceptance": {
+      "startedAtUtc": "2026-10-13T19:52:23.3378218Z",
+      "endedAtUtc": "2026-10-13T20:02:44.5562130Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "sourceFilesBefore": 1634,
+      "sourceFilesAfter": 1634,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 4521,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 614,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": true,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 4521,
+      "reusedEvidence": "build/ux-context/runs/details-receipts/full02",
+      "result": "PASS complete gate; unchanged JVM inputs and exact preserved executed XML proven; JVM task UP-TO-DATE or FROM-CACHE, not a new test execution",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": true,
+      "freshStandaloneExecution": false,
+      "standaloneEvidenceReference": "build/ux-context/runs/details-receipts/full02"
+    },
+    "receipt-chart-acceptance01": {
+      "exit": 0,
+      "startedUtc": "2026-10-13T20:02:59.7065252Z",
+      "scope": "Mixed native scopes: Recovery uses screen/VM/private adapter/native dialogs; Continuity uses shipping MainActivity/AppNav; Pass uses components. Exact class list/raw method results govern. No phone acceptance",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "apkStable": true,
+      "finishedUtc": "2026-10-13T20:03:12.7712988Z",
+      "sourceFiles": 1634,
+      "result": "PASS",
+      "apks": {
+        "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E",
+        "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D"
+      },
+      "sourceStable": true,
+      "freshTests": 5,
+      "recoveryPhase": "",
+      "class": "com.sinura.personaltrainer.ui.summary.P07ReceiptStatesInstrumentedTest,com.sinura.personaltrainer.ui.exercise.P07ChartStatesInstrumentedTest",
+      "changedInputs": [],
+      "phase": ""
+    },
+    "record-refresh-connected01": {
+      "finishedUtc": "2026-10-13T20:04:31.3545944Z",
+      "startedUtc": "2026-10-13T20:04:14.5624245Z",
+      "sourceFiles": 1634,
+      "freshTests": 1,
+      "apkStable": true,
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest",
+      "exit": 0,
+      "changedInputs": [],
+      "phase": "",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "apks": {
+        "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E",
+        "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D"
+      },
+      "recoveryPhase": "",
+      "sourceStable": true,
+      "result": "PASS"
+    },
+    "done-return-native01": {
+      "startedUtc": "2026-10-13T20:06:29.5133360Z",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "phase": "",
+      "sourceFiles": 1634,
+      "apkStable": true,
+      "sourceStable": true,
+      "changedInputs": [],
+      "freshTests": 1,
+      "finishedUtc": "2026-10-13T20:06:51.7495118Z",
+      "result": "PASS",
+      "exit": 0,
+      "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest#seedSession_typeWeight_log_rest_finish_reachesSummary",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "recoveryPhase": "",
+      "apks": {
+        "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D",
+        "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E"
+      }
+    },
+    "finished-set-process-final04": {
+      "sourceFiles": 1634,
+      "phases": [
+        {
+          "phase": "connected",
+          "passed": true,
+          "exit": 0,
+          "tests": 1
+        }
+      ],
+      "sourceStable": true,
+      "endedAtUtc": "2026-10-13T20:08:37.3984355Z",
+      "sourceStatus": "See source-status and exact source snapshots",
+      "result": "PASS",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "changedInputs": [],
+      "startedAtUtc": "2026-10-13T20:08:19.9050176Z",
+      "scope": "Fresh historical-set raw/unit recovery through shipping AppNav on owned API29; no owner data or physical acceptance"
+    },
+    "finished-set-process-final05": {
+      "changedInputs": [],
+      "endedAtUtc": "2026-10-13T20:11:24.6488877Z",
+      "scope": "Fresh historical-set raw/unit recovery through shipping AppNav on owned API29; no owner data or physical acceptance",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "phases": [
+        {
+          "passed": true,
+          "phase": "stage",
+          "tests": 1,
+          "exit": 0
+        },
+        {
+          "passed": true,
+          "phase": "resume",
+          "tests": 1,
+          "exit": 0
+        }
+      ],
+      "sourceFiles": 1634,
+      "sourceStatus": "See source-status and exact source snapshots",
+      "sourceStable": true,
+      "result": "PASS",
+      "startedAtUtc": "2026-10-13T20:10:55.3517604Z"
+    },
+    "finished-set-conflict-final03": {
+      "sourceFiles": 1634,
+      "finishedUtc": "2026-10-13T20:08:52.1866852Z",
+      "changedInputs": [],
+      "phase": "",
+      "apks": {
+        "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E",
+        "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D"
+      },
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "apkStable": true,
+      "recoveryPhase": "conflict",
+      "exit": 0,
+      "class": "com.sinura.personaltrainer.ui.history.FinishedSetContinuityInstrumentedTest",
+      "startedUtc": "2026-10-13T20:08:39.7729274Z",
+      "sourceStable": true,
+      "freshTests": 1,
+      "result": "PASS",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed"
+    },
+    "notes-process-final03": {
+      "changedInputs": [],
+      "endedAtUtc": "2026-10-13T20:11:51.9789178Z",
+      "scope": "Fresh completed-note recovery through shipping AppNav on owned API29; no owner data or physical acceptance",
+      "head": "ba187e35181a87bcd585f4a5a3c6856a400a3eed",
+      "phases": [
+        {
+          "passed": true,
+          "phase": "stage",
+          "tests": 1,
+          "exit": 0
+        },
+        {
+          "passed": true,
+          "phase": "resume",
+          "tests": 1,
+          "exit": 0
+        }
+      ],
+      "sourceFiles": 1634,
+      "sourceStatus": "See source-status and exact source snapshots",
+      "sourceStable": true,
+      "result": "PASS",
+      "startedAtUtc": "2026-10-13T20:11:25.7667273Z"
+    },
+    "finalApks": {
+      "app": "6EE244676499300B6B956B5C16F8AF3152056B03D8D82DD40998B281851EA42D",
+      "tests": "6B706F5F5D63338AA198DA7472411DD5960DF7B93FC0C56688F705647C43052E"
     }
   },
   "originalFailures": [
@@ -1090,9 +1344,10 @@
     "finished-set-process01 stage passed and the actual process was force-stopped; resume failed because assertTextEquals included merged unit/helper text. EditableText already contained the exact 225. raw field. The fixture now asserts EditableText and the captured LBS context; process02/process03 each pass both actual force-stop/reopen phases.",
     "live-workout-native-final01 executed the AppNav test successfully, then ADB became unavailable during PNG collection. Original instrumentation and partially pulled captures remain. The archive is incomplete, not a clean run. live-workout-native-final02 passes with complete capture collection and unchanged inputs/APKs.",
     "Final native conflict visual review found duplicate Read again/private Discard below the existing recovery surface. The blocked editor now presents the controls once; normal input retains its existing private Discard. The focused final conflict execution and review addenda own this small presentation correction.",
-    "The first duplicate-action visibility guard hid private controls for submitted commands before any integration. Both reviewers identified the same High mismatch-recovery regression. The final guard keeps lower controls when a command is submitted and suppresses them only when the in-sheet recovery panel renders. Original failing source seal/reports remain; bounded closure follows the correction."
+    "The first duplicate-action visibility guard hid private controls for submitted commands before any integration. Both reviewers identified the same High mismatch-recovery regression. The final guard keeps lower controls when a command is submitted and suppresses them only when the in-sheet recovery panel renders. Original failing source seal/reports remain; bounded closure follows the correction.",
+    "full03-native-acceptance stopped in check-missing-imports before compilation: the chart test local name selected was mistaken for a Compose semantics import. Renamed the local variable displayUnit, preserving the checker. Full04 passes with unchanged production/JVM inputs and explicitly reused full02 executed evidence. Full03 remains failed; zero fresh JVM/standalone tests ran."
   ],
-  "reviews": "Clean-context whole-P07 independent/adversarial reviews each identified two High and one Medium recovery defect; their fix addenda close all three. Scoped interface/chart and recovery-presentation addenda report no C/H/M. Exact final input/receipt seals and criterion mapping follow full02; source inspection is not executed acceptance.",
+  "reviews": "Final independent p07-final-independent-receipt-seal.md and adversarial p07-final-receipt-seal-adversarial-20261013-161915.md verify exact source,614 fresh/reused XML,4521/1712 executions,13 matching-APK native executions, actual PID termination proofs, nine bounded criterion maps and asset hashes. No remaining C/H/M or required evidence gap within stated P07 scope. All original findings/failures and bounded closures remain archived. Integration/P19/P20/distribution are not claimed complete.",
   "assets": [
     {
       "path": "docs/ux-context/studies/q01/assets/p07-receipt-2026-10-13.png",
@@ -1135,13 +1390,490 @@
       "source": "build/ux-context/runs/details-receipts/records-chart-native05/notes-captures/p07-records-chart-native05-notes-irregular-session-exact-values.png",
       "sha256": "5d32deaecdebe62fac100a161b788259f5fa6d8e882487d4e9dd19baaab16a6f",
       "scope": "Native chart component: irregular Jan1/Jan2/Apr1 dates and exact selected-unit values, equivalent list; not AppNav/phone acceptance."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-record-refreshed-current-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/record-refresh-connected01/set-captures/p07-record-refresh-connected01-set-record-refreshed-after-correction.png",
+      "sha256": "7ae50cf875f52b35509a0ae5b23c856fa5043811e0e81e923eaacaac034ba197",
+      "scope": "Final APK, real retained AppNav ExerciseDetail refreshed after correction and exact supporting-session route; synthetic data, not phone acceptance."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-supporting-session-current-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/record-refresh-connected01/set-captures/p07-record-refresh-connected01-set-exact-supporting-session-after-correction.png",
+      "sha256": "29f795ecc7ea105353acde54eee98d3516c49f85fa4b48342359c66d1eb76a7a",
+      "scope": "Final APK, shipping AppNav supporting-session return with exact corrected row spoken/visible readout; synthetic data. Long synthetic session title clamps in the existing header; complete-label closure remains P19."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-set-conflict-current-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/finished-set-conflict-final03/set-captures/p07-finished-set-conflict-final03-set-conflict-recovery-reachable.png",
+      "sha256": "3db0ed944c432ef572281e69ed7c3ba933948a2b9ee05f92629a7dc13297be32",
+      "scope": "Final APK, AppNav read-only conflict recovery with one set of reachable private actions; not phone acceptance."
+    },
+    {
+      "path": "docs/ux-context/studies/q01/assets/p07-flat-loaded-values-2026-10-13.png",
+      "source": "build/ux-context/runs/details-receipts/receipt-chart-acceptance01/notes-captures/p07-receipt-chart-acceptance01-notes-chart-flat-loaded-lb-data.png",
+      "sha256": "e3cc2bfbdcb057b467c832f31ba2bc7f86e130ef21be81a2404d867667c9862c",
+      "scope": "Final APK, native Estimated1RM component equivalent date/value list in pounds; not AppNav, storage mutation or phone evidence."
     }
   ],
   "remaining": [
-    "Fresh complete standalone preflight and unfiltered local gate on the committed final candidate.",
-    "Final exact-input/receipt review seals and criterion-specific executed evidence map.",
-    "P07 PR/merge, shortest exact-input integrated AppNav journey and feature-branch retirement.",
-    "P19 whole-app matrix and P20 physical acceptance. Signed Drop A follows P10."
+    "Final exact receipt/criterion/input review seals.",
+    "P07 PR/merge, exact integration input proof, shortest affected AppNav route and feature branch retirement.",
+    "P19 full navigation/layout/required accessibility matrix and P20 physical/owner acceptance.",
+    "Signed Drop A after P10; latest delivered Debug125 remains unchanged."
   ],
-  "delivery": "Latest signed delivery remains Debug125 at 587e9577ee30f1962fa0a6db1a6acd2aad0b642c. No P07 distribution APK; Drop A follows P10."
+  "delivery": "Latest signed delivery remains Debug125 at 587e9577ee30f1962fa0a6db1a6acd2aad0b642c. No P07 distribution APK; Drop A follows P10.",
+  "criterionEvidence": {
+    "UX05-AC01": {
+      "suites": [
+        "WorkoutSummaryViewModelTest",
+        "SummaryDetailSavedWorkRenderTest"
+      ],
+      "native": [
+        "receipt-chart-acceptance01"
+      ],
+      "scope": "Real VM/storage missing/deleted/read-fault/confirmed-computation-fault/no-work invariants plus native constructed Content states; no native repository-fault/restore-over injection claim.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.WorkoutSummaryViewModelTest.xml",
+          "sha256": "ee9b39aa5584eeb56fb3d08b6c65f24892c99ef9b6d66f32b58f50e0caeb9872",
+          "methods": [
+            "finishedWorkingSessionBuildsVolumeSetsTitleAndNotes",
+            "artworkAndNamesUseTheReadSessionWhenCatalogChangesDuringSummaryComputation",
+            "aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing",
+            "aComputationFaultDoesNotPublishReadIdentityAndRetryPreservesSavedRows",
+            "missingSessionResolvesMissingInsteadOfSpinning",
+            "summaryLoadsOnceAndDoesNotChangeAfterHistoricalRepair",
+            "savedExerciseArtworkUsesExactIdsEvenWhenNamesCollide",
+            "aBodyweightOnlySessionHeadlinesReps",
+            "warmupOnlySessionIsSavedButHasNoSummaryWork",
+            "blankSessionIdResolvesMissingInsteadOfSpinning",
+            "anUnreadableRowIsUnavailableNotMissingAndNotSaved",
+            "matchingAcknowledgedCorrectionReloadsButAnotherSessionCannot",
+            "finishedEmptySessionDoesNotPublishUnworkedExerciseArtwork",
+            "failedRetryClearsReadIdentityWhileLoadingAndWhenTheSessionHasGone",
+            "setOnlyLegacyWorkoutKeepsExactIdentityWithoutBorrowingTheNamedCatalogLift",
+            "acknowledgedDeletedSessionBecomesMissingInsteadOfRetainingSavedTotals",
+            "retryIsANoOpUnlessTheLastReadThrew"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.SummaryDetailSavedWorkRenderTest.xml",
+          "sha256": "da40219df5b4d7769dd5d1e3bd5b6cbbc6ee555c558b1a8e90f3d82e45122ab7",
+          "methods": [
+            "tabletLargestText",
+            "tabletDefaultText",
+            "sameMuscleAndFallbackImagesRemainBoundToExactExerciseIds",
+            "rtlLargestTextAndReducedMotion",
+            "landscapeLargestText",
+            "tabletLargeText",
+            "landscapeDefaultText",
+            "narrowLargestText",
+            "standardLargeText",
+            "compactResultsKeepBodyweightMixedAndHoldMeasures",
+            "standardLargestText",
+            "standardDefaultText",
+            "smallLargestText",
+            "landscapeLargeText",
+            "smallDefaultText",
+            "smallLargeText"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX05-AC02": {
+      "suites": [
+        "WorkoutSummaryViewModelTest"
+      ],
+      "native": [
+        "receipt-chart-acceptance01"
+      ],
+      "scope": "Failed-summary Retry preserves exact session/finish/set inventory on real VM/JVM; native component checks correct callback, not a native business-store fault.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.WorkoutSummaryViewModelTest.xml",
+          "sha256": "ee9b39aa5584eeb56fb3d08b6c65f24892c99ef9b6d66f32b58f50e0caeb9872",
+          "methods": [
+            "finishedWorkingSessionBuildsVolumeSetsTitleAndNotes",
+            "artworkAndNamesUseTheReadSessionWhenCatalogChangesDuringSummaryComputation",
+            "aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing",
+            "aComputationFaultDoesNotPublishReadIdentityAndRetryPreservesSavedRows",
+            "missingSessionResolvesMissingInsteadOfSpinning",
+            "summaryLoadsOnceAndDoesNotChangeAfterHistoricalRepair",
+            "savedExerciseArtworkUsesExactIdsEvenWhenNamesCollide",
+            "aBodyweightOnlySessionHeadlinesReps",
+            "warmupOnlySessionIsSavedButHasNoSummaryWork",
+            "blankSessionIdResolvesMissingInsteadOfSpinning",
+            "anUnreadableRowIsUnavailableNotMissingAndNotSaved",
+            "matchingAcknowledgedCorrectionReloadsButAnotherSessionCannot",
+            "finishedEmptySessionDoesNotPublishUnworkedExerciseArtwork",
+            "failedRetryClearsReadIdentityWhileLoadingAndWhenTheSessionHasGone",
+            "setOnlyLegacyWorkoutKeepsExactIdentityWithoutBorrowingTheNamedCatalogLift",
+            "acknowledgedDeletedSessionBecomesMissingInsteadOfRetainingSavedTotals",
+            "retryIsANoOpUnlessTheLastReadThrew"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX05-AC03": {
+      "suites": [
+        "WorkoutSummaryBuilderTest",
+        "WorkoutSummaryViewModelTest",
+        "SummaryDetailSavedWorkRenderTest"
+      ],
+      "native": [
+        "receipt-chart-acceptance01"
+      ],
+      "scope": "Bodyweight Summary headlines recorded reps; native constructed Content state is paired with actual VM/builder execution.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.WorkoutSummaryBuilderTest.xml",
+          "sha256": "87eb5cb46b73c1b7348bec4f46a0794e8ea5bd443d274f1b0d32c960dadb79d5",
+          "methods": [
+            "exactTopSetAndHighlightTiesDoNotDependOnIncomingRowOrder",
+            "highlightsLeadWithTheHeaviestWorkedLift",
+            "aMixedSessionLeadsWithKilogramsAndKeepsItsReps",
+            "summaryHoldReadbackKeepsLiteralSecondsAndDoesNotInventReps",
+            "aBackOffSessionBreaksNothing",
+            "anUnnamedSessionStillHasATitle",
+            "aBodyweightOnlySessionHeadlinesItsRepsNotZeroKilograms",
+            "aLiftWithNoPriorHistorySetsNoRecords",
+            "ascendingSetsAreOneWeightRecordNotThree",
+            "warmupsAreNotWork",
+            "theTopSetIsTheOneProgressionWouldJudge",
+            "aWarmupOnlySessionHasNoWork",
+            "aLoadedSessionWithNoTonnageFallsBackToItsSetCount"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.WorkoutSummaryViewModelTest.xml",
+          "sha256": "ee9b39aa5584eeb56fb3d08b6c65f24892c99ef9b6d66f32b58f50e0caeb9872",
+          "methods": [
+            "finishedWorkingSessionBuildsVolumeSetsTitleAndNotes",
+            "artworkAndNamesUseTheReadSessionWhenCatalogChangesDuringSummaryComputation",
+            "aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing",
+            "aComputationFaultDoesNotPublishReadIdentityAndRetryPreservesSavedRows",
+            "missingSessionResolvesMissingInsteadOfSpinning",
+            "summaryLoadsOnceAndDoesNotChangeAfterHistoricalRepair",
+            "savedExerciseArtworkUsesExactIdsEvenWhenNamesCollide",
+            "aBodyweightOnlySessionHeadlinesReps",
+            "warmupOnlySessionIsSavedButHasNoSummaryWork",
+            "blankSessionIdResolvesMissingInsteadOfSpinning",
+            "anUnreadableRowIsUnavailableNotMissingAndNotSaved",
+            "matchingAcknowledgedCorrectionReloadsButAnotherSessionCannot",
+            "finishedEmptySessionDoesNotPublishUnworkedExerciseArtwork",
+            "failedRetryClearsReadIdentityWhileLoadingAndWhenTheSessionHasGone",
+            "setOnlyLegacyWorkoutKeepsExactIdentityWithoutBorrowingTheNamedCatalogLift",
+            "acknowledgedDeletedSessionBecomesMissingInsteadOfRetainingSavedTotals",
+            "retryIsANoOpUnlessTheLastReadThrew"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.SummaryDetailSavedWorkRenderTest.xml",
+          "sha256": "da40219df5b4d7769dd5d1e3bd5b6cbbc6ee555c558b1a8e90f3d82e45122ab7",
+          "methods": [
+            "tabletLargestText",
+            "tabletDefaultText",
+            "sameMuscleAndFallbackImagesRemainBoundToExactExerciseIds",
+            "rtlLargestTextAndReducedMotion",
+            "landscapeLargestText",
+            "tabletLargeText",
+            "landscapeDefaultText",
+            "narrowLargestText",
+            "standardLargeText",
+            "compactResultsKeepBodyweightMixedAndHoldMeasures",
+            "standardLargestText",
+            "standardDefaultText",
+            "smallLargestText",
+            "landscapeLargeText",
+            "smallDefaultText",
+            "smallLargeText"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX05-AC04": {
+      "suites": [
+        "SummaryCorrectionNavigationTest",
+        "SummaryDetailSavedWorkRenderTest"
+      ],
+      "native": [
+        "done-return-native01",
+        "live-workout-native-final02"
+      ],
+      "scope": "Final-APK real AppNav Done returns once to Home with exact finished inventory/no live bar. System Back was executed on the earlier live-workout manifest; fresh final JVM shipping AppNav paths cover current integration.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SummaryCorrectionNavigationTest.xml",
+          "sha256": "59f3e2f63227a87877fc714b44f61c50e45813f2e1f78e7bf21ff6b5f2eddd8a",
+          "methods": [
+            "savedCorrectionRefreshesTheRetainedSummaryBeforeDoneReturnsHome",
+            "savedCorrectionSurvivesANewActivityWhileDetailIsOpen"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.SummaryDetailSavedWorkRenderTest.xml",
+          "sha256": "da40219df5b4d7769dd5d1e3bd5b6cbbc6ee555c558b1a8e90f3d82e45122ab7",
+          "methods": [
+            "tabletLargestText",
+            "tabletDefaultText",
+            "sameMuscleAndFallbackImagesRemainBoundToExactExerciseIds",
+            "rtlLargestTextAndReducedMotion",
+            "landscapeLargestText",
+            "tabletLargeText",
+            "landscapeDefaultText",
+            "narrowLargestText",
+            "standardLargeText",
+            "compactResultsKeepBodyweightMixedAndHoldMeasures",
+            "standardLargestText",
+            "standardDefaultText",
+            "smallLargestText",
+            "landscapeLargeText",
+            "smallDefaultText",
+            "smallLargeText"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX15-AC03": {
+      "suites": [
+        "SupportingRecordSessionTest",
+        "SessionDetailRestoredHoldSafetyRenderTest",
+        "SummaryCorrectionNavigationTest",
+        "StandingRecordsTest"
+      ],
+      "native": [
+        "record-refresh-connected01",
+        "records-chart-native05"
+      ],
+      "scope": "Final-APK actual retained record refresh after current-best correction, exact source navigation and visible corrected set. Multi-year/competing identities are JVM evidence; native competing F05 history remains P19.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.SupportingRecordSessionTest.xml",
+          "sha256": "73ad85abedc7ad73452e7b090706bd1f28129424aab39d06b66981e44f5e4237",
+          "methods": [
+            "exactSupportingSetRetainsItsStoreAndCapturedDay",
+            "collidingIdentitiesAcrossTheTwoStoresAreExplicitlyUnresolved",
+            "missingOrChangedSupportingSetCannotPointAtAnotherSession"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SessionDetailRestoredHoldSafetyRenderTest.xml",
+          "sha256": "e0064620e013a50e2830538aae3fdde14591690df4cbeef3d6df1b5b4ead193d",
+          "methods": [
+            "stopwatchStrengthStillRequiresEffortThroughItsActualEditor",
+            "anActualSavedOnlyNegativeHoldTimeNudgePreservesItsLiteralRepRepresentation",
+            "actualDeleteAndUndoRestoreTheExactTimedRowAndEveryInventoryPart",
+            "capturedThreeSecondsSaveUntouched",
+            "restoredSavedOnlyNegativeRepHoldUntouchedSavePreservesExactOriginalRepresentation",
+            "aWarmupCorrectionChangesOnlyTheRequestedFlag",
+            "cancellingAndDismissingADurationDraftKeepsTheRestoredOriginal",
+            "restoredSavedOnlyHoldEffortSaveCannotConvertOriginalToRepWork",
+            "removingAnAddTargetsActualGraphClosesAndClearsTheStaleSheet",
+            "invalidTimeTextNeverConfirmsOrMutatesTheRestoredOriginal",
+            "staleEditorSaveCannotOverwriteAChangedOriginal",
+            "restoredSavedOnlyHoldUntouchedSavePreservesExactTimedOriginalAndTruthfulOutcome",
+            "positiveRepsUnderPlannedHoldMetadataKeepTheirRepsAndStopwatchOnActualEffortSave",
+            "unknownLoadZeroWeightIsAnExplicitRefusalWithNoInventoryChange",
+            "retainedCorrectionCanRetryAgainstRoomDuringADegradedDisplayRead",
+            "capturedMaximumSecondsAndItsPlusNudgeNeverOverflow",
+            "failedDetailReadAndActualRetryRetainTheSameAddSelectionWithoutAWrite",
+            "restoredPlannedHoldUntouchedSavePreservesExactTimedOriginal",
+            "failedCorrectionKeepsTheActualDraftForOneTapRetryWithoutChangingSavedWork",
+            "restoredPlannedHoldEffortSaveKeepsOriginalTimedType",
+            "refusedUnchangedZeroWorkingWeightCannotBecomeAnAcknowledgedSaveOnRetryOrEdit",
+            "capturedTwoSecondsSaveUntouched",
+            "decrementingAShortCapturedTimeStopsAtOneSecond",
+            "restoredSavedOnlyHoldKeypadCancelWithoutEffortKeepsExactTimedOriginal",
+            "anActualPlannedHoldTimeNudgeSavesFortyFiveAsFiftySeconds",
+            "capturedSecondsAboveTheLiveTargetRangeSaveUntouched",
+            "failedAdditionalSetRetainsTheActualDraftAndCancelChecksBeforeDiscardingIt",
+            "capturedFourSecondsSaveUntouched",
+            "capturedOneSecondSavesUntouched",
+            "savedOnlyStopwatchStrengthKeepsItsRepsAndDurationOnActualEffortSave",
+            "historicalPositiveRepsUnderHoldMetadataNudgeAndSaveOneHundredAndTwoExactly"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SummaryCorrectionNavigationTest.xml",
+          "sha256": "59f3e2f63227a87877fc714b44f61c50e45813f2e1f78e7bf21ff6b5f2eddd8a",
+          "methods": [
+            "savedCorrectionRefreshesTheRetainedSummaryBeforeDoneReturnsHome",
+            "savedCorrectionSurvivesANewActivityWhileDetailIsOpen"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.StandingRecordsTest.xml",
+          "sha256": "21f9c66b5d7f34f94629a405a3bd84a3a818c2d92000ac2d831c9ab6e8d52e08",
+          "methods": [
+            "anOlderBestOutlivesAWeakerRecentLift",
+            "emptyLogHasNoRecords",
+            "theNewestSetDecidesALiftsNameAndClass",
+            "aSessionGraphProjectsOnlyFinishedWorkingSets",
+            "prSummaryIsTheGraphShapedWayIn",
+            "oneRowPerLiftNewestFirstAndCapped",
+            "aRepsLiftRanksByRepsHoweverOldTheBestIs"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX16-AC01": {
+      "suites": [],
+      "native": [
+        "records-chart-native05"
+      ],
+      "scope": "Native Jan1/Jan2/Apr1 disclosure of equal session spacing, with exact dated value list at its archived manifest.",
+      "executedXml": [],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX16-AC02": {
+      "suites": [],
+      "native": [
+        "receipt-chart-acceptance01",
+        "records-chart-native05"
+      ],
+      "scope": "Native chart descriptions and equivalent dated value lists, including irregular dates, reps and kg/lb; manual physical TalkBack remains optional P20.",
+      "executedXml": [],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX16-AC03": {
+      "suites": [
+        "ExerciseHistoryBuilderTest",
+        "BodyweightRecordsTest",
+        "SummaryDetailSavedWorkRenderTest"
+      ],
+      "native": [
+        "receipt-chart-acceptance01",
+        "records-chart-native05"
+      ],
+      "scope": "Native empty estimates/weeks, flat bodyweight reps and flat loaded estimate kg/lb readouts; actual series construction/units checked on JVM. No new schema/preference or storage conversion.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.ExerciseHistoryBuilderTest.xml",
+          "sha256": "4209c2a21ef0f3f453829eec70d42b74afae1eecc80ef2f63f799cd6c96544b6",
+          "methods": [
+            "aLoadedLiftStillEstimatesAOneRepMax",
+            "identicalSessionIdsFromDifferentSourcesStaySeparateAndStable",
+            "aBodyweightLiftIsCountedInRepsAndCarriesNoKilograms",
+            "capturedActivityDayControlsItsWeekWhileLegacyUsesSessionStartNotSetFinish",
+            "priorSetsAreCutByTheMomentTheSetWasCompleted",
+            "anActivityEntryKeepsItsKindOnTheSessionSummary",
+            "tonnageBucketsByTheConfiguredWeekStart",
+            "warmupsCountTowardNothing",
+            "sessionsComeBackNewestFirst",
+            "sessionsWithoutThisExerciseDoNotAppear",
+            "unfinishedSessionsAreNotHistory",
+            "theTopSetIsTheOneProgressionWouldJudge",
+            "otherExercisesInTheSameSessionAreIgnored",
+            "holdReadbackPreservesTheLiteralDurationWithoutAnEstimate"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.domain.BodyweightRecordsTest.xml",
+          "sha256": "90699bb6b0750a4658c5abbe27b63fb578a4a0a26e09f378a7f35c2105b5576d",
+          "methods": [
+            "aVestGetsAHeaviestOfItsOwn",
+            "anAssistedRuleDoesNotLeakIntoTheOtherRepsClasses",
+            "equallingItIsStillNotBreakingIt",
+            "moreRepsAtTheSameAssistanceIsARecord",
+            "anEasierSetElsewhereInHistoryDoesNotUnlockABoughtRepRecord",
+            "theFirstSetOfABodyweightLiftSetsNothing",
+            "anUnassistedRepRecordSurvivesAnEasierSetInHistory",
+            "moreRepsBoughtWithMoreAssistanceIsNotARecord",
+            "aBodyweightLiftNeverClaimsAHeaviestOrAnEstimatedMax",
+            "theRepCountStillHasToBeTheHighestEverNotJustTheHighestAtThisHelp",
+            "anAssistedLiftHasNoHeaviest",
+            "moreRepsIsTheRecordABodyweightLiftChases",
+            "aLoadedLiftIsUntouched",
+            "moreRepsAtLessAssistanceIsARecord"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.summary.SummaryDetailSavedWorkRenderTest.xml",
+          "sha256": "da40219df5b4d7769dd5d1e3bd5b6cbbc6ee555c558b1a8e90f3d82e45122ab7",
+          "methods": [
+            "tabletLargestText",
+            "tabletDefaultText",
+            "sameMuscleAndFallbackImagesRemainBoundToExactExerciseIds",
+            "rtlLargestTextAndReducedMotion",
+            "landscapeLargestText",
+            "tabletLargeText",
+            "landscapeDefaultText",
+            "narrowLargestText",
+            "standardLargeText",
+            "compactResultsKeepBodyweightMixedAndHoldMeasures",
+            "standardLargestText",
+            "standardDefaultText",
+            "smallLargestText",
+            "landscapeLargeText",
+            "smallDefaultText",
+            "smallLargeText"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    },
+    "UX29-AC02": {
+      "suites": [
+        "ActivityDetailViewModelTest",
+        "SessionDetailViewModelTest",
+        "SummaryCorrectionNavigationTest"
+      ],
+      "native": [
+        "record-refresh-connected01",
+        "notes-process-final03"
+      ],
+      "scope": "Final-APK native strength History/source return explicitly excludes WORKOUT COMPLETE. Actual typed-cardio History stage/resume pixels show the ordinary RUN, RIDE, OR WALK kicker; entry/private Discard assert saved notes unchanged. Activity evidence is visual observation plus narrow note invariants, not an explicit native no-celebration assertion or full activity-graph entry-mutation inventory. Broader mixed/cardio AppNav inventory closure remains P14/P19.",
+      "executedXml": [
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.activity.ActivityDetailViewModelTest.xml",
+          "sha256": "d52e40b81c16e441d0a0b168e464f509fce77c983cdec71e408e72444853fe93",
+          "methods": [
+            "cardioReceiptUsesBlockMinutes",
+            "theScreenHasNoSetRepairOrRepeat",
+            "noonStampOmitsDurationAndKeepsStrengthVolume",
+            "notesPersistAndDeleteRemovesTheRow",
+            "aFailedReadIsUnavailableNotMissingAndRetries",
+            "missingActivityResolvesWithoutSpinner"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SessionDetailViewModelTest.xml",
+          "sha256": "c092045f5f7ccca77f716a5404858face0e759d4912120486460ed9021ca06d3",
+          "methods": [
+            "addSetAppendsInsideFinishedSessionWindow",
+            "dismissBlockedRepeatClearsTheOfferWithoutNavigating",
+            "addSetValidationErrorIsUserFacingAndWritesNothing",
+            "deleteSessionRemovesRowAndEmitsDeleted",
+            "aWorkingSetCorrectionOrAdditionWithoutAnEffortIsRefusedAndWritesNothing",
+            "repeatWhileLiveSurfacesBlockedAndResumeNavigatesToLive",
+            "validationErrorIsUserFacingAndCanBeAcknowledged",
+            "updateSetPreservesTimestampAndSetNumber",
+            "missingSessionResolvesWithoutSpinner",
+            "repeatWhenIdleNavigatesOnceAndCopiesNoLoggedSets",
+            "finishedSessionLoadsNotesIntoDraft",
+            "repeatMissingSessionSurfacesFailedWithoutNavigating",
+            "notesDebounceAndExitFlushBothPersist",
+            "undoWithNothingPendingIsANoOp",
+            "aFailedReadIsUnavailableNotMissingAndRetries",
+            "deleteOffersUndoAndRestoresOriginalIdentityAndTime"
+          ]
+        },
+        {
+          "path": "build/ux-context/runs/details-receipts/full02/test-results/TEST-com.sinura.personaltrainer.ui.history.SummaryCorrectionNavigationTest.xml",
+          "sha256": "59f3e2f63227a87877fc714b44f61c50e45813f2e1f78e7bf21ff6b5f2eddd8a",
+          "methods": [
+            "savedCorrectionRefreshesTheRetainedSummaryBeforeDoneReturnsHome",
+            "savedCorrectionSurvivesANewActivityWhileDetailIsOpen"
+          ]
+        }
+      ],
+      "state": "Bounded automated evidence verified by both final seals; trunk integration pending; P19/P20 open."
+    }
+  }
 }
