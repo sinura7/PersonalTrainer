@@ -167,7 +167,7 @@ class LibraryBrowseRenderTest {
         capture("keep-failure")
         tap(LibraryTags.BROWSE_RESET)
         words("Reset remembered view?")
-        words("This forgets only search, filters and results position. Exercises, custom drafts and workout history stay saved.", scroll = true)
+        words("This forgets only search, filters and results position. Lifts, custom drafts and workout history stay saved.", scroll = true)
         compose.onNodeWithText("Reset view").assertIsDisplayed().assertIsEnabled()
         capture("reset-confirmation")
         io.fail = false

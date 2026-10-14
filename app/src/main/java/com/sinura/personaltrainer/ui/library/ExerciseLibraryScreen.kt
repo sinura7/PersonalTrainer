@@ -463,7 +463,7 @@ private fun ExerciseLibraryContent(
 
     if (resetRememberedView) {
         ConfirmActionDialog(title = "Reset remembered view?",
-            body = "This forgets only search, filters and results position. Exercises, custom drafts and workout history stay saved.",
+            body = "This forgets only search, filters and results position. Lifts, custom drafts and workout history stay saved.",
             confirmLabel = "Reset view", destructive = false,
             onConfirm = { resetRememberedView = false; viewModel.resetBrowseView() },
             onDismiss = { resetRememberedView = false })

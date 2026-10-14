@@ -246,7 +246,7 @@ internal class LibraryBrowseRecovery(
 
     private fun failed() {
         mutableStatus.value = LibraryBrowseStatus(opening = false, error = if (pendingReset != null)
-            "View reset needs checking. Retry before changing search. Exercises and history stay saved."
+            "View reset needs checking. Retry before changing search. Lifts and history stay saved."
         else "Search was not kept. Current values remain here. Retry, or reset only the remembered view.")
     }
 }

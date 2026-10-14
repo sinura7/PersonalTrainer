@@ -1,7 +1,7 @@
 {
   "id": "P10",
   "preparedOn": "2026-10-14",
-  "state": "Library core render matrix and native tasks verified at their recorded candidates; fresh final core gate/reviews/integration pending; P10 stays open for required P10R shared-picker recovery",
+  "state": "Library core focused render/native evidence retained; fresh corrected final gate/reviews/native/integration pending. P10 stays open for required P10R shared-picker recovery.",
   "base": "928cd374e011ed7d108791d346c0c19c19d1e79e",
   "branch": "codex/library-context",
   "criteria": [
@@ -642,6 +642,21 @@
       "sourceStable": true,
       "fullGate": false,
       "scope": "Focused browse-state and existing Library real-screen JVM renders; native assembly where requested. Not complete gate or physical evidence."
+    },
+    {
+      "name": "core-full22",
+      "summary": "build/ux-context/runs/library-context/core-full22/summary.json",
+      "counts": {
+        "tests": 4612,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "freshStandaloneTests": 1715,
+      "freshXmlFiles": 623,
+      "fullGate": true,
+      "sourceStable": true,
+      "result": "Failed complete gate: app4612/one copy-policy failure; standalone1715 passed; build/lint downstream of test failure did not execute."
     }
   ],
   "failureInterpretation": [
@@ -657,7 +672,8 @@
     "picker16-font16 waited for virtualized Add lifts below viewport; now waits for pinned Save then scrolls to Add lifts.",
     "process-stage17 immediate post-launch PID probe was initially empty; later direct probe verified PID before external termination, preserved in receipt.",
     "browse-render19: 13 failures. At normal fonts recovery TextButton layout measured40dp; explicit48dp layout added. Remaining failures were fixture performScrollTo on already pinned non-scroll Reset button; replaced by direct displayed/enabled assertion. Original XML/frames preserved.",
-    "browse-render20: compilation stopped before tests because new sizeIn modifier import was missing. Import corrected; zero tests from this attempt counted as passes."
+    "browse-render20: compilation stopped before tests because new sizeIn modifier import was missing. Import corrected; zero tests from this attempt counted as passes.",
+    "core-full22: only GymFloorCopyTest.userFacingCopyOutsideTheCatalogDoesNotSayExercise failed. Newly added Reset body and recovery message used Exercises; both changed to accepted Lifts terminology and the exact render text assertion updated. Policy check unchanged; all4612 tests were allowed to finish and original623XML preserved. Fresh final gate required."
   ],
   "preliminaryReviews": [
     "build/ux-context/runs/library-context/reviews/p10-preliminary-adversarial-2026-10-14.md",
