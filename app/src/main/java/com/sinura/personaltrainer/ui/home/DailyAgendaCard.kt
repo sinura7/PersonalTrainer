@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.domain.SCHEDULE_ORDER_COPY
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -153,17 +155,18 @@ fun DailyAgendaCard(
             )
         }
         if (items.isNotEmpty()) {
+            val planned = items.filter { it.occurrence.status == OccurrenceStatus.PLANNED }
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
-                items.forEachIndexed { index, item ->
+                items.forEach { item ->
                     AgendaRow(
                         item = item,
                         routines = routines,
                         todayEpochDay = today,
                         sessionLive = sessionLive,
                         leftoverLabel = false,
-                        showReorder = canEditDay && items.size > 1,
-                        index = index,
-                        lastIndex = items.lastIndex,
+                        showReorder = canEditDay && planned.size > 1 && item.occurrence.status == OccurrenceStatus.PLANNED,
+                        index = planned.indexOf(item),
+                        lastIndex = planned.lastIndex,
                         onMove = onMoveOccurrence,
                         onOpen = {
                             onOpenStartConfirm?.invoke(item.occurrence.id)
@@ -176,6 +179,7 @@ fun DailyAgendaCard(
                     )
                 }
             }
+            if (canEditDay && planned.size > 1) Text(SCHEDULE_ORDER_COPY, style = InstrumentType.caption, color = TextSecondary)
         }
         if (stillOpen.isNotEmpty()) {
             Kicker(MoveToToday.STILL_OPEN)

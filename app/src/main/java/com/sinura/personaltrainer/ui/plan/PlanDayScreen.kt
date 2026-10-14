@@ -33,6 +33,8 @@ import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.PlanDayCopy
+import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.SCHEDULE_ORDER_COPY
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
@@ -298,6 +300,7 @@ private fun SessionBlocks(
     onRemove: (String, String) -> Unit,
     onMove: (String, Int) -> Unit,
 ) {
+    val planned = occurrences.filter { it.occurrence.status == OccurrenceStatus.PLANNED }
     GroupedList {
         occurrences.forEachIndexed { index, item ->
             if (index > 0) HairlineDivider()
@@ -345,12 +348,12 @@ private fun SessionBlocks(
                         null
                     },
                 )
-                if (!isPast && occurrences.size > 1) {
+                if (!isPast && planned.size > 1 && item.occurrence.status == OccurrenceStatus.PLANNED) {
                     ReorderRow(
                         title = item.title,
                         occurrenceId = item.occurrence.id,
-                        index = index,
-                        lastIndex = occurrences.lastIndex,
+                        index = planned.indexOf(item),
+                        lastIndex = planned.lastIndex,
                         onMove = onMove,
                         enabled = enabled,
                         modifier = Modifier.padding(horizontal = Metrics.space4),
@@ -359,6 +362,7 @@ private fun SessionBlocks(
             }
         }
     }
+    if (!isPast && planned.size > 1) Text(SCHEDULE_ORDER_COPY, style = InstrumentType.caption, color = TextSecondary)
 }
 
 @Composable

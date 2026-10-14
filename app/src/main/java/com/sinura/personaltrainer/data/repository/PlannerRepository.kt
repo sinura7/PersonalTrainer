@@ -155,44 +155,57 @@ class PlannerRepository(
     }
 
     /**
-     * Permute stored hours so Home/Plan order matches [moves].
-     * Hours remain the sort key; they are not shown (ADR-020).
+     * Permute stored clock slots so Home/Plan order matches [moves]. Equal slots
+     * separate by the minimum minute adjustment; clocks stay hidden (ADR-020).
      */
     suspend fun applyDayOrder(moves: List<DayBlockOrder.HourMove>) {
         if (moves.isEmpty()) return
         val nowMs = time.nowMillis()
         database.withTransaction {
+            // Public callers may supply moves in source-row order; the requested hours
+            // establish order, with input order breaking ties. Settled rows can anchor
+            // future-rule changes but their saved occurrences are never rewritten.
+            val orderedMoves = moves.sortedBy { it.hour }
+            val selected = orderedMoves.map { move ->
+                checkNotNull(dao.getOccurrence(move.occurrenceId)) { "The selected session no longer exists" }
+                    .also { check(it.ruleId == move.ruleId) {
+                        "The selected session changed; review the day again"
+                    } }
+            }
+            check(moves.map { it.occurrenceId }.distinct().size == moves.size)
+            check(selected.map { it.localEpochDay }.distinct().size == 1)
+            val originalMinutes = selected.map { it.hour * 60 + it.minute }.sorted()
+            val slots = DayBlockOrder.distinctMinutes(orderedMoves.mapIndexed { index, move ->
+                move.hour.coerceIn(0, 23) * 60 + originalMinutes[index] % 60
+            })
             val updated = mutableListOf<ScheduleOccurrence>()
             val touchedRules = mutableListOf<ScheduleRule>()
-            for (move in moves) {
-                val nextHour = move.hour.coerceIn(0, 23)
-                val occRow = dao.getOccurrence(move.occurrenceId) ?: continue
-                val ruleRow = dao.getRule(move.ruleId) ?: continue
+            for ((index, move) in orderedMoves.withIndex()) {
+                val nextHour = slots[index] / 60
+                val nextMinute = slots[index] % 60
+                val occRow = selected[index]
+                val ruleRow = checkNotNull(dao.getRule(move.ruleId)) { "The weekly session no longer exists" }
                 var rule = ruleRow.toDomain()
-                if (rule.hour != nextHour) {
-                    rule = rule.copy(hour = nextHour, updatedAtMs = nowMs)
+                if (rule.hour != nextHour || rule.minute != nextMinute) {
+                    rule = rule.copy(hour = nextHour, minute = nextMinute, updatedAtMs = nowMs)
                     dao.upsertRule(rule.toEntity())
                 }
                 touchedRules.add(rule)
                 val zoneId = rule.resolveZoneId(time.defaultZoneId())
-                val captured = time.resolveLocal(
-                    CivilDateTime(
-                        CivilDate.fromEpochDay(occRow.localEpochDay),
-                        nextHour,
-                        occRow.minute,
-                    ),
-                    zoneId,
-                )
-                val next = occRow.toDomain().copy(
-                    hour = nextHour,
-                    captured = captured,
-                    updatedAtMs = nowMs,
-                )
-                if (occRow.status == OccurrenceStatus.PLANNED.name) {
-                    cancelReminders(occRow.id)
+                // The selected day establishes the forward scope. Already generated future
+                // occurrences must agree with the updated rule, while every settled row
+                // retains its captured time, status and completed-activity identity.
+                for (row in dao.getOccurrencesForRule(rule.id)) {
+                    if (row.status != OccurrenceStatus.PLANNED.name || row.localEpochDay < occRow.localEpochDay) continue
+                    val captured = time.resolveLocal(
+                        CivilDateTime(CivilDate.fromEpochDay(row.localEpochDay), nextHour, nextMinute),
+                        zoneId,
+                    )
+                    val next = row.toDomain().copy(hour = nextHour, minute = nextMinute, captured = captured, updatedAtMs = nowMs)
+                    cancelReminders(row.id)
+                    dao.upsertOccurrence(next.toEntity())
+                    updated.add(next)
                 }
-                dao.upsertOccurrence(next.toEntity())
-                if (next.status == OccurrenceStatus.PLANNED) updated.add(next)
             }
             scheduleRemindersLocked(updated, touchedRules.distinctBy { it.id }, nowMs)
         }
@@ -381,6 +394,65 @@ class PlannerRepository(
                 ).toEntity(),
             )
             scheduleRemindersLocked(result.occurrences, rules, nowMs)
+        }
+        notifyScheduleSync()
+    }
+
+    /** Read-only policy preview; opening or closing it never decides the week. */
+    internal suspend fun previewMissedWork(
+        choice: MissedWorkChoice,
+        weekStart: CivilDate,
+        todayEpochDay: Long,
+        nowMinutesOfDay: Int,
+        deviceZoneId: String,
+        nowMs: Long,
+    ): MissedWorkProposal = database.withTransaction {
+        require(todayEpochDay in weekStart.epochDay..weekStart.epochDay + 6)
+        require(nowMinutesOfDay in 0..1439)
+        check(dao.getDecision(weekStart.epochDay) == null) { "This week already has a decision" }
+        val rules = dao.getRules().map { it.toDomain() }.sortedBy { it.id }
+        val before = dao.getOccurrencesBetween(weekStart.epochDay, weekStart.epochDay + 6)
+            .map { it.toDomain() }.sortedBy { it.id }
+        check(MissedWorkPolicy.overdue(before, todayEpochDay).isNotEmpty()) { "No missed work remains" }
+        val result = MissedWorkPolicy.apply(choice, before, weekStart, todayEpochDay,
+            nowMinutesOfDay, nowMs, time, deviceZoneId, rules)
+        MissedWorkProposal(weekStart.epochDay, todayEpochDay, nowMinutesOfDay, deviceZoneId,
+            nowMs, choice, rules, before, result.occurrences.sortedBy { it.id }, result.removed.sorted())
+    }
+
+    /** Stable readback distinguishes an accepted command from an unchanged or changed week. */
+    internal suspend fun inspectMissedWork(proposal: MissedWorkProposal): com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome =
+        database.withTransaction { inspectMissedWorkLocked(proposal) }
+
+    private suspend fun inspectMissedWorkLocked(proposal: MissedWorkProposal): com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome {
+        val actual = dao.getOccurrencesBetween(proposal.weekStartEpochDay, proposal.weekStartEpochDay + 6)
+            .map { it.toDomain() }.sortedBy { it.id }
+        val decision = dao.getDecision(proposal.weekStartEpochDay)?.toDomain()
+        val rules = dao.getRules().map { it.toDomain() }.sortedBy { it.id }
+        return when {
+            decision == proposal.decision && actual == proposal.occurrencesAfter ->
+                com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.EXACT_SAVED
+            decision == null && rules == proposal.rulesBefore && actual == proposal.occurrencesBefore ->
+                com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.UNCOMMITTED
+            else -> com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.CONFLICT
+        }
+    }
+
+    /** The private command owner holds maintenance. CAS and all business rows share one transaction. */
+    internal suspend fun commitMissedWorkLocked(proposal: MissedWorkProposal) {
+        proposal.validate(time)
+        database.withTransaction {
+            check(inspectMissedWorkLocked(proposal) == com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.UNCOMMITTED) {
+                "The preview no longer matches the schedule"
+            }
+            val originalIds = proposal.occurrencesBefore.map { it.id }.toSet()
+            proposal.occurrencesAfter.filter { it.id !in originalIds }.forEach {
+                check(dao.getOccurrence(it.id) == null) { "A proposed occurrence already exists" }
+            }
+            proposal.removedIds.forEach { dao.deleteOccurrence(it) }
+            dao.upsertOccurrences(proposal.occurrencesAfter.map { it.toEntity() })
+            dao.upsertDecision(proposal.decision.toEntity())
+            scheduleRemindersLocked(proposal.occurrencesAfter, proposal.rulesBefore, proposal.atMs)
         }
         notifyScheduleSync()
     }

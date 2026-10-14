@@ -138,6 +138,9 @@ class HomeViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
+    internal val missedWork = com.sinura.personaltrainer.ui.plan.MissedWorkForm(
+        (container as? com.sinura.personaltrainer.AppContainer)?.missedWorkDrafts, viewModelScope,
+    )
     internal val rememberedDay = HomeDayMemory(
         (container as? com.sinura.personaltrainer.AppContainer)?.homeDayDrafts,
         viewModelScope,
@@ -746,21 +749,11 @@ class HomeViewModel @JvmOverloads constructor(
     fun applyMissedWork(choice: MissedWorkChoice): Boolean {
         if (!canMutate()) return false
         val weekStart = lastCompleteBoard?.weekPlan?.weekStartEpochDay ?: return false
-        viewModelScope.launch {
-            val now = time.captureNow()
-            val nowMinutes = time.wallMinutesOfDay(now.instantMillis, now.zoneId)
-            runCatchingCancellable {
-                container.plannerRepository.applyMissedWork(
-                    choice = choice,
-                    weekStart = CivilDate.fromEpochDay(weekStart),
-                    todayEpochDay = todayEpochDay(),
-                    nowMinutesOfDay = nowMinutes,
-                    deviceZoneId = now.zoneId,
-                    nowMs = now.instantMillis,
-                )
-            }.onFailure { actionError.value = "Could not save that decision. Try again." }
-        }
-        return true
+        return missedWork.prepare(choice, weekStart)
+    }
+
+    internal fun reviewMissedWork() {
+        if (canMutate()) lastCompleteBoard?.weekPlan?.weekStartEpochDay?.let { missedWork.reviewCurrent(it) }
     }
 
     /**

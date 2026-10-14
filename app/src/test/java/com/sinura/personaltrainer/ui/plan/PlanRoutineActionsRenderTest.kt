@@ -474,8 +474,11 @@ class PlanRoutineActionsRenderTest {
         val otherPins = runBlocking { deps.scheduleRepository.slots().filter { it.routineId == otherId } }
         tap(reach(PlanTags.routineOptions(fixture.routine.id)))
         tap(compose.onNodeWithTag(PlanTags.routineDelete(fixture.routine.id)))
-        compose.onNodeWithText("This cannot be undone. Past workout history stays saved. This routine is removed from your plan.")
+        compose.onNodeWithText("All planned sessions for this routine", substring = true)
             .assertIsDisplayed()
+            .assertTextContains("Weekly schedule: Thursday.", substring = true)
+            .assertTextContains("Planned dates in this week: Thu 31 Dec 2026.", substring = true)
+            .assertTextContains("Completed sessions stay saved in History.", substring = true)
         assertEquals(savedBefore, history())
         compose.onNodeWithTag(ConfirmActionTags.CONFIRM).performClick()
         compose.awaitThat("chosen routine removed", vm.uiState::value) {

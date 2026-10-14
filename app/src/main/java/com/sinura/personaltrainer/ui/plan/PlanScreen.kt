@@ -285,6 +285,8 @@ fun PlanScreen(
     viewModel: PlanViewModel = viewModel(),
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
+    val missedWork by viewModel.missedWork.snapshot.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel) { viewModel.missedWork.readRetained() }
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     val dateFormat = remember {
         DateFormat.getDateInstance(DateFormat.MEDIUM)
@@ -371,10 +373,14 @@ fun PlanScreen(
                 }
             }
 
-            if (state.missedWorkPrompt) {
+            if (missedWork.retained || missedWork.error != null || missedWork.receipt != null) {
+                item(key = "retained-missed-work") { MissedWorkRetainedCard(viewModel.missedWork) }
+            }
+            if (state.missedWorkPrompt && !missedWork.retained) {
                 item(key = "missed-work") {
                     MissedWorkCard(
                         overdueCount = state.overdueCount,
+                        mutationEnabled = !missedWork.busy && !state.isLoading,
                         onMoveRemaining = {
                             viewModel.applyMissedWork(
                                 com.sinura.personaltrainer.domain.MissedWorkChoice.MOVE_REMAINING,
@@ -496,12 +502,13 @@ fun PlanScreen(
         }
     }
 
+    MissedWorkPreviewSheet(form = viewModel.missedWork,
+        routines = state.routines, onReviewCurrent = viewModel::reviewMissedWork)
     pendingDeleteId?.let { id ->
         val pendingName = state.routines.firstOrNull { it.id == id }?.name ?: "this routine"
         ConfirmActionDialog(
             title = "Delete $pendingName?",
-            body = "This cannot be undone. Past workout history stays saved. " +
-                "This routine is removed from your plan.",
+            body = routineDeletionBody(state, id),
             confirmLabel = "Delete",
             destructive = true,
             onConfirm = {

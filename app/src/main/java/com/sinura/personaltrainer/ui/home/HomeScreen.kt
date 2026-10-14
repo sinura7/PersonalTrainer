@@ -54,6 +54,8 @@ import com.sinura.personaltrainer.domain.featuredSession
 import com.sinura.personaltrainer.domain.leftoverLiftNames
 import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.plan.MissedWorkPreviewSheet
+import com.sinura.personaltrainer.ui.plan.MissedWorkRetainedCard
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -98,6 +100,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val missedWork by viewModel.missedWork.snapshot.collectAsStateWithLifecycle()
+    LaunchedEffect(viewModel) { viewModel.missedWork.readRetained() }
     val dayMemory by viewModel.rememberedDay.snapshot.collectAsStateWithLifecycle()
     val starting by viewModel.startState.collectAsStateWithLifecycle()
     // Capture the action that this frame actually presents. A delegated State read
@@ -793,11 +797,14 @@ fun HomeScreen(
                 }
             }
         }
-        if (state.missedWorkPrompt) {
+        if (missedWork.retained || missedWork.error != null || missedWork.receipt != null) {
+            item(key = "home-retained-missed-work") { MissedWorkRetainedCard(viewModel.missedWork) }
+        }
+        if (state.missedWorkPrompt && !missedWork.retained) {
             item(key = "home-missed-work") {
                 com.sinura.personaltrainer.ui.plan.MissedWorkCard(
                     overdueCount = state.overdueCount,
-                    mutationEnabled = state.mutationEnabled,
+                    mutationEnabled = state.mutationEnabled && !missedWork.busy,
                     onMoveRemaining = {
                         viewModel.applyMissedWork(
                             com.sinura.personaltrainer.domain.MissedWorkChoice.MOVE_REMAINING,
@@ -926,6 +933,8 @@ fun HomeScreen(
             }
         }
     }
+    MissedWorkPreviewSheet(form = viewModel.missedWork,
+        routines = state.routines, onReviewCurrent = viewModel::reviewMissedWork)
 }
 
 /** An explicit target and owner token prevent a selected day or refreshed plan retargeting a modal. */

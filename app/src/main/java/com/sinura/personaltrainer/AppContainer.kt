@@ -51,6 +51,7 @@ import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
+import com.sinura.personaltrainer.data.draft.MissedWorkDrafts
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
@@ -97,6 +98,15 @@ class AppContainer(context: Context) : AppDependencies {
     }
     internal val historyPeriodDrafts: com.sinura.personaltrainer.data.draft.HistoryPeriodDrafts by lazy {
         com.sinura.personaltrainer.data.draft.HistoryPeriodDrafts(durableDrafts)
+    }
+    internal val missedWorkDrafts: MissedWorkDrafts by lazy {
+        MissedWorkDrafts(
+            store = durableDrafts, maintenance = dbMaintenance,
+            restoreOpen = { backupService.restoreInProgress() }, time = time,
+            preview = plannerRepository::previewMissedWork,
+            inspectSaved = plannerRepository::inspectMissedWork,
+            commitLocked = plannerRepository::commitMissedWorkLocked, dispatcher = ioDispatcher,
+        )
     }
     internal val finishedSetDrafts: FinishedSetDrafts by lazy {
         FinishedSetDrafts(

@@ -40,6 +40,13 @@
 # Gson / backup codec field names used by portable files.
 -keep class com.sinura.personaltrainer.data.backup.** { *; }
 
+# Versioned local schedule checkpoints use these exact Gson field names too.
+# They remain private; shrinking cannot silently change a checkpoint's format.
+-keep class com.sinura.personaltrainer.data.repository.MissedWorkProposal { *; }
+-keep class com.sinura.personaltrainer.domain.ScheduleRule { *; }
+-keep class com.sinura.personaltrainer.domain.ScheduleOccurrence { *; }
+-keep class com.sinura.personaltrainer.domain.CapturedCivilTime { *; }
+
 # Temper Account sync rows go through Gson by reflection, and most of their fields (id,
 # status, title, notes, ...) carry no @SerializedName, so a renamed field is a renamed JSON
 # key and the server rejects the row. Same reason as data.backup above.

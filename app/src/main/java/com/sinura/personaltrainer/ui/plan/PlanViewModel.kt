@@ -104,6 +104,9 @@ class PlanViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
+    internal val missedWork = MissedWorkForm(
+        (container as? com.sinura.personaltrainer.AppContainer)?.missedWorkDrafts, viewModelScope,
+    )
     private val actionError = MutableStateFlow<String?>(null)
     private val proposals = MutableStateFlow<List<SuggestedTrainingDay>>(emptyList())
 
@@ -580,19 +583,11 @@ class PlanViewModel @JvmOverloads constructor(
     }
 
     fun applyMissedWork(choice: MissedWorkChoice) {
-        write("Could not save that decision. Try again.") {
-            val weekStartEpoch = uiState.value.week?.weekStartEpochDay
-                ?: return@write
-            val now = time.captureNow()
-            container.plannerRepository.applyMissedWork(
-                choice = choice,
-                weekStart = CivilDate.fromEpochDay(weekStartEpoch),
-                todayEpochDay = todayEpochDay(),
-                nowMinutesOfDay = time.wallMinutesOfDay(now.instantMillis, now.zoneId),
-                deviceZoneId = now.zoneId,
-                nowMs = now.instantMillis,
-            )
-        }
+        uiState.value.week?.weekStartEpochDay?.let { missedWork.prepare(choice, it) }
+    }
+
+    internal fun reviewMissedWork() {
+        uiState.value.week?.weekStartEpochDay?.let { missedWork.reviewCurrent(it) }
     }
 
     // -----------------------------------------------------------------------

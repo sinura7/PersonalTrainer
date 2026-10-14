@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.plan
 import android.content.Intent
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasSetTextAction
@@ -28,6 +29,7 @@ import com.sinura.personaltrainer.domain.SavePosture
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
+import com.sinura.personaltrainer.ui.home.HomeTags
 import com.sinura.personaltrainer.ui.routines.RoutineEditorTags
 import com.sinura.personaltrainer.ui.workout.NativeWorkoutFixtureEnvironment
 import java.io.FileInputStream
@@ -107,6 +109,41 @@ class PlanRoutineActionsInstrumentedTest {
         assertEquals(historyBefore, history())
         assertNull(read { container.workoutRepository.getInProgress() })
         capture("plan-routine-edit-return-font20")
+    }
+
+    @Test fun equalTimeUpActionChangesHomeAndPlanOrderWithoutChangingHistory() {
+        val today = java.time.LocalDate.now().toEpochDay()
+        val ownedRules = read { container.plannerRepository.rules().filter { it.routineId in setOf(routine.id, other.id) }.map { it.id } }
+        val before = read { container.plannerRepository.occurrencesBetween(today, today).filter { it.ruleId in ownedRules } }
+        assertEquals(2, before.size)
+        assertEquals(before[0].minutesOfDay, before[1].minutesOfDay)
+        val historyBefore = history()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() }
+        tap("navigation-home")
+        if (compose.onAllNodesWithTag(HomeTags.BACK_TO_TODAY).fetchSemanticsNodes().isNotEmpty()) tap(HomeTags.BACK_TO_TODAY)
+        val target = before.last()
+        compose.waitUntil(15_000) {
+            runCatching {
+                compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+                    .performScrollToNode(hasTestTag(PlanDayTags.moveUp(target.id)))
+                true
+            }.getOrDefault(false)
+        }
+        tap(PlanDayTags.moveUp(target.id))
+        compose.waitUntil(15_000) {
+            read { container.plannerRepository.occurrencesBetween(today, today).filter { it.ruleId in ownedRules }.firstOrNull()?.id == target.id }
+        }
+        assertEquals(before.reversed().map { it.id }, read {
+            container.plannerRepository.occurrencesBetween(today, today).filter { it.ruleId in ownedRules }.map { it.id } })
+        compose.onNodeWithTag(HomeTags.agendaRow(target.id)).performScrollTo().assertIsDisplayed()
+        capture("same-time-order-home-font20")
+        tap("navigation-routines")
+        compose.waitUntil(15_000) {
+            runCatching { compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.agenda(target.id))); true }.getOrDefault(false)
+        }
+        compose.onNodeWithTag(PlanTags.agenda(target.id)).assertIsDisplayed()
+        assertEquals(historyBefore, history())
+        capture("same-time-order-plan-font20")
     }
 
     @Test
