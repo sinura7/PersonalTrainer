@@ -1,6 +1,12 @@
 package com.sinura.personaltrainer.ui.library
 
 import android.content.Intent
+import android.view.KeyEvent
+import android.os.Build
+import android.view.inspector.WindowInspector
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsOn
@@ -36,7 +42,19 @@ import com.sinura.personaltrainer.data.draft.DraftChange
 import com.sinura.personaltrainer.data.draft.DraftForm
 import com.sinura.personaltrainer.data.draft.DraftOwner
 import com.sinura.personaltrainer.data.draft.LibraryBrowseCodec
+import com.sinura.personaltrainer.data.draft.ActivityFormCodec
+import com.sinura.personaltrainer.data.draft.ActivityFormFields
+import com.sinura.personaltrainer.data.draft.WeekFormCodec
+import com.sinura.personaltrainer.data.draft.WeekFormFields
 import com.sinura.personaltrainer.domain.SavePosture
+import com.sinura.personaltrainer.domain.SettingsHomeCopy
+import com.sinura.personaltrainer.domain.PlanSetupCopy
+import com.sinura.personaltrainer.domain.TrainingFocus
+import com.sinura.personaltrainer.domain.TrainingAge
+import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.TrainingEmphasis
+import com.sinura.personaltrainer.ui.activity.ComposerTags
+import com.sinura.personaltrainer.ui.routines.CustomWeekTags
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailTags
 import com.sinura.personaltrainer.ui.plan.PlanTags
@@ -68,7 +86,8 @@ class LibraryWorkflowInstrumentedTest {
     private var retain = false
     private val gson = Gson()
     private data class Fixture(val original: LibraryBrowseSnapshot?, val inventory: String,
-        var ownedRoutine: String? = null, var expectedPosition: Float? = null, var ownedCreateId: String? = null)
+        var ownedRoutine: String? = null, var expectedPosition: Float? = null, var ownedCreateId: String? = null,
+        var originalActivity: ActivityFormFields? = null, var originalWeek: WeekFormFields? = null)
     private val preparation = object : ExternalResource() {
         override fun before() {
             val app = ApplicationProvider.getApplicationContext<PersonalTrainerApp>()
@@ -95,6 +114,19 @@ class LibraryWorkflowInstrumentedTest {
                         fixture.ownedRoutine = container.routineRepository.create("Synthetic P10 picker").id
                         marker.writeText(gson.toJson(fixture))
                     }
+                    if (phase == "picker-activity") {
+                        val staged = container.stagedPickerForms.open(activityOwner(), ActivityFormCodec)
+                        check(staged.checkpoint != null && staged.checkpoint?.pending == null)
+                        fixture.originalActivity = staged.fields
+                        container.stagedPickerForms.reset(staged)
+                    }
+                    if (phase == "picker-week") {
+                        val staged = container.stagedPickerForms.open(weekOwner(), WeekFormCodec)
+                        check(staged.checkpoint != null && staged.checkpoint?.pending == null)
+                        fixture.originalWeek = staged.fields
+                        container.stagedPickerForms.reset(staged)
+                    }
+                    marker.writeText(gson.toJson(fixture))
                 }
             } } catch (failure: Throwable) {
                 try { cleanup() } catch (other: Throwable) { failure.addSuppressed(other) }
@@ -120,6 +152,8 @@ class LibraryWorkflowInstrumentedTest {
         compose.onNodeWithTag("navigation-home").assertIsSelected()
         assertInventory()
         tap("navigation-routines")
+        if (phase == "picker-activity") { activityPickerJourney(); return }
+        if (phase == "picker-week") { weekPickerJourney(); return }
         if (phase == "picker") { pickerJourney(); return }
         if (phase.startsWith("picker-create")) { pickerCreateJourney(); return }
         tap(PlanTags.LIBRARY)
@@ -320,6 +354,114 @@ class LibraryWorkflowInstrumentedTest {
         // Do not scroll here: this proves orientation was restored by the shipping screen.
         compose.onNodeWithTag(LibraryTags.lift(lift)).assertIsDisplayed()
     }
+    private fun activityOwner() = DraftOwner(DraftForm.ACTIVITY, "composer:" +
+        MessageDigest.getInstance("SHA-256").digest("MIXED:N".toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) })
+    private fun weekOwner() = DraftOwner(DraftForm.ONBOARDING, "custom-week")
+    private fun activityFields() = read {
+        val checkpoint = container.durableDrafts.bind(activityOwner(), ActivityFormCodec).read()
+        check(checkpoint is com.sinura.personaltrainer.data.draft.DraftRead.PresentCheckpoint)
+        checkNotNull(checkpoint.checkpoint.draft)
+    }
+    private fun openMixedComposer() {
+        tap(PlanTags.START_SHEET)
+        clickLabel("Mixed session")
+        awaitTag("composer-title")
+        compose.waitUntil(30_000) { compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+    }
+    private fun pickerSearch() = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")))
+    private fun awaitPicker() {
+        awaitTag("picker-search")
+        compose.waitUntil(30_000) { compose.onAllNodes(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")) and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+    }
+    private fun activityPickerJourney() {
+        openMixedComposer()
+        compose.onNodeWithTag("composer-title").performTextReplacement("  Synthetic P10 mixed draft  ")
+        scrollTo(ComposerTags.CHOOSE_LIFT); tap(ComposerTags.CHOOSE_LIFT); awaitPicker()
+        pickerSearch().performTextReplacement("incline dumbbell bench")
+        pickerSearch().performImeAction()
+        clickPickerResult("Incline Dumbbell Bench Press")
+        compose.waitUntil(30_000) { compose.onAllNodesWithTag("picker-search").fetchSemanticsNodes().isEmpty() }
+        assertEquals("ex-incline-dumbbell-bench-press", activityFields().pickedId)
+        scrollTo(ComposerTags.CHOOSE_LIFT); tap(ComposerTags.CHOOSE_LIFT); awaitPicker()
+        pickerSearch().performTextReplacement("  lateral  "); pickerSearch().performImeAction()
+        awaitKeyboardHidden()
+        capture("activity-picker-query-before-close")
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(30_000) { compose.onAllNodesWithTag("picker-search").fetchSemanticsNodes().isEmpty() }
+        tap(ComposerTags.CANCEL); awaitTag(PlanTags.START_SHEET)
+        assertInventory()
+        openMixedComposer()
+        compose.onNodeWithTag("composer-title").assertTextContains("  Synthetic P10 mixed draft  ")
+        assertEquals("ex-incline-dumbbell-bench-press", activityFields().pickedId)
+        scrollTo(ComposerTags.CHOOSE_LIFT); tap(ComposerTags.CHOOSE_LIFT); awaitPicker()
+        pickerSearch().assertTextContains("  lateral  ")
+        capture("activity-picker-reopened")
+        assertInventory()
+    }
+    private fun weekPickerJourney() {
+        tap("navigation-settings")
+        clickLabel(SettingsHomeCopy.PLAN); clickLabel(PlanSetupCopy.ROW_TITLE)
+        clickLabel(TrainingFocus.STRENGTH.displayName)
+        clickLabel(TrainingAge.NEW.displayName)
+        clickLabel("Continue")
+        clickLabel("Space them out for me")
+        clickLabel("Continue")
+        clickLabel(TrainingGoal.GENERAL.displayName)
+        clickLabel(TrainingEmphasis.BALANCED.displayName)
+        clickLabel("Skip this")
+        clickLabel("I'll build my own")
+        awaitTag(CustomWeekTags.ADD_LIFTS); tap(CustomWeekTags.ADD_LIFTS); awaitPicker()
+        pickerSearch().performTextReplacement("incline dumbbell bench"); pickerSearch().performImeAction()
+        clickPickerResult("Incline Dumbbell Bench Press")
+        tap("picker-action")
+        compose.waitUntil(30_000) { compose.onAllNodesWithTag("picker-search").fetchSemanticsNodes().isEmpty() }
+        val saved = read {
+            val result = container.durableDrafts.bind(weekOwner(), WeekFormCodec).read()
+            check(result is com.sinura.personaltrainer.data.draft.DraftRead.PresentCheckpoint)
+            checkNotNull(result.checkpoint.draft)
+        }
+        val intended = saved.days.getValue(saved.selectedDay).single()
+        assertEquals("ex-incline-dumbbell-bench-press", intended.exercise.id)
+        tap(CustomWeekTags.BACK); clickLabel("I'll build my own")
+        awaitTag(CustomWeekTags.ADD_LIFTS)
+        compose.onNodeWithText("Resumed week draft").assertIsDisplayed()
+        tap(CustomWeekTags.ADD_LIFTS); awaitPicker()
+        pickerSearch().assertTextContains("incline dumbbell bench")
+        capture("week-picker-reopened")
+        assertInventory()
+    }
+    private fun clickPickerResult(label: String) {
+        val target = hasText(label) and hasAnyAncestor(hasTestTag("picker-content"))
+        compose.waitUntil(30_000) { runCatching {
+            compose.onNodeWithTag("picker-content").performScrollToNode(target)
+        }.isSuccess }
+        compose.onNode(target).assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick) { it() }
+    }
+    /** Setup-step invocation proves AppNav/state continuity; P15/P20 own question reachability. */
+    private fun clickLabel(label: String) {
+        compose.waitUntil(30_000) {
+            if (compose.onAllNodes(hasText(label) and isEnabled()).fetchSemanticsNodes().isEmpty()) {
+                runCatching {
+                    compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+                        .performScrollToNode(hasText(label))
+                }
+            }
+            compose.onAllNodes(hasText(label) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(label).performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.waitForIdle()
+    }
+    private fun awaitKeyboardHidden() {
+        compose.waitForIdle()
+        if (Build.VERSION.SDK_INT >= 29) compose.waitUntil(30_000) {
+            compose.runOnIdle {
+                WindowInspector.getGlobalWindowViews().none {
+                    ViewCompat.getRootWindowInsets(it)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                }
+            }
+        }
+    }
     private fun search() = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(LibraryTags.SEARCH)), useUnmergedTree = true)
     private fun scrollPosition() = compose.onNodeWithTag(LibraryTags.LIST).fetchSemanticsNode()
         .config[SemanticsProperties.VerticalScrollAxisRange].value()
@@ -374,6 +516,22 @@ class LibraryWorkflowInstrumentedTest {
                     container.exerciseRepository.getById(id)?.let { saved ->
                         check(saved.isCustom && saved.name == "Synthetic P10 owned press")
                         container.exerciseRepository.deleteCustom(id)
+                    }
+                }
+                if (phase == "picker-activity") {
+                    val staged = container.stagedPickerForms.open(activityOwner(), ActivityFormCodec)
+                    container.stagedPickerForms.reset(staged)
+                    fixture.originalActivity?.let {
+                        val restored = container.stagedPickerForms.open(activityOwner(), ActivityFormCodec)
+                        container.stagedPickerForms.keep(restored, it)
+                    }
+                }
+                if (phase == "picker-week") {
+                    val staged = container.stagedPickerForms.open(weekOwner(), WeekFormCodec)
+                    container.stagedPickerForms.reset(staged)
+                    fixture.originalWeek?.let {
+                        val restored = container.stagedPickerForms.open(weekOwner(), WeekFormCodec)
+                        container.stagedPickerForms.keep(restored, it)
                     }
                 }
                 val handle = container.libraryBrowseDrafts.open()

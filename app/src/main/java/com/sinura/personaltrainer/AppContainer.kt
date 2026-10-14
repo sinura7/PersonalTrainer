@@ -107,6 +107,9 @@ class AppContainer(context: Context) : AppDependencies {
     internal val pickerContextDrafts: com.sinura.personaltrainer.data.draft.PickerContextDrafts by lazy {
         com.sinura.personaltrainer.data.draft.PickerContextDrafts(durableDrafts)
     }
+    internal val stagedPickerForms: com.sinura.personaltrainer.data.draft.StagedPickerForms by lazy {
+        com.sinura.personaltrainer.data.draft.StagedPickerForms(durableDrafts)
+    }
     internal val pickerSwapDrafts: PickerSwapDrafts by lazy {
         PickerSwapDrafts(store = durableDrafts,
             repository = workoutRepository, maintenance = dbMaintenance,

@@ -781,12 +781,44 @@
       "After accepted restore or removed/changed owner, require ownership reconciliation before submission; cleanup/stale callbacks cannot resurrect completed work."
     ],
     "partialImplementation": {
-      "state": "Owner-scoped storage, view/Create/reset controllers, routine normal/unmatched, workout-add and frozen workout-swap recovery implemented; swap AppNav verification, activity/custom-week callers, final gate/reviews/integration remain open",
+      "state": "All requested picker callers have targeted and actual AppNav recovery evidence. staged-callers55-native passed10 new caller regressions and debug/release/R8/test-APK assembly; activity59/week60 passed actual AppNav reopening. Final complete gate, native closure review, clean reviews and integration remain open.",
       "source": [
         "app/src/main/java/com/sinura/personaltrainer/data/draft/PickerContextDrafts.kt",
         "app/src/main/java/com/sinura/personaltrainer/data/draft/CustomExerciseDrafts.kt"
       ],
       "checks": [
+        {
+          "attempt": "activity56-appnav",
+          "receipt": "build/ux-context/runs/picker-recovery/activity56-appnav/summary.json",
+          "receiptSha256": "FB1663903306503769F4995FE35BE3633FF2968E3E4A3C23CCB1FF843852D910",
+          "exit": 0,
+          "result": "FAIL",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 0,
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "apks": {
+            "tests": "3C7DF40118086E05688914EE086423345ABFA186E2843C514256805895C6AC7E",
+            "app": "EFB9CEE00779ACB5FD4FF23A8BEF336623BBD7979E77E888F13A35424B757503"
+          }
+        },
+        {
+          "attempt": "activity59-appnav",
+          "receipt": "build/ux-context/runs/picker-recovery/activity59-appnav/summary.json",
+          "receiptSha256": "4C6A2A99EF82ECD2252141CB2E37BD979EFC4DD1D800470A446EDFD0B71A049F",
+          "exit": 0,
+          "result": "PASS",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 1,
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "apks": {
+            "tests": "8AE9DCA0BE904CC3DED30E0AB588A1FA7866AB380EF051DE67CC559CD0A18996",
+            "app": "EFB9CEE00779ACB5FD4FF23A8BEF336623BBD7979E77E888F13A35424B757503"
+          }
+        },
         {
           "attempt": "caller-wiring06",
           "receipt": "build/ux-context/runs/picker-recovery/caller-wiring06/summary.json",
@@ -1224,6 +1256,159 @@
           }
         },
         {
+          "attempt": "staged-callers48",
+          "receipt": "build/ux-context/runs/picker-recovery/staged-callers48/summary.json",
+          "receiptSha256": "25C45FFA8DB00D0E9098491302CA0E08B7F983FBD1E3489306D66E7FF8091308",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "staged-callers49",
+          "receipt": "build/ux-context/runs/picker-recovery/staged-callers49/summary.json",
+          "receiptSha256": "101922901E4FB71A6E8B7E79EC089FD4B44D2358ED636DE5ADB22A403BF45A67",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "staged-callers50",
+          "receipt": "build/ux-context/runs/picker-recovery/staged-callers50/summary.json",
+          "receiptSha256": "6683FECE854535047A61B7B92C0CD8B57927A308DF48025638E36B746C521C8C",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "staged-callers51",
+          "receipt": "build/ux-context/runs/picker-recovery/staged-callers51/summary.json",
+          "receiptSha256": "6BC0BFCDDF31DFB5F9BA6B5FEF17A78E7A9C87E13093C241839EC12011F0C25B",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "staged-callers52",
+          "receipt": "build/ux-context/runs/picker-recovery/staged-callers52/summary.json",
+          "receiptSha256": "E3F5B07C24D148D08FB667DB16036570BD7D4C5CD604AE03F3735BB629C97153",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 47,
+          "counts": {
+            "tests": 47,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "staged-callers53",
+          "receipt": "build/ux-context/runs/picker-recovery/staged-callers53/summary.json",
+          "receiptSha256": "571DCFB864C97C36C91E89268E57215E6892F7AC67580156D6F1EEC7855A9009",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 47,
+          "counts": {
+            "tests": 47,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "staged-callers54-native",
+          "receipt": "build/ux-context/runs/picker-recovery/staged-callers54-native/summary.json",
+          "receiptSha256": "5A8F1BFDB5F92EFBC02C4D600BA4525AE07AFEFE8245681065E18B45C53D2639",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "staged-callers55-native",
+          "receipt": "build/ux-context/runs/picker-recovery/staged-callers55-native/summary.json",
+          "receiptSha256": "F85F3F5041ABFABFA2C6267DB8159AFD95C47FE969B6620C123D074DB072F19C",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 10,
+          "counts": {
+            "tests": 10,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "staged58-native-fixtures",
+          "receipt": "build/ux-context/runs/picker-recovery/staged58-native-fixtures/summary.json",
+          "receiptSha256": "5DD6E7CD4D33BB5ACDF6A65699F5439935784E4C2257E8AF1185500ADA189918",
+          "exit": 0,
+          "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
           "attempt": "swap-boundary32",
           "receipt": "build/ux-context/runs/picker-recovery/swap-boundary32/summary.json",
           "receiptSha256": "D70C2B6EFEAB3A0FFF7D5571EDD0E5283077AD17F3DF3752DDABAC9D139B5A55",
@@ -1543,6 +1728,38 @@
             "errors": 0,
             "skipped": 0
           }
+        },
+        {
+          "attempt": "week57-appnav",
+          "receipt": "build/ux-context/runs/picker-recovery/week57-appnav/summary.json",
+          "receiptSha256": "754462C7272DD5D91C09AB6D3F64EBC4B4F7A3AABE63B61C3915AEBF052C934A",
+          "exit": 0,
+          "result": "FAIL",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 0,
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "apks": {
+            "app": "EFB9CEE00779ACB5FD4FF23A8BEF336623BBD7979E77E888F13A35424B757503",
+            "tests": "3C7DF40118086E05688914EE086423345ABFA186E2843C514256805895C6AC7E"
+          }
+        },
+        {
+          "attempt": "week60-appnav",
+          "receipt": "build/ux-context/runs/picker-recovery/week60-appnav/summary.json",
+          "receiptSha256": "CD9EDAA06489CD3D878A725D42CD855E41749A95A8B7B289BDF45716A15F644A",
+          "exit": 0,
+          "result": "PASS",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 1,
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "apks": {
+            "app": "EFB9CEE00779ACB5FD4FF23A8BEF336623BBD7979E77E888F13A35424B757503",
+            "tests": "8AE9DCA0BE904CC3DED30E0AB588A1FA7866AB380EF051DE67CC559CD0A18996"
+          }
         }
       ],
       "scope": "Executed targeted counts are verification evidence, not usability percentages. Original failed/aborted attempts remain retained. P10 is open; required-criterion coverage remains41/96 and latest signed delivery remains125.",
@@ -1595,6 +1812,16 @@
         {
           "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-scroll-recovery20-receipt-addendum-2026-10-14.md",
           "sha256": "093BAAB32D915DF579FC24AE1F45EF58949689470FD74FEEB20563E35410787F",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-staged-callers50-source-2026-10-14.md",
+          "sha256": "6D6B46E54C2B1A55E205E1CD5F622ECE8E43AFB4F055C53DD55AAE82C240ADEF",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-staged-callers52-source-correction-2026-10-14.md",
+          "sha256": "A2285AA66BDC2BF6A7BE0DC503F399F36CC2334E8C1A8AA71FB86060EC897151",
           "scope": "Historical bounded source review; does not establish final packet eligibility"
         },
         {
@@ -1691,10 +1918,16 @@
         "Frozen workout-swap commands retain original/result identities, inspect uncertain writes before exact Retry, and clear only confirmed accepted private records. Ownership uses length-prefixed tuples; changed source, logged sets, restore generation and conflicting result identities prevent replay.",
         "swap-caller44 freshly passed54 focused checks in7 XML files and debug/release/R8/test-APK assembly against1675 unchanged inputs; no full gate or standalone execution is inferred. Fresh-VM continuation verifies cleared child inventory without another business write.",
         "Native JVM saved-swap Continue renders at360x640/font2 and landscape640x360/font2 were visually inspected; these synthetic shared-content captures do not establish AppNav or physical acceptance.",
-        "swap45-appnav failed both native methods: Continue was asserted before enabled recovery, and the swap selector timed out. Original trace and source/APK identities are retained. swap46-native-selector built the corrected test APK with no JVM tests counted; swap47-appnav freshly passed both methods in shipping MainActivity/AppNav on the unchanged application candidate."
+        "swap45-appnav failed both native methods: Continue was asserted before enabled recovery, and the swap selector timed out. Original trace and source/APK identities are retained. swap46-native-selector built the corrected test APK with no JVM tests counted; swap47-appnav freshly passed both methods in shipping MainActivity/AppNav on the unchanged application candidate.",
+        "Activity and custom-week pickers now bind a private staged form, preserve owner identity and select a saved Create only after a confirmed parent checkpoint. staged-callers53 passed47 fresh checks in3 XML files against1678 unchanged inputs, including9 new caller recoveries. This is targeted evidence, not the complete gate.",
+        "staged-callers52 executed47 checks with46 passes and1 failure: the activity handoff fixture observed the transient initial Library-saved phase instead of the completed parent failure. Its original XML remains;53 waits for the actual selection refusal and passes. Runs48/49/50/51/54 stopped before test execution on compile/static issues; their original evidence is retained.",
+        "A private staged submission fence precedes the existing activity/plan business operation and prevents pending or accepted forms from reopening as new submissions. Repository-level exact retry, partial-plan reconciliation and full manual-entry/onboarding acceptance remain P14/P16; they are not claimed complete by this fence.",
+        "staged-callers55-native passed10 fresh recovery checks in1 XML against1678 unchanged inputs, including captured weight-unit restoration and failed week-picker Close with exact Retry; debug/release/R8/test-APK builds passed. Explicit reflection keep rules preserve private typed field/enum names. This is not the full gate.",
+        "staged58-native-fixtures ran static checks and APK assembly only (zero JVM tests counted). activity59-appnav and week60-appnav freshly passed1 actual MainActivity/AppNav journey each using the same app/test APKs. Activity restores raw title/selected ID/query; week restores exact staged row/search without applying a plan. Preview controls are scrolled into composition; setup-step semantic invocation does not close P15 question reachability or P20 touch acceptance.",
+        "Original activity56-appnav failed Back before native keyboard dismissal settled; corrected59 waits for actual window IME visibility. Original week57-appnav failed before scrolling the virtualized Preview action into composition; corrected60 scrolls and passes. Original traces/captures remain preserved."
       ],
       "remaining": [
-        "Activity-composer and custom-week ownership/handoff wiring.",
+        "Final relevant native recovery/layout closure and executed whole-packet gate.",
         "Final relevant native layout/recovery states and real navigation evidence for the remaining callers.",
         "Fresh complete local gate, final independent/adversarial reviews, archived integration proof and signed Drop A."
       ],

@@ -54,6 +54,25 @@
 -keep class com.sinura.personaltrainer.data.draft.RoutineNumberField { *; }
 -keep class com.sinura.personaltrainer.data.draft.RoutineImportDetails { *; }
 -keep class com.sinura.personaltrainer.data.draft.RoutineImportedOwner { *; }
+# Staged picker parents use the same private, versioned reflection contract.
+-keep class com.sinura.personaltrainer.data.draft.ActivityFormFields { *; }
+-keep class com.sinura.personaltrainer.data.draft.WeekFormFields { *; }
+-keep class com.sinura.personaltrainer.data.draft.StagedStrength { *; }
+-keep class com.sinura.personaltrainer.data.draft.StagedCardio { *; }
+-keep class com.sinura.personaltrainer.domain.Exercise { *; }
+-keep class com.sinura.personaltrainer.domain.MuscleCredit { *; }
+-keep class com.sinura.personaltrainer.domain.CustomWeekLift { *; }
+-keep class com.sinura.personaltrainer.domain.OnboardingAnswers { *; }
+-keep enum com.sinura.personaltrainer.domain.Weekday { *; }
+-keep enum com.sinura.personaltrainer.domain.WeightUnit { *; }
+-keep enum com.sinura.personaltrainer.domain.CardioType { *; }
+-keep enum com.sinura.personaltrainer.domain.LoadType { *; }
+-keep enum com.sinura.personaltrainer.domain.EquipmentType { *; }
+-keep enum com.sinura.personaltrainer.domain.TrainingAge { *; }
+-keep enum com.sinura.personaltrainer.domain.TrainingPlace { *; }
+-keep enum com.sinura.personaltrainer.domain.TrainingGoal { *; }
+-keep enum com.sinura.personaltrainer.domain.TrainingEmphasis { *; }
+-keep enum com.sinura.personaltrainer.domain.TrainingFocus { *; }
 -keep class com.sinura.personaltrainer.domain.PastedUnmatched { *; }
 -keep class com.sinura.personaltrainer.domain.WorkScheme { *; }
 -keep class com.sinura.personaltrainer.domain.PasteIssueKind { *; }

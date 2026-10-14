@@ -17,6 +17,7 @@ internal class PickerWrites {
     private val mutable = MutableStateFlow(ExercisePickerProgress())
     val state = mutable.asStateFlow()
     val busy: Boolean get() = pending.isNotEmpty()
+    val canRetry: Boolean get() = mutable.value.canRetry
     val creating: Boolean get() = pending.values.any { it.creating }
 
     fun begin(key: String, creating: Boolean = false): Long {

@@ -51,7 +51,8 @@ import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.StrengthEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
-import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.RecoverableExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
 import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.fieldError
@@ -80,6 +81,11 @@ fun ActivityComposerScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val savedId by viewModel.savedId.collectAsStateWithLifecycle()
     val createdExercise by viewModel.createdExercise.collectAsStateWithLifecycle()
+    val pickerOpen by viewModel.showPicker.collectAsStateWithLifecycle()
+    val pickerQuery by viewModel.query.collectAsStateWithLifecycle()
+    val adderFields by viewModel.adderFields.collectAsStateWithLifecycle()
+    val privateStatus = viewModel.formRecovery?.status?.collectAsStateWithLifecycle()?.value
+    val formEditable = privateStatus?.loading != true && privateStatus?.pending != true && !state.saving
     val unit = LocalWeightUnit.current
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(savedId) {
@@ -95,7 +101,9 @@ fun ActivityComposerScreen(
     // takes milliseconds, and the dock's "Saving…" is the whole of the wait.
     val leave: () -> Unit = {
         if (viewModel.canLeave()) {
-            if (state.isDirty) {
+            if (viewModel.formRecovery != null) {
+                viewModel.keepAndLeave(onBack)
+            } else if (state.isDirty) {
                 confirmLeave = true
             } else {
                 viewModel.discardDraft()
@@ -109,6 +117,11 @@ fun ActivityComposerScreen(
         modifier = Modifier.imePadding(),
         bottomBar = {
             Column {
+                viewModel.formRecovery?.let { recovery ->
+                    val progress by recovery.status.collectAsStateWithLifecycle()
+                    progress.error?.let { message -> GymErrorBanner(message = message, onRetry = recovery::retry) }
+                    if (progress.accepted) Text("Already saved. Return to History to view your session.", style = InstrumentType.caption, color = TextSecondary)
+                }
                 // Form-level outcomes sit where Save is pressed, not in a banner at the top of
                 // a list the thumb has long since scrolled past.
                 state.error?.let { message ->
@@ -122,6 +135,7 @@ fun ActivityComposerScreen(
                     saving = state.saving,
                     onSave = viewModel::save,
                     onCancel = leave,
+                    enabled = privateStatus?.ready != false,
                 )
             }
         },
@@ -146,9 +160,10 @@ fun ActivityComposerScreen(
                 OutlinedTextField(
                     value = state.title,
                     onValueChange = viewModel::setTitle,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().testTag("composer-title"),
                     label = { Text("Title") },
                     singleLine = true,
+                    enabled = formEditable,
                 )
             }
             item {
@@ -202,6 +217,13 @@ fun ActivityComposerScreen(
                         pickerProgress = state.pickerProgress,
                         onPickerRetry = viewModel::retryPicker,
                         canDismissPicker = viewModel::canLeave,
+                        recovery = viewModel.pickerRecovery,
+                        parentFields = if (viewModel.formRecovery != null) adderFields else null,
+                        onParentFields = viewModel::changeAdder,
+                        externalPickerOpen = if (viewModel.pickerRecovery != null) pickerOpen else null,
+                        externalQuery = if (viewModel.pickerRecovery != null) pickerQuery else null,
+                        onExternalPickerVisible = viewModel::setPickerVisible,
+                        onExternalSelect = viewModel::selectPickerExercise,
                     )
                 }
             }
@@ -226,20 +248,23 @@ fun ActivityComposerScreen(
                 }
                 item { CardioAdder(onAdd = viewModel::addCardio) }
             }
+            if (viewModel.formRecovery != null) item {
+                SecondaryGymButton(text = "Discard draft", onClick = { confirmLeave = true }, enabled = viewModel.canLeave())
+            }
         }
     }
 
     if (confirmLeave) {
         ConfirmActionDialog(
             title = ComposerCopy.LEAVE_TITLE,
-            body = ComposerCopy.LEAVE_BODY,
+            body = if (viewModel.formRecovery != null) "Discard unfinished fields on this device. Saved sessions stay in History." else ComposerCopy.LEAVE_BODY,
             confirmLabel = ComposerCopy.LEAVE,
             dismissLabel = ComposerCopy.KEEP_EDITING,
             onConfirm = {
                 if (viewModel.canLeave()) {
                     confirmLeave = false
-                    viewModel.discardDraft()
-                    onBack()
+                    if (viewModel.formRecovery != null) viewModel.discardAndLeave(onBack)
+                    else { viewModel.discardDraft(); onBack() }
                 }
             },
             onDismiss = { confirmLeave = false },
@@ -256,6 +281,7 @@ internal fun ComposerSaveDock(
     saving: Boolean,
     onSave: () -> Unit,
     onCancel: () -> Unit,
+    enabled: Boolean = true,
 ) {
     PinnedDock(
         volt = {
@@ -263,7 +289,7 @@ internal fun ComposerSaveDock(
                 text = if (saving) ComposerCopy.SAVING else ComposerCopy.SAVE,
                 onClick = onSave,
                 modifier = Modifier.testTag(ComposerTags.SAVE),
-                enabled = !saving,
+                enabled = !saving && enabled,
             )
         },
         secondary = {
@@ -297,6 +323,13 @@ internal fun StrengthAdder(
     pickerProgress: ExercisePickerProgress = ExercisePickerProgress(),
     onPickerRetry: () -> Unit = {},
     canDismissPicker: () -> Boolean = { !pickerProgress.busy },
+    recovery: OwnedPickerRecovery? = null,
+    parentFields: StrengthAdderFields? = null,
+    onParentFields: (StrengthAdderFields) -> Unit = {},
+    externalPickerOpen: Boolean? = null,
+    externalQuery: String? = null,
+    onExternalPickerVisible: (Boolean) -> Unit = {},
+    onExternalSelect: (Exercise) -> Unit = {},
 ) {
     val unit = LocalWeightUnit.current
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
@@ -304,6 +337,10 @@ internal fun StrengthAdder(
     var pickedId by rememberSaveable { mutableStateOf(catalog.firstOrNull()?.id.orEmpty()) }
     var weight by rememberSaveable { mutableStateOf("0") }
     var reps by rememberSaveable { mutableStateOf("8") }
+    val entryUnit = parentFields?.unit ?: unit
+    LaunchedEffect(parentFields) {
+        parentFields?.let { pickedId = it.pickedId; weight = it.weight; reps = it.reps }
+    }
     // Set by Add set when a box cannot be read as written; cleared by the next keystroke in
     // that box. The text itself is never rewritten — see NumericEntry.
     var weightError by rememberSaveable { mutableStateOf<String?>(null) }
@@ -312,6 +349,7 @@ internal fun StrengthAdder(
     LaunchedEffect(catalog) {
         if (pickedId.isEmpty()) {
             pickedId = catalog.firstOrNull()?.id.orEmpty()
+            if (parentFields != null) onParentFields(StrengthAdderFields(pickedId, weight, reps, entryUnit))
         }
     }
     // A created lift is picked like a tapped one; the sheet closes on it.
@@ -326,7 +364,7 @@ internal fun StrengthAdder(
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         SecondaryGymButton(
             text = ComposerCopy.CHOOSE_LIFT,
-            onClick = { pickerOpen = true },
+            onClick = { if (externalPickerOpen != null) onExternalPickerVisible(true) else pickerOpen = true },
             modifier = Modifier.testTag(ComposerTags.CHOOSE_LIFT),
         )
         if (catalog.isEmpty()) {
@@ -345,8 +383,9 @@ internal fun StrengthAdder(
                 onValueChange = {
                     weight = it
                     weightError = null
+                    if (parentFields != null) onParentFields(StrengthAdderFields(pickedId, weight, reps, entryUnit))
                 },
-                label = { Text(ComposerCopy.weightFieldLabel(unit)) },
+                label = { Text(ComposerCopy.weightFieldLabel(entryUnit)) },
                 singleLine = true,
                 isError = weightError != null,
                 supportingText = complaintSlot(weightError),
@@ -366,6 +405,7 @@ internal fun StrengthAdder(
                 onValueChange = {
                     reps = it
                     repsError = null
+                    if (parentFields != null) onParentFields(StrengthAdderFields(pickedId, weight, reps, entryUnit))
                 },
                 label = { Text(ComposerCopy.REPS) },
                 singleLine = true,
@@ -385,7 +425,7 @@ internal fun StrengthAdder(
                 text = ComposerCopy.ADD_SET,
                 onClick = {
                     val lift = exercise ?: return@SecondaryGymButton
-                    when (val entry = ComposerCopy.strengthEntry(weight, reps, unit)) {
+                    when (val entry = ComposerCopy.strengthEntry(weight, reps, entryUnit)) {
                         is StrengthEntry.ReadySet -> {
                             weightError = null
                             repsError = null
@@ -411,12 +451,13 @@ internal fun StrengthAdder(
             )
         }
     }
-    if (pickerOpen) {
-        ExercisePickerSheet(
+    if (externalPickerOpen ?: pickerOpen) {
+        RecoverableExercisePickerSheet(
+            recovery = recovery,
             canDismiss = canDismissPicker,
             state = ExercisePickerState(
-                query = pickerQuery,
-                results = filterCatalog(catalog, pickerQuery),
+                query = externalQuery ?: pickerQuery,
+                results = filterCatalog(catalog, externalQuery ?: pickerQuery),
                 title = ComposerCopy.PICKER_TITLE,
                 mode = ExercisePickerMode.SINGLE_ADD,
                 catalog = catalog,
@@ -427,8 +468,9 @@ internal fun StrengthAdder(
                 when (event) {
                     is ExercisePickerEvent.QueryChanged -> pickerQuery = event.query
                     is ExercisePickerEvent.Selected -> {
-                        if (!canDismissPicker()) return@ExercisePickerSheet
+                        if (!canDismissPicker()) return@RecoverableExercisePickerSheet
                         onPickerErrorDismissed()
+                        if (externalPickerOpen != null) { onExternalSelect(event.exercise); return@RecoverableExercisePickerSheet }
                         pickedId = event.exercise.id
                         pickerQuery = ""
                         pickerOpen = false
@@ -441,7 +483,8 @@ internal fun StrengthAdder(
                     ExercisePickerEvent.ErrorDismissed -> onPickerErrorDismissed()
                     ExercisePickerEvent.Retry -> onPickerRetry()
                     ExercisePickerEvent.Dismissed -> {
-                        if (!canDismissPicker()) return@ExercisePickerSheet
+                        if (!canDismissPicker()) return@RecoverableExercisePickerSheet
+                        if (externalPickerOpen != null) { onExternalPickerVisible(false); return@RecoverableExercisePickerSheet }
                         pickerQuery = ""
                         pickerOpen = false
                     }

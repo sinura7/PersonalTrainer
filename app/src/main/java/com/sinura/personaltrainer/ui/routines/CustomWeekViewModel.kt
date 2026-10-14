@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.ApplyPlanResult
@@ -39,6 +40,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
+import com.sinura.personaltrainer.data.draft.DraftForm
+import com.sinura.personaltrainer.data.draft.DraftOwner
+import com.sinura.personaltrainer.data.draft.PickerContextDrafts
+import com.sinura.personaltrainer.data.draft.StagedPickerForms
+import com.sinura.personaltrainer.data.draft.WeekFormCodec
+import com.sinura.personaltrainer.data.draft.WeekFormFields
+import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
+import com.sinura.personaltrainer.ui.components.StagedFormRecovery
 
 private const val TAG = "PT/CustomWeekVM"
 
@@ -75,11 +85,18 @@ data class CustomWeekUiState(
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class CustomWeekViewModel @JvmOverloads constructor(
+class CustomWeekViewModel internal constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
-    container: AppDependencies = application.appContainer(),
+    container: AppDependencies,
+    forms: StagedPickerForms?,
+    contexts: PickerContextDrafts?,
+    customDrafts: CustomExerciseDrafts?,
 ) : AppViewModel(application, container) {
+    @JvmOverloads constructor(application: Application, savedStateHandle: SavedStateHandle,
+        container: AppDependencies = application.appContainer()) : this(application, savedStateHandle, container,
+        (container as? AppContainer)?.stagedPickerForms, (container as? AppContainer)?.pickerContextDrafts,
+        (container as? AppContainer)?.customExerciseDrafts)
     private val savedDraft = SavedStateCustomWeekDraft(savedStateHandle)
     private val selectedDay = MutableStateFlow(
         savedDraft.selectedDay() ?: SchedulePreferences.DEFAULT_WEEK_START,
@@ -108,6 +125,38 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private var pendingWeightUnit: WeightUnit? = null
     private var userPickedDay = savedDraft.userPickedDay()
     private val trainingGoal = MutableStateFlow(TrainingGoal.GENERAL)
+    private var formIdentity = savedStateHandle.get<String>("week.private.identity") ?: UUID.randomUUID().toString()
+    internal val formRecovery = forms?.let { service ->
+        StagedFormRecovery(scope = viewModelScope, drafts = service,
+            owner = { DraftOwner(DraftForm.ONBOARDING, "custom-week") }, codec = WeekFormCodec,
+            snapshot = ::privateFields, restore = { fields ->
+                formIdentity = fields.identity; selectedDay.value = fields.selectedDay; days.value = fields.days
+                userPickedDay = fields.userPickedDay; guidedAnswers = fields.answers
+                pendingWeightUnit = fields.weightUnit; preferredDays.value = fields.preferredDays
+                savedStateHandle["week.private.identity"] = formIdentity
+                persistSavedDraft()
+            }, available = { !container.backupService.restoreInProgress() })
+    }
+    private fun pickerOwner() = DraftOwner(DraftForm.ONBOARDING, "custom-week:$formIdentity:${selectedDay.value.name}")
+    internal val pickerRecovery = if (contexts != null && customDrafts != null && formRecovery != null) {
+        OwnedPickerRecovery(scope = viewModelScope, contextDrafts = contexts, customDrafts = customDrafts,
+            repository = container.exerciseRepository, savedState = savedStateHandle, owner = {
+                formRecovery.opening.join(); check(formRecovery.status.value.ready); pickerOwner()
+            }, stillOwned = ::pickerOwned, ownedAtCommit = ::pickerOwned,
+            selectionBlocked = { pickerWrites.canRetry },
+            selectionBusy = { pickerWrites.busy }, retryLabel = { "Retry closing" },
+            onQuery = { searchQuery.value = it }, selectCreated = { exercise ->
+                if (!pickerOwned(pickerOwner())) false else {
+                    addPicked(exercise, selectedDay.value); formRecovery.flush()
+                }
+            })
+    } else null
+
+    private suspend fun pickerOwned(owner: DraftOwner): Boolean = owner == pickerOwner() &&
+        !applying.value && !_finished.value && formRecovery?.isCurrent() == true
+    private fun privateFields() = WeekFormFields(identity = formIdentity, selectedDay = selectedDay.value,
+        days = days.value, userPickedDay = userPickedDay, answers = guidedAnswers,
+        weightUnit = pendingWeightUnit, preferredDays = preferredDays.value)
 
     private val resultsFlow = combine(
         searchQuery.flatMapLatest { query ->
@@ -193,7 +242,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun selectDay(day: Weekday) {
-        if (applying.value || pickerWrites.busy) return
+        if (applying.value || pickerWrites.busy || showPicker.value || formRecovery?.status?.value?.ready == false) return
         userPickedDay = true
         selectedDay.value = day
         persistDraft()
@@ -204,6 +253,11 @@ class CustomWeekViewModel @JvmOverloads constructor(
         answers: OnboardingAnswers?,
         unit: WeightUnit?,
     ) {
+        if (formRecovery?.status?.value?.loading == true) {
+            viewModelScope.launch { formRecovery.opening.join(); if (!formRecovery.status.value.resumed) seedFromGuided(preferred, answers, unit) }
+            return
+        }
+        if (formRecovery?.status?.value?.resumed == true) return
         guidedAnswers = answers
         pendingWeightUnit = unit
         preferredDays.value = preferred
@@ -213,17 +267,31 @@ class CustomWeekViewModel @JvmOverloads constructor(
         }
     }
 
-    fun canLeave(): Boolean = !applying.value && !pickerWrites.busy
+    fun canLeave(): Boolean = !applying.value && !pickerWrites.busy && formRecovery?.status?.value?.loading != true && formRecovery?.status?.value?.keeping != true && pickerRecovery?.create?.status?.value?.busy != true
+    fun keepAndLeave(onKept: () -> Unit) { if (!canLeave()) return; formRecovery?.leave(onKept) ?: onKept() }
+    fun discardAndLeave(onCleared: () -> Unit) {
+        if (!canLeave()) return
+        viewModelScope.launch { if (formRecovery?.discard() != false) onCleared() }
+    }
 
     fun canDismissPicker(): Boolean = !pickerWrites.busy
 
     fun setPickerVisible(visible: Boolean) {
-        if (visible && applying.value) return
+        if (visible && (applying.value || formRecovery?.status?.value?.ready == false)) return
         if (!visible && pickerWrites.busy) return
+        val recovery = formRecovery
+        if (!visible && recovery != null) {
+            val ticket = pickerWrites.begin("keeping-week-picker")
+            viewModelScope.launch {
+                if (recovery.flush()) { showPicker.value = false; pickerWrites.succeed(ticket) }
+                else pickerWrites.fail(ticket, "Week draft was not kept. Retry before closing the picker.") { setPickerVisible(false) }
+            }
+            return
+        }
         showPicker.value = visible
         // Only the typed query. The lifts are on the day already — losing a cart to a tap
         // outside the sheet is exactly what this screen no longer does.
-        if (!visible) searchQuery.value = ""
+        if (!visible && pickerRecovery == null) searchQuery.value = ""
     }
 
     fun onSearchQuery(value: String) {
@@ -238,7 +306,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
      * the day will be lifted in.
      */
     fun togglePicked(exercise: Exercise) {
-        if (applying.value || pickerWrites.busy) return
+        if (applying.value || pickerWrites.busy || formRecovery?.status?.value?.ready == false) return
         val day = selectedDay.value
         val existing = days.value[day].orEmpty()
         val stored = existing.firstOrNull { it.exercise.id == exercise.id }
@@ -262,7 +330,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     fun dismissPickerError() { pickerWrites.dismissError(); error.clearFrom(ERR_ADD_LIFT) }
 
     fun selectPickerExercise(exercise: Exercise) {
-        if (applying.value || pickerWrites.busy) return
+        if (applying.value || pickerWrites.busy || formRecovery?.status?.value?.ready == false) return
         addPicked(exercise, selectedDay.value)
         pickerWrites.dismissError()
     }
@@ -318,14 +386,14 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun moveLift(itemId: String, direction: Int) {
-        if (applying.value || pickerWrites.busy) return
+        if (applying.value || pickerWrites.busy || formRecovery?.status?.value?.ready == false) return
         val day = selectedDay.value
         days.value = days.value + (day to CustomWeekPolicy.move(days.value[day].orEmpty(), itemId, direction))
         persistDraft()
     }
 
     fun removeLift(itemId: String) {
-        if (applying.value || pickerWrites.busy) return
+        if (applying.value || pickerWrites.busy || formRecovery?.status?.value?.ready == false) return
         forgetTargetRule(itemId)
         val day = selectedDay.value
         days.value = days.value + (day to days.value[day].orEmpty().filterNot { it.id == itemId })
@@ -352,7 +420,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         seconds: Int? = null,
         secondsMax: Int? = null,
     ) {
-        if (applying.value || pickerWrites.busy) return
+        if (applying.value || pickerWrites.busy || formRecovery?.status?.value?.ready == false) return
         if (invalidReason == null) {
             invalidTargets.remove(itemId)
             moveTargetRuleBanner()
@@ -380,6 +448,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     fun confirm() {
         val started = error.mark()
         if (applying.value || pickerWrites.busy || !CustomWeekPolicy.canConfirm(days.value)) return
+        if (formRecovery?.status?.value?.ready == false || pickerRecovery?.create?.status?.value?.busy == true) return
         // A card still showing a value the week cannot hold is unfinished work, not a value to
         // walk past: applying would write the number underneath it instead. Say the rule and stay.
         invalidTargets.values.firstOrNull()?.let { rule ->
@@ -390,6 +459,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         showPicker.value = false
         val snapshot = days.value
         viewModelScope.launch {
+            if (formRecovery?.beginSubmission() == false) { applying.value = false; return@launch }
             val result = container.onboardingApplier.applyCustom(
                 days = snapshot,
                 weekStart = weekStart.value,
@@ -414,6 +484,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
                     // this success answers the rule an earlier Confirm raised as well. Anything
                     // staged since the tap is newer information and survives the mark.
                     error.clearFrom(source = ERR_TARGETS, before = started)
+                    formRecovery?.accepted()
                     _finished.value = true
                 }
                 is ApplyPlanResult.Failed ->
@@ -460,6 +531,10 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     private fun persistDraft() {
+        persistSavedDraft()
+        formRecovery?.changed()
+    }
+    private fun persistSavedDraft() {
         savedDraft.write(
             selected = selectedDay.value,
             days = days.value,

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
@@ -40,6 +41,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.sinura.personaltrainer.data.draft.ActivityFormCodec
+import com.sinura.personaltrainer.data.draft.ActivityFormFields
+import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
+import com.sinura.personaltrainer.data.draft.DraftForm
+import com.sinura.personaltrainer.data.draft.DraftOwner
+import com.sinura.personaltrainer.data.draft.PickerContextDrafts
+import com.sinura.personaltrainer.data.draft.StagedCardio
+import com.sinura.personaltrainer.data.draft.StagedPickerForms
+import com.sinura.personaltrainer.data.draft.StagedStrength
+import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
+import com.sinura.personaltrainer.ui.components.StagedFormRecovery
+import java.util.UUID
+import com.sinura.personaltrainer.domain.WeightUnit
 
 /**
  * [ErrorSlot] families: a success may clear only its own family's refusal.
@@ -96,13 +110,23 @@ data class ActivityComposerUiState(
         )
 }
 
-class ActivityComposerViewModel @JvmOverloads constructor(
+internal data class StrengthAdderFields(val pickedId: String = "", val weight: String = "0", val reps: String = "8", val unit: WeightUnit? = null)
+
+class ActivityComposerViewModel internal constructor(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
-    container: AppDependencies = application.appContainer(),
-    private val ids: IdFactory = IdFactory.Uuid,
-    private val clock: com.sinura.personaltrainer.domain.TimePort = JvmTime,
+    container: AppDependencies,
+    private val ids: IdFactory,
+    private val clock: com.sinura.personaltrainer.domain.TimePort,
+    forms: StagedPickerForms?,
+    contexts: PickerContextDrafts?,
+    customDrafts: CustomExerciseDrafts?,
 ) : AppViewModel(application, container) {
+    @JvmOverloads constructor(application: Application, savedStateHandle: SavedStateHandle,
+        container: AppDependencies = application.appContainer(), ids: IdFactory = IdFactory.Uuid,
+        clock: com.sinura.personaltrainer.domain.TimePort = JvmTime) : this(application, savedStateHandle,
+        container, ids, clock, (container as? AppContainer)?.stagedPickerForms,
+        (container as? AppContainer)?.pickerContextDrafts, (container as? AppContainer)?.customExerciseDrafts)
     private val mode = MutableStateFlow(parseMode(savedStateHandle.get<String>("mode")))
 
     /**
@@ -183,6 +207,15 @@ class ActivityComposerViewModel @JvmOverloads constructor(
      * activity with no plan link after the store had already been cleared.
      */
     private val armTransfer: Job
+    private var formIdentity = savedStateHandle.get<String>("composer.private.identity") ?: UUID.randomUUID().toString()
+    private val adder = MutableStateFlow(StrengthAdderFields())
+    internal val adderFields: StateFlow<StrengthAdderFields> = adder
+    private val pickerOpen = MutableStateFlow(false)
+    internal val showPicker: StateFlow<Boolean> = pickerOpen
+    private val pickerQuery = MutableStateFlow("")
+    internal val query: StateFlow<String> = pickerQuery
+    internal val formRecovery: StagedFormRecovery<ActivityFormFields>?
+    internal val pickerRecovery: OwnedPickerRecovery?
 
     init {
         viewModelScope.launch {
@@ -193,9 +226,72 @@ class ActivityComposerViewModel @JvmOverloads constructor(
                 heldOccurrenceId = PendingOccurrence.takeForComposer(container)
             }
         }
+        formRecovery = forms?.let { service ->
+            StagedFormRecovery(scope = viewModelScope, drafts = service,
+                owner = {
+                    armTransfer.join()
+                    val occurrence = heldOccurrenceId
+                    val key = mode.value.name + ":" + if (occurrence == null) "N" else "S${occurrence.length}:$occurrence"
+                    DraftOwner(DraftForm.ACTIVITY, "composer:" + java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(key.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) })
+                }, codec = ActivityFormCodec, snapshot = ::privateFields, restore = { fields ->
+                    check(fields.mode == mode.value.name && fields.occurrenceId == heldOccurrenceId)
+                    formIdentity = fields.identity; title.value = fields.title; epochDay.value = fields.epochDay
+                    strength.value = fields.strength.map { ComposerStrengthLine(it.exercise, it.weightKg, it.reps) }
+                    cardio.value = fields.cardio.map { ComposerCardioLine(it.type, it.minutes, it.distanceKm, it.indoor) }
+                    adder.value = StrengthAdderFields(fields.pickedId, fields.weightText, fields.repsText, fields.weightUnit)
+                    savedStateHandle["composer.private.identity"] = formIdentity
+                    rememberSavedDraft()
+                }, available = { !container.backupService.restoreInProgress() })
+        }
+        pickerRecovery = if (contexts != null && customDrafts != null && formRecovery != null) {
+            OwnedPickerRecovery(scope = viewModelScope, contextDrafts = contexts, customDrafts = customDrafts,
+                repository = container.exerciseRepository, savedState = savedStateHandle,
+                owner = { formRecovery.opening.join(); check(formRecovery.status.value.ready); pickerOwner() },
+                stillOwned = ::pickerOwned, ownedAtCommit = ::pickerOwned, onQuery = { pickerQuery.value = it },
+                selectCreated = { exercise -> selectOwnedExercise(exercise) },
+                onSelected = { pickerOpen.value = false })
+        } else null
+    }
+
+    private fun pickerOwner() = DraftOwner(DraftForm.ACTIVITY, "composer:$formIdentity")
+    private suspend fun pickerOwned(owner: DraftOwner): Boolean = owner == pickerOwner() &&
+        !saving.value && _savedId.value == null && formRecovery?.isCurrent() == true
+    private fun privateFields() = ActivityFormFields(identity = formIdentity, mode = mode.value.name,
+        occurrenceId = heldOccurrenceId, title = title.value, epochDay = epochDay.value,
+        strength = strength.value.map { StagedStrength(it.exercise, it.weightKg, it.reps) },
+        cardio = cardio.value.map { StagedCardio(it.type, it.minutes, it.distanceKm, it.indoor) },
+        pickedId = adder.value.pickedId, weightText = adder.value.weight, repsText = adder.value.reps,
+        weightUnit = adder.value.unit)
+    fun keepAndLeave(onKept: () -> Unit) { if (!canLeave()) return; formRecovery?.leave(onKept) ?: onKept() }
+    fun discardAndLeave(onCleared: () -> Unit) {
+        if (!canLeave()) return
+        viewModelScope.launch { if (formRecovery?.discard() != false) { draft.clear(); onCleared() } }
+    }
+    internal fun changeAdder(fields: StrengthAdderFields) {
+        if (!canEditDraft()) return
+        adder.value = fields; formRecovery?.changed()
+    }
+    fun setPickerVisible(visible: Boolean) {
+        if (visible && (saving.value || formRecovery?.status?.value?.ready == false)) return
+        if (!visible && pickerWrites.busy) return
+        pickerOpen.value = visible
+    }
+    private suspend fun selectOwnedExercise(exercise: Exercise): Boolean {
+        if (!pickerOwned(pickerOwner())) return false
+        catalog.value = com.sinura.personaltrainer.domain.LiftCart.mergeSources(catalog.value, listOf(exercise))
+        adder.value = adder.value.copy(pickedId = exercise.id)
+        return formRecovery?.flush() == true
+    }
+    fun selectPickerExercise(exercise: Exercise) {
+        if (formRecovery == null) return
+        viewModelScope.launch {
+            if (selectOwnedExercise(exercise)) pickerRecovery?.view?.leave { pickerOpen.value = false }
+        }
     }
 
     fun setTitle(value: String) {
+        if (!canEditDraft()) return
         title.value = value
         error.dismiss()
         rememberDraft()
@@ -211,6 +307,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     }
 
     fun setEpochDay(value: Long) {
+        if (!canEditDraft()) return
         val today = clock.captureNow().localEpochDay
         epochDay.value = value.coerceAtMost(today)
         error.dismiss()
@@ -222,6 +319,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     }
 
     fun addStrength(exercise: Exercise, weightKg: Double, reps: Int) {
+        if (!canEditDraft()) return
         if (reps <= 0) {
             error.fail(source = ERR_DRAFT, message = "Reps must be at least 1.")
             return
@@ -232,11 +330,13 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     }
 
     fun removeStrength(index: Int) {
+        if (!canEditDraft()) return
         strength.value = strength.value.filterIndexed { i, _ -> i != index }
         rememberDraft()
     }
 
     fun addCardio(type: CardioType, minutes: Int, distanceKm: Double?, indoor: Boolean) {
+        if (!canEditDraft()) return
         if (minutes <= 0) {
             error.fail(source = ERR_DRAFT, message = "Duration must be at least one minute.")
             return
@@ -247,6 +347,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     }
 
     fun removeCardio(index: Int) {
+        if (!canEditDraft()) return
         cardio.value = cardio.value.filterIndexed { i, _ -> i != index }
         rememberDraft()
     }
@@ -273,9 +374,16 @@ class ActivityComposerViewModel @JvmOverloads constructor(
      * catches up a frame later, and a Back in that frame must not pop the entry — and with it
      * the coroutine the write is riding on.
      */
-    fun canLeave(): Boolean = !saving.value && !pickerWrites.busy && _createdExercise.value == null
+    fun canLeave(): Boolean = !saving.value && !pickerWrites.busy && _createdExercise.value == null &&
+        formRecovery?.status?.value?.loading != true && formRecovery?.status?.value?.keeping != true &&
+        pickerRecovery?.create?.status?.value?.busy != true
 
     private fun rememberDraft() {
+        rememberSavedDraft()
+        formRecovery?.changed()
+    }
+    private fun canEditDraft(): Boolean = !saving.value && formRecovery?.status?.value?.loading != true && formRecovery?.status?.value?.pending != true
+    private fun rememberSavedDraft() {
         draft.write(
             title = title.value,
             epochDay = epochDay.value,
@@ -287,8 +395,10 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     fun save() {
         val started = error.mark()
         if (saving.value || pickerWrites.busy || _createdExercise.value != null) return
+        if (formRecovery?.status?.value?.ready == false || pickerRecovery?.create?.status?.value?.busy == true) return
         saving.value = true
         viewModelScope.launch {
+            if (formRecovery?.beginSubmission() == false) { saving.value = false; return@launch }
             val write = runCatchingCancellable { confirmDraft() }
             saving.value = false
             write.onSuccess { result ->
@@ -297,6 +407,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
                         // Only an accepted write spends the draft, like the plan link: a
                         // rejected or thrown save keeps everything typed for the retry.
                         draft.clear()
+                        formRecovery?.accepted()
                         error.clearFrom(source = ERR_SAVE, before = started)
                         _savedId.value = result.id
                     }
