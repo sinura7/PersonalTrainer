@@ -2,6 +2,8 @@
 
 P10 Library-context core is integrated through [PR #503](https://github.com/sinura7/PersonalTrainer/pull/503) at `ddc4a49c`. Fresh core-full23 passed app4,612/standalone1,715,623 fresh XML, statics/lint/R8/both APKs; both final reviews have zero C/H/M. Seven exact-candidate native tasks and one fresh exact-merge AppNav journey passed. Integration reused only verified identical1,661 execution inputs and APKs;0 new integration JVM/standalone tests. Original failures and recoverable archives are retained in the [existing P10 study](studies/q01/p10-library-context-2026-10-14.json). P10 remains open for required **P10R shared-picker recovery**, now on `codex/picker-recovery`;41/96 required criteria have bounded automated evidence. Latest signed delivery remains Debug125; Drop A follows full P10, P19/P20 remain open.
 
+P10R now has scoped Create children, transaction-bound owner checks, durable view/Create controllers, routine/workout-add wiring and confirmed private Reset. Fresh targeted discard-recovery22 passed51 checks with no failures/errors/skips, including native JVM small/landscape font2 reopen/Retry and delayed/removed-anchor recovery. One actual routine AppNav picker journey passed on transaction-recovery12 APKs. These are partial evidence: other picker callers, the final native states/full gate/reviews/integration and signed Drop A remain outstanding. Historical failed/aborted attempts and bounded review reports remain in the same P10 study; no required-criterion count has advanced.
+
 
 **Created:** 8 October 2026
 

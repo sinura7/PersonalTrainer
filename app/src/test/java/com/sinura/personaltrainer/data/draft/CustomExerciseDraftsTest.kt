@@ -67,6 +67,54 @@ class CustomExerciseDraftsTest {
         assertEquals(DraftRecoveryOutcome.EXACT_SAVED, first.inspect(handle))
     }
 
+    @Test fun unreadablePickerChildCanBeExplicitlyDiscardedWithoutClearingOtherOwnersOrSavedRecords() = runBlocking {
+        val first = service()
+        val owner = DraftOwner(DraftForm.ROUTINE, "synthetic-reset-owner")
+        val own = first.openForPicker(owner, "Back")
+        first.checkpoint(own, fields(own))
+        val other = first.openForPicker(DraftOwner(DraftForm.WORKOUT, "synthetic-other-owner"), "Chest")
+        first.checkpoint(other, fields(other).copy(name = "Other kept lift"))
+        val library = first.open(null, "Back")
+        first.checkpoint(library, fields(library).copy(name = "Library draft"))
+        val saved = (deps.exerciseRepository.createCustom("Existing saved lift", "Chest") as SaveExerciseResult.Saved).exercise
+        val child = root.listFiles()!!.single { file ->
+            file.name.endsWith(".json") && file.readText().contains(own.authored.createId)
+        }
+        child.writeText("{ broken checkpoint")
+        assertThrows(IllegalStateException::class.java) { runBlocking { first.openForPicker(owner, "Back") } }
+        first.discardForPicker(owner)
+        val fresh = first.openForPicker(owner, "Back")
+        assertNotEquals(own.authored.createId, fresh.authored.createId)
+        assertEquals("", fresh.authored.name)
+        assertEquals(other.authored, first.openForPicker(DraftOwner(DraftForm.WORKOUT, "synthetic-other-owner"), "Chest").authored)
+        assertEquals(library.authored, first.open(null, "Back").authored)
+        assertEquals(saved, deps.exerciseRepository.getById(saved.id))
+        assertEquals(1, deps.database.exerciseDao().getAllCustom().size)
+    }
+
+    @Test fun pickerOwnerReadSharesTheBusinessTransactionAndMissingRoutineRefusesTheInsert() = runBlocking {
+        val routine = deps.routineRepository.create("Synthetic owning routine")
+        val owner = DraftOwner(DraftForm.ROUTINE, routine.id)
+        val first = service()
+        val handle = first.openForPicker(owner, "Back")
+        first.admit(handle, fields(handle))
+        val checkOwner: suspend () -> Boolean = {
+            assertTrue("Ownership must be read inside the custom write transaction", deps.database.inTransaction())
+            deps.routineRepository.getById(routine.id) != null
+        }
+        val permit: () -> Boolean = { true }
+        assertTrue(first.executeForPicker(handle = handle, ownerChecked = checkOwner, canCommit = permit) is SaveExerciseResult.Saved)
+        val once = deps.database.exerciseDao().getAllCustom()
+        assertEquals(1, once.size)
+        val other = first.openForPicker(DraftOwner(DraftForm.ROUTINE, "synthetic-missing-owner"), "Chest")
+        first.admit(other, fields(other).copy(name = "Must not be inserted"))
+        deps.routineRepository.delete(routine.id)
+        assertThrows(IllegalStateException::class.java) { runBlocking {
+            first.executeForPicker(handle = other, ownerChecked = checkOwner, canCommit = permit)
+        } }
+        assertEquals(once, deps.database.exerciseDao().getAllCustom())
+    }
+
     @Test fun rawFieldsAndCreateIdentitySurviveReopeningWithoutBusinessWrites() = runBlocking {
         val first = service()
         val handle = first.open(null, "")
@@ -110,6 +158,37 @@ class CustomExerciseDraftsTest {
         assertEquals("Back", activity.authored.muscle)
         assertEquals("Shoulders", week.authored.muscle)
         assertTrue(deps.database.exerciseDao().getAllCustom().isEmpty())
+    }
+
+    @Test fun validForeignPickerPointerCannotAdoptLibraryOrAnotherOwnersFields() = runBlocking {
+        val first = service()
+        val owner = DraftOwner(DraftForm.ROUTINE, "synthetic-owner")
+        val own = first.openForPicker(owner, "Chest")
+        first.checkpoint(own, fields(own).copy(name = "  Own unfinished lift  "))
+        val library = first.open(null, "Back")
+        first.checkpoint(library, fields(library))
+        val other = first.openForPicker(DraftOwner(DraftForm.WORKOUT, "synthetic-other"), "Back")
+        first.checkpoint(other, fields(other).copy(name = "  Other owner's lift  "))
+        val scope = own.checkpoint.version.owner.identity.removePrefix("picker:").substringBefore(":")
+        val pointer = root.listFiles()!!.single {
+            it.name.endsWith(".json") && JsonParser.parseString(it.readText()).asJsonObject
+                .get("owner")?.asString == "picker-index:$scope"
+        }
+        val originalPointer = pointer.readBytes()
+        val originalChildren = root.listFiles()!!.filter { it.name.endsWith(".json") && it != pointer }
+            .associateWith { it.readBytes() }
+        for (foreign in listOf(library, other)) {
+            val json = JsonParser.parseString(originalPointer.toString(Charsets.UTF_8)).asJsonObject
+            json.addProperty("draft", foreign.authored.createId.removePrefix("ex-custom-"))
+            pointer.writeText(json.toString())
+            val damaged = pointer.readBytes()
+            assertThrows(IllegalStateException::class.java) { runBlocking { service().openForPicker(owner, "Chest") } }
+            assertTrue(damaged.contentEquals(pointer.readBytes()))
+            originalChildren.forEach { (file, bytes) -> assertTrue(bytes.contentEquals(file.readBytes())) }
+            assertTrue(deps.database.exerciseDao().getAllCustom().isEmpty())
+        }
+        pointer.writeBytes(originalPointer)
+        assertEquals(own.authored, service().openForPicker(owner, "Back").authored)
     }
 
     @Test fun acceptedPickerCreateSettlesOnceAndClearsOnlyItsOwningDraft() = runBlocking {

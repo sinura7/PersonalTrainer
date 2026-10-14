@@ -1,5 +1,10 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.AppContainer
+import com.sinura.personaltrainer.data.draft.DraftOwner
+import com.sinura.personaltrainer.data.draft.DraftForm
+import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
+
 import android.app.Application
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.SavedStateHandle
@@ -342,6 +347,29 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * lift" surface; what happens to the choice is this class's business.
      */
     private val swapTargetItemId = MutableStateFlow<String?>(null)
+    private fun pickerOwner() = DraftOwner(
+        DraftForm.WORKOUT,
+        "session:$sessionId:${swapTargetItemId.value?.let { "swap:$it" } ?: "add"}",
+    )
+    internal val pickerRecovery = (container as? AppContainer)?.let { app ->
+        OwnedPickerRecovery(
+            scope = viewModelScope, contextDrafts = app.pickerContextDrafts, customDrafts = app.customExerciseDrafts,
+            repository = container.exerciseRepository, savedState = savedStateHandle,
+            owner = { pickerOwner().also { check(sessionId.isNotBlank()) } },
+            stillOwned = { owner -> container.dbMaintenance.withMaintenanceLock { pickerStillOwnedLocked(owner) } },
+            ownedAtCommit = ::pickerStillOwnedLocked,
+            onQuery = { searchQuery.value = it },
+            selectCreated = { exercise -> selectOwnedPickerLift(exercise) },
+            onSelected = { setPickerVisible(false) },
+        )
+    }
+
+    private suspend fun pickerStillOwnedLocked(owner: DraftOwner): Boolean {
+        if (container.backupService.restoreInProgress() || owner != pickerOwner() || durability?.ownsEntry(sessionId) == false) return false
+        return container.workoutRepository.getSession(sessionId)?.let { current ->
+            !current.isFinished && (swapTargetItemId.value == null || current.exercises.any { it.id == swapTargetItemId.value })
+        } == true
+    }
 
     /**
      * The session's notes, the one-time fill from the row and the two writes, at a typing pause and
@@ -1418,7 +1446,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         if (!visible && pickerWrites.busy) return
         if (!visible) swapTargetItemId.value = null
         showPicker.value = visible
-        if (!visible) searchQuery.value = ""
+        if (!visible && pickerRecovery == null) searchQuery.value = ""
     }
 
     fun onSearchQuery(value: String) {
@@ -1560,7 +1588,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         selectExercise(next)
     }
 
-    private suspend fun addExerciseInternal(exercise: Exercise, swapTarget: String?) {
+    private suspend fun addExerciseInternal(exercise: Exercise, swapTarget: String?, closePicker: Boolean = true) {
         val started = error.mark()
         check(sessionId.isNotBlank()) { "This workout is no longer available." }
         val replaced = swapTarget?.let { target -> container.workoutRepository.getSession(sessionId)?.exercises?.firstOrNull { it.id == target }?.exercise?.id }
@@ -1587,9 +1615,25 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             clocks.forgetStopwatch(replaced)
             persistDraft()
         }
-        showPicker.value = false
-        searchQuery.value = ""
+        if (closePicker) showPicker.value = false
+        if (pickerRecovery == null) searchQuery.value = ""
         error.clearFrom(source = ERR_ADD_LIFT, before = started)
+    }
+
+    private suspend fun selectOwnedPickerLift(exercise: Exercise): Boolean {
+        if (!canChangeEntry()) return false
+        val target = swapTargetItemId.value
+        val permit = durability?.mutationPermit(sessionId)
+        mutating.value = true
+        return try {
+            if (permit == null) addExerciseInternal(exercise = exercise, swapTarget = target, closePicker = false)
+            else kotlinx.coroutines.withContext(permit) {
+                addExerciseInternal(exercise = exercise, swapTarget = target, closePicker = false)
+            }
+            container.workoutRepository.getSession(sessionId)?.exercises?.any {
+                it.exercise.id == exercise.id && (target == null || it.id == target)
+            } == true
+        } finally { mutating.value = false }
     }
 
     /**

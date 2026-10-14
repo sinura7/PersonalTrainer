@@ -244,7 +244,16 @@ class ExerciseRepository(
     }
 
     /** Caller holds the maintenance lock and has checked durable command/version/generation admission. */
-    internal suspend fun commitCustomDraft(command: CustomLiftCommand, canCommit: () -> Boolean): SaveExerciseResult? = writeExercise {
+    internal suspend fun commitCustomDraft(command: CustomLiftCommand, canCommit: () -> Boolean): SaveExerciseResult? =
+        commitCustomChecked(command = command, canCommit = canCommit, ownerChecked = { true })
+
+    /** Owning routine/session reads share this transaction with the custom mutation. */
+    internal suspend fun commitCustomPickerDraft(command: CustomLiftCommand, canCommit: () -> Boolean,
+        ownerChecked: suspend () -> Boolean): SaveExerciseResult? = commitCustomChecked(command, canCommit, ownerChecked)
+
+    private suspend fun commitCustomChecked(command: CustomLiftCommand, canCommit: () -> Boolean,
+        ownerChecked: suspend () -> Boolean): SaveExerciseResult? = writeExercise {
+        check(ownerChecked()) { "Picker owner is missing or changed" }
         val intended = command.intended
         val actual = customDraftRecord(intended.row.id)
         if (actual == intended) return@writeExercise SaveExerciseResult.Saved(intended.row.toDomain(intended.credits.toCredits()))

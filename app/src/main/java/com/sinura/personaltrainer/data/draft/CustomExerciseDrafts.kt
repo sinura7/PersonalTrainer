@@ -36,7 +36,7 @@ internal class CustomExerciseDrafts(
 ) {
     private val index = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, "index:new-lift"), CustomLiftIndexCodec)
 
-    suspend fun open(editId: String?, muscle: String): CustomLiftHandle = openOwned(editId, muscle, index)
+    suspend fun open(editId: String?, muscle: String): CustomLiftHandle = openOwned(editId, muscle, index, null)
 
     /** Picker drafts share admission/reconciliation, but never the Library's new-lift pointer. */
     suspend fun openForPicker(owner: DraftOwner, muscle: String): CustomLiftHandle {
@@ -45,18 +45,48 @@ internal class CustomExerciseDrafts(
             .digest((owner.form.name + "\u0000" + owner.identity).toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
         val scopedIndex = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, "picker-index:$scope"), CustomLiftIndexCodec)
-        return openOwned(null, muscle, scopedIndex)
+        return openOwned(null, muscle, scopedIndex, scope)
+    }
+
+    /** Explicit private discard also works when a scoped child cannot be decoded. No Library row is removed. */
+    suspend fun discardForPicker(owner: DraftOwner) = withContext(dispatcher) {
+        require(owner.form in setOf(DraftForm.ROUTINE, DraftForm.WORKOUT, DraftForm.ACTIVITY, DraftForm.ONBOARDING))
+        maintenance.withMaintenanceLock {
+            check(!restoreOpen())
+            val scope = MessageDigest.getInstance("SHA-256")
+                .digest((owner.form.name + "\u0000" + owner.identity).toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
+            val scopedIndex = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, "picker-index:$scope"), CustomLiftIndexCodec)
+            val pointer = scopedIndex.read()
+            if (pointer is DraftRead.PresentCheckpoint) pointer.checkpoint.draft?.let { id ->
+                discardPrivate(store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, createOwner(id, scope)), CustomLiftCodec))
+            }
+            discardPrivate(scopedIndex)
+        }
+    }
+
+    private suspend fun <D, C> discardPrivate(binding: DraftBinding<D, C>) {
+        val before = binding.read()
+        val changed = if (before is DraftRead.PresentCheckpoint)
+            binding.discard(before.checkpoint.version, before.checkpoint.currentGeneration)
+        else binding.discardUnreadableIfStillUnreadable()
+        if (changed !is DraftChange.Written) {
+            val inspected = available(binding.read())
+            check(inspected.draft == null && inspected.pending == null &&
+                (before !is DraftRead.PresentCheckpoint || inspected.version != before.checkpoint.version))
+        }
     }
 
     private suspend fun openOwned(editId: String?, muscle: String,
-        draftIndex: DraftBinding<String, String>): CustomLiftHandle = withContext(dispatcher) {
+        draftIndex: DraftBinding<String, String>, pickerScope: String?): CustomLiftHandle = withContext(dispatcher) {
         maintenance.withMaintenanceLock {
             check(!restoreOpen())
-            val identity = editId ?: newIdentity(draftIndex)
-            val key = if (editId == null) "create:$identity" else editOwner(identity)
+            val reservation = if (editId == null) newIdentity(draftIndex, pickerScope, muscle) else null
+            val identity = editId ?: checkNotNull(reservation).first
+            val key = if (editId == null) createOwner(identity, pickerScope) else editOwner(identity)
             val binding = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, key), CustomLiftCodec)
             var current = load(binding)
-            val resumed = current.draft != null
+            val resumed = current.draft != null && reservation?.second != true
             if (current.draft == null) {
                 if (current.needsReconciliation) current = written(binding.reconcileOwner(current.version, current.currentGeneration))
                 val before = editId?.let { repository.customDraftRecord(it) }
@@ -80,16 +110,27 @@ internal class CustomExerciseDrafts(
         }
     }
 
-    private suspend fun newIdentity(draftIndex: DraftBinding<String, String>): String {
+    private suspend fun newIdentity(draftIndex: DraftBinding<String, String>, pickerScope: String?, muscle: String): Pair<String, Boolean> {
         var pointer = available(draftIndex.read())
         if (pointer.needsReconciliation) pointer = written(draftIndex.reconcileOwner(pointer.version, pointer.currentGeneration))
         pointer.draft?.let { id ->
-            val prior = load(store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, "create:$id"), CustomLiftCodec))
-            if (prior.draft != null) return id
+            val prior = load(store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, createOwner(id, pickerScope)), CustomLiftCodec))
+            if (prior.draft != null) return id to false
+            check(pickerScope == null || prior.version.revision > 0L) { "Picker Create owner needs checking" }
         }
         val id = UUID.randomUUID().toString()
+        // Publish the pointer only after its scoped child exists. A foreign/missing child
+        // cannot be reconstructed from a UUID that carries no ownership evidence.
+        if (pickerScope != null) {
+            val child = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, createOwner(id, pickerScope)), CustomLiftCodec)
+            val empty = load(child)
+            written(child.checkpoint(empty.version, CustomLiftDraft(
+                createId = "ex-custom-$id", editId = null, name = "", muscle = muscle,
+                notes = "", loadType = LoadType.EXTERNAL, before = null,
+            )))
+        }
         written(draftIndex.checkpoint(pointer.version, id))
-        return id
+        return id to true
     }
 
     suspend fun checkpoint(handle: CustomLiftHandle, fields: CustomLiftDraft) {
@@ -131,7 +172,15 @@ internal class CustomExerciseDrafts(
     }
 
     /** Re-read admitted identity inside the same coordinator as restore and custom mutations. */
-    suspend fun execute(handle: CustomLiftHandle, canCommit: () -> Boolean = { true }): SaveExerciseResult? = withContext(dispatcher) {
+    suspend fun execute(handle: CustomLiftHandle, canCommit: () -> Boolean = { true }): SaveExerciseResult? =
+        executeChecked(handle = handle, canCommit = canCommit, ownerChecked = { true })
+
+    /** Picker ownership is checked inside the same coordinator as the business write. */
+    suspend fun executeForPicker(handle: CustomLiftHandle, ownerChecked: suspend () -> Boolean,
+        canCommit: () -> Boolean): SaveExerciseResult? = executeChecked(handle, canCommit, ownerChecked)
+
+    private suspend fun executeChecked(handle: CustomLiftHandle, canCommit: () -> Boolean,
+        ownerChecked: suspend () -> Boolean): SaveExerciseResult? = withContext(dispatcher) {
         maintenance.withMaintenanceLock {
             check(!restoreOpen())
             val current = load(handle.binding)
@@ -140,7 +189,7 @@ internal class CustomExerciseDrafts(
             check(pending.phase == DraftCommandPhase.PENDING)
             check(canCommit())
             handle.businessIssued = true
-            repository.commitCustomDraft(pending.value, canCommit)
+            repository.commitCustomPickerDraft(command = pending.value, canCommit = canCommit, ownerChecked = ownerChecked)
         }
     }
 
@@ -234,7 +283,9 @@ internal class CustomExerciseDrafts(
         available(binding.read()).also { current ->
             val fields = current.draft ?: return@also
             val owner = current.version.owner.identity
-            require(if (fields.editId == null) owner == "create:${fields.createId.removePrefix("ex-custom-")}" else owner == editOwner(fields.editId))
+            val suffix = "create:${fields.createId.removePrefix("ex-custom-")}"
+            require(if (fields.editId == null) owner == suffix ||
+                owner.matches(Regex("picker:[0-9a-f]{64}:" + Regex.escape(suffix))) else owner == editOwner(fields.editId))
             require(fields.before == null || fields.before.row.isCustom)
             current.pending?.let { pending ->
                 require(pending.value.before == fields.before)
@@ -243,6 +294,9 @@ internal class CustomExerciseDrafts(
                 require(pending.value == commandFor(fields, intended.row.updatedAtMs))
             }
         }
+
+    private fun createOwner(id: String, pickerScope: String?): String =
+        if (pickerScope == null) "create:$id" else "picker:$pickerScope:create:$id"
 
     private fun editOwner(id: String): String = "edit:" + MessageDigest.getInstance("SHA-256")
         .digest(id.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }

@@ -240,6 +240,11 @@ class LibraryWorkflowInstrumentedTest {
         scrollTo(RoutineEditorTags.ADD_LIFTS)
         tap(RoutineEditorTags.ADD_LIFTS)
         awaitTag("picker-action")
+        compose.waitUntil(30_000) { runCatching {
+            compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")), useUnmergedTree = true)
+                .assertTextContains("Barbell Back Squat")
+        }.isSuccess }
+        capture("picker-resumed-query-and-saved-order")
         tap("picker-action")
         assertEquals(saved, read { container.routineRepository.getById(routine) })
         assertInventory()

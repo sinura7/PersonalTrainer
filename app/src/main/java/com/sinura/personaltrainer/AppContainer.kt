@@ -103,6 +103,9 @@ class AppContainer(context: Context) : AppDependencies {
     internal val libraryBrowseDrafts: com.sinura.personaltrainer.data.draft.LibraryBrowseDrafts by lazy {
         com.sinura.personaltrainer.data.draft.LibraryBrowseDrafts(durableDrafts)
     }
+    internal val pickerContextDrafts: com.sinura.personaltrainer.data.draft.PickerContextDrafts by lazy {
+        com.sinura.personaltrainer.data.draft.PickerContextDrafts(durableDrafts)
+    }
     internal val missedWorkDrafts: MissedWorkDrafts by lazy {
         MissedWorkDrafts(
             store = durableDrafts, maintenance = dbMaintenance,
