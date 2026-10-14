@@ -57,6 +57,10 @@ class ExerciseLibrarySavedStateFactoryTest {
         val firstActivity = checkNotNull(controller).get()
         val first = ViewModelProvider(firstActivity)[ExerciseLibraryViewModel::class.java]
         mount(firstActivity, first)
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(LibraryTags.SEARCH)).fetchSemanticsNodes()
+            !first.uiState.value.isLoading
+        }
         first.onQueryChange("  ROW  ")
         first.onEquipmentSelected(EquipmentType.CABLE)
         compose.waitUntil(10_000) {

@@ -1,0 +1,778 @@
+{
+  "id": "P10",
+  "preparedOn": "2026-10-14",
+  "state": "Library core focused render/native evidence retained; fresh corrected final gate/reviews/native/integration pending. P10 stays open for required P10R shared-picker recovery.",
+  "base": "928cd374e011ed7d108791d346c0c19c19d1e79e",
+  "branch": "codex/library-context",
+  "criteria": [
+    "UX10-AC04",
+    "UX27-AC01",
+    "UX27-AC02",
+    "UX27-AC03"
+  ],
+  "scope": "Library last-used context and full selection/cancel/management workflow. Retain existing flat illustrated names, combined facets, protected required reads and immediate routine multi-add contract. P03 custom draft and P09 routine command recovery remain authoritative.",
+  "observedGaps": [
+    "Library query, facets and expanded groups use SavedStateHandle only; deliberate closure loses last-used context.",
+    "Library LazyColumn has composition/framework state but no durable stable-row anchor after reopening.",
+    "Picker modes and guarded single/multi writes are implemented; exact duplicate/order paths require current integrated task evidence rather than another design."
+  ],
+  "acceptanceTasks": [
+    "Enter combined muscle/equipment/query; open a canonical detail, return to the same result and position.",
+    "Keep last-used raw search/facets/expanded groups/row anchor privately and reopen without submitting or starting activity.",
+    "Flush latest context before orderly Back; failed Keep offers exact Retry and explicit private-only reset without changing catalogue/history.",
+    "Preserve empty-library, no-match and unavailable states; failed required reads never invite duplicate creation.",
+    "Actual single/multiple picker actions, repeated activation, stable order, cancellation and canonical routine handoff use shipping navigation.",
+    "Custom Create/Edit/Cancel remains owner-scoped P03 recovery with exact images/IDs and guarded writes."
+  ],
+  "boundaries": "No Room/public repository API/backup/calculation/signing change, no saved-search product, no owner-phone testing before P20. P19 whole-app matrix/accessibility and P20 physical/user/performance remain separate.",
+  "design": {
+    "concept": "build/ux-context/runs/library-context-preparation/concept.html",
+    "shownBeforeImplementation": true,
+    "preview": "build/ux-context/runs/library-context-preparation/concept-preview.png",
+    "kind": "Connected browser-only concept with canonical artwork; initial full-page capture unsupported, saved actual normal viewport. No native/phone acceptance.",
+    "observedPaths": [
+      "Library → exact detail → same raw query/facets",
+      "Routine multi-add presentation preserves immediate write-through / Done closure",
+      "Unavailable catalogue has Retry and no Create lift action"
+    ]
+  },
+  "latestSignedDebug": {
+    "versionCode": 125,
+    "source": "587e9577ee30f1962fa0a6db1a6acd2aad0b642c",
+    "nextMilestone": "Drop A after P10"
+  },
+  "attempts": [
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected05",
+      "result": "FAIL",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 0,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected05/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected08",
+      "result": "FAIL",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 0,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected08/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected10",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected10/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected11",
+      "result": "FAIL",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 0,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected11/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected12",
+      "result": "FAIL",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 0,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected12/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected13",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected13/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected14-font20",
+      "result": "FAIL",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 0,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected14-font20/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected15-font20",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected15-font20/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected15-landscape",
+      "result": "FAIL",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 0,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected15-landscape/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected16-font20",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected16-font20/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected16-landscape",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected16-landscape/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected17-font20",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected17-font20/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "connected17-landscape",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/connected17-landscape/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "failure-font20-10",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/failure-font20-10/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "failure15-font20",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/failure15-font20/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "failure16-font20",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/failure16-font20/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "failure17-font20",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/failure17-font20/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 45,
+        "failures": 2,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "foundation-target01",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "sourceStable": true,
+      "assemblyOnly": false,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/foundation-target01/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 45,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "foundation-target02",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "sourceStable": true,
+      "assemblyOnly": false,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/foundation-target02/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "handoff17-font16",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/handoff17-font16/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-assembly09",
+      "result": "FAIL native assembly/static scope; original evidence preserved",
+      "sourceStable": true,
+      "assemblyOnly": true,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-assembly09/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-assembly10",
+      "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+      "sourceStable": true,
+      "assemblyOnly": true,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-assembly10/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 50,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-candidate05",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "sourceStable": true,
+      "assemblyOnly": false,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-candidate05/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 53,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-candidate08",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "sourceStable": true,
+      "assemblyOnly": false,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-candidate08/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 53,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-candidate15",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "sourceStable": true,
+      "assemblyOnly": false,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-candidate15/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-test-assembly11",
+      "result": "PASS Android test APK assembly only; no static/JVM/standalone gate requested or counted; full gate remains pending",
+      "sourceStable": true,
+      "assemblyOnly": true,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-test-assembly11/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-test-assembly12",
+      "result": "PASS Android test APK assembly only; no static/JVM/standalone gate requested or counted; full gate remains pending",
+      "sourceStable": true,
+      "assemblyOnly": true,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-test-assembly12/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-test-assembly13",
+      "result": "PASS Android test APK assembly only; no static/JVM/standalone gate requested or counted; full gate remains pending",
+      "sourceStable": true,
+      "assemblyOnly": true,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-test-assembly13/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-test-assembly14",
+      "result": "PASS Android test APK assembly only; no static/JVM/standalone gate requested or counted; full gate remains pending",
+      "sourceStable": true,
+      "assemblyOnly": true,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-test-assembly14/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "native-test-assembly17",
+      "result": "PASS Android test APK assembly only; no static/JVM/standalone gate requested or counted; full gate remains pending",
+      "sourceStable": true,
+      "assemblyOnly": true,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/native-test-assembly17/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "picker10",
+      "result": "FAIL",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 0,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/picker10/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "picker13",
+      "result": "FAIL",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 0,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/picker13/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "picker14",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/picker14/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "picker16-font16",
+      "result": "FAIL",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 0,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/picker16-font16/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "picker17-font16",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/picker17-font16/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "preview-assembly16",
+      "result": "PASS app and Android test APK assembly only; no static/JVM/standalone gate requested or counted; full gate remains pending",
+      "sourceStable": true,
+      "assemblyOnly": true,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/preview-assembly16/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "process-resume14-font16",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/process-resume14-font16/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "process-resume16-font16",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/process-resume16-font16/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "process-resume17-font16",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/process-resume17-font16/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "process-stage14-font16",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/process-stage14-font16/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "process-stage16-font16",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/process-stage16-font16/summary.json"
+    },
+    {
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "counts": null,
+      "name": "process-stage17-font16",
+      "result": "PASS",
+      "sourceStable": true,
+      "assemblyOnly": null,
+      "freshNativeTests": 1,
+      "fullGate": null,
+      "summary": "build/ux-context/runs/library-context/process-stage17-font16/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "recovery-target03",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "sourceStable": true,
+      "assemblyOnly": false,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/recovery-target03/summary.json"
+    },
+    {
+      "scope": null,
+      "counts": {
+        "tests": 50,
+        "failures": 3,
+        "errors": 0,
+        "skipped": 0
+      },
+      "name": "recovery-target04",
+      "result": "FAIL or incomplete; original evidence preserved",
+      "sourceStable": true,
+      "assemblyOnly": false,
+      "freshNativeTests": null,
+      "fullGate": false,
+      "summary": "build/ux-context/runs/library-context/recovery-target04/summary.json"
+    },
+    {
+      "name": "browse-render19",
+      "summary": "build/ux-context/runs/library-context/browse-render19/summary.json",
+      "counts": {
+        "tests": 13,
+        "failures": 13,
+        "errors": 0,
+        "skipped": 0
+      },
+      "result": "FAIL or incomplete; original evidence preserved",
+      "sourceStable": true,
+      "fullGate": false,
+      "scope": "Focused browse-state and existing Library real-screen JVM renders; native assembly where requested. Not complete gate or physical evidence."
+    },
+    {
+      "name": "browse-render20",
+      "summary": "build/ux-context/runs/library-context/browse-render20/summary.json",
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "result": "FAIL or incomplete; original evidence preserved",
+      "sourceStable": true,
+      "fullGate": false,
+      "scope": "Focused browse-state and existing Library real-screen JVM renders; native assembly where requested. Not complete gate or physical evidence."
+    },
+    {
+      "name": "browse-render21",
+      "summary": "build/ux-context/runs/library-context/browse-render21/summary.json",
+      "counts": {
+        "tests": 26,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "sourceStable": true,
+      "fullGate": false,
+      "scope": "Focused browse-state and existing Library real-screen JVM renders; native assembly where requested. Not complete gate or physical evidence."
+    },
+    {
+      "name": "core-full22",
+      "summary": "build/ux-context/runs/library-context/core-full22/summary.json",
+      "counts": {
+        "tests": 4612,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "freshStandaloneTests": 1715,
+      "freshXmlFiles": 623,
+      "fullGate": true,
+      "sourceStable": true,
+      "result": "Failed complete gate: app4612/one copy-policy failure; standalone1715 passed; build/lint downstream of test failure did not execute."
+    }
+  ],
+  "failureInterpretation": [
+    "foundation-target01: one demonstrated Body seed regression fixed by preserving query/equipment/groups; one test wait failed to pump initial Compose content and was corrected. All 45 then passed in target02.",
+    "recovery-target03: four new mixed-argument calls grew the static ratchet. Corrected the calls with named arguments; baseline and checks retained. No tests executed.",
+    "recovery-target04: 50 executed tests with three failures in new controlled-IO schedules. The test dispatcher used a separate coroutine scheduler, preventing the intended IO schedule. Replaced it with a held dispatcher sharing the runTest scheduler; no application failure presumed solved until re-execution.",
+    "connected08 fixture used Selected instead of Checkbox On; corrected assertion with original semantics preserved.",
+    "native-assembly09 new failure fixture chained an IME action after Unit-returning text replacement; split calls.",
+    "connected11/12 rejected insufficiently scrolled fixtures; switched to a deep canonical Dumbbell result and verify nonzero semantic position.",
+    "picker10 selector also matched query; restricted to result row. picker13 incorrectly activated toggle rows twice; preserved intended toggle contract and test repeated Done instead.",
+    "connected14-font20 demonstrated selected equipment off-screen after return; fixed selected-first filter visibility.",
+    "connected15-landscape demonstrated No matches below illustration; landscape now leads with title/explanation and Create is verified scroll-reachable.",
+    "picker16-font16 waited for virtualized Add lifts below viewport; now waits for pinned Save then scrolls to Add lifts.",
+    "process-stage17 immediate post-launch PID probe was initially empty; later direct probe verified PID before external termination, preserved in receipt.",
+    "browse-render19: 13 failures. At normal fonts recovery TextButton layout measured40dp; explicit48dp layout added. Remaining failures were fixture performScrollTo on already pinned non-scroll Reset button; replaced by direct displayed/enabled assertion. Original XML/frames preserved.",
+    "browse-render20: compilation stopped before tests because new sizeIn modifier import was missing. Import corrected; zero tests from this attempt counted as passes.",
+    "core-full22: only GymFloorCopyTest.userFacingCopyOutsideTheCatalogDoesNotSayExercise failed. Newly added Reset body and recovery message used Exercises; both changed to accepted Lifts terminology and the exact render text assertion updated. Policy check unchanged; all4612 tests were allowed to finish and original623XML preserved. Fresh final gate required."
+  ],
+  "preliminaryReviews": [
+    "build/ux-context/runs/library-context/reviews/p10-preliminary-adversarial-2026-10-14.md",
+    "build/ux-context/runs/library-context/reviews/p10-adversarial-recovery-followup02-2026-10-14.md",
+    "build/ux-context/runs/library-context/reviews/p10-independent-preliminary-source-2026-10-14.md",
+    "build/ux-context/runs/library-context/reviews/p10-independent-source-followup01-2026-10-14.md",
+    "build/ux-context/runs/library-context/reviews/p10-independent-source-closure03-2026-10-14.md"
+  ],
+  "recoveryRepairs": [
+    "Returning retained Library owner acquires the latest accepted context; old queued values cannot overwrite a newer visit.",
+    "Every accepted delayed checkpoint advances framework basis metadata while newer authored fields remain live and unkept.",
+    "Opaque reset inspects a newly healthy view, resumes it and requires another confirmation.",
+    "Leaving composition fences old navigation callbacks; reentry reconciles accepted IO and reset metadata.",
+    "Recovered initial-read Retry resumes unchanged remembered context and preserves newly authored fields; explicit Body muscle request retains priority."
+  ],
+  "nativeAttempts": [
+    {
+      "interpretation": "Fixture stopped before AppNav. A readable fresh private checkpoint has null draft; preserve nullable original and clear only owned checkpoint during cleanup. Ignored wrapper also passed notesRecoveryPhase instead of libraryRecoveryPhase; corrected explicitly. No native acceptance inferred.",
+      "name": "connected05",
+      "summary": "build/ux-context/runs/library-context/connected05/summary.json"
+    },
+    {
+      "interpretation": "Actual AppNav reached combined facets, canonical detail and return, then fixture asserted Selected instead of the existing Checkbox ToggleableState On. Corrected to assertIsOn; original raw failure and captures retained. No complete journey pass.",
+      "summary": "build/ux-context/runs/library-context/connected08/summary.json",
+      "name": "connected08"
+    }
+  ],
+  "stoppedAttempts": [
+    {
+      "reason": "Stopped owned processes after independent explicit Body read-recovery finding; incomplete gate is never a pass.",
+      "name": "full06",
+      "receipt": "build/ux-context/runs/library-context/full06/aborted.json"
+    },
+    {
+      "reason": "Stopped incomplete gate before full execution after same-owner return continuation of explicit Body recovery finding.",
+      "receipt": "build/ux-context/runs/library-context/full07/aborted.json",
+      "name": "full07"
+    },
+    {
+      "name": "core-full18",
+      "receipt": "build/ux-context/runs/library-context/core-full18/aborted.json",
+      "reason": "Stopped incomplete Gradle gate for required ADR-032 recovery-state matrix gap. Fresh standalone preflight passed 1715 tests; that is not a full gate."
+    }
+  ],
+  "currentImplementationPacket": "P10 Library-context core",
+  "requiredCorrection": {
+    "state": "Required before P10 closure and Drop A",
+    "source": [
+      "app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt",
+      "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
+      "app/src/main/java/com/sinura/personaltrainer/data/draft/RoutineDrafts.kt"
+    ],
+    "scope": "Persist owner-scoped picker raw query, muscle/filter, stable result anchor and unfinished Create fields across reopening. Preserve existing single/multiple/write-through cancellation rules and reconcile uncertain Create by stable identity; never replay accepted Room additions.",
+    "problem": "Shared pickers use local query, rememberSaveable muscle/Create fields and transient result position; P09 authored routine snapshots do not checkpoint them.",
+    "tracking": "UX27/P10 and F08; Create foundations UX10/P03 retained. No new documentation system or optional deferral.",
+    "owner": "P10",
+    "evidence": "build/ux-context/runs/library-context/reviews/p10-independent-picker-recovery-scope06-2026-10-14.md",
+    "id": "P10R"
+  },
+  "layoutRepairs": [
+    "Selected filter chip stays in view after return/recreation and choice changes.",
+    "Short landscape empty pane leads with state title, explanation and scroll-reachable guarded Create.",
+    "Recovery Retry/Reset have explicit48dp minimum layout rather than relying on Material implicit touch expansion."
+  ],
+  "browseRenderMatrix": {
+    "attempt": "browse-render21",
+    "freshChecks": 26,
+    "browseProfiles": 13,
+    "browseFrames": 65,
+    "existingLibraryProfiles": 13,
+    "states": [
+      "resumed",
+      "keeping",
+      "keep-failure",
+      "reset-confirmation",
+      "reset-accepted"
+    ],
+    "profiles": "360x640,412x840,640x360landscape,600x960 fonts1/1.6/2;360x640font2 RTL/reduced-motion",
+    "source": "app/src/test/java/com/sinura/personaltrainer/ui/library/LibraryBrowseRenderTest.kt",
+    "frames": "build/ux-context/runs/library-context/browse-render21/frame-review/inventory.json",
+    "review": "Root inspected all65 frames in three contact sheets plus normal/native previews. Status copy wraps, Retry/Reset and pinned confirmation reachable; catalogue unchanged. JVM/native graphics, not phone rendering.",
+    "requiredGap": "ADR-032 conditional review gap addressed by executed passing focused matrix; fresh final complete gate and reviews still required."
+  },
+  "priorNative": {
+    "termination": "build/ux-context/runs/library-context/process-stage17-font16/external-process-termination.json",
+    "scope": "MainActivity/AppNav query+combined facets, canonical detail, actual nonzero scroll return/recreate, no-match/clear, process reopening at412/font1.6, ordered immediate multi-add/repeated Done/cancel and canonical routine create/recreate/Save. Failure check uses shipping Library screen with injected private IO and generic Compose host; no AppNav or phone claim for that check.",
+    "testSha256": "0CB8EB33EAAB825CD35F642C3364BCD8AA8BAEE6BDDF3AEFAFACB8EBBBF51F45",
+    "appSha256": "A0A4B2AE6B823A96EA9AFCA8ACB0D9DB1ACF4A8200D9DDFBE21319227A0CF98D",
+    "sourceInputs": 1660,
+    "runs": [
+      "connected17-landscape",
+      "connected17-font20",
+      "failure17-font20",
+      "process-stage17-font16",
+      "process-resume17-font16",
+      "picker17-font16",
+      "handoff17-font16"
+    ],
+    "freshExecutedTests": 7,
+    "currentCandidateLimit": "Seven native17 executions predate the explicit48dp recovery-button change and new JVM test. They remain original executed evidence, not a claim of exact final candidate inputs/APK. Final affected native execution pending."
+  }
+}
