@@ -196,6 +196,10 @@ class RoutineWorkflowInstrumentedTest {
             original = made, ownedIds = listOf(made.id))
         marker.writeText(gson.toJson(fixture))
         assertEquals("ex-barbell-bench-press", made.exercises.single().exercise.id)
+        scenario.scenario.recreate()
+        awaitTag(RoutineEditorTags.SAVE)
+        assertEquals(made, read { container.routineRepository.getById(made.id) })
+        assertEquals(1, read { container.routineRepository.count() })
         compose.onNode(hasSetTextAction()).performTextReplacement("Upper A · strength")
         InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("input keyevent KEYCODE_BACK").use { pipe ->
             FileInputStream(pipe.fileDescriptor).use { it.readBytes() }
