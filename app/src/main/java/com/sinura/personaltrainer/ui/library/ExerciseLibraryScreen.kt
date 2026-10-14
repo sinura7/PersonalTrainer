@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -38,8 +40,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -85,6 +91,7 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
+import kotlinx.coroutines.flow.filterNotNull
 
 @Composable
 fun ExerciseLibraryScreen(
@@ -120,11 +127,15 @@ private fun ExerciseLibraryContent(
     // Held as an id rather than the row's own boolean so the sheet survives a rotation, and
     // so it closes by itself if the lift underneath it is deleted.
     var overflowExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(Unit) {
+    var resetRememberedView by rememberSaveable { mutableStateOf(false) }
+    val leave: () -> Unit = { viewModel.keepBrowseBeforeLeave(onBack) }
+    BackHandler { leave() }
+    DisposableEffect(viewModel) {
         viewModel.seedMuscleFromRoute(initialMuscle)
+        onDispose { viewModel.closeBrowseVisit() }
     }
     val headerActions: @Composable RowScope.() -> Unit = {
-        if (landscape && state.readState == LibraryReadState.CURRENT && state.visibleExercises.isNotEmpty()) {
+        if (landscape && !state.isLoading && state.browseEditable && state.readState == LibraryReadState.CURRENT && state.visibleExercises.isNotEmpty()) {
             IconButton(
                 onClick = viewModel::openCreate,
                 modifier = Modifier.size(Metrics.touchMin).testTag(LibraryTags.FAB)
@@ -140,16 +151,20 @@ private fun ExerciseLibraryContent(
             // A back arrow now that Library is pushed rather than a tab. Without one, arriving
             // here from a coach card would be a one-way trip to a screen with no visible exit
             // except the system gesture.
+            Column {
             ScreenHeader(
                 title = "Library",
-                onBack = onBack,
+                onBack = leave,
                 backTag = LibraryTags.BACK,
                 kickerTitle = true,
                 trailing = headerActions,
             )
+            LibraryBrowseNotice(state = state, onRetry = viewModel::retryBrowseKeep,
+                onReset = { resetRememberedView = true })
+            }
         },
         floatingActionButton = {
-            if (!landscape && state.readState == LibraryReadState.CURRENT && state.visibleExercises.isNotEmpty()) {
+            if (!landscape && !state.isLoading && state.browseEditable && state.readState == LibraryReadState.CURRENT && state.visibleExercises.isNotEmpty()) {
                 FloatingActionButton(
                     onClick = viewModel::openCreate,
                     modifier = Modifier.testTag(LibraryTags.FAB),
@@ -201,6 +216,7 @@ private fun ExerciseLibraryContent(
                         value = state.query,
                         onValueChange = viewModel::onQueryChange,
                         placeholder = "Name or muscle",
+                        enabled = state.browseEditable,
                         modifier = Modifier
                             .padding(horizontal = Metrics.gutter)
                             .testTag(LibraryTags.SEARCH)
@@ -212,8 +228,12 @@ private fun ExerciseLibraryContent(
                     // and AND-combine: "chest" then "machine" is how someone with a bad shoulder
                     // actually shops for a session. One merged row would have made them look
                     // mutually exclusive.
+                    val muscleIndex = state.selectedMuscle?.let { state.muscleFilters.indexOf(it) + 1 } ?: 0
+                    val muscleList = rememberLazyListState(initialFirstVisibleItemIndex = muscleIndex)
+                    LaunchedEffect(state.selectedMuscle, state.muscleFilters) { muscleList.scrollToItem(muscleIndex) }
                     LazyRow(
-                        modifier = Modifier.padding(top = Metrics.space3),
+                        state = muscleList,
+                        modifier = Modifier.padding(top = Metrics.space3).testTag(LibraryTags.MUSCLE_FILTERS),
                         contentPadding = PaddingValues(horizontal = Metrics.gutter),
                         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
@@ -222,6 +242,7 @@ private fun ExerciseLibraryContent(
                                 label = "All",
                                 selected = state.selectedMuscle == null,
                                 onClick = { viewModel.onMuscleSelected(null) },
+                                enabled = state.browseEditable,
                             )
                         }
                         items(state.muscleFilters, key = { it.name }) { muscle ->
@@ -229,6 +250,7 @@ private fun ExerciseLibraryContent(
                                 label = muscle.displayName,
                                 selected = state.selectedMuscle == muscle,
                                 onClick = { viewModel.onMuscleSelected(muscle) },
+                                enabled = state.browseEditable,
                             )
                         }
                     }
@@ -236,7 +258,11 @@ private fun ExerciseLibraryContent(
                         modifier = Modifier.padding(top = Metrics.space2, bottom = Metrics.space4),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        val equipmentIndex = state.selectedEquipment?.let { state.equipmentFilters.indexOf(it) + 1 } ?: 0
+                        val equipmentList = rememberLazyListState(initialFirstVisibleItemIndex = equipmentIndex)
+                        LaunchedEffect(state.selectedEquipment, state.equipmentFilters) { equipmentList.scrollToItem(equipmentIndex) }
                         LazyRow(
+                            state = equipmentList,
                             modifier = Modifier.weight(1f).testTag(LibraryTags.EQUIPMENT_FILTERS),
                             contentPadding = PaddingValues(horizontal = Metrics.gutter),
                             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
@@ -246,6 +272,7 @@ private fun ExerciseLibraryContent(
                                     label = "Any kit",
                                     selected = state.selectedEquipment == null,
                                     onClick = { viewModel.onEquipmentSelected(null) },
+                                    enabled = state.browseEditable,
                                 )
                             }
                             items(state.equipmentFilters, key = { it.name }) { equipment ->
@@ -253,12 +280,14 @@ private fun ExerciseLibraryContent(
                                     label = equipment.label,
                                     selected = state.selectedEquipment == equipment,
                                     onClick = { viewModel.onEquipmentSelected(equipment) },
+                                    enabled = state.browseEditable,
                                 )
                             }
                         }
                         if (state.selectedMuscle != null || state.selectedEquipment != null) {
                             TextButton(
                                 onClick = viewModel::clearFilters,
+                                enabled = state.browseEditable,
                                 modifier = Modifier.testTag(LibraryTags.CLEAR_FILTERS)
                                     .padding(end = Metrics.gutter),
                             ) {
@@ -286,6 +315,21 @@ private fun ExerciseLibraryContent(
                     }
                     if (state.visibleExercises.isEmpty() && state.needsAttention.isEmpty()) {
                         val filtered = state.exercises.isNotEmpty()
+                        val emptyModifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
+                            .padding(horizontal = Metrics.gutter)
+                        if (landscape) {
+                            Column(modifier = emptyModifier, verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                                Text(if (filtered) "No matches" else "Library is empty",
+                                    style = InstrumentType.title, color = TextPrimary)
+                                Text(if (filtered) "Clear search or filters, or add a custom lift."
+                                    else "Add a custom lift to start the catalog.",
+                                    style = InstrumentType.body, color = TextSecondary)
+                                TextButton(onClick = viewModel::openCreate, enabled = state.browseEditable,
+                                    modifier = Modifier.testTag(LibraryTags.EMPTY_CREATE)) {
+                                    Text("Create lift", style = InstrumentType.bodyStrong, color = Volt)
+                                }
+                            }
+                        } else {
                         EmptyState(
                             scene = EmptyScene.CATALOG,
                             title = if (filtered) "No matches" else "Library is empty",
@@ -294,15 +338,37 @@ private fun ExerciseLibraryContent(
                             } else {
                                 "Add a custom lift to start the catalog."
                             },
-                            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
-                                .padding(horizontal = Metrics.gutter),
+                            modifier = emptyModifier,
                             actionLabel = "Create lift",
+                            actionEnabled = state.browseEditable,
                             actionTag = LibraryTags.EMPTY_CREATE,
                             onAction = viewModel::openCreate,
                         )
+                        }
                     } else {
                         HairlineDivider(startIndent = 0.dp)
+                        key(state.query, state.selectedMuscle, state.selectedEquipment, state.browseRestoreRevision) {
+                        val density = LocalDensity.current.density
+                        val resultKeys = remember(state.families, state.visibleExercises,
+                            state.needsAttention, state.expandedFamilies) { libraryResultKeys(state) }
+                        val rememberedIndex = state.browseAnchor?.let(resultKeys::indexOf)?.takeIf { it >= 0 }
+                            ?: state.browseIndex.coerceIn(0, (resultKeys.size - 1).coerceAtLeast(0))
+                        val list = rememberLazyListState(initialFirstVisibleItemIndex = rememberedIndex,
+                            initialFirstVisibleItemScrollOffset = (state.browseOffsetDp * density).toInt())
+                        LaunchedEffect(list, state.browseViewRevision, density, resultKeys) {
+                            snapshotFlow {
+                                val index = list.firstVisibleItemIndex
+                                list.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index && it.key in resultKeys }?.let {
+                                    LibraryVisiblePosition(key = it.key as? String, index = index,
+                                        offsetDp = list.firstVisibleItemScrollOffset / density)
+                                }
+                            }.filterNotNull().collect {
+                                viewModel.onBrowsePosition(anchor = it.key, index = it.index,
+                                    offsetDp = it.offsetDp, viewRevision = state.browseViewRevision)
+                            }
+                        }
                         LazyColumn(
+                            state = list,
                             modifier = Modifier.weight(1f).testTag(LibraryTags.LIST),
                             // Rows run edge to edge; the screen margin lives inside them.
                             contentPadding = PaddingValues(
@@ -340,7 +406,7 @@ private fun ExerciseLibraryContent(
                                             Column(modifier = instrumentAnimateItem()) {
                                                 LibraryRow(
                                                     exercise = only,
-                                                    onOpen = { onOpenExercise(only.id) },
+                                                    onOpen = { viewModel.keepBrowseBeforeLeave { onOpenExercise(only.id) } },
                                                     onAddToRoutine = { viewModel.openAddToRoutine(only) },
                                                     onOverflow = { overflowExerciseId = only.id },
                                                 )
@@ -360,7 +426,7 @@ private fun ExerciseLibraryContent(
                                                 Column(modifier = instrumentAnimateItem()) {
                                                     LibraryRow(
                                                         exercise = exercise,
-                                                        onOpen = { onOpenExercise(exercise.id) },
+                                                        onOpen = { viewModel.keepBrowseBeforeLeave { onOpenExercise(exercise.id) } },
                                                         onAddToRoutine = { viewModel.openAddToRoutine(exercise) },
                                                         onOverflow = { overflowExerciseId = exercise.id },
                                                     )
@@ -378,7 +444,7 @@ private fun ExerciseLibraryContent(
                                     Column(modifier = instrumentAnimateItem()) {
                                         LibraryRow(
                                             exercise = exercise,
-                                            onOpen = { onOpenExercise(exercise.id) },
+                                            onOpen = { viewModel.keepBrowseBeforeLeave { onOpenExercise(exercise.id) } },
                                             onAddToRoutine = { viewModel.openAddToRoutine(exercise) },
                                             onOverflow = { overflowExerciseId = exercise.id },
                                         )
@@ -387,10 +453,19 @@ private fun ExerciseLibraryContent(
                                 }
                             }
                         }
+                        }
                     }
                 }
             }
         }
+    }
+
+    if (resetRememberedView) {
+        ConfirmActionDialog(title = "Reset remembered view?",
+            body = "This forgets only search, filters and results position. Exercises, custom drafts and workout history stay saved.",
+            confirmLabel = "Reset view", destructive = false,
+            onConfirm = { resetRememberedView = false; viewModel.resetBrowseView() },
+            onDismiss = { resetRememberedView = false })
     }
 
     state.exercises.firstOrNull { it.id == overflowExerciseId }
@@ -476,9 +551,44 @@ private fun ExerciseLibraryContent(
             onDismiss = viewModel::dismissAddToRoutine,
             onCreateRoutine = {
                 viewModel.dismissAddToRoutine()
-                onCreateRoutine(exercise.id)
+                viewModel.keepBrowseBeforeLeave { onCreateRoutine(exercise.id) }
             },
         )
+    }
+}
+
+private data class LibraryVisiblePosition(val key: String?, val index: Int, val offsetDp: Float)
+
+internal fun libraryResultKeys(state: ExerciseLibraryUiState): List<String> = buildList {
+    if (state.needsAttention.isNotEmpty()) {
+        add("attention-header")
+        state.needsAttention.forEach { add("attention-${it.id}") }
+    }
+    if (state.grouped) state.families.forEach { family ->
+        if (family.plain) add(family.members.single().id)
+        else {
+            add("family-${family.movementKey}")
+            if (family.movementKey in state.expandedFamilies) family.members.forEach { add(it.id) }
+        }
+    } else state.visibleExercises.forEach { add(it.id) }
+}
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+private fun LibraryBrowseNotice(state: ExerciseLibraryUiState, onRetry: () -> Unit, onReset: () -> Unit) {
+    val text = state.browseError ?: if (state.browseKeeping) "Keeping search…"
+        else if (state.browseResumed) "Last search resumed" else return
+    Column(Modifier.fillMaxWidth().padding(horizontal = Metrics.gutter, vertical = Metrics.space2)) {
+        Text(text, style = InstrumentType.caption, color = TextSecondary,
+            modifier = Modifier.testTag(LibraryTags.BROWSE_STATUS))
+        if (state.browseError != null) {
+            FlowRow {
+                TextButton(onClick = onRetry, enabled = !state.browseKeeping,
+                    modifier = Modifier.testTag(LibraryTags.BROWSE_RETRY)) { Text("Retry Keep") }
+                TextButton(onClick = onReset, enabled = !state.browseKeeping,
+                    modifier = Modifier.testTag(LibraryTags.BROWSE_RESET)) { Text("Reset remembered view") }
+            }
+        }
     }
 }
 
@@ -695,10 +805,14 @@ object LibraryTags {
     const val EMPTY_CREATE = "library-empty-create"
     const val CLEAR_FILTERS = "library-clear-filters"
     const val EQUIPMENT_FILTERS = "library-equipment-filters"
+    const val MUSCLE_FILTERS = "library-muscle-filters"
     const val LIST = "library-list"
     const val READ_PROBLEM = "library-read-problem"
     const val READ_RETRY = "library-read-retry"
     const val EDITOR_READ_RETRY = "library-editor-read-retry"
+    const val BROWSE_STATUS = "library-browse-status"
+    const val BROWSE_RETRY = "library-browse-retry"
+    const val BROWSE_RESET = "library-browse-reset"
     fun lift(id: String) = "library-lift-$id"
     fun add(id: String) = "library-add-$id"
     fun options(id: String) = "library-options-$id"

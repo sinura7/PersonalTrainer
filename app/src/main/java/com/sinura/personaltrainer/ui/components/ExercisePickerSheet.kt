@@ -482,6 +482,18 @@ fun ExerciseSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
 ) {
+    ExerciseSearchField(value = value, onValueChange = onValueChange, placeholder = placeholder,
+        modifier = modifier, enabled = true)
+}
+
+@Composable
+internal fun ExerciseSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier,
+    enabled: Boolean,
+) {
     val keyboard = LocalSoftwareKeyboardController.current
     val shape = RoundedCornerShape(Radius.sm)
     Row(
@@ -509,6 +521,7 @@ fun ExerciseSearchField(
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
+                enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
                 textStyle = InstrumentType.body.copy(color = TextPrimary),
                 singleLine = true,
@@ -518,7 +531,7 @@ fun ExerciseSearchField(
             )
         }
         if (value.isNotEmpty()) {
-            IconButton(onClick = { onValueChange("") }) {
+            IconButton(onClick = { onValueChange("") }, enabled = enabled) {
                 Icon(Icons.Outlined.Close, contentDescription = "Clear search", tint = TextSecondary)
             }
         }

@@ -1,7 +1,7 @@
 {
   "id": "P09",
   "preparedOn": "2026-10-13",
-  "state": "Implemented candidate; fresh gate/native accepted, final evidence reviews and integration pending",
+  "state": "Integrated; seven bounded P09 criteria complete. P19/P20 remain open.",
   "base": "944d37fb1f62d95658207e62fe084e817c4a1cd2",
   "branch": "codex/routine-editor-recovery",
   "scope": "Persistent routine fields, partial write-through recovery, stable new identities and read-before-confirm import. Preserve ADR-021 write-through/Back and ADR-033 private recovery.",
@@ -893,7 +893,7 @@
       "sourceFiles": 1654,
       "sourceStable": true,
       "fullGate": false,
-      "nativePassed": 0,
+      "nativePassed": 1,
       "rawResult": "instrumentation.txt",
       "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
       "actualPhaseResults": [
@@ -918,7 +918,7 @@
       "sourceFiles": 1654,
       "sourceStable": true,
       "fullGate": false,
-      "nativePassed": 0,
+      "nativePassed": 2,
       "rawResult": "instrumentation.txt",
       "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
       "actualPhaseResults": [
@@ -943,7 +943,7 @@
       "sourceFiles": 1654,
       "sourceStable": true,
       "fullGate": false,
-      "nativePassed": 0,
+      "nativePassed": 2,
       "rawResult": "instrumentation.txt",
       "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
       "actualPhaseResults": [
@@ -1073,12 +1073,14 @@
     "Retained numeric raw text/selection/unit and native recovery/readiness controls"
   ],
   "reviewFindings": {
-    "status": "Source findings addressed by focused regressions; preliminary/focused reports and original failures preserved. Final exact candidate/evidence reviews remain required.",
+    "status": "Completed peer source/evidence checks and saved independent verdict; accurately attributed final mechanical sealing/closure after model-capacity interruptions. No remaining bounded P09 C/H/M. Exact reports, interruption record and seals in integration receipt.",
     "reports": [
       "build/ux-context/runs/routine-recovery/reviews/p09-independent-preliminary-review.md",
       "build/ux-context/runs/routine-recovery/reviews/p09-preliminary-adversarial-20261014-001436.md",
       "build/ux-context/runs/routine-recovery/reviews/p09-independent-live-paste-review.md",
-      "build/ux-context/runs/routine-recovery/reviews/p09-paste-live-state-closure-20261014-061201.md"
+      "build/ux-context/runs/routine-recovery/reviews/p09-paste-live-state-closure-20261014-061201.md",
+      "reviews/p09-independent-final-decision-ea51d2d7.md",
+      "reviews/p09-final-adversarial-evidence-closure-ea51d2d7.md"
     ],
     "issues": [
       "Older SavedState overwrites newer durable authored fields",
@@ -1133,9 +1135,83 @@
     ]
   },
   "remaining": [
-    "Final clean-context independent/adversarial exact candidate/evidence seals and integration",
-    "P19 whole-app native matrix/IME and accessibility closure",
+    "P19 whole-app native matrix/IME and automated accessibility",
     "P20 required physical/owner/performance acceptance",
     "Drop A after P10; latest signed Debug125 unchanged"
+  ],
+  "integration": {
+    "packet": "P09",
+    "state": "Integrated",
+    "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/502",
+    "reviewedHead": "ea51d2d7fbb493d8b972ed60e0dfe2432e645456",
+    "merge": "928cd374e011ed7d108791d346c0c19c19d1e79e",
+    "exactTreeAndExecutionInputs": {
+      "packet": "P09",
+      "candidate": "ea51d2d7fbb493d8b972ed60e0dfe2432e645456",
+      "merge": "928cd374e011ed7d108791d346c0c19c19d1e79e",
+      "tree": "a45d3dd827193dbf47d9cee6c1240aefe96d2de8",
+      "identicalExecutionInputs": 1654,
+      "sourceAndApksMatch": true,
+      "apks": {
+        "tests": "01E3D34EAC256344A84122C01487E433D46AF068744866EECC8E023A67C76B5D",
+        "app": "C3D5990A969A7D5F28FCD1AD0C0715126D9154FAEF0C4673AF3C574CD8E1C4EF"
+      },
+      "scope": "Exact merged tree and all execution inputs/APK bytes match the freshly gated and reviewed candidate. Nine candidate native results retained; fresh shortest merged AppNav journey still required."
+    },
+    "freshMergedAppNavJourney": 1,
+    "retainedCandidateGate": {
+      "appTests": 4577,
+      "standaloneChecks": 1715,
+      "failuresErrorsSkips": 0,
+      "reason": "Exact candidate/merge tree, all execution inputs and APK bytes match; original fresh gate retained with an additional merged native journey."
+    },
+    "candidateNative": {
+      "fresh": 9,
+      "retained": true
+    },
+    "hosted": [
+      {
+        "run": "38525004463",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "name": "Tests, lint, debug build",
+            "conclusion": "success"
+          },
+          {
+            "name": "Instrumented smoke (non-blocking)",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "run": "38524999733",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "name": "Instrumented smoke (non-blocking)",
+            "conclusion": "success"
+          },
+          {
+            "name": "Tests, lint, debug build",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "finalIndependentReview": "reviews/p09-independent-final-decision-ea51d2d7.md",
+    "finalAdversarialClosure": "reviews/p09-final-adversarial-evidence-closure-ea51d2d7.md",
+    "reviewCapacityRecord": "Peer source/evidence checks completed; agent final seal turns and fresh Sol6.1 replacement failed with capacity. ROOT mechanically recovered hashes and completed accurately attributed evidence closure, without a fabricated peer verdict.",
+    "finalSeals": [
+      "reviews/p09-independent-final-input-evidence-seal-ea51d2d7.json",
+      "reviews/p09-final-adversarial-input-evidence-seal-ea51d2d7.json"
+    ],
+    "remainingCriticalHigh": 0,
+    "boundedCriteria": 7,
+    "scope": "UX04/UX09 bounded development acceptance. P19 whole-app integration/IME/accessibility and P20 physical/owner/performance acceptance remain open. Signed Debug125 unchanged; Drop A after P10."
+  },
+  "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/502",
+  "nativeLimitations": [
+    "Landscape numeric Set was asserted/activated semantically while IME covered lower actions. Exact Save behavior is verified; actual touch reachability with IME shown remains P19."
   ]
 }

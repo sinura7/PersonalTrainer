@@ -10,6 +10,11 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
+import com.sinura.personaltrainer.data.draft.LibraryBrowseDrafts
+import com.sinura.personaltrainer.data.draft.LibraryBrowseSnapshot
+import com.sinura.personaltrainer.data.draft.DraftVersion
+import com.sinura.personaltrainer.data.draft.DraftOwner
+import com.sinura.personaltrainer.data.draft.DraftForm
 import com.sinura.personaltrainer.data.repository.DeleteExerciseResult
 import com.sinura.personaltrainer.data.repository.combineHealth
 import com.sinura.personaltrainer.domain.AddDefaults
@@ -98,6 +103,15 @@ data class ExerciseLibraryUiState(
     val addToRoutine: Exercise? = null,
     val error: String? = null,
     val message: String? = null,
+    val browseKeeping: Boolean = false,
+    val browseEditable: Boolean = true,
+    val browseError: String? = null,
+    val browseResumed: Boolean = false,
+    val browseViewRevision: Long = 0L,
+    val browseRestoreRevision: Long = 0L,
+    val browseAnchor: String? = null,
+    val browseIndex: Int = 0,
+    val browseOffsetDp: Float = 0f,
 ) {
     /** True when nothing is narrowing the list, which is the only time families are shown. */
     val grouped: Boolean
@@ -105,11 +119,16 @@ data class ExerciseLibraryUiState(
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ExerciseLibraryViewModel @JvmOverloads constructor(
+class ExerciseLibraryViewModel internal constructor(
     application: Application,
-    container: AppDependencies = application.appContainer(),
-    private val savedState: SavedStateHandle? = null,
+    container: AppDependencies,
+    private val savedState: SavedStateHandle?,
+    browseDrafts: LibraryBrowseDrafts?,
 ) : AppViewModel(application, container) {
+    @JvmOverloads constructor(application: Application,
+        container: AppDependencies = application.appContainer(), savedState: SavedStateHandle? = null,
+    ) : this(application = application, container = container, savedState = savedState,
+        browseDrafts = (container as? AppContainer)?.libraryBrowseDrafts)
     constructor(application: Application, savedState: SavedStateHandle) :
         this(application = application, container = application.appContainer(), savedState = savedState)
 
@@ -122,6 +141,21 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         EquipmentType.entries.firstOrNull { it.name == savedState?.get<String>(KEY_EQUIPMENT) },
     )
     private val expandedFamilies = MutableStateFlow(savedState?.get<List<String>>(KEY_FAMILIES).orEmpty().toSet())
+    private var browsePosition = Triple(savedState?.get<String>(KEY_ANCHOR),
+        savedState?.get<Int>(KEY_INDEX) ?: 0, savedState?.get<Float>(KEY_OFFSET) ?: 0f)
+    private val browsePositionUi = MutableStateFlow(browsePosition)
+    private val browseViewRevision = MutableStateFlow(0L)
+    private var browseRestoreRevision = 0L
+    private val browse = browseDrafts?.let { service -> LibraryBrowseRecovery(
+        scope = viewModelScope, drafts = service, current = ::browseSnapshot, restore = ::restoreBrowse,
+        framework = ::frameworkBrowseBasis, onBasis = ::saveBrowseBasis,
+        onKept = { version ->
+            saveBrowseBasis(version)
+            savedState?.set(KEY_BROWSE_UNKEPT, false)
+            browsePositionUi.value = browsePosition
+        },
+    ) }
+    private val browseStatus = browse?.status ?: MutableStateFlow(LibraryBrowseStatus(opening = false))
     private val editor = MutableStateFlow<ExerciseEditorDraft?>(null)
     private val pendingDelete = MutableStateFlow<Exercise?>(null)
     private val blockedDelete = MutableStateFlow<Pair<Exercise, ExerciseUsage>?>(null)
@@ -160,7 +194,10 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         },
         expandedFamilies,
         combine(error.messages, message) { err, note -> err to note },
-    ) { core, dialogs, expanded, notices ->
+        combine(browseStatus, browsePositionUi, browseViewRevision) { status, position, revision ->
+            Triple(status, position, revision)
+        },
+    ) { core, dialogs, expanded, notices, remembered ->
         val needle = core.query.trim()
         // Muscle first, because it is the filter that reorders as well as narrows: a lift where
         // the muscle is a secondary credit belongs in the list, below the ones where it is the
@@ -183,7 +220,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
 
         val grouped = needle.isEmpty() && core.muscle == null && core.equipment == null
         ExerciseLibraryUiState(
-            isLoading = core.status.state == LibraryReadState.LOADING,
+            isLoading = core.status.state == LibraryReadState.LOADING || remembered.first.opening,
             readState = core.status.state,
             retryPending = core.status.retryPending,
             exercises = core.exercises,
@@ -205,6 +242,15 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
             addToRoutine = dialogs.addToRoutine,
             error = notices.first,
             message = notices.second,
+            browseKeeping = remembered.first.keeping,
+            browseEditable = browse?.editable ?: true,
+            browseError = remembered.first.error,
+            browseResumed = remembered.first.resumed,
+            browseViewRevision = remembered.third,
+            browseRestoreRevision = browseRestoreRevision,
+            browseAnchor = remembered.second.first,
+            browseIndex = remembered.second.second,
+            browseOffsetDp = remembered.second.third,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -282,27 +328,39 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun onQueryChange(value: String) {
+        if (browse?.editable == false) return
+        changedBrowseView()
         query.value = value
         savedState?.set(KEY_QUERY, value)
+        browse?.changed()
     }
 
     /** Tapping the selected chip clears it, so a filter is never a one-way door. */
     fun onMuscleSelected(muscle: CanonicalMuscle?) {
+        if (browse?.editable == false) return
+        changedBrowseView()
         selectedMuscle.value = if (selectedMuscle.value == muscle) null else muscle
         savedState?.set(KEY_MUSCLE, selectedMuscle.value?.name)
+        browse?.changed()
     }
 
     fun onEquipmentSelected(equipment: EquipmentType?) {
+        if (browse?.editable == false) return
+        changedBrowseView()
         selectedEquipment.value = if (selectedEquipment.value == equipment) null else equipment
         savedState?.set(KEY_EQUIPMENT, selectedEquipment.value?.name)
+        browse?.changed()
     }
 
     /** Clear both facets deliberately, retaining the text the user typed. */
     fun clearFilters() {
+        if (browse?.editable == false) return
+        changedBrowseView()
         selectedMuscle.value = null
         selectedEquipment.value = null
         savedState?.set<String?>(KEY_MUSCLE, null)
         savedState?.set<String?>(KEY_EQUIPMENT, null)
+        browse?.changed()
     }
 
     /**
@@ -317,20 +375,99 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     private var routeMuscleSeeded = savedState?.get<Boolean>(KEY_SEEDED) ?: false
 
     fun seedMuscleFromRoute(muscle: CanonicalMuscle?) {
-        if (routeMuscleSeeded) return
-        routeMuscleSeeded = true
-        savedState?.set(KEY_SEEDED, true)
-        if (muscle != null) {
-            selectedMuscle.value = muscle
-            savedState?.set(KEY_MUSCLE, muscle.name)
+        val explicit = !routeMuscleSeeded && muscle != null
+        if (!routeMuscleSeeded) {
+            routeMuscleSeeded = true
+            savedState?.set(KEY_SEEDED, true)
         }
+        if (explicit) {
+            changedBrowseView()
+            selectedMuscle.value = muscle
+            savedState?.set(KEY_MUSCLE, muscle?.name)
+            restoreBrowse(browseSnapshot())
+        }
+        browse?.open(explicitRoute = explicit)
     }
 
     fun toggleFamily(movementKey: String) {
+        if (browse?.editable == false) return
+        browseViewRevision.value += 1L
+        savedState?.set(KEY_BROWSE_UNKEPT, true)
         expandedFamilies.value = expandedFamilies.value.let { open ->
             if (movementKey in open) open - movementKey else open + movementKey
         }
         savedState?.set(KEY_FAMILIES, ArrayList(expandedFamilies.value))
+        browse?.changed()
+    }
+
+    private fun browseSnapshot() = LibraryBrowseSnapshot(query = query.value,
+        muscle = selectedMuscle.value, equipment = selectedEquipment.value,
+        expandedFamilies = expandedFamilies.value.sorted(), anchor = browsePosition.first,
+        index = browsePosition.second, offsetDp = browsePosition.third)
+
+    private fun restoreBrowse(value: LibraryBrowseSnapshot) {
+        browseRestoreRevision += 1L
+        browseViewRevision.value += 1L
+        query.value = value.query
+        selectedMuscle.value = value.muscle
+        selectedEquipment.value = value.equipment
+        expandedFamilies.value = value.expandedFamilies.toSet()
+        browsePosition = Triple(value.anchor, value.index, value.offsetDp)
+        browsePositionUi.value = browsePosition
+        savedState?.set(KEY_QUERY, value.query)
+        savedState?.set(KEY_MUSCLE, value.muscle?.name)
+        savedState?.set(KEY_EQUIPMENT, value.equipment?.name)
+        savedState?.set(KEY_FAMILIES, ArrayList(value.expandedFamilies))
+        saveBrowsePosition()
+    }
+
+    private fun changedBrowseView() {
+        browseViewRevision.value += 1L
+        savedState?.set(KEY_BROWSE_UNKEPT, true)
+        browsePosition = Triple(null, 0, 0f)
+        browsePositionUi.value = browsePosition
+        saveBrowsePosition()
+    }
+
+    private fun saveBrowsePosition() {
+        savedState?.set(KEY_ANCHOR, browsePosition.first)
+        savedState?.set(KEY_INDEX, browsePosition.second)
+        savedState?.set(KEY_OFFSET, browsePosition.third)
+    }
+
+    internal fun onBrowsePosition(anchor: String?, index: Int, offsetDp: Float, viewRevision: Long) {
+        if (browse?.editable == false || viewRevision != browseViewRevision.value || index < 0 ||
+            !offsetDp.isFinite() || offsetDp < 0f) return
+        val next = Triple(anchor, index, offsetDp)
+        if (next == browsePosition) return
+        browsePosition = next
+        savedState?.set(KEY_BROWSE_UNKEPT, true)
+        saveBrowsePosition()
+        browse?.changed()
+    }
+
+    internal fun keepBrowseBeforeLeave(onKept: () -> Unit) {
+        browse?.leave(onKept) ?: onKept()
+    }
+
+    internal fun retryBrowseKeep() { browse?.keep() }
+    internal fun closeBrowseVisit() { browse?.closeVisit() }
+    internal fun resetBrowseView() {
+        browse?.reset(LibraryBrowseSnapshot()) ?: restoreBrowse(LibraryBrowseSnapshot())
+    }
+
+    private fun frameworkBrowseBasis(): LibraryFrameworkBasis {
+        val generation = savedState?.get<String>(KEY_BROWSE_GENERATION)
+        val revision = savedState?.get<Long>(KEY_BROWSE_REVISION)
+        val version = if (generation != null && revision != null) DraftVersion(
+            owner = DraftOwner(DraftForm.LIBRARY, "last-view"), generation = generation, revision = revision,
+        ) else null
+        return LibraryFrameworkBasis(version, savedState?.get<Boolean>(KEY_BROWSE_UNKEPT) == true)
+    }
+
+    private fun saveBrowseBasis(version: DraftVersion) {
+        savedState?.set(KEY_BROWSE_GENERATION, version.generation)
+        savedState?.set(KEY_BROWSE_REVISION, version.revision)
     }
 
     /**
@@ -628,6 +765,12 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         const val KEY_EQUIPMENT = "library.equipment"
         const val KEY_FAMILIES = "library.families"
         const val KEY_SEEDED = "library.routeSeeded"
+        const val KEY_ANCHOR = "library.anchor"
+        const val KEY_INDEX = "library.index"
+        const val KEY_OFFSET = "library.offsetDp"
+        const val KEY_BROWSE_GENERATION = "library.browseGeneration"
+        const val KEY_BROWSE_REVISION = "library.browseRevision"
+        const val KEY_BROWSE_UNKEPT = "library.browseUnkept"
     }
 
     private data class LibraryCore(
