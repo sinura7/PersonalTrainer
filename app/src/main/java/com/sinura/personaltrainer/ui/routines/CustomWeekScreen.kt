@@ -47,7 +47,7 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.RecoverableExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.ScreenHeader
@@ -75,6 +75,7 @@ fun CustomWeekScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val finished by viewModel.finished.collectAsStateWithLifecycle()
+    val privateStatus = viewModel.formRecovery?.status?.collectAsStateWithLifecycle()?.value
     var expandedRequest by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingFullWeek by rememberSaveable { mutableStateOf(false) }
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
@@ -87,11 +88,11 @@ fun CustomWeekScreen(
     LaunchedEffect(finished) {
         if (finished) onFinished()
     }
-    // A five-day draft lives only in this ViewModel; a back-swipe used to destroy
-    // it with no confirmation while the composer next door guards the same case.
     val leave = {
         if (!viewModel.canLeave()) {
             Unit
+        } else if (viewModel.formRecovery != null) {
+            viewModel.keepAndLeave(onBack)
         } else if (state.days.values.any { it.isNotEmpty() } && !finished) {
             confirmLeave = true
         } else {
@@ -103,13 +104,13 @@ fun CustomWeekScreen(
     if (confirmLeave) {
         ConfirmActionDialog(
             title = "Leave the week builder?",
-            body = "The days you built here are not saved. Leaving discards them.",
+            body = "Discard the unfinished week draft. Routines already saved stay in Plan.",
             confirmLabel = "Discard and leave",
             destructive = true,
             onConfirm = {
                 if (viewModel.canLeave()) {
                     confirmLeave = false
-                    onBack()
+                    viewModel.discardAndLeave(onBack)
                 }
             },
             onDismiss = { confirmLeave = false },
@@ -152,6 +153,12 @@ fun CustomWeekScreen(
             )
             if (!state.showPicker) {
                 state.error?.let { GymErrorBanner(it, onDismiss = viewModel::dismissError) }
+            }
+            viewModel.formRecovery?.let { recovery ->
+                val progress by recovery.status.collectAsStateWithLifecycle()
+                progress.error?.let { message -> GymErrorBanner(message = message, onRetry = recovery::retry) }
+                if (progress.resumed) Text("Resumed week draft", style = InstrumentType.caption, color = TextSecondary)
+                if (progress.accepted) Text("Already saved. Return to Plan to view your week.", style = InstrumentType.caption, color = TextSecondary)
             }
 
             val lifts = state.selectedLifts
@@ -221,6 +228,9 @@ fun CustomWeekScreen(
                         )
                     }
                 }
+                if (viewModel.formRecovery != null) item {
+                    SecondaryGymButton(text = "Discard draft", onClick = { confirmLeave = true }, enabled = viewModel.canLeave())
+                }
             }
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 PrimaryGymButton(
@@ -239,7 +249,7 @@ fun CustomWeekScreen(
                         }
                     },
                     modifier = Modifier.testTag(CustomWeekTags.CONFIRM),
-                    enabled = state.canConfirm && !state.applying && !state.pickerProgress.busy,
+                    enabled = state.canConfirm && !state.applying && !state.pickerProgress.busy && privateStatus?.ready != false,
                 )
                 if (restCaption != null && state.trainingDays > 0) {
                     Text(restCaption, style = InstrumentType.caption, color = TextSecondary)
@@ -262,7 +272,8 @@ fun CustomWeekScreen(
     }
 
     if (state.showPicker) {
-        ExercisePickerSheet(
+        RecoverableExercisePickerSheet(
+            recovery = viewModel.pickerRecovery,
             canDismiss = viewModel::canDismissPicker,
             state = ExercisePickerState(
                 query = state.searchQuery,

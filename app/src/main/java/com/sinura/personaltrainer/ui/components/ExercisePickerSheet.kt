@@ -36,6 +36,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +55,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,6 +83,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * Choosing a lift, and the row anatomy the library screen shares with this sheet.
@@ -97,56 +102,171 @@ fun ExercisePickerSheet(
     onEvent: (ExercisePickerEvent) -> Unit,
     canDismiss: () -> Boolean = { !state.progress.busy },
 ) {
+    PickerSheet(state = state, onEvent = onEvent, canDismiss = canDismiss, recovery = null)
+}
+
+@Composable
+internal fun RecoverableExercisePickerSheet(
+    state: ExercisePickerState,
+    onEvent: (ExercisePickerEvent) -> Unit,
+    recovery: OwnedPickerRecovery?,
+    canDismiss: () -> Boolean = { !state.progress.busy },
+) {
+    if (recovery == null) ExercisePickerSheet(state = state, onEvent = onEvent, canDismiss = canDismiss)
+    else OwnedExercisePickerSheet(state = state, onEvent = onEvent, recovery = recovery, canDismiss = canDismiss)
+}
+
+@Composable
+internal fun OwnedExercisePickerSheet(
+    state: ExercisePickerState,
+    onEvent: (ExercisePickerEvent) -> Unit,
+    recovery: OwnedPickerRecovery,
+    canDismiss: () -> Boolean,
+) {
+    val currentEvent by rememberUpdatedState(onEvent)
+    DisposableEffect(recovery) {
+        recovery.view.bindDeparture { currentEvent(ExercisePickerEvent.Dismissed) }
+        recovery.view.open()
+        onDispose { recovery.view.closeVisit(); recovery.create.closeVisit() }
+    }
+    val view by recovery.view.status.collectAsState()
+    val fields by recovery.view.fields.collectAsState()
+    val custom by recovery.create.status.collectAsState()
+    LaunchedEffect(view.opening, fields.creating, recovery.view.activeOwner) {
+        if (!view.opening && fields.creating && custom.phase == PickerCreatePhase.CLOSED) recovery.openCreate()
+    }
+    PickerSheet(state = state, onEvent = onEvent, canDismiss = { canDismiss() && recovery.canLeave() }, recovery = recovery)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PickerSheet(
+    state: ExercisePickerState,
+    onEvent: (ExercisePickerEvent) -> Unit,
+    canDismiss: () -> Boolean,
+    recovery: OwnedPickerRecovery?,
+) {
     val mayDismiss by rememberUpdatedState(canDismiss)
-    val canChange = remember { { value: SheetValue -> value != SheetValue.Hidden || mayDismiss() } }
+    val event by rememberUpdatedState(onEvent)
+    val dismiss: () -> Unit = { if (mayDismiss()) {
+        if (recovery == null) event(ExercisePickerEvent.Dismissed)
+        else recovery.leave { event(ExercisePickerEvent.Dismissed) }
+    } }
+    val currentDismiss by rememberUpdatedState(dismiss)
+    val canChange = remember(recovery) { { value: SheetValue ->
+        if (value != SheetValue.Hidden) true else if (recovery == null) mayDismiss()
+        else { currentDismiss(); false }
+    } }
     val sheet = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         confirmValueChange = canChange,
     )
     ModalBottomSheet(
-        onDismissRequest = { if (mayDismiss()) onEvent(ExercisePickerEvent.Dismissed) },
+        onDismissRequest = dismiss,
         sheetState = sheet,
     ) {
         ExercisePickerContent(
             state = state,
-            onEvent = onEvent,
+            onEvent = { action -> when {
+                action == ExercisePickerEvent.Dismissed -> dismiss()
+                recovery != null && action is ExercisePickerEvent.Selected -> recovery.leave { onEvent(action) }
+                else -> onEvent(action)
+            } },
             modifier = Modifier.fillMaxHeight(SHEET_HEIGHT_SHARE),
+            recovery = recovery,
         )
     }
 }
 
 /** The same native content is used by the sheet and its constrained-layout render tests. */
+private data class PickerPositionRequest(
+    val query: String,
+    val muscle: CanonicalMuscle?,
+    val creating: Boolean,
+    val opening: Boolean?,
+    val error: String?,
+)
+
 @Composable
 internal fun ExercisePickerContent(
     state: ExercisePickerState,
     onEvent: (ExercisePickerEvent) -> Unit,
     modifier: Modifier = Modifier,
+    recovery: OwnedPickerRecovery? = null,
 ) {
     var selectedMuscleName by rememberSaveable { mutableStateOf("") }
-    var creating by rememberSaveable { mutableStateOf(false) }
-    var createName by rememberSaveable { mutableStateOf("") }
-    var group by rememberSaveable { mutableStateOf("") }
-    var loadTypeName by rememberSaveable { mutableStateOf(LoadType.EXTERNAL.name) }
+    var localCreating by rememberSaveable { mutableStateOf(false) }
+    var localCreateName by rememberSaveable { mutableStateOf("") }
+    var localGroup by rememberSaveable { mutableStateOf("") }
+    var localLoadTypeName by rememberSaveable { mutableStateOf(LoadType.EXTERNAL.name) }
+    var notesOpen by rememberSaveable { mutableStateOf(false) }
+    var confirmReset by rememberSaveable { mutableStateOf(false) }
+    val retained = recovery?.view?.fields?.collectAsState()?.value
+    val viewStatus = recovery?.view?.status?.collectAsState()?.value
+    val createStatus = recovery?.create?.status?.collectAsState()?.value
+    val creating = if (recovery == null) localCreating else retained?.creating == true ||
+        createStatus?.phase in setOf(PickerCreatePhase.OPENING, PickerCreatePhase.READ_FAILED)
+    val createName = createStatus?.fields?.name ?: localCreateName
+    val group = createStatus?.fields?.muscle ?: localGroup
+    val loadTypeName = createStatus?.fields?.loadType?.name ?: localLoadTypeName
+    val editable = recovery?.canSelect() ?: true
+    val customEditable = createStatus?.editable ?: true
     var consumedCreation by rememberSaveable { mutableStateOf(state.progress.createdGeneration) }
-    val selectedMuscle = CanonicalMuscle.bodyMapOrder.firstOrNull { it.name == selectedMuscleName }
+    val selectedMuscle = if (recovery == null) CanonicalMuscle.bodyMapOrder.firstOrNull { it.name == selectedMuscleName } else retained?.muscle
     val visibleResults = state.visibleFor(selectedMuscle)
     val needle = state.query.trim()
     val canCreate = needle.isNotEmpty() &&
         (state.catalog + state.results).none { it.name.equals(needle, ignoreCase = true) }
     val list = rememberLazyListState()
     val keyboard = LocalSoftwareKeyboardController.current
+    val density = LocalDensity.current
     val problem = state.progress.error ?: state.error
+    val recoveringSelection = recovery != null && !editable && state.progress.canRetry
+    val continuingSavedCreate = recovery != null && createStatus?.phase == PickerCreatePhase.SAVED &&
+        viewStatus?.busy == false && !viewStatus.changedElsewhere
+    val hasRecoveryStatus = viewStatus?.let { it.busy || it.resumed || it.error != null } == true
+    val keys = pickerContentKeys(state = state, muscle = selectedMuscle, creating = creating,
+        hasError = problem != null, hasRecoveryStatus = hasRecoveryStatus, hasRecovery = recovery != null)
+    var restoredPosition by remember(recovery) { mutableStateOf(false) }
+    var restoredRequest by remember(recovery) { mutableStateOf<PickerPositionRequest?>(null) }
+    val currentViewStatus by rememberUpdatedState(viewStatus)
+    val positionRequest = PickerPositionRequest(query = state.query, muscle = selectedMuscle,
+        creating = creating, opening = viewStatus?.opening, error = viewStatus?.error ?: problem)
+    LaunchedEffect(recovery, positionRequest, keys, state.catalog.isNotEmpty()) {
+        if (restoredRequest != positionRequest) {
+            restoredPosition = false
+            restoredRequest = positionRequest
+            if (positionRequest.error != null || creating) list.scrollToItem(0)
+        }
+        if (recovery != null && viewStatus?.opening == false && viewStatus.error == null && !creating && !restoredPosition && keys.isNotEmpty()) {
+            val value = checkNotNull(retained)
+            val anchor = value.anchor?.let(keys::indexOf)?.takeIf { it >= 0 }
+            if (value.anchor == null || anchor != null || state.catalog.isNotEmpty()) {
+                list.scrollToItem((anchor ?: value.index).coerceIn(0, keys.lastIndex), with(density) { value.offsetDp.dp.roundToPx() })
+                restoredPosition = true
+            }
+        }
+    }
+    LaunchedEffect(list, recovery, density) {
+        if (recovery != null) snapshotFlow {
+            if (!restoredPosition || currentViewStatus?.busy == true || currentViewStatus?.error != null) null else Triple(list.firstVisibleItemIndex, list.firstVisibleItemScrollOffset,
+                list.layoutInfo.visibleItemsInfo.firstOrNull()?.key as? String)
+        }.distinctUntilChanged().collect { position ->
+            position?.let { (index, offset, anchor) ->
+                recovery.view.positionChanged(index = index, offsetDp = with(density) { offset.toDp().value }, anchor = anchor)
+            }
+        }
+    }
     LaunchedEffect(state.progress.createdGeneration) {
         if (state.progress.createdGeneration > consumedCreation) {
-            creating = false
+            localCreating = false
         }
         // A new ViewModel starts at zero after process recreation; retain the form,
         // then consume its future successes against that new owner's counter.
         consumedCreation = state.progress.createdGeneration
     }
-    LaunchedEffect(problem, creating) { if (problem != null || creating) list.scrollToItem(0) }
     val choose: (Exercise) -> Unit = { exercise ->
-        if (!state.progress.creating && (state.multiSelect || !state.progress.busy)) {
+        if (editable && createStatus?.busy != true && !state.progress.creating && (state.multiSelect || !state.progress.busy)) {
             onEvent(if (state.multiSelect) ExercisePickerEvent.Toggled(exercise) else ExercisePickerEvent.Selected(exercise))
         }
     }
@@ -156,7 +276,7 @@ internal fun ExercisePickerContent(
             verticalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
             if (creating) {
-                TextButton(onClick = { creating = false }, enabled = !state.progress.busy) {
+                TextButton(onClick = { if (recovery == null) localCreating = false else recovery.backToList() }, enabled = !state.progress.busy && createStatus?.busy != true) {
                     Text("Back to lifts", style = InstrumentType.bodyStrong)
                 }
                 Text("Create custom lift", style = InstrumentType.title, color = TextPrimary)
@@ -164,9 +284,13 @@ internal fun ExercisePickerContent(
                 Text(state.title, style = InstrumentType.title, color = TextPrimary)
                 ExerciseSearchField(
                     value = state.query,
-                    onValueChange = { onEvent(ExercisePickerEvent.QueryChanged(it)) },
+                    onValueChange = { if (editable) {
+                        if (recovery == null) onEvent(ExercisePickerEvent.QueryChanged(it))
+                        else recovery.change(recovery.view.fields.value.copy(query = it, anchor = null, index = 0, offsetDp = 0f))
+                    } },
                     placeholder = "Search lifts",
                     modifier = Modifier.testTag("picker-search"),
+                    enabled = editable,
                 )
             }
         }
@@ -176,15 +300,35 @@ internal fun ExercisePickerContent(
             modifier = Modifier.weight(1f).testTag("picker-content"),
             contentPadding = PaddingValues(bottom = Metrics.space4),
         ) {
+            if (hasRecoveryStatus) {
+                item(key = "view-status") {
+                    Column(modifier = Modifier.padding(Metrics.gutter)) {
+                        if (viewStatus?.busy == true) Text(if (viewStatus.opening) "Opening picker…" else "Keeping picker…",
+                            style = InstrumentType.caption, color = TextSecondary)
+                        viewStatus?.error?.let { message ->
+                            GymErrorBanner(message = message,
+                                onRetry = if (viewStatus.changedElsewhere) null else ({ checkNotNull(recovery).view.keep() }))
+                            if (viewStatus.changedElsewhere) SecondaryGymButton(text = "Use kept view",
+                                onClick = { checkNotNull(recovery).view.useKeptView() }, height = Metrics.touchMin)
+                        }
+                        if (viewStatus?.resumed == true) Text("Picker resumed", style = InstrumentType.caption, color = TextSecondary)
+                    }
+                }
+            }
             if (problem != null) {
                 item(key = "error") {
-                    GymErrorBanner(
+                    if (recoveringSelection && recovery?.retryLabel?.invoke() == "Continue") {
+                        Column(modifier = Modifier.padding(Metrics.gutter), verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                            Kicker("LIFT SAVED")
+                            Text(problem, style = InstrumentType.body, color = TextSecondary)
+                        }
+                    } else GymErrorBanner(
                         message = problem,
                         modifier = Modifier.padding(Metrics.gutter),
-                        onRetry = if (state.progress.canRetry && !state.progress.busy) {
+                        onRetry = if (state.progress.canRetry && !state.progress.busy && !recoveringSelection) {
                             { onEvent(ExercisePickerEvent.Retry) }
                         } else null,
-                        onDismiss = { onEvent(ExercisePickerEvent.ErrorDismissed) },
+                        onDismiss = if (editable) ({ onEvent(ExercisePickerEvent.ErrorDismissed) }) else null,
                     )
                 }
             }
@@ -196,7 +340,7 @@ internal fun ExercisePickerContent(
                         tag = LoadTypeCopy.rowTag(existing),
                     )
                     TextButton(
-                        onClick = { creating = false; onEvent(ExercisePickerEvent.Selected(existing)) },
+                        onClick = { localCreating = false; onEvent(ExercisePickerEvent.Selected(existing)) },
                         enabled = !state.progress.busy,
                         modifier = Modifier.padding(horizontal = Metrics.gutter),
                     ) { Text("Use existing lift: ${existing.name}", style = InstrumentType.bodyStrong) }
@@ -208,7 +352,19 @@ internal fun ExercisePickerContent(
                         modifier = Modifier.padding(Metrics.gutter).testTag("picker-create-form"),
                         verticalArrangement = Arrangement.spacedBy(Metrics.space4),
                     ) {
-                        Text(createName, style = InstrumentType.display, color = TextPrimary)
+                        if (recovery == null) Text(createName, style = InstrumentType.display, color = TextPrimary)
+                        else BasicTextField(value = createName, onValueChange = { if (customEditable) {
+                            val fields = checkNotNull(createStatus?.fields)
+                            recovery.create.update(name = it, muscle = fields.muscle, loadType = fields.loadType, notes = fields.notes)
+                        } }, singleLine = true, enabled = customEditable,
+                            textStyle = InstrumentType.title.copy(color = TextPrimary), cursorBrush = SolidColor(Volt),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin).testTag("picker-create-name"),
+                            decorationBox = { input -> Column { Kicker("LIFT NAME"); input() } })
+                        createStatus?.message?.let { Text(it, style = InstrumentType.body, color = TextSecondary) }
+                        if (createStatus?.phase in setOf(PickerCreatePhase.UNCERTAIN, PickerCreatePhase.KEEP_FAILED, PickerCreatePhase.READ_FAILED)) {
+                            SecondaryGymButton(text = "Check again", onClick = { recovery?.create?.check() }, enabled = createStatus?.busy != true,
+                                height = Metrics.touchMin)
+                        }
                         Text(
                             "Saved to your Library, then selected here. Cancelling later keeps the Library lift.",
                             style = InstrumentType.caption, color = TextSecondary,
@@ -219,15 +375,31 @@ internal fun ExercisePickerContent(
                             (MuscleGroups.chips + MuscleGroups.OTHER).forEach { muscle ->
                                 InstrumentChip(
                                     label = muscle, selected = muscle.equals(group, ignoreCase = true),
-                                    onClick = { group = muscle }, enabled = !state.progress.busy,
+                                    onClick = { if (recovery == null) localGroup = muscle else {
+                                        val fields = checkNotNull(createStatus?.fields)
+                                        recovery.create.update(name = fields.name, muscle = muscle, loadType = fields.loadType, notes = fields.notes)
+                                    } }, enabled = !state.progress.busy && customEditable,
                                 )
                             }
                         }
                         LoadTypeChipRow(
                             selected = LoadType.fromStorage(loadTypeName),
-                            onSelect = { loadTypeName = it.name },
-                            enabled = !state.progress.busy,
+                            onSelect = { if (recovery == null) localLoadTypeName = it.name else {
+                                val fields = checkNotNull(createStatus?.fields)
+                                recovery.create.update(name = fields.name, muscle = fields.muscle, loadType = it, notes = fields.notes)
+                            } },
+                            enabled = !state.progress.busy && customEditable,
                         )
+                        if (recovery != null) {
+                            TextButton(onClick = { notesOpen = !notesOpen }, modifier = Modifier.heightIn(min = Metrics.touchMin)) {
+                                Text(if (notesOpen) "Hide notes" else "Notes (optional)", style = InstrumentType.bodyStrong)
+                            }
+                            if (notesOpen) BasicTextField(value = createStatus?.fields?.notes.orEmpty(), onValueChange = {
+                                val fields = checkNotNull(createStatus?.fields)
+                                recovery.create.update(name = fields.name, muscle = fields.muscle, loadType = fields.loadType, notes = it)
+                            }, enabled = customEditable, textStyle = InstrumentType.body.copy(color = TextPrimary), cursorBrush = SolidColor(Volt),
+                                modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin).testTag("picker-create-notes"))
+                        }
                     }
                 }
             } else {
@@ -236,11 +408,14 @@ internal fun ExercisePickerContent(
                         contentPadding = PaddingValues(Metrics.gutter),
                         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
-                        item { InstrumentChip("All", selectedMuscle == null, { selectedMuscleName = "" }) }
+                        item { InstrumentChip(label = "All", selected = selectedMuscle == null, onClick = {
+                            if (recovery == null) selectedMuscleName = "" else recovery.change(recovery.view.fields.value.copy(muscle = null, anchor = null, index = 0, offsetDp = 0f))
+                        }, enabled = editable) }
                         items(CanonicalMuscle.bodyMapOrder, key = { it.name }) { muscle ->
-                            InstrumentChip(muscle.displayName, selectedMuscle == muscle, {
-                                selectedMuscleName = if (selectedMuscleName == muscle.name) "" else muscle.name
-                            })
+                            InstrumentChip(label = muscle.displayName, selected = selectedMuscle == muscle, onClick = {
+                                if (recovery == null) selectedMuscleName = if (selectedMuscleName == muscle.name) "" else muscle.name
+                                else recovery.change(recovery.view.fields.value.copy(muscle = muscle.takeUnless { it == selectedMuscle }, anchor = null, index = 0, offsetDp = 0f))
+                            }, enabled = editable)
                         }
                     }
                 }
@@ -260,7 +435,7 @@ internal fun ExercisePickerContent(
                 if (needle.isEmpty()) {
                     val siblings = if (state.showSiblings) LibraryFilter.apply(state.siblings, selectedMuscle) else emptyList()
                     if (siblings.isNotEmpty()) {
-                        item { Kicker("SAME MOVEMENT", modifier = Modifier.padding(Metrics.gutter)) }
+                        item(key = "siblings-header") { Kicker("SAME MOVEMENT", modifier = Modifier.padding(Metrics.gutter)) }
                         items(siblings, key = { "sibling-${it.id}" }) { exercise ->
                             PickerLiftRow(exercise = exercise, selected = exercise.id in state.selectedIds, onClick = { choose(exercise) },
                                 cartNumber = LiftCart.cartNumber(state.selectedOrder, exercise.id),
@@ -290,7 +465,7 @@ internal fun ExercisePickerContent(
                     Column(modifier = instrumentAnimateItem()) {
                         PickerLiftRow(exercise = exercise, selected = exercise.id in state.selectedIds, onClick = { choose(exercise) },
                             cartNumber = LiftCart.cartNumber(state.selectedOrder, exercise.id),
-                            enabled = !state.progress.creating && (state.multiSelect || !state.progress.busy),
+                            enabled = editable && !state.progress.creating && (state.multiSelect || !state.progress.busy),
                             pending = exercise.id in state.progress.pendingIds)
                         if (i < visibleResults.lastIndex) HairlineDivider()
                     }
@@ -300,21 +475,38 @@ internal fun ExercisePickerContent(
                         TextButton(
                             onClick = {
                                 keyboard?.hide()
-                                createName = needle
-                                group = MuscleGroups.forNewDraft(selectedMuscle)
-                                loadTypeName = LoadType.EXTERNAL.name
-                                creating = true
+                                if (recovery == null) {
+                                    localCreateName = needle
+                                    localGroup = MuscleGroups.forNewDraft(selectedMuscle)
+                                    localLoadTypeName = LoadType.EXTERNAL.name
+                                    localCreating = true
+                                } else recovery.openCreate()
                             },
-                            enabled = !state.progress.busy,
+                            enabled = !state.progress.busy && editable,
                             modifier = Modifier.fillMaxWidth().padding(Metrics.gutter).testTag("picker-create-entry"),
                         ) { Text("Create custom lift: $needle", style = InstrumentType.bodyStrong, color = TextSecondary) }
                     }
                 }
             }
+            if (recovery != null) {
+                item(key = "private-reset") {
+                    Column(modifier = Modifier.padding(horizontal = Metrics.gutter)) {
+                        if (!creating) createStatus?.message?.let { Text(it, style = InstrumentType.body, color = TextSecondary) }
+                        TextButton(onClick = { confirmReset = true }, enabled = !state.progress.busy && viewStatus?.busy != true && createStatus?.busy != true,
+                            modifier = Modifier.heightIn(min = Metrics.touchMin).testTag("picker-reset")) {
+                            Text("Reset picker", style = InstrumentType.bodyStrong, color = TextSecondary)
+                        }
+                    }
+                }
+            }
         }
-        if (creating || state.multiSelect || state.progress.busy) {
+        if (creating || state.multiSelect || state.progress.busy || recoveringSelection) {
             PrimaryGymButton(
                 text = when {
+                    recoveringSelection -> checkNotNull(recovery).retryLabel()
+                    createStatus?.busy == true -> createStatus.message ?: "Saving lift…"
+                    createStatus?.phase == PickerCreatePhase.SAVED -> if (recovery?.retryLabel?.invoke() == "Continue") "Continue" else "Use saved lift"
+                    createStatus?.phase == PickerCreatePhase.RETRYABLE -> "Retry exact Save"
                     state.progress.creating -> "Creating lift…"
                     state.progress.busy -> "Saving lift…"
                     creating -> "Create and select"
@@ -322,15 +514,49 @@ internal fun ExercisePickerContent(
                     state.cart.size == 1 -> "Done · 1 lift"
                     else -> "Done · ${state.cart.size} lifts"
                 },
-                enabled = !state.progress.busy && (!creating || MuscleGroups.resolved(group) != null),
+                enabled = !state.progress.busy && viewStatus?.busy != true && viewStatus?.changedElsewhere != true && createStatus?.busy != true && (recoveringSelection || continuingSavedCreate || editable && (!creating ||
+                    if (recovery == null) MuscleGroups.resolved(group) != null else createStatus?.phase == PickerCreatePhase.SAVED ||
+                        createStatus?.phase in setOf(PickerCreatePhase.EDITING, PickerCreatePhase.RETRYABLE) && createName.isNotBlank() && MuscleGroups.resolved(group) != null)),
                 onClick = {
-                    if (creating) onEvent(ExercisePickerEvent.Created(createName, group, LoadType.fromStorage(loadTypeName)))
+                    if (recoveringSelection) onEvent(ExercisePickerEvent.Retry)
+                    else if (creating && recovery != null) {
+                        if (createStatus?.phase == PickerCreatePhase.SAVED) recovery.useSaved() else recovery.saveCreate()
+                    } else if (creating) onEvent(ExercisePickerEvent.Created(createName, group, LoadType.fromStorage(loadTypeName)))
                     else onEvent(ExercisePickerEvent.Dismissed)
                 },
                 modifier = Modifier.padding(horizontal = Metrics.gutter, vertical = Metrics.space3).testTag("picker-action"),
             )
         }
     }
+    if (confirmReset && recovery != null) ConfirmActionDialog(
+        title = "Reset this picker?",
+        body = "Clear this search, filters and unfinished custom-lift draft. Saved Library lifts and lifts already added here stay saved.",
+        confirmLabel = "Reset picker", destructive = true,
+        confirmEnabled = !state.progress.busy && viewStatus?.busy != true && createStatus?.busy != true,
+        onConfirm = { confirmReset = false; recovery.discardPrivate() }, onDismiss = { confirmReset = false },
+    )
+}
+
+internal fun pickerContentKeys(state: ExercisePickerState, muscle: CanonicalMuscle?, creating: Boolean,
+    hasError: Boolean, hasRecoveryStatus: Boolean = false, hasRecovery: Boolean = false): List<String> = buildList {
+    if (hasRecoveryStatus) add("view-status")
+    if (hasError) add("error")
+    if (state.progress.existing != null) add("existing")
+    if (creating) add("create-form") else {
+        add("filters")
+        if (state.multiSelect) add("selection")
+        if (state.query.trim().isEmpty()) {
+            val siblings = if (state.showSiblings) LibraryFilter.apply(state.siblings, muscle) else emptyList()
+            if (siblings.isNotEmpty()) { add("siblings-header"); siblings.forEach { add("sibling-${it.id}") } }
+            if (state.suggestion?.let { muscle == null || LibraryFilter.matches(it, muscle) } == true) add("suggestion")
+        }
+        val results = state.visibleFor(muscle)
+        if (results.isEmpty()) add("empty")
+        results.forEach { add(it.id) }
+        val needle = state.query.trim()
+        if (needle.isNotEmpty() && (state.catalog + state.results).none { it.name.equals(needle, ignoreCase = true) }) add("create-entry")
+    }
+    if (hasRecovery) add("private-reset")
 }
 
 @Composable

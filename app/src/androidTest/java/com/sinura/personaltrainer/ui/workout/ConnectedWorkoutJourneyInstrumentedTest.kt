@@ -23,6 +23,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -36,6 +37,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.swipeDown
@@ -52,6 +54,7 @@ import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.DebugUpdateCopy
 import com.sinura.personaltrainer.domain.LaunchPermissionCopy
 import com.sinura.personaltrainer.domain.LoadClass
@@ -376,6 +379,97 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(SessionDetailTestTags.BACK).performClick()
         compose.onNodeWithTag("navigation-history").assertIsSelected()
         assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
+    }
+
+    @Test fun nativeSwapKeepsItsQueryAndReplacesTheIntendedUnloggedLiftOnce() {
+        startSyntheticWorkoutFromHome()
+        val original = session().exercises.first { it.exercise.id == fixture.first.id }
+        val replacement = runBlocking(Dispatchers.IO) {
+            container.exerciseRepository.observeAll().first().first { !it.isCustom && it.name.contains("Bench Press") }
+        }
+        openNativeSwap()
+        val query = "  ${replacement.name}  "
+        val queryField = hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search"))
+        compose.onNode(queryField).assertIsEnabled().performTextReplacement(query)
+        compose.onNode(queryField).performImeAction()
+        captureWindow("swap-query")
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(30_000) { compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty() }
+        assertEquals(original, session().exercises.first { it.id == original.id })
+        openNativeSwap()
+        compose.onNode(queryField).assertTextEquals(query)
+        val result = hasText(replacement.name) and hasAnyAncestor(hasTestTag("picker-content"))
+        compose.onNodeWithTag("picker-content").performScrollToNode(result)
+        compose.onNode(result).assertIsDisplayed().performClick()
+        compose.waitUntil(30_000) { compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty() }
+        awaitTag(WorkoutTestTags.liftCard(replacement.id))
+        val actual = session().exercises.first { it.exercise.id == replacement.id }
+        assertEquals(original.targetSets, actual.targetSets)
+        assertEquals(original.targetReps, actual.targetReps)
+        assertEquals(original.restSeconds, actual.restSeconds)
+        assertNull(actual.targetWeightKg)
+        assertEquals(2, session().exercises.size)
+        assertTrue(session().sets.isEmpty())
+        assertNull(runBlocking(Dispatchers.IO) { container.pickerSwapDrafts.openPending(checkNotNull(sessionId)) })
+        captureWindow("swap-saved")
+    }
+
+    @Test fun interruptedAcceptedSwapShowsOneNativeContinueActionAndDoesNotRewrite() {
+        startSyntheticWorkoutFromHome()
+        val source = session().exercises.first { it.exercise.id == fixture.first.id }
+        val replacement = runBlocking(Dispatchers.IO) {
+            container.exerciseRepository.observeAll().first().first { !it.isCustom && it.name.contains("Bench Press") }
+        }
+        // Isolated fixture simulates a business commit whose UI acknowledgement was interrupted.
+        // Reopening and Continue below use shipping AppNav and rendered controls.
+        val intended = runBlocking(Dispatchers.IO) {
+            val handle = container.pickerSwapDrafts.open(checkNotNull(sessionId), source.id)
+            container.pickerSwapDrafts.admit(handle, checkNotNull(sessionId), source.id, replacement)
+            container.pickerSwapDrafts.execute(handle) { true }
+            checkNotNull(handle.checkpoint.pending).value.after
+        }
+        awaitEntryWithoutEffort()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.SWITCHER_ADD_LIFT).performScrollTo().performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag("picker-action") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("picker-action").assertIsEnabled().assertTextEquals("Continue")
+        captureWindow("swap-recovered-saved")
+        compose.onNodeWithTag("picker-action").performClick()
+        compose.waitUntil(30_000) { compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty() }
+        assertEquals(intended.id, session().exercises.first { it.exercise.id == replacement.id }.id)
+        assertTrue(session().sets.isEmpty())
+        assertNull(runBlocking(Dispatchers.IO) { container.pickerSwapDrafts.openPending(checkNotNull(sessionId)) })
+        captureWindow("swap-recovered-continued")
+    }
+
+    private fun startSyntheticWorkoutFromHome() {
+        awaitTag("navigation-home")
+        awaitScrollableContent()
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
+        compose.onNodeWithTag(HomeStartTags.routine(fixture.routineId)).performScrollTo().performClick()
+        awaitCondition("Home creates the synthetic swap session") {
+            runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress()?.let {
+                if (it.routineId == fixture.routineId) sessionId = it.id
+                sessionId != null
+            } == true }
+        }
+        awaitEntryWithoutEffort()
+    }
+
+    private fun openNativeSwap() {
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.onNodeWithText(CurrentLiftCopy.SWAP).assertIsEnabled()
+            .performSemanticsAction(SemanticsActions.OnClick) { it() }
+        try { awaitTag("picker-search") } catch (failure: Throwable) {
+            captureWindow("swap-open-failed")
+            throw failure
+        }
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private suspend fun seed() {

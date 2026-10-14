@@ -51,7 +51,7 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.NotesKind
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.RecoverableExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.ExerciseRow
 import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -381,7 +381,8 @@ fun RoutineEditorScreen(
     }
 
     if (state.showExercisePicker) {
-        ExercisePickerSheet(
+        RecoverableExercisePickerSheet(
+            recovery = viewModel.recoveryForPicker(),
             canDismiss = viewModel::canDismissPicker,
             state = ExercisePickerState(
                 query = state.searchQuery,

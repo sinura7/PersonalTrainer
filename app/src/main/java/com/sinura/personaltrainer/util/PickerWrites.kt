@@ -17,6 +17,7 @@ internal class PickerWrites {
     private val mutable = MutableStateFlow(ExercisePickerProgress())
     val state = mutable.asStateFlow()
     val busy: Boolean get() = pending.isNotEmpty()
+    val canRetry: Boolean get() = mutable.value.canRetry
     val creating: Boolean get() = pending.values.any { it.creating }
 
     fun begin(key: String, creating: Boolean = false): Long {
@@ -60,6 +61,9 @@ internal class PickerWrites {
         failures.keys.firstOrNull()?.let { failures.remove(it) }
         publish()
     }
+
+    /** A newly opened owner reconstructs exact recovery from its durable command. */
+    fun clearFailures() { failures.clear(); publish() }
 
     private fun publish() {
         val failure = failures.values.firstOrNull()

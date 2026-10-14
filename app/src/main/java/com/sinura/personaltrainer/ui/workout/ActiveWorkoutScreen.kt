@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.ui.components.RecoverableExercisePickerSheet
+
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -68,7 +70,6 @@ import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
-import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.InstrumentPreset
 import com.sinura.personaltrainer.ui.components.QuietButton
@@ -1069,7 +1070,8 @@ private fun ActiveWorkoutContent(
     }
 
     if (state.showExercisePicker) {
-        ExercisePickerSheet(
+        RecoverableExercisePickerSheet(
+            recovery = viewModel.pickerRecovery,
             canDismiss = viewModel::canDismissPicker,
             state = ExercisePickerState(
                 query = state.searchQuery,

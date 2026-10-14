@@ -1,5 +1,11 @@
 # Temper UX foundation
 
+P01–P09 and the P10 Library-context core are integrated. The required P10R picker-recovery candidate `dccd7f4e` is verified and awaiting integration. Fresh final64 passed **4,700 app tests, 1,715 standalone tests, 631 fresh XML**, statics, lint, release shrinking and debug/test APK assembly against 1,678 unchanged inputs. Both final pinned reviews found zero unresolved Critical/High/Medium source findings. **45/96 required criteria have bounded automated evidence**; this is not a usability percentage or physical acceptance. Latest signed delivery remains Debug125; Drop A follows full P10 integration.
+
+Picker recovery now covers routines, imported targets, workout Add/Swap, activity and custom-week days. It keeps raw queries, filters, positions and unfinished Create fields privately; reserves stable custom IDs and exact swap commands; flushes before orderly exit; and recovers refused saves and corrupt-child resets without losing healthy staged fields. [Current activity picker](studies/q01/assets/p10-activity-picker-reopened-2026-10-14.png), [current week picker](studies/q01/assets/p10-week-picker-reopened-2026-10-14.png) and [saved Swap continuation](studies/q01/assets/p10-swap-appnav-continue-2026-10-14.png) are native synthetic evidence from the verified candidate.
+
+Native66/67/68 passed normal Swap and activity/week reopening on identical APKs. **Native65 remains a failed combined batch:** accepted-swap recovery passed, then normal Swap timed out before opening; the unchanged isolated replay passed. Its cause remains unproven and is retained for P19. Seventy-one fresh component frames are separate from AppNav and phone evidence. Original failures, final reviews and recoverable archives are in the [existing P10 study](studies/q01/p10-library-context-2026-10-14.json). Full activity Save replay and partial plan Apply reconciliation remain P14/P16; P19 integration and P20 physical/participant acceptance remain open.
+
 **Created:** 8 October 2026
 
 **Completion train accepted, 12 October 2026:** The owner approved P01–P20

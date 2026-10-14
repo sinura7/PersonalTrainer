@@ -11,6 +11,11 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome
+import com.sinura.personaltrainer.data.draft.DraftOwner
+import com.sinura.personaltrainer.data.draft.DraftForm
+import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
+import com.sinura.personaltrainer.data.draft.PickerContextDrafts
+import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
 import com.sinura.personaltrainer.data.draft.RoutineDraftFields
 import com.sinura.personaltrainer.data.draft.RoutineDraftHandle
 import com.sinura.personaltrainer.data.draft.RoutineDrafts
@@ -158,6 +163,8 @@ class RoutineEditorViewModel internal constructor(
     private val savedStateHandle: SavedStateHandle,
     container: AppDependencies,
     private val durable: RoutineDrafts?,
+    private val pickerContexts: PickerContextDrafts? = (container as? AppContainer)?.pickerContextDrafts,
+    private val customLiftDrafts: CustomExerciseDrafts? = (container as? AppContainer)?.customExerciseDrafts,
 ) : AppViewModel(application, container) {
     @JvmOverloads constructor(application: Application, savedStateHandle: SavedStateHandle,
         container: AppDependencies = application.appContainer()) :
@@ -276,6 +283,105 @@ class RoutineEditorViewModel internal constructor(
     .also { draftOpen = it }
     private val routineWrites = RoutineEditorWrites(repository = container.routineRepository, drafts = durable,
         readyHandle = { openDraft().await() }, checkpoint = { checkpointNow() }, refused = ::recoveryRefused)
+
+    internal val pickerRecovery = if (pickerContexts != null && customLiftDrafts != null) {
+        OwnedPickerRecovery(
+            scope = viewModelScope, contextDrafts = pickerContexts, customDrafts = customLiftDrafts,
+            repository = container.exerciseRepository, savedState = savedStateHandle,
+            owner = {
+                val handle = checkNotNull(openDraft().await())
+                check(!handle.problem && !missing && !leaving)
+                DraftOwner(DraftForm.ROUTINE,
+                    "lifts:${handle.fields.routineId}")
+            },
+            stillOwned = { owner -> container.dbMaintenance.withMaintenanceLock { pickerStillOwnedLocked(owner) } },
+            ownedAtCommit = ::pickerStillOwnedLocked,
+            onQuery = { searchQuery.value = it },
+            selectCreated = { exercise ->
+                val write = commitPick(exercise = exercise, adding = true, created = true)
+                if (write == null) false else {
+                    write.join()
+                    routineId.value?.let { storedRow(it, exercise.id) != null } == true
+                }
+            },
+        )
+    } else null
+
+    private var unmatchedRecoveryActive = false
+    private var ownedUnmatched: PastedUnmatched? = null
+    private var ownedUnmatchedTarget: String? = null
+    private var ownedUnmatchedCreatedAt: Long? = null
+    private var ownedUnmatchedOwner: DraftOwner? = null
+    private val unmatchedPickerRecovery = if (pickerContexts != null && customLiftDrafts != null) {
+        OwnedPickerRecovery(scope = viewModelScope, contextDrafts = pickerContexts, customDrafts = customLiftDrafts,
+            repository = container.exerciseRepository, savedState = savedStateHandle,
+            owner = ::openUnmatchedPickerOwner,
+            stillOwned = { owner -> container.dbMaintenance.withMaintenanceLock { unmatchedPickerStillOwnedLocked(owner) } },
+            ownedAtCommit = ::unmatchedPickerStillOwnedLocked, onQuery = { searchQuery.value = it },
+            selectCreated = ::selectOwnedUnmatched, onSelected = ::closeOwnedUnmatchedPicker,
+            onReset = ::resetOwnedUnmatchedPicker)
+    } else null
+
+    internal fun recoveryForPicker(): OwnedPickerRecovery? = if (unmatchedRecoveryActive) unmatchedPickerRecovery else pickerRecovery
+
+    private suspend fun openUnmatchedPickerOwner(): DraftOwner {
+        val handle = checkNotNull(openDraft().await())
+        check(!handle.problem && !missing && !leaving)
+        val pending = checkNotNull(pasteState.value.unmatchedPick)
+        val imported = _imports.value.details?.owners?.firstOrNull {
+            pending.sessionName != null && it.name.equals(pending.sessionName, ignoreCase = true)
+        }
+        val target = imported?.id ?: handle.fields.routineId
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(com.google.gson.Gson().toJson(pending).toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        return DraftOwner(DraftForm.ROUTINE, "match:$target:$digest").also {
+            ownedUnmatched = pending
+            ownedUnmatchedTarget = target
+            ownedUnmatchedCreatedAt = imported?.createdAt ?: handle.fields.before?.routine?.createdAt
+            ownedUnmatchedOwner = it
+        }
+    }
+
+    private suspend fun unmatchedPickerStillOwnedLocked(owner: DraftOwner): Boolean {
+        val handle = draftHandle ?: return false
+        if (!unmatchedRecoveryActive || owner != ownedUnmatchedOwner || handle.problem || missing || leaving ||
+            container.backupService.restoreInProgress()) return false
+        val target = ownedUnmatchedTarget ?: return false
+        val actual = container.routineRepository.editorRecord(target)
+        val expected = ownedUnmatchedCreatedAt
+        return if (expected == null) target == handle.fields.routineId && handle.fields.createdHere && actual == null
+        else actual?.routine?.createdAt == expected
+    }
+
+    private suspend fun selectOwnedUnmatched(exercise: Exercise): Boolean {
+        val pending = ownedUnmatched ?: return false
+        val target = ownedUnmatchedTarget ?: return false
+        if (pasteState.value.unmatchedPick == pending) {
+            val write = resolveUnmatched(exercise = exercise, pending = pending, created = true, closePicker = false) ?: return false
+            write.join()
+        } else if (pasteState.value.unmatchedPick != null) return false
+        if (storedRow(target, exercise.id) == null || pasteState.value.unmatched.any { it == pending }) return false
+        ownedUnmatchedCreatedAt = container.routineRepository.editorRecord(target)?.routine?.createdAt ?: return false
+        checkpointNow()
+        return true
+    }
+
+    private fun closeOwnedUnmatchedPicker() { setPickerVisible(false) }
+    private fun resetOwnedUnmatchedPicker() {
+        if (pasteState.value.unmatchedPick == null) setPickerVisible(false)
+    }
+
+    /** Called under DbMaintenance by both ordinary reads and custom-Create commit admission. */
+    private suspend fun pickerStillOwnedLocked(owner: DraftOwner): Boolean {
+        val handle = draftHandle
+        if (handle == null || handle.problem || missing || leaving || container.backupService.restoreInProgress() ||
+            owner.identity != "lifts:${handle.fields.routineId}") return false
+        val before = handle.fields.before
+        val actual = container.routineRepository.editorRecord(handle.fields.routineId)
+        return if (before == null) actual == null && handle.fields.createdHere
+        else actual?.routine?.createdAt == before.routine.createdAt
+    }
 
     /**
      * Picker writes run one at a time, in tap order. Two taps on the same row are an add
@@ -1096,11 +1202,9 @@ class RoutineEditorViewModel internal constructor(
         if (visible && leaving) return
         if (!visible && pickerWrites.busy) return
         showPicker.value = visible
-        // The typed query is the only thing closing the sheet throws away. The lifts are
-        // already on the routine, which is the whole point: a tap outside the sheet used to
-        // empty a cart the owner had just built by hand, and the list started again.
         if (!visible) {
-            searchQuery.value = ""
+            unmatchedRecoveryActive = false
+            if (pickerRecovery == null) searchQuery.value = ""
             if (pasteState.value.unmatchedPick != null) {
                 pasteState.update { it.copy(unmatchedPick = null) }
             }
@@ -1301,6 +1405,7 @@ class RoutineEditorViewModel internal constructor(
 
     fun requestUnmatchedPick(item: PastedUnmatched) {
         if (leaving || missing) return
+        unmatchedRecoveryActive = true
         pasteState.update { it.copy(unmatchedPick = item) }
         setPickerVisible(true)
     }
@@ -1314,13 +1419,13 @@ class RoutineEditorViewModel internal constructor(
         else resolveUnmatched(exercise, pending, created = false)
     }
 
-    private fun resolveUnmatched(exercise: Exercise, pending: PastedUnmatched, created: Boolean) {
-        if (leaving || missing || pickerWrites.busy) return
+    private fun resolveUnmatched(exercise: Exercise, pending: PastedUnmatched, created: Boolean, closePicker: Boolean = true): Job? {
+        if (leaving || missing || pickerWrites.busy) return null
         val started = error.mark()
         val ticket = pickerWrites.begin(exercise.id)
         val defaults = AddDefaults.forExercise(exercise)
         val scheme = pending.scheme
-        launchWrite {
+        return launchWrite {
             try {
                 pickWrites.withLock {
                     val mainId = ensureRoutineId()
@@ -1329,7 +1434,7 @@ class RoutineEditorViewModel internal constructor(
                     }
                     val id = importedOwner?.id ?: mainId
                     if (id == null) {
-                        pickerWrites.fail(ticket, error.message ?: "Could not prepare this routine. Try again.") { resolveUnmatched(exercise, pending, created) }
+                        pickerWrites.fail(ticket, error.message ?: "Could not prepare this routine. Try again.") { resolveUnmatched(exercise, pending, created, closePicker) }
                         return@withLock
                     }
                     if (storedRow(id, exercise.id) == null) {
@@ -1351,7 +1456,7 @@ class RoutineEditorViewModel internal constructor(
                     persistDraft()
                     pickerWrites.succeed(ticket, created)
                     if (created) createdPickerLift = null
-                    setPickerVisible(false)
+                    if (closePicker) setPickerVisible(false)
                     error.clearFrom(ERR_ADD_LIFT, before = started)
                     error.clearFrom(ERR_ROUTINE, before = started)
                     if (pasteState.value.unmatched.isEmpty()) error.clearFrom(ERR_PASTE, before = started)
@@ -1361,7 +1466,7 @@ class RoutineEditorViewModel internal constructor(
                 throw thrown
             } catch (thrown: Exception) {
                 error.fail(ERR_ADD_LIFT, SessionOrderCopy.ADD_LIFT_FAILED)
-                pickerWrites.fail(ticket, SessionOrderCopy.ADD_LIFT_FAILED) { resolveUnmatched(exercise, pending, created) }
+                pickerWrites.fail(ticket, SessionOrderCopy.ADD_LIFT_FAILED) { resolveUnmatched(exercise, pending, created, closePicker) }
             }
         }
     }
@@ -1443,8 +1548,8 @@ class RoutineEditorViewModel internal constructor(
      * Hold the tap's intent, then write it. The intent is held first so the row answers the
      * finger on the same frame — Room's flow is a database round trip behind it.
      */
-    private fun commitPick(exercise: Exercise, adding: Boolean, created: Boolean = false) {
-        if (leaving) return
+    private fun commitPick(exercise: Exercise, adding: Boolean, created: Boolean = false): Job? {
+        if (leaving) return null
         val ticket = pickerWrites.begin(exercise.id)
         val tap = taps.incrementAndGet()
         pendingPicks.update { LiftCart.record(pending = it, id = exercise.id, adding = adding, tap = tap) }
@@ -1457,7 +1562,7 @@ class RoutineEditorViewModel internal constructor(
         // ordinary case, not the exotic one. A refusal raised while a tap waited its turn is
         // newer than the tap and must survive it.
         val started = error.mark()
-        launchWrite { pickWrites.withLock { writePick(exercise, adding, started, tap, ticket, created) } }
+        return launchWrite { pickWrites.withLock { writePick(exercise, adding, started, tap, ticket, created) } }
     }
 
     private suspend fun writePick(exercise: Exercise, adding: Boolean, started: Long, tap: Long, ticket: Long, created: Boolean) {
