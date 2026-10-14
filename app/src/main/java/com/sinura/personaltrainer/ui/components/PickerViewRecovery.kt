@@ -161,6 +161,15 @@ internal class PickerViewRecovery(
         }
     }
 
+    /** Confirmed child handoff may finish fields while a retained departure is unresolved. */
+    fun selectionCompleted() {
+        if (!foreground || status.value.busy || status.value.changedElsewhere || handle == null) return
+        mutableFields.value = fields.value.copy(creating = false, customDraftId = null)
+        unkept = true
+        revision++
+        cacheCurrent()
+    }
+
     fun closeVisit() { foreground = false; epoch += 1L; pendingLeave = null }
 
     /** Rebind a retired composition's close action without admitting another operation. */

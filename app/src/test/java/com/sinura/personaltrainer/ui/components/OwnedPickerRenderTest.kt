@@ -11,6 +11,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -38,6 +41,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.ExercisePickerProgress
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.workout.settle
 import java.io.File
@@ -83,6 +87,9 @@ class OwnedPickerRenderTest {
         title = "Add lifts", mode = ExercisePickerMode.MULTI_ADD, catalog = rows))
     private val showing = mutableStateOf(true)
     private val current = mutableStateOf<OwnedPickerRecovery?>(null)
+    private var blocksSelection = false
+    private var continuationLabel = "Retry"
+    private var continuations = 0
     private val io = object : DraftFileIO by AtomicDraftFiles {
         var failView = false
         override fun replace(file: File, bytes: ByteArray) {
@@ -102,12 +109,32 @@ class OwnedPickerRenderTest {
     private fun fresh() = OwnedPickerRecovery(scope = scope, contextDrafts = contexts, customDrafts = custom,
         repository = deps.exerciseRepository, savedState = SavedStateHandle(), owner = { owner },
         stillOwned = ::owns, ownedAtCommit = ::owns, onQuery = { state.value = state.value.copy(query = it) },
-        selectCreated = { false })
+        selectCreated = { false }, selectionBlocked = { blocksSelection }, retryLabel = { continuationLabel })
 
     @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
     fun small20() = journey("small20")
     @Test @Config(qualifiers = "w640dp-h360dp-land-xhdpi", fontScale = 2f)
     fun landscape20() = journey("landscape20")
+
+    @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
+    fun savedSwapHasOneReachableContinueAtSmallLargeText() = savedSwapContinuation("small20")
+
+    @Test @Config(qualifiers = "w640dp-h360dp-land-xhdpi", fontScale = 2f)
+    fun savedSwapHasOneReachableContinueInLandscapeLargeText() = savedSwapContinuation("landscape20")
+
+    private fun savedSwapContinuation(profile: String) {
+        blocksSelection = true
+        continuationLabel = "Continue"
+        state.value = state.value.copy(title = "Swap lift", mode = ExercisePickerMode.SWAP,
+            progress = ExercisePickerProgress(error = "Replacement saved. Continue to return to your workout.", canRetry = true))
+        current.value = fresh(); mount(); ready()
+        compose.onAllNodes(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search"))).assertCountEquals(0)
+        compose.onNodeWithTag("picker-action").assertIsDisplayed().assertIsEnabled().assertTextEquals("Continue")
+        compose.onNodeWithText("LIFT SAVED").assertIsDisplayed()
+        capture(profile, "saved-swap-continue")
+        compose.onNodeWithTag("picker-action").performClick()
+        assertEquals(1, continuations)
+    }
 
     @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
     fun delayedCataloguePreservesAndRestoresAnchor() {
@@ -161,6 +188,7 @@ class OwnedPickerRenderTest {
                         }
                         ExercisePickerContent(state = state.value, onEvent = { event ->
                             if (event == ExercisePickerEvent.Dismissed) recovery.leave { showing.value = false }
+                            if (event == ExercisePickerEvent.Retry) continuations++
                         }, modifier = Modifier.fillMaxHeight(0.9f), recovery = recovery)
                     }
                 }

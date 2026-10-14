@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.data.repository.AfterWorkoutBackup
 import com.sinura.personaltrainer.data.repository.AfterWorkoutUpload
 import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
 import com.sinura.personaltrainer.data.draft.DurableWorkoutDrafts
+import com.sinura.personaltrainer.data.draft.PickerSwapDrafts
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -105,6 +106,11 @@ class AppContainer(context: Context) : AppDependencies {
     }
     internal val pickerContextDrafts: com.sinura.personaltrainer.data.draft.PickerContextDrafts by lazy {
         com.sinura.personaltrainer.data.draft.PickerContextDrafts(durableDrafts)
+    }
+    internal val pickerSwapDrafts: PickerSwapDrafts by lazy {
+        PickerSwapDrafts(store = durableDrafts,
+            repository = workoutRepository, maintenance = dbMaintenance,
+            restoreOpen = { backupService.restoreInProgress() }, dispatcher = ioDispatcher)
     }
     internal val missedWorkDrafts: MissedWorkDrafts by lazy {
         MissedWorkDrafts(

@@ -7,10 +7,14 @@ import com.sinura.personaltrainer.data.local.TrainerDatabase
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome
+import com.sinura.personaltrainer.domain.HoldWork
+import com.sinura.personaltrainer.domain.Exercise
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -91,6 +95,79 @@ class WorkoutRepositoryRemoveLiftTest {
         assertTrue(after.exercises.none { it.item.id == SE_BENCH })
         assertEquals(1, after.exercises.size)
         assertEquals(SE_SQUAT, after.exercises.single().item.id)
+    }
+
+    @Test fun frozenPickerSwapCommitsItsStableReplacementOnceAndInspectsAfterTheSourceDisappears() = runBlocking {
+        insertLiveSession(); insertSessionExercise(id = SE_SQUAT, exerciseId = SQUAT, sortOrder = 0)
+        val replacement = Exercise(id = BENCH, name = "Bench", muscleGroup = "Legs", notes = "", isCustom = false)
+        val command = repository.preparePickerSwap(sessionId = SESSION, itemId = SE_SQUAT,
+            replacement = replacement, resultId = "synthetic-stable-swap")
+        assertEquals(DraftRecoveryOutcome.UNCOMMITTED, repository.inspectPickerSwap(command))
+        repository.commitPickerSwap(command) { true }
+        val once = database.workoutDao().getSession(SESSION)!!.exercises.map { it.item }
+        repository.commitPickerSwap(command) { false }
+        assertEquals(once, database.workoutDao().getSession(SESSION)!!.exercises.map { it.item })
+        assertEquals(listOf(command.after), once)
+        assertEquals(null, once.single().targetWeightKg)
+        assertEquals(DraftRecoveryOutcome.EXACT_SAVED, repository.inspectPickerSwap(command))
+    }
+
+    @Test fun pickerSwapRefusesForeignResultIdentityAndAChangedSourceWithoutReplacingEitherRow() = runBlocking {
+        insertLiveSession(); insertSessionExercise(id = SE_SQUAT, exerciseId = SQUAT, sortOrder = 0)
+        val replacement = Exercise(id = BENCH, name = "Bench", muscleGroup = "Legs", notes = "", isCustom = false)
+        val command = repository.preparePickerSwap(sessionId = SESSION, itemId = SE_SQUAT,
+            replacement = replacement, resultId = "synthetic-conflict-swap")
+        database.workoutDao().upsertSessionExercise(command.before.copy(id = command.after.id, sortOrder = 1))
+        val before = database.workoutDao().getAllSessionExercises()
+        assertEquals(DraftRecoveryOutcome.CONFLICT, repository.inspectPickerSwap(command))
+        assertThrows(IllegalStateException::class.java) { runBlocking { repository.commitPickerSwap(command) { true } } }
+        assertEquals(before, database.workoutDao().getAllSessionExercises())
+        database.workoutDao().deleteSessionExercise(command.after.id)
+        database.workoutDao().upsertSessionExercise(command.before.copy(targetSets = 4))
+        assertEquals(DraftRecoveryOutcome.CONFLICT, repository.inspectPickerSwap(command))
+        assertThrows(IllegalStateException::class.java) { runBlocking { repository.commitPickerSwap(command) { true } } }
+        assertEquals(4, database.workoutDao().getSession(SESSION)!!.exercises.single().item.targetSets)
+    }
+
+    @Test fun pickerSwapEnforcesAdmissionAndKeepsTimedReplacementRules() = runBlocking {
+        insertLiveSession(); insertSessionExercise(id = SE_SQUAT, exerciseId = SQUAT, sortOrder = 0)
+        database.exerciseDao().insertAll(listOf(exerciseRow("plank").copy(name = "Plank")))
+        val replacement = Exercise(id = "plank", name = "Plank", muscleGroup = "Legs", notes = "", isCustom = false)
+        val command = repository.preparePickerSwap(sessionId = SESSION, itemId = SE_SQUAT,
+            replacement = replacement, resultId = "synthetic-timed-swap")
+        assertThrows(IllegalStateException::class.java) { runBlocking { repository.commitPickerSwap(command) { false } } }
+        assertEquals(SE_SQUAT, database.workoutDao().getSession(SESSION)!!.exercises.single().item.id)
+        repository.commitPickerSwap(command) { true }
+        val saved = database.workoutDao().getSession(SESSION)!!.exercises.single().item
+        assertEquals(HoldWork.HOLD_REPS_PLACEHOLDER, saved.targetReps)
+        assertEquals(HoldWork.DEFAULT_SECONDS, saved.targetSeconds)
+        assertEquals(3, saved.targetSets); assertEquals(90, saved.restSeconds)
+    }
+
+    @Test fun pickerSwapCannotReplaceAResultIdentityOwnedByAnotherSession() = runBlocking {
+        insertLiveSession(); insertSessionExercise(id = SE_SQUAT, exerciseId = SQUAT, sortOrder = 0)
+        val replacement = Exercise(id = BENCH, name = "Bench", muscleGroup = "Legs", notes = "", isCustom = false)
+        val command = repository.preparePickerSwap(sessionId = SESSION, itemId = SE_SQUAT,
+            replacement = replacement, resultId = "synthetic-foreign-result")
+        database.workoutDao().upsertSession(WorkoutSessionEntity(id = "synthetic-other-session", routineId = null,
+            routineName = "Other session", date = START, notes = "", durationMinutes = 0, startedAt = START + 1, finishedAt = null))
+        database.workoutDao().upsertSessionExercise(command.after.copy(sessionId = "synthetic-other-session"))
+        val before = database.workoutDao().getAllSessionExercises()
+        assertEquals(DraftRecoveryOutcome.CONFLICT, repository.inspectPickerSwap(command))
+        assertThrows(IllegalStateException::class.java) { runBlocking { repository.commitPickerSwap(command) { true } } }
+        assertEquals(before, database.workoutDao().getAllSessionExercises())
+    }
+
+    @Test fun aWarmupLoggedAfterAdmissionPreventsTheSwapAndPreservesTheRecordedLift() = runBlocking {
+        insertLiveSession(); insertSessionExercise(id = SE_SQUAT, exerciseId = SQUAT, sortOrder = 0)
+        val replacement = Exercise(id = BENCH, name = "Bench", muscleGroup = "Legs", notes = "", isCustom = false)
+        val command = repository.preparePickerSwap(sessionId = SESSION, itemId = SE_SQUAT,
+            replacement = replacement, resultId = "synthetic-refused-logged-swap")
+        repository.logSet(sessionId = SESSION, exerciseId = SQUAT, weightKg = 40.0, reps = 8, rpe = null, isWarmup = true)
+        val before = database.workoutDao().getSession(SESSION)
+        assertEquals(DraftRecoveryOutcome.CONFLICT, repository.inspectPickerSwap(command))
+        assertThrows(IllegalStateException::class.java) { runBlocking { repository.commitPickerSwap(command) { true } } }
+        assertEquals(before, database.workoutDao().getSession(SESSION))
     }
 
     private suspend fun sessionExerciseIds(): List<String> =

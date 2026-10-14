@@ -2,7 +2,12 @@ package com.sinura.personaltrainer.ui.workout
 
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.data.draft.DraftOwner
-import com.sinura.personaltrainer.data.draft.DraftForm
+import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
+import com.sinura.personaltrainer.data.draft.PickerContextDrafts
+import com.sinura.personaltrainer.data.draft.PickerSwapDrafts
+import com.sinura.personaltrainer.data.draft.PickerSwapHandle
+import com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome
+import com.sinura.personaltrainer.data.repository.WorkoutPickerSwap
 import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
 
 import android.app.Application
@@ -260,12 +265,21 @@ data class PersonalRecordMoment(
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ActiveWorkoutViewModel @JvmOverloads constructor(
+class ActiveWorkoutViewModel internal constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
-    container: AppDependencies = application.appContainer(),
-    private val undoTimeout: UndoTimeoutProvider = systemUndoTimeout(application),
+    container: AppDependencies,
+    private val undoTimeout: UndoTimeoutProvider,
+    private val pickerContexts: PickerContextDrafts?,
+    private val customLiftDrafts: CustomExerciseDrafts?,
+    private val swapDrafts: PickerSwapDrafts?,
 ) : AppViewModel(application, container) {
+    @JvmOverloads constructor(application: Application, savedStateHandle: SavedStateHandle,
+        container: AppDependencies = application.appContainer(),
+        undoTimeout: UndoTimeoutProvider = systemUndoTimeout(application)) :
+        this(application, savedStateHandle, container, undoTimeout,
+            (container as? AppContainer)?.pickerContextDrafts, (container as? AppContainer)?.customExerciseDrafts,
+            (container as? AppContainer)?.pickerSwapDrafts)
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
     private val durability = draftCache.persistence?.forEntry()
@@ -347,27 +361,41 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * lift" surface; what happens to the choice is this class's business.
      */
     private val swapTargetItemId = MutableStateFlow<String?>(null)
-    private fun pickerOwner() = DraftOwner(
-        DraftForm.WORKOUT,
-        "session:$sessionId:${swapTargetItemId.value?.let { "swap:$it" } ?: "add"}",
-    )
-    internal val pickerRecovery = (container as? AppContainer)?.let { app ->
+    private var pendingSwap: PickerSwapHandle? = null
+    private var acceptedSwap: WorkoutPickerSwap? = null
+    private var swapOutcome: DraftRecoveryOutcome? = null
+    private fun pickerOwner() = workoutPickerOwner(sessionId, swapTargetItemId.value)
+    internal val pickerRecovery = if (pickerContexts != null && customLiftDrafts != null) {
         OwnedPickerRecovery(
-            scope = viewModelScope, contextDrafts = app.pickerContextDrafts, customDrafts = app.customExerciseDrafts,
+            scope = viewModelScope, contextDrafts = pickerContexts, customDrafts = customLiftDrafts,
             repository = container.exerciseRepository, savedState = savedStateHandle,
             owner = { pickerOwner().also { check(sessionId.isNotBlank()) } },
             stillOwned = { owner -> container.dbMaintenance.withMaintenanceLock { pickerStillOwnedLocked(owner) } },
             ownedAtCommit = ::pickerStillOwnedLocked,
             onQuery = { searchQuery.value = it },
             selectCreated = { exercise -> selectOwnedPickerLift(exercise) },
-            onSelected = { setPickerVisible(false) },
+            onSelected = ::finishPickerSelection,
+            selectionBlocked = { pendingSwap?.checkpoint?.pending != null || swapOutcome == DraftRecoveryOutcome.UNAVAILABLE },
+            selectionBusy = { pickerWrites.busy },
+            discardSelection = ::discardPickerSwap,
+            onClearedChild = ::offerCompletedSwapContinuation,
+            retryLabel = { when (swapOutcome) {
+                DraftRecoveryOutcome.EXACT_SAVED -> "Continue"
+                DraftRecoveryOutcome.UNCOMMITTED -> "Retry exact swap"
+                DraftRecoveryOutcome.UNAVAILABLE, DraftRecoveryOutcome.CONFLICT -> "Check again"
+                null -> "Retry"
+            } },
         )
-    }
+    } else null
 
     private suspend fun pickerStillOwnedLocked(owner: DraftOwner): Boolean {
         if (container.backupService.restoreInProgress() || owner != pickerOwner() || durability?.ownsEntry(sessionId) == false) return false
         return container.workoutRepository.getSession(sessionId)?.let { current ->
-            !current.isFinished && (swapTargetItemId.value == null || current.exercises.any { it.id == swapTargetItemId.value })
+            val target = swapTargetItemId.value
+            !current.isFinished && (target == null || current.exercises.any { it.id == target } ||
+                acceptedSwap?.takeIf { it.before.id == target }?.let {
+                    container.workoutRepository.inspectPickerSwap(it) == DraftRecoveryOutcome.EXACT_SAVED
+                } == true)
         } == true
     }
 
@@ -1444,6 +1472,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     fun setPickerVisible(visible: Boolean) {
         if (visible && !canChangeEntry()) return
         if (!visible && pickerWrites.busy) return
+        if (visible && swapDrafts != null) { openWorkoutPicker(null); return }
         if (!visible) swapTargetItemId.value = null
         showPicker.value = visible
         if (!visible && pickerRecovery == null) searchQuery.value = ""
@@ -1463,17 +1492,24 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val ticket = pickerWrites.begin(exercise.id)
         launchEntryMutation(source = ERR_ADD_LIFT) {
             try {
-                addExerciseInternal(exercise, swapTarget)
+                if (swapTarget != null && swapDrafts != null) {
+                    check(selectPersistedSwap(exercise, swapTarget))
+                } else addExerciseInternal(exercise, swapTarget)
                 pickerWrites.succeed(ticket, created)
+                if (swapTarget != null && swapDrafts != null) completeSwapPicker()
             } catch (thrown: CancellationException) {
                 pickerWrites.cancel(ticket)
                 throw thrown
             } catch (thrown: Exception) {
                 val message = thrown.message?.takeIf {
                     SetLogRules.isUserMessage(it) || SessionEditRules.isUserMessage(it)
-                } ?: if (swapTarget != null) "Could not swap that lift. Try again." else SessionOrderCopy.ADD_LIFT_FAILED
+                } ?: if (swapTarget != null && swapDrafts != null) swapRecoveryMessage() else
+                    if (swapTarget != null) "Could not swap that lift. Try again." else SessionOrderCopy.ADD_LIFT_FAILED
                 error.fail(ERR_ADD_LIFT, message)
-                pickerWrites.fail(ticket, message) { pickExercise(exercise, swapTarget, created) }
+                pickerWrites.fail(ticket, message) {
+                    if (swapTarget != null && swapDrafts != null && pendingSwap?.checkpoint?.pending != null) retryPersistedSwap()
+                    else pickExercise(exercise, swapTarget, created)
+                }
             }
         }
     }
@@ -1526,6 +1562,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         if (!canChangeEntry()) return
         val selectedId = selectedExerciseId.value ?: return
         val item = session.value?.exercises?.firstOrNull { it.exercise.id == selectedId } ?: return
+        if (swapDrafts != null) { openWorkoutPicker(item.id); return }
         swapTargetItemId.value = item.id
         searchQuery.value = ""
         showPicker.value = true
@@ -1624,16 +1661,197 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         if (!canChangeEntry()) return false
         val target = swapTargetItemId.value
         val permit = durability?.mutationPermit(sessionId)
+        val ticket = if (target != null && swapDrafts != null) pickerWrites.begin("selecting-created-swap") else null
         mutating.value = true
         return try {
-            if (permit == null) addExerciseInternal(exercise = exercise, swapTarget = target, closePicker = false)
-            else kotlinx.coroutines.withContext(permit) {
-                addExerciseInternal(exercise = exercise, swapTarget = target, closePicker = false)
+            val select: suspend () -> Boolean = {
+                if (target != null && swapDrafts != null) selectPersistedSwap(exercise, target)
+                else {
+                    addExerciseInternal(exercise = exercise, swapTarget = target, closePicker = false)
+                    container.workoutRepository.getSession(sessionId)?.exercises?.any { it.exercise.id == exercise.id } == true
+                }
             }
-            container.workoutRepository.getSession(sessionId)?.exercises?.any {
-                it.exercise.id == exercise.id && (target == null || it.id == target)
-            } == true
+            val confirmed = if (permit == null) select() else kotlinx.coroutines.withContext(permit) { select() }
+            if (ticket != null) {
+                if (confirmed) pickerWrites.succeed(ticket)
+                else pickerWrites.fail(ticket, swapRecoveryMessage(), retry = ::retryPersistedSwap)
+            }
+            confirmed
+        } catch (cancelled: CancellationException) {
+            if (ticket != null) pickerWrites.cancel(ticket)
+            throw cancelled
+        } catch (failure: Exception) {
+            if (ticket != null) {
+                swapOutcome = DraftRecoveryOutcome.UNAVAILABLE
+                pickerWrites.fail(ticket, swapRecoveryMessage(), retry = ::retryPersistedSwap)
+            }
+            throw failure
         } finally { mutating.value = false }
+    }
+
+    private fun openWorkoutPicker(requestedTarget: String?) {
+        if (!canChangeEntry()) return
+        val service = swapDrafts ?: return
+        pickerWrites.clearFailures()
+        val ticket = pickerWrites.begin("checking-swap")
+        swapTargetItemId.value = requestedTarget
+        launchEntryMutation(source = ERR_ADD_LIFT) {
+            try {
+                pendingSwap = service.openPending(sessionId)
+                acceptedSwap = null
+                swapOutcome = null
+                pendingSwap?.let { handle ->
+                    swapTargetItemId.value = handle.itemId
+                    swapOutcome = service.inspect(handle)
+                    if (swapOutcome == DraftRecoveryOutcome.EXACT_SAVED) acceptedSwap = handle.checkpoint.pending?.value
+                }
+                showPicker.value = true
+                if (pendingSwap == null) pickerWrites.succeed(ticket)
+                else pickerWrites.fail(ticket, swapRecoveryMessage(), retry = ::retryPersistedSwap)
+            } catch (cancelled: CancellationException) { pickerWrites.cancel(ticket); throw cancelled }
+            catch (_: Exception) {
+                swapOutcome = DraftRecoveryOutcome.UNAVAILABLE
+                showPicker.value = true
+                pickerWrites.fail(ticket, swapRecoveryMessage()) { openWorkoutPicker(requestedTarget) }
+            }
+        }
+    }
+
+    private suspend fun selectPersistedSwap(exercise: Exercise, target: String): Boolean {
+        val service = checkNotNull(swapDrafts)
+        val current = pendingSwap?.takeIf { it.checkpoint.pending != null }
+            ?: service.open(sessionId, target).also { pendingSwap = it }
+        check(current.itemId == target)
+        if (current.checkpoint.pending != null) {
+            check(current.checkpoint.pending!!.value.after.exerciseId == exercise.id)
+            swapOutcome = service.inspect(current)
+            if (swapOutcome != DraftRecoveryOutcome.EXACT_SAVED) return false
+        } else {
+            service.admit(current, sessionId, target, exercise)
+            try { service.execute(current) { durability?.ownsEntry(sessionId) != false && swapTargetItemId.value == target } }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { swapOutcome = DraftRecoveryOutcome.UNAVAILABLE; throw IllegalStateException(swapRecoveryMessage()) }
+            swapOutcome = service.inspect(current)
+        }
+        check(swapOutcome == DraftRecoveryOutcome.EXACT_SAVED)
+        val command = checkNotNull(current.checkpoint.pending).value
+        acceptedSwap = command
+        settleSwapEntry(command)
+        return true
+    }
+
+    private suspend fun settleSwapEntry(command: WorkoutPickerSwap) {
+        selectExerciseInternal(command.after.exerciseId)
+        val replaced = command.before.exerciseId
+        draftCache.removeLift(sessionId, replaced)
+        savedDraft.removeLift(replaced)
+        numberEntries.value = numberEntries.value.filterNot { it.exerciseId == replaced }
+        clocks.forgetStopwatch(replaced)
+        persistDraft()
+    }
+
+    private fun retryPersistedSwap() {
+        if (!canChangeEntry()) return
+        val service = swapDrafts ?: return
+        val allowRetry = swapOutcome == DraftRecoveryOutcome.UNCOMMITTED
+        val ticket = pickerWrites.begin("recovering-swap")
+        launchEntryMutation(source = ERR_ADD_LIFT) {
+            try {
+                val current = checkNotNull(pendingSwap ?: service.openPending(sessionId).also { pendingSwap = it })
+                swapTargetItemId.value = current.itemId
+                swapOutcome = service.inspect(current)
+                if (swapOutcome == DraftRecoveryOutcome.UNCOMMITTED && allowRetry) {
+                    service.retry(current)
+                    service.execute(current) { durability?.ownsEntry(sessionId) != false && swapTargetItemId.value == current.itemId }
+                    swapOutcome = service.inspect(current)
+                }
+                if (swapOutcome != DraftRecoveryOutcome.EXACT_SAVED) {
+                    pickerWrites.fail(ticket, swapRecoveryMessage(), retry = ::retryPersistedSwap)
+                    return@launchEntryMutation
+                }
+                acceptedSwap = checkNotNull(current.checkpoint.pending).value
+                settleSwapEntry(checkNotNull(acceptedSwap))
+                pickerWrites.succeed(ticket)
+                completeSwapPicker()
+            } catch (cancelled: CancellationException) { pickerWrites.cancel(ticket); throw cancelled }
+            catch (_: Exception) { pickerWrites.fail(ticket, swapRecoveryMessage(), retry = ::retryPersistedSwap) }
+        }
+    }
+
+    private fun finishPickerSelection() {
+        if (mutating.value) {
+            viewModelScope.launch { mutating.first { !it }; finishPickerSelection() }
+            return
+        }
+        val current = pendingSwap
+        if (current == null) { setPickerVisible(false); return }
+        if (!canChangeEntry()) return
+        val ticket = pickerWrites.begin("confirming-swap")
+        launchEntryMutation(source = ERR_ADD_LIFT) {
+            try {
+                val service = checkNotNull(swapDrafts)
+                val command = checkNotNull(acceptedSwap)
+                check(container.workoutRepository.inspectPickerSwap(command) == DraftRecoveryOutcome.EXACT_SAVED)
+                if (current.checkpoint.pending != null) service.finish(current) else service.openPending(sessionId)
+                pendingSwap = null; acceptedSwap = null; swapOutcome = null
+                pickerWrites.succeed(ticket)
+                setPickerVisible(false)
+            } catch (cancelled: CancellationException) { pickerWrites.cancel(ticket); throw cancelled }
+            catch (_: Exception) {
+                swapOutcome = DraftRecoveryOutcome.EXACT_SAVED
+                pickerWrites.fail(ticket, "Replacement saved. Confirmation was not completed; continue to check it.", retry = ::finishPickerSelection)
+            }
+        }
+    }
+
+    private fun offerCompletedSwapContinuation() {
+        if (acceptedSwap == null || pendingSwap == null || pickerWrites.busy) return
+        swapOutcome = DraftRecoveryOutcome.EXACT_SAVED
+        val ticket = pickerWrites.begin("settled-swap-child")
+        pickerWrites.fail(ticket, swapRecoveryMessage(), retry = ::retryPersistedSwap)
+    }
+
+    private fun completeSwapPicker() {
+        viewModelScope.launch {
+            mutating.first { !it }
+            val recovery = pickerRecovery ?: return@launch
+            if (recovery.create.status.value.phase == com.sinura.personaltrainer.ui.components.PickerCreatePhase.CLOSED &&
+                recovery.view.fields.value.customDraftId == acceptedSwap?.after?.exerciseId) {
+                val opening = recovery.resumeCreate()
+                if (opening == null) { offerCompletedSwapContinuation(); return@launch }
+                opening.join()
+                if (opening.isCancelled) { offerCompletedSwapContinuation(); return@launch }
+            }
+            if (recovery.create.status.value.phase == com.sinura.personaltrainer.ui.components.PickerCreatePhase.SAVED)
+                recovery.useSaved()
+            else if (recovery.view.fields.value.customDraftId != acceptedSwap?.after?.exerciseId)
+                recovery.view.leave(::finishPickerSelection)
+        }
+    }
+
+    private fun discardPickerSwap(onDiscarded: () -> Unit) {
+        val target = pendingSwap?.itemId ?: swapTargetItemId.value
+        if (swapDrafts == null) { onDiscarded(); return }
+        if (!canChangeEntry()) return
+        val ticket = pickerWrites.begin("resetting-swap")
+        launchEntryMutation(source = ERR_ADD_LIFT) {
+            try {
+                swapDrafts.reset(sessionId, target)
+                pendingSwap = null; acceptedSwap = null; swapOutcome = null
+                pickerWrites.clearFailures()
+                pickerWrites.succeed(ticket)
+                onDiscarded()
+                if (target != null && container.workoutRepository.getSession(sessionId)?.exercises?.none { it.id == target } == true) setPickerVisible(false)
+            } catch (cancelled: CancellationException) { pickerWrites.cancel(ticket); throw cancelled }
+            catch (_: Exception) { pickerWrites.fail(ticket, "Picker reset was not confirmed. Saved workout rows are kept.") { discardPickerSwap(onDiscarded) } }
+        }
+    }
+
+    private fun swapRecoveryMessage(): String = when (swapOutcome) {
+        DraftRecoveryOutcome.EXACT_SAVED -> "Replacement saved. Continue to return to your workout."
+        DraftRecoveryOutcome.UNCOMMITTED -> "Replacement was not saved. Retry the exact kept swap."
+        DraftRecoveryOutcome.CONFLICT -> "This workout or lift changed. Check the saved workout or reset this picker."
+        DraftRecoveryOutcome.UNAVAILABLE, null -> "Swap was not confirmed. Check what saved before trying again."
     }
 
     /**

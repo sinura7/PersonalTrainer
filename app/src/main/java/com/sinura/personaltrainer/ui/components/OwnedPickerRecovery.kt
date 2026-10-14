@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.MuscleGroups
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 
 internal class OwnedPickerRecovery(
     scope: CoroutineScope,
@@ -28,6 +29,11 @@ internal class OwnedPickerRecovery(
     private val onSelected: () -> Unit = {},
     ownedAtCommit: suspend (DraftOwner) -> Boolean,
     private val onReset: () -> Unit = {},
+    private val selectionBlocked: () -> Boolean = { false },
+    private val selectionBusy: () -> Boolean = { false },
+    private val discardSelection: (() -> Unit) -> Unit = { it() },
+    internal val retryLabel: () -> String = { "Retry" },
+    private val onClearedChild: () -> Unit = {},
 ) {
     private val key = "picker.framework.v1"
     val view = PickerViewRecovery(
@@ -40,12 +46,22 @@ internal class OwnedPickerRecovery(
         repository = repository, stillOwned = stillOwned, ownedAtCommit = ownedAtCommit)
 
     fun openCreate() {
-        if (!view.editable || create.status.value.busy) return
-        val requested = view.activeOwner ?: return
-        val fields = view.fields.value
-        create.open(requested = requested, name = fields.query.trim(),
-            muscle = MuscleGroups.forNewDraft(fields.muscle), onReady = ::createdDraftReady)
+        if (!view.editable || create.status.value.busy || (selectionBlocked() && view.fields.value.customDraftId == null)) return
+        openOwnedCreate()
     }
+    /** Resume an existing immutable child during its parent handoff; never seed a new Create. */
+    fun resumeCreate(): Job? {
+        if (view.status.value.busy || view.status.value.changedElsewhere || create.status.value.busy || view.fields.value.customDraftId == null) return null
+        return openOwnedCreate()
+    }
+    private fun openOwnedCreate(): Job? {
+        val requested = view.activeOwner ?: return null
+        val fields = view.fields.value
+        return create.open(requested = requested, name = fields.query.trim(),
+            muscle = MuscleGroups.forNewDraft(fields.muscle), onReady = ::createdDraftReady,
+            expectedId = fields.customDraftId, onCleared = ::clearedChildResumed)
+    }
+    private fun clearedChildResumed() { view.selectionCompleted(); onClearedChild() }
 
     fun change(value: PickerContextSnapshot) { view.changed(value); onQuery(view.fields.value.query) }
     fun backToList() {
@@ -57,18 +73,19 @@ internal class OwnedPickerRecovery(
     }
     private fun createdDraftReady(id: String) { view.changed(view.fields.value.copy(creating = true, customDraftId = id)) }
     private fun selectionComplete() {
-        view.changed(view.fields.value.copy(creating = false, customDraftId = null))
+        view.selectionCompleted()
         view.leave(onSelected)
     }
     fun leave(onKept: () -> Unit) {
         if (!canLeave()) return
         create.keep { view.leave(onKept) }
     }
-    fun canLeave(): Boolean = !view.status.value.busy && !view.status.value.changedElsewhere && !create.status.value.busy
+    fun canLeave(): Boolean = !selectionBusy() && !view.status.value.busy && !view.status.value.changedElsewhere && !create.status.value.busy
+    fun canSelect(): Boolean = view.editable && !selectionBlocked()
     fun discardPrivate() {
-        if (view.status.value.busy || create.status.value.busy) return
+        if (selectionBusy() || view.status.value.busy || create.status.value.busy) return
         val requested = view.activeOwner ?: return
-        create.discard(requested) { view.reset(onReset) }
+        create.discard(requested) { discardSelection { view.reset(onReset) } }
     }
 }
 

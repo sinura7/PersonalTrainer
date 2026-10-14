@@ -1071,7 +1071,7 @@ private fun ActiveWorkoutContent(
 
     if (state.showExercisePicker) {
         RecoverableExercisePickerSheet(
-            recovery = viewModel.pickerRecovery.takeUnless { state.swapping },
+            recovery = viewModel.pickerRecovery,
             canDismiss = viewModel::canDismissPicker,
             state = ExercisePickerState(
                 query = state.searchQuery,

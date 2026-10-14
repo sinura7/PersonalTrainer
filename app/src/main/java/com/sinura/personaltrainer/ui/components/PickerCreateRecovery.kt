@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.components
 import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
 import com.sinura.personaltrainer.data.draft.CustomLiftDraft
 import com.sinura.personaltrainer.data.draft.CustomLiftHandle
+import com.sinura.personaltrainer.data.draft.CustomLiftResume
 import com.sinura.personaltrainer.data.draft.DraftOwner
 import com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
@@ -12,6 +13,7 @@ import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleGroups
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -47,9 +49,12 @@ internal class PickerCreateRecovery(
     private var revision = 0L
     private var retryOpen: (() -> Unit)? = null
     private var visit = 0L
+    private var opening: Job? = null
 
     fun closeVisit() {
         visit++
+        opening?.cancel()
+        opening = null
         revision++
         owner = null
         handle = null
@@ -57,18 +62,27 @@ internal class PickerCreateRecovery(
         mutableStatus.value = PickerCreateStatus()
     }
 
-    fun open(requested: DraftOwner, name: String, muscle: String, onReady: (String) -> Unit) {
-        if (status.value.busy) return
-        retryOpen = { open(requested, name, muscle, onReady) }
+    fun open(requested: DraftOwner, name: String, muscle: String, onReady: (String) -> Unit,
+        expectedId: String? = null, onCleared: () -> Unit = {}): Job? {
+        if (status.value.busy) return null
+        retryOpen = { open(requested, name, muscle, onReady, expectedId, onCleared) }
         val token = ++visit
         owner = requested
         handle = null
         mutableStatus.value = PickerCreateStatus(phase = PickerCreatePhase.OPENING)
-        scope.launch { serial.withLock {
+        return scope.launch { serial.withLock {
             if (token != visit) return@withLock
             try {
                 check(stillOwned(requested))
-                val opened = drafts.openForPicker(requested, muscle)
+                val resumed = expectedId?.let { drafts.resumeForPicker(requested, it) }
+                if (token != visit) return@withLock
+                if (resumed == CustomLiftResume.AlreadyCleared) {
+                    handle = null
+                    mutableStatus.value = PickerCreateStatus()
+                    onCleared()
+                    return@withLock
+                }
+                val opened = (resumed as? CustomLiftResume.Existing)?.handle ?: drafts.openForPicker(requested, muscle)
                 if (token != visit) return@withLock
                 handle = opened
                 if (!opened.resumed && opened.checkpoint.pending == null) {
@@ -83,8 +97,10 @@ internal class PickerCreateRecovery(
                 if (opened.ownerConflict) conflict()
                 else if (opened.checkpoint.pending != null) inspect(opened, token)
             } catch (cancelled: CancellationException) { throw cancelled }
-            catch (_: Exception) { if (token == visit) fail(PickerCreatePhase.READ_FAILED, "Custom lift could not be read. Check again; your draft remains kept.") }
-        } }
+            catch (_: Exception) { if (token == visit) {
+                fail(PickerCreatePhase.READ_FAILED, "Custom lift could not be read. Check again; your draft remains kept.")
+            } }
+        } }.also { opening = it }
     }
 
     fun update(name: String, muscle: String, loadType: LoadType, notes: String) {
@@ -190,6 +206,7 @@ internal class PickerCreateRecovery(
                 if (token != visit) return@withLock
                 check(select(exercise))
                 if (token != visit) return@withLock
+                check(drafts.inspect(current) == DraftRecoveryOutcome.EXACT_SAVED)
                 drafts.finish(current)
                 if (token != visit) return@withLock
                 handle = null

@@ -61,6 +61,9 @@ internal class PickerWrites {
         publish()
     }
 
+    /** A newly opened owner reconstructs exact recovery from its durable command. */
+    fun clearFailures() { failures.clear(); publish() }
+
     private fun publish() {
         val failure = failures.values.firstOrNull()
         mutable.value = ExercisePickerProgress(

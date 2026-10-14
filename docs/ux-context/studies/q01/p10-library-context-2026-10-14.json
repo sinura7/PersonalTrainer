@@ -781,7 +781,7 @@
       "After accepted restore or removed/changed owner, require ownership reconciliation before submission; cleanup/stale callbacks cannot resurrect completed work."
     ],
     "partialImplementation": {
-      "state": "Owner-scoped storage, view/Create/reset controllers and routine normal/unmatched/workout-add callers implemented; remaining callers, final native matrix, full gate, final reviews and integration remain open",
+      "state": "Owner-scoped storage, view/Create/reset controllers, routine normal/unmatched, workout-add and frozen workout-swap recovery implemented; swap AppNav verification, activity/custom-week callers, final gate/reviews/integration remain open",
       "source": [
         "app/src/main/java/com/sinura/personaltrainer/data/draft/PickerContextDrafts.kt",
         "app/src/main/java/com/sinura/personaltrainer/data/draft/CustomExerciseDrafts.kt"
@@ -1224,6 +1224,276 @@
           }
         },
         {
+          "attempt": "swap-boundary32",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-boundary32/summary.json",
+          "receiptSha256": "D70C2B6EFEAB3A0FFF7D5571EDD0E5283077AD17F3DF3752DDABAC9D139B5A55",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1671,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 5,
+          "counts": {
+            "tests": 5,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-caller37",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-caller37/summary.json",
+          "receiptSha256": "51116D6C472AB4AB9400D845178B35B04405AE8845FD2D84E909B56179C8018C",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1674,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-caller38",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-caller38/summary.json",
+          "receiptSha256": "BCA35CDC98E041039A08719FC48CB6BA71A56DD1570A9BF78092383A70A9A498",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1674,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-caller39",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-caller39/summary.json",
+          "receiptSha256": "7C5ABDC7ED132136595997AB98C72D3487ABBAFD7C5752BF5EA4470760A80B51",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1675,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 38,
+          "counts": {
+            "tests": 38,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-caller40",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-caller40/summary.json",
+          "receiptSha256": "CCEC4E39411017C28DDF8EF40293BC2AD3D4697AFB9A0CF90B9194180F5AF9AD",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1675,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 52,
+          "counts": {
+            "tests": 52,
+            "failures": 2,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-caller41",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-caller41/summary.json",
+          "receiptSha256": "543BB3EBEFC13A74A26551C2FAA8E250F969C1B242F16128A022C66062E3AAE5",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1675,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-caller42",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-caller42/summary.json",
+          "receiptSha256": "6D58DD9E0D0CE48B56FAAC83C73D616651CEAF913EDD6D552745CDDD4F5B0903",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1675,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 53,
+          "counts": {
+            "tests": 53,
+            "failures": 2,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-caller43",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-caller43/summary.json",
+          "receiptSha256": "2177D2C13A12D296D7E00F2A032E78A6A672CE2F9D8B8F08CC44181C9D62758B",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1675,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 54,
+          "counts": {
+            "tests": 54,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-caller44",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-caller44/summary.json",
+          "receiptSha256": "D410F145A880FCAD1BE7EF97A8A2CF052CC147542F34E8C9958E4AC1297BD0D8",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1675,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 54,
+          "counts": {
+            "tests": 54,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-cleanup34",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-cleanup34/summary.json",
+          "receiptSha256": "63CA5F9DF6D918995E3957EAE9418B810B4C8C9AC5146990EA719D25EDD3B5F2",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1673,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 11,
+          "counts": {
+            "tests": 11,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-drafts33",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-drafts33/summary.json",
+          "receiptSha256": "CCF3E7EF8C9D44A30E608F6D0C556AE911B0B80133B3760CCE3B18AB016CD14F",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1673,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 10,
+          "counts": {
+            "tests": 10,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-link36",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-link36/summary.json",
+          "receiptSha256": "EEC6C7F45505ECEDA3897E5E438FDD7F9190C7D47AF2AD1AD36CB2E738CCD7BD",
+          "exit": 1,
+          "result": "FAIL or incomplete; original evidence preserved",
+          "sourceInputs": 1673,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 8,
+          "counts": {
+            "tests": 8,
+            "failures": 1,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap-owner35",
+          "receipt": "build/ux-context/runs/picker-recovery/swap-owner35/summary.json",
+          "receiptSha256": "6F3566D0AED882D29C5C7639F8B3D5DD294763125100A26D6D98D2D9822AF2B8",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1673,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 13,
+          "counts": {
+            "tests": 13,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap45-appnav",
+          "receipt": "build/ux-context/runs/picker-recovery/swap45-appnav/summary.json",
+          "receiptSha256": "CAA09FBD6E24A88A759EC9394975373BF8D2A249CAB778B016671D5DBFD7B093",
+          "exit": 0,
+          "result": "FAIL",
+          "sourceInputs": 1675,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 0,
+          "scope": "Mixed native scopes: Recovery uses screen/VM/private adapter/native dialogs; Continuity uses shipping MainActivity/AppNav; Pass uses components. Exact class list/raw method results govern. No phone acceptance",
+          "apks": {
+            "app": "D791FA39BB20DE03ED5E1B482D986800071BFE0ABBA00384F50881AE128534D8",
+            "tests": "C28CED328A70C537F08AEAD107A2DD5C39867C957F642435D3B4F938847CE3B8"
+          }
+        },
+        {
+          "attempt": "swap46-native-selector",
+          "receipt": "build/ux-context/runs/picker-recovery/swap46-native-selector/summary.json",
+          "receiptSha256": "C1FEE1773B9378E7C54E8573A016341122710C3882A360478840FEE07AD3EF66",
+          "exit": 0,
+          "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
+          "sourceInputs": 1675,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 0,
+          "counts": {
+            "tests": 0,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "swap47-appnav",
+          "receipt": "build/ux-context/runs/picker-recovery/swap47-appnav/summary.json",
+          "receiptSha256": "89CAA5ADD561645E8914CFA648C90F7BB6153595BEA3C7560C482C600C787E01",
+          "exit": 0,
+          "result": "PASS",
+          "sourceInputs": 1675,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 2,
+          "scope": "Mixed native scopes: Recovery uses screen/VM/private adapter/native dialogs; Continuity uses shipping MainActivity/AppNav; Pass uses components. Exact class list/raw method results govern. No phone acceptance",
+          "apks": {
+            "tests": "FB14EB49F3DAE77FA37F41F0D73BA820149F4862FB8932C987714378FC7456D1",
+            "app": "D791FA39BB20DE03ED5E1B482D986800071BFE0ABBA00384F50881AE128534D8"
+          }
+        },
+        {
           "attempt": "transaction-recovery12",
           "receipt": "build/ux-context/runs/picker-recovery/transaction-recovery12/summary.json",
           "receiptSha256": "4058306C81147517F8745FF08428D4CF06749DB61567E4B181AC77E3422D049C",
@@ -1328,6 +1598,66 @@
           "scope": "Historical bounded source review; does not establish final packet eligibility"
         },
         {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-caller37-2026-10-14.md",
+          "sha256": "486E3819DA99AA9E81F2C8A2D218D916F794DCBF81AB0B201B2A1498E87766A1",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-caller39-correction-2026-10-14.md",
+          "sha256": "3FC031FC1F0AAD57BC22624BB7051232B3CF2124AF499A538A52136E4D7016B7",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-caller40-source-correction-2026-10-14.md",
+          "sha256": "644F747A24AE17F0B8E44AD768ED2A8BFBA102E235A7D2963B9F1B4616C3FB05",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-caller42-receipt-2026-10-14.md",
+          "sha256": "0E948EBAF19BA88D8BD1698DFDEE1F28E727BEB675DE014B80E4F8235867A0D2",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-caller42-source-correction-2026-10-14.md",
+          "sha256": "E17425E7F1684CBDBE4ECCF0F828FACBBC1A6D568F85FDA3D04472941D4981F9",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-caller43-receipt-correction-2026-10-14.md",
+          "sha256": "D4635F35E885F61BBAD088727BF97EAA2CA98E7E17B48F49993F1D2DA8111642",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-caller43-source-correction-2026-10-14.md",
+          "sha256": "723777122D9CC76B602467B4BCA25D2C65133BC6ECA7E83FE45231E7319739C4",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-caller44-receipt-2026-10-14.md",
+          "sha256": "9EB34C108268459912FB65E24FECB6DBA61363F82E71B370158A10FE9965900A",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-caller44-source-correction-2026-10-14.md",
+          "sha256": "E53A8FFECDBE52DE2FDE6F6985D037F096BF46D628D9FCBC37744B394507A5E9",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-drafts33-foundation-2026-10-14.md",
+          "sha256": "6E7E3D60354222AA056D031AFCFA1AA1AC90414BC69DE11798A3BC2F5250CEC0",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-drafts33-input-binding-addendum-2026-10-14.md",
+          "sha256": "33B6DCBCBC616D337DD855C57DAFEA51A8F0C08E148BA18F9C6A0719DCCA2F02",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-swap-owner35-correction-2026-10-14.md",
+          "sha256": "8E19AE00FD617A37E7E8D301D773A628DEBDBB7BACBEBAE1DB637D2E7A3C43ED",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
           "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-transaction-recovery12-correction-2026-10-14.md",
           "sha256": "274FE55979B08C1472474E92F47D331232D2C680E0284A4B231901E43CB93E17",
           "scope": "Historical bounded source review; does not establish final packet eligibility"
@@ -1357,10 +1687,14 @@
         "Actual routine AppNav selection/order/cancellation/resumed-query journey passed on transaction-recovery12 and unmatched-recovery23 APKs.",
         "Fresh remount-recovery28 passed114 targeted checks, release/R8/debug/test-APK assembly; it is not the complete gate.",
         "Three fresh actual AppNav Create/checkpoint-stage/process-reopen journeys passed on identical remount-recovery28 APKs. Process26625 was externally force-stopped after a completed durable checkpoint; resumed raw fields and stable ID were verified before accepted-once selection.",
-        "Corrected native JVM dialog-window captures show Reset at font2; earlier Activity-only reset-confirmation captures remain original incomplete visual evidence."
+        "Corrected native JVM dialog-window captures show Reset at font2; earlier Activity-only reset-confirmation captures remain original incomplete visual evidence.",
+        "Frozen workout-swap commands retain original/result identities, inspect uncertain writes before exact Retry, and clear only confirmed accepted private records. Ownership uses length-prefixed tuples; changed source, logged sets, restore generation and conflicting result identities prevent replay.",
+        "swap-caller44 freshly passed54 focused checks in7 XML files and debug/release/R8/test-APK assembly against1675 unchanged inputs; no full gate or standalone execution is inferred. Fresh-VM continuation verifies cleared child inventory without another business write.",
+        "Native JVM saved-swap Continue renders at360x640/font2 and landscape640x360/font2 were visually inspected; these synthetic shared-content captures do not establish AppNav or physical acceptance.",
+        "swap45-appnav failed both native methods: Continue was asserted before enabled recovery, and the swap selector timed out. Original trace and source/APK identities are retained. swap46-native-selector built the corrected test APK with no JVM tests counted; swap47-appnav freshly passed both methods in shipping MainActivity/AppNav on the unchanged application candidate."
       ],
       "remaining": [
-        "Workout swaps, activity-composer and custom-week ownership/handoff wiring.",
+        "Activity-composer and custom-week ownership/handoff wiring.",
         "Final relevant native layout/recovery states and real navigation evidence for the remaining callers.",
         "Fresh complete local gate, final independent/adversarial reviews, archived integration proof and signed Drop A."
       ],

@@ -25,6 +25,11 @@ internal class CustomLiftHandle(
     var businessIssued: Boolean = false
 }
 
+internal sealed interface CustomLiftResume {
+    data class Existing(val handle: CustomLiftHandle) : CustomLiftResume
+    data object AlreadyCleared : CustomLiftResume
+}
+
 /** Lock order is business maintenance -> private store. Never replay on open. */
 internal class CustomExerciseDrafts(
     private val store: DurableDraftStore,
@@ -46,6 +51,31 @@ internal class CustomExerciseDrafts(
             .joinToString("") { "%02x".format(it) }
         val scopedIndex = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, "picker-index:$scope"), CustomLiftIndexCodec)
         return openOwned(null, muscle, scopedIndex, scope)
+    }
+
+    /** Exact-reference recovery never reserves an identity or seeds a replacement draft. */
+    suspend fun resumeForPicker(owner: DraftOwner, expectedId: String): CustomLiftResume = withContext(dispatcher) {
+        require(owner.form in setOf(DraftForm.ROUTINE, DraftForm.WORKOUT, DraftForm.ACTIVITY, DraftForm.ONBOARDING))
+        val id = expectedId.removePrefix("ex-custom-")
+        require(expectedId == "ex-custom-${UUID.fromString(id)}")
+        maintenance.withMaintenanceLock {
+            check(!restoreOpen())
+            val scope = MessageDigest.getInstance("SHA-256")
+                .digest((owner.form.name + "\u0000" + owner.identity).toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
+            val pointer = available(store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, "picker-index:$scope"), CustomLiftIndexCodec).read())
+            check(pointer.pending == null && pointer.draft == id)
+            val binding = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, createOwner(id, scope)), CustomLiftCodec)
+            val current = load(binding)
+            if (current.draft == null) {
+                check(current.pending == null && current.version.revision > 0L && repository.customDraftRecord(expectedId)?.row?.isCustom == true)
+                return@withMaintenanceLock CustomLiftResume.AlreadyCleared
+            }
+            val fields = current.draft
+            check(fields.createId == expectedId && fields.editId == null)
+            val conflict = current.pending == null && repository.customDraftRecord(expectedId) != fields.before
+            CustomLiftResume.Existing(CustomLiftHandle(binding = binding, checkpoint = current, resumed = true, ownerConflict = conflict))
+        }
     }
 
     /** Explicit private discard also works when a scoped child cannot be decoded. No Library row is removed. */

@@ -654,6 +654,79 @@ class WorkoutRepository(
         }
     }
 
+    /** Prepare only; the owning private checkpoint must admit this command before commit. */
+    internal suspend fun preparePickerSwap(sessionId: String, itemId: String, replacement: Exercise,
+        resultId: String): WorkoutPickerSwap = serialized {
+        preparePickerSwapLocked(sessionId, itemId, replacement, resultId)
+    }
+
+    /** Caller already owns DbMaintenance; never acquire the non-reentrant coordinator twice. */
+    internal suspend fun preparePickerSwapLocked(sessionId: String, itemId: String, replacement: Exercise,
+        resultId: String): WorkoutPickerSwap {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        return database.withTransaction {
+            val current = workoutDao.getSession(sessionId) ?: error(SessionEditRules.ITEM_MISSING)
+            val before = current.exercises.firstOrNull { it.item.id == itemId }?.item ?: error(SessionEditRules.ITEM_MISSING)
+            val actual = database.exerciseDao().getById(replacement.id) ?: error("The replacement lift is no longer available.")
+            val load = LoadType.fromStorage(actual.loadType)
+            val isHold = HoldWork.isHold(actual.id, actual.name, actual.movementKey)
+            check(load == replacement.loadType && isHold == HoldWork.isHold(replacement)) { "The replacement lift changed." }
+            val command = WorkoutPickerSwap(sessionStartedAt = current.session.startedAt, before = before,
+                after = pickerSwapReplacement(before, resultId, replacement.id, isHold), replacementLoadType = load,
+                replacementIsHold = isHold)
+            command.validate()
+            check(inspectPickerSwapLocked(command) == com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.UNCOMMITTED) {
+                "This swap is no longer available."
+            }
+            command
+        }
+    }
+
+    internal suspend fun inspectPickerSwap(command: WorkoutPickerSwap): com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome =
+        database.withTransaction { inspectPickerSwapLocked(command) }
+
+    private suspend fun inspectPickerSwapLocked(command: WorkoutPickerSwap): com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome {
+        command.validate()
+        val current = workoutDao.getSession(command.before.sessionId)
+            ?: return com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.CONFLICT
+        if (current.session.startedAt != command.sessionStartedAt) return com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.CONFLICT
+        val source = current.exercises.firstOrNull { it.item.id == command.before.id }?.item
+        val saved = current.exercises.firstOrNull { it.item.id == command.after.id }?.item
+        if (source == null && saved == command.after) return com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.EXACT_SAVED
+        if (source != command.before || saved != null) return com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.CONFLICT
+        val foreignIdentity = database.query("SELECT id FROM session_exercises WHERE id = ?", arrayOf(command.after.id)).use { it.moveToFirst() }
+        val replacement = database.exerciseDao().getById(command.after.exerciseId)
+        val load = replacement?.loadType?.let(LoadType::fromStorage)
+        val isHold = replacement?.let { HoldWork.isHold(it.id, it.name, it.movementKey) }
+        val refusal = SessionEditRules.refusalForSwap(sessionFinished = current.session.finishedAt != null,
+            itemExists = true, loggedSetCount = current.sets.count { it.set.exerciseId == command.before.exerciseId },
+            replacementAlreadyPresent = current.exercises.any { it.item.exerciseId == command.after.exerciseId })
+        return if (foreignIdentity || load != command.replacementLoadType || isHold != command.replacementIsHold || refusal != null)
+            com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.CONFLICT
+        else com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.UNCOMMITTED
+    }
+
+    internal suspend fun commitPickerSwap(command: WorkoutPickerSwap, canCommit: () -> Boolean): SessionExerciseEntity = serialized {
+        commitPickerSwapLocked(command, canCommit)
+    }
+
+    /** Caller already owns DbMaintenance. Admission is rechecked in the Room transaction. */
+    internal suspend fun commitPickerSwapLocked(command: WorkoutPickerSwap, canCommit: () -> Boolean): SessionExerciseEntity {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        val prior = inspectPickerSwap(command)
+        if (prior == com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.EXACT_SAVED) return command.after
+        check(prior == com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.UNCOMMITTED && canCommit()) { "This swap needs checking." }
+        fenceWorkoutDrafts()
+        return database.withTransaction {
+            val checked = inspectPickerSwapLocked(command)
+            if (checked == com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.EXACT_SAVED) return@withTransaction command.after
+            check(checked == com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome.UNCOMMITTED && canCommit()) { "This swap needs checking." }
+            workoutDao.deleteSessionExercise(command.before.id)
+            workoutDao.upsertSessionExercise(command.after)
+            command.after
+        }
+    }
+
     suspend fun logSet(
         sessionId: String,
         exerciseId: String,
