@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -584,9 +585,11 @@ private fun LibraryBrowseNotice(state: ExerciseLibraryUiState, onRetry: () -> Un
         if (state.browseError != null) {
             FlowRow {
                 TextButton(onClick = onRetry, enabled = !state.browseKeeping,
-                    modifier = Modifier.testTag(LibraryTags.BROWSE_RETRY)) { Text("Retry Keep") }
+                    modifier = Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
+                        .testTag(LibraryTags.BROWSE_RETRY)) { Text("Retry Keep") }
                 TextButton(onClick = onReset, enabled = !state.browseKeeping,
-                    modifier = Modifier.testTag(LibraryTags.BROWSE_RESET)) { Text("Reset remembered view") }
+                    modifier = Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
+                        .testTag(LibraryTags.BROWSE_RESET)) { Text("Reset remembered view") }
             }
         }
     }

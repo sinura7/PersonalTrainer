@@ -1,7 +1,7 @@
 {
   "id": "P10",
   "preparedOn": "2026-10-14",
-  "state": "Library core native tasks passed; complete core gate/final reviews/integration pending; P10 stays open for required shared-picker recovery",
+  "state": "Library core render matrix and native tasks verified at their recorded candidates; fresh final core gate/reviews/integration pending; P10 stays open for required P10R shared-picker recovery",
   "base": "928cd374e011ed7d108791d346c0c19c19d1e79e",
   "branch": "codex/library-context",
   "criteria": [
@@ -600,6 +600,48 @@
       "freshNativeTests": null,
       "fullGate": false,
       "summary": "build/ux-context/runs/library-context/recovery-target04/summary.json"
+    },
+    {
+      "name": "browse-render19",
+      "summary": "build/ux-context/runs/library-context/browse-render19/summary.json",
+      "counts": {
+        "tests": 13,
+        "failures": 13,
+        "errors": 0,
+        "skipped": 0
+      },
+      "result": "FAIL or incomplete; original evidence preserved",
+      "sourceStable": true,
+      "fullGate": false,
+      "scope": "Focused browse-state and existing Library real-screen JVM renders; native assembly where requested. Not complete gate or physical evidence."
+    },
+    {
+      "name": "browse-render20",
+      "summary": "build/ux-context/runs/library-context/browse-render20/summary.json",
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "result": "FAIL or incomplete; original evidence preserved",
+      "sourceStable": true,
+      "fullGate": false,
+      "scope": "Focused browse-state and existing Library real-screen JVM renders; native assembly where requested. Not complete gate or physical evidence."
+    },
+    {
+      "name": "browse-render21",
+      "summary": "build/ux-context/runs/library-context/browse-render21/summary.json",
+      "counts": {
+        "tests": 26,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "sourceStable": true,
+      "fullGate": false,
+      "scope": "Focused browse-state and existing Library real-screen JVM renders; native assembly where requested. Not complete gate or physical evidence."
     }
   ],
   "failureInterpretation": [
@@ -613,7 +655,9 @@
     "connected14-font20 demonstrated selected equipment off-screen after return; fixed selected-first filter visibility.",
     "connected15-landscape demonstrated No matches below illustration; landscape now leads with title/explanation and Create is verified scroll-reachable.",
     "picker16-font16 waited for virtualized Add lifts below viewport; now waits for pinned Save then scrolls to Add lifts.",
-    "process-stage17 immediate post-launch PID probe was initially empty; later direct probe verified PID before external termination, preserved in receipt."
+    "process-stage17 immediate post-launch PID probe was initially empty; later direct probe verified PID before external termination, preserved in receipt.",
+    "browse-render19: 13 failures. At normal fonts recovery TextButton layout measured40dp; explicit48dp layout added. Remaining failures were fixture performScrollTo on already pinned non-scroll Reset button; replaced by direct displayed/enabled assertion. Original XML/frames preserved.",
+    "browse-render20: compilation stopped before tests because new sizeIn modifier import was missing. Import corrected; zero tests from this attempt counted as passes."
   ],
   "preliminaryReviews": [
     "build/ux-context/runs/library-context/reviews/p10-preliminary-adversarial-2026-10-14.md",
@@ -651,26 +695,14 @@
       "reason": "Stopped incomplete gate before full execution after same-owner return continuation of explicit Body recovery finding.",
       "receipt": "build/ux-context/runs/library-context/full07/aborted.json",
       "name": "full07"
+    },
+    {
+      "name": "core-full18",
+      "receipt": "build/ux-context/runs/library-context/core-full18/aborted.json",
+      "reason": "Stopped incomplete Gradle gate for required ADR-032 recovery-state matrix gap. Fresh standalone preflight passed 1715 tests; that is not a full gate."
     }
   ],
   "currentImplementationPacket": "P10 Library-context core",
-  "finalNative": {
-    "termination": "build/ux-context/runs/library-context/process-stage17-font16/external-process-termination.json",
-    "scope": "MainActivity/AppNav query+combined facets, canonical detail, actual nonzero scroll return/recreate, no-match/clear, process reopening at412/font1.6, ordered immediate multi-add/repeated Done/cancel and canonical routine create/recreate/Save. Failure check uses shipping Library screen with injected private IO and generic Compose host; no AppNav or phone claim for that check.",
-    "testSha256": "0CB8EB33EAAB825CD35F642C3364BCD8AA8BAEE6BDDF3AEFAFACB8EBBBF51F45",
-    "appSha256": "A0A4B2AE6B823A96EA9AFCA8ACB0D9DB1ACF4A8200D9DDFBE21319227A0CF98D",
-    "sourceInputs": 1660,
-    "runs": [
-      "connected17-landscape",
-      "connected17-font20",
-      "failure17-font20",
-      "process-stage17-font16",
-      "process-resume17-font16",
-      "picker17-font16",
-      "handoff17-font16"
-    ],
-    "freshExecutedTests": 7
-  },
   "requiredCorrection": {
     "state": "Required before P10 closure and Drop A",
     "source": [
@@ -687,6 +719,44 @@
   },
   "layoutRepairs": [
     "Selected filter chip stays in view after return/recreation and choice changes.",
-    "Short landscape empty pane leads with state title, explanation and scroll-reachable guarded Create."
-  ]
+    "Short landscape empty pane leads with state title, explanation and scroll-reachable guarded Create.",
+    "Recovery Retry/Reset have explicit48dp minimum layout rather than relying on Material implicit touch expansion."
+  ],
+  "browseRenderMatrix": {
+    "attempt": "browse-render21",
+    "freshChecks": 26,
+    "browseProfiles": 13,
+    "browseFrames": 65,
+    "existingLibraryProfiles": 13,
+    "states": [
+      "resumed",
+      "keeping",
+      "keep-failure",
+      "reset-confirmation",
+      "reset-accepted"
+    ],
+    "profiles": "360x640,412x840,640x360landscape,600x960 fonts1/1.6/2;360x640font2 RTL/reduced-motion",
+    "source": "app/src/test/java/com/sinura/personaltrainer/ui/library/LibraryBrowseRenderTest.kt",
+    "frames": "build/ux-context/runs/library-context/browse-render21/frame-review/inventory.json",
+    "review": "Root inspected all65 frames in three contact sheets plus normal/native previews. Status copy wraps, Retry/Reset and pinned confirmation reachable; catalogue unchanged. JVM/native graphics, not phone rendering.",
+    "requiredGap": "ADR-032 conditional review gap addressed by executed passing focused matrix; fresh final complete gate and reviews still required."
+  },
+  "priorNative": {
+    "termination": "build/ux-context/runs/library-context/process-stage17-font16/external-process-termination.json",
+    "scope": "MainActivity/AppNav query+combined facets, canonical detail, actual nonzero scroll return/recreate, no-match/clear, process reopening at412/font1.6, ordered immediate multi-add/repeated Done/cancel and canonical routine create/recreate/Save. Failure check uses shipping Library screen with injected private IO and generic Compose host; no AppNav or phone claim for that check.",
+    "testSha256": "0CB8EB33EAAB825CD35F642C3364BCD8AA8BAEE6BDDF3AEFAFACB8EBBBF51F45",
+    "appSha256": "A0A4B2AE6B823A96EA9AFCA8ACB0D9DB1ACF4A8200D9DDFBE21319227A0CF98D",
+    "sourceInputs": 1660,
+    "runs": [
+      "connected17-landscape",
+      "connected17-font20",
+      "failure17-font20",
+      "process-stage17-font16",
+      "process-resume17-font16",
+      "picker17-font16",
+      "handoff17-font16"
+    ],
+    "freshExecutedTests": 7,
+    "currentCandidateLimit": "Seven native17 executions predate the explicit48dp recovery-button change and new JVM test. They remain original executed evidence, not a claim of exact final candidate inputs/APK. Final affected native execution pending."
+  }
 }
