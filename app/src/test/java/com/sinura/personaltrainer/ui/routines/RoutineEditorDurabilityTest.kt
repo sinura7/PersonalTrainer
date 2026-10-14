@@ -7,6 +7,8 @@ import com.google.gson.JsonParser
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.draft.DurableDraftStore
+import com.sinura.personaltrainer.data.draft.AtomicDraftFiles
+import com.sinura.personaltrainer.data.draft.DraftFileIO
 import com.sinura.personaltrainer.data.draft.RoutineDrafts
 import com.sinura.personaltrainer.data.draft.RoutineNumberDraft
 import com.sinura.personaltrainer.data.draft.RoutineNumberField
@@ -16,6 +18,10 @@ import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -46,6 +52,8 @@ class RoutineEditorDurabilityTest {
     private var refuseAfterFirst = false
     private var loseImportAcknowledgement = false
     private var importReadUnavailableAfterCommit = false
+    private var privateFiles: DraftFileIO = AtomicDraftFiles
+    private var privateIo: CoroutineDispatcher = dispatcher
     @Before fun setup() {
         Dispatchers.setMain(dispatcher)
         deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
@@ -55,7 +63,7 @@ class RoutineEditorDurabilityTest {
         runBlocking { models.toList().forEach { it.clearAndJoinForTest() } }
         deps.close(); directory.deleteRecursively(); Dispatchers.resetMain()
     }
-    private fun port() = RoutineDrafts(store = DurableDraftStore(directory, dispatcher),
+    private fun port() = RoutineDrafts(store = DurableDraftStore(directory = directory, dispatcher = privateIo, files = privateFiles),
         maintenance = deps.dbMaintenance, restoreOpen = { false },
         readRecord = deps.routineRepository::editorRecord,
         inspectSaved = { command ->
@@ -125,6 +133,34 @@ class RoutineEditorDurabilityTest {
         assertEquals(1, deps.routineRepository.count())
         assertEquals("My routine", deps.routineRepository.getById(id)?.name)
         assertEquals(selected.id, deps.routineRepository.getById(id)?.exercises?.single()?.exercise?.id)
+    }
+
+    @Test fun livePasteTextDoesNotRevertWhileItsDurableCheckpointIsStillWriting() = runBlocking {
+        val entered = CountDownLatch(1); val release = CountDownLatch(1)
+        val pauseNext = AtomicBoolean(false)
+        privateIo = Dispatchers.IO
+        privateFiles = object : DraftFileIO {
+            override fun read(file: File) = AtomicDraftFiles.read(file)
+            override fun replace(file: File, bytes: ByteArray) {
+                if (pauseNext.compareAndSet(true, false)) {
+                    entered.countDown()
+                    check(release.await(10, TimeUnit.SECONDS)) { "Synthetic checkpoint was not released" }
+                }
+                AtomicDraftFiles.replace(file, bytes)
+            }
+        }
+        val vm = editor(); vm.recovery.awaitFirst { it.ready && it.fields != null }
+        pauseNext.set(true)
+        try {
+            vm.onPasteTextChange(programme)
+            assertTrue(entered.await(10, TimeUnit.SECONDS))
+            assertEquals(programme, vm.pasteEntry.value)
+            assertEquals("", vm.recovery.value.fields?.pasteText)
+            assertEquals(0, successfulCommands)
+        } finally { release.countDown() }
+        vm.recovery.awaitFirst { it.fields?.pasteText == programme }
+        assertEquals(programme, vm.pasteEntry.value)
+        assertEquals(0, deps.routineRepository.count())
     }
 
     @Test fun newerDurableAuthoredFieldsOutrankAnOlderFrameworkSnapshot() = runBlocking {

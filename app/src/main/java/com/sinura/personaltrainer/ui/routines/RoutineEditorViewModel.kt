@@ -214,7 +214,11 @@ class RoutineEditorViewModel internal constructor(
     private val checkpointSequence = AtomicLong()
     private var latestCheckpoint = 0L
     private var draftHandle: RoutineDraftHandle? = null
-    private var pasteText = ""
+    private val pasteTextState = MutableStateFlow(savedStateHandle.get<String>(KEY_PASTE).orEmpty())
+    internal val pasteEntry = pasteTextState.asStateFlow()
+    private var pasteText: String
+        get() = pasteTextState.value
+        set(value) { pasteTextState.value = value }
     private val numberDrafts = MutableStateFlow<List<RoutineNumberDraft>>(emptyList())
     internal val retainedNumbers = numberDrafts.asStateFlow()
     private val _imports = MutableStateFlow(RoutineImportState())
@@ -1840,6 +1844,7 @@ class RoutineEditorViewModel internal constructor(
         savedStateHandle[KEY_ID] = routineId.value
         savedStateHandle[KEY_NAME] = name.value
         savedStateHandle[KEY_NOTES] = notes.value
+        savedStateHandle[KEY_PASTE] = pasteText
         savedStateHandle[KEY_CREATED] = createdThisSession
         savedStateHandle[KEY_NAME_EDITED] = nameEdited
         savedStateHandle[KEY_NOTES_EDITED] = notesEdited
@@ -2045,6 +2050,7 @@ class RoutineEditorViewModel internal constructor(
         const val KEY_ID = "editor.routineId"
         const val KEY_NAME = "editor.name"
         const val KEY_NOTES = "editor.notes"
+        const val KEY_PASTE = "editor.paste"
         const val KEY_CREATED = "editor.createdThisSession"
         const val KEY_NAME_EDITED = "editor.nameEdited"
         const val KEY_NOTES_EDITED = "editor.notesEdited"

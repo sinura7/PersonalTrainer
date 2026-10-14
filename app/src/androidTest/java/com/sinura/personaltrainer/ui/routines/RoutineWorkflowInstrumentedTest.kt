@@ -228,6 +228,7 @@ class RoutineWorkflowInstrumentedTest {
         scrollTo(RoutineEditorTags.PASTE_FIELD)
         val text = "Upper A\n1. Barbell Bench Press — 3×8\n2. Barbell Bench Press — 5×6\n\nLower A\n1. Barbell Bench Press — 2×10"
         compose.onNodeWithTag(RoutineEditorTags.PASTE_FIELD).performTextReplacement(text)
+        assertEquals(text, compose.onNodeWithTag(RoutineEditorTags.PASTE_FIELD).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
         hideKeyboardIfShown()
         compose.onNodeWithTag(RoutineEditorTags.PASTE_CONFIRM).performScrollTo().performClick()
         awaitTag(RoutineEditorTags.IMPORT_PREVIEW)

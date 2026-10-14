@@ -78,13 +78,12 @@ fun RoutineEditorScreen(
     val recovery by viewModel.recovery.collectAsStateWithLifecycle()
     val numbers by viewModel.retainedNumbers.collectAsStateWithLifecycle()
     val imports by viewModel.imports.collectAsStateWithLifecycle()
+    val pasteText by viewModel.pasteEntry.collectAsStateWithLifecycle()
     var pendingRemoveId by rememberSaveable { mutableStateOf<String?>(null) }
     var discardDraft by rememberSaveable { mutableStateOf(false) }
     var reviewDraft by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var expandedLiftRequest by rememberSaveable { mutableStateOf<String?>(null) }
-    var legacyPasteText by rememberSaveable { mutableStateOf("") }
-    val pasteText = recovery.fields?.pasteText ?: legacyPasteText
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
 
     // Back is state, not a callback: leaving first deletes the empty stub routine, and if the
@@ -231,7 +230,7 @@ fun RoutineEditorScreen(
                         text = pasteText,
                         enabled = !state.addingLifts && !state.pasting,
                         pasting = state.pasting,
-                        onTextChange = { legacyPasteText = it; viewModel.onPasteTextChange(it) },
+                        onTextChange = viewModel::onPasteTextChange,
                         onConfirm = { viewModel.importPaste(pasteText) },
                     )
                 }
