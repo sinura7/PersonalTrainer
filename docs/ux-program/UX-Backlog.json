@@ -3185,20 +3185,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX12",
-        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
-        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
         "implementationPackets": [
           "P05",
           "P06",
           "P08"
         ],
-        "closurePacket": "P08",
-        "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
-        }
+        "closurePacket": "P19",
+        "closureRationale": "P05/P06 calendar contributions remain bounded; P08 changes no calendar selector. Full AppNav calendar geometry, combined status and neighboring-month acceptance is the existing P19 integration scope. The P01 last-contributing-packet closure assignment was overly broad; no new P08 native case is claimed to close these tasks."
       }
     },
     {
@@ -3218,20 +3216,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX12",
-        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
-        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
         "implementationPackets": [
           "P05",
           "P06",
           "P08"
         ],
-        "closurePacket": "P08",
-        "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
-        }
+        "closurePacket": "P19",
+        "closureRationale": "P05/P06 calendar contributions remain bounded; P08 changes no calendar selector. Full AppNav calendar geometry, combined status and neighboring-month acceptance is the existing P19 integration scope. The P01 last-contributing-packet closure assignment was overly broad; no new P08 native case is claimed to close these tasks."
       }
     },
     {
@@ -3251,20 +3247,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX12",
-        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
-        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
         "implementationPackets": [
           "P05",
           "P06",
           "P08"
         ],
-        "closurePacket": "P08",
-        "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
-        }
+        "closurePacket": "P19",
+        "closureRationale": "P05/P06 calendar contributions remain bounded; P08 changes no calendar selector. Full AppNav calendar geometry, combined status and neighboring-month acceptance is the existing P19 integration scope. The P01 last-contributing-packet closure assignment was overly broad; no new P08 native case is claimed to close these tasks."
       }
     },
     {
@@ -5092,7 +5086,8 @@
         "baselineExecutedTests": 2,
         "scope": "Home/Plan date geometry and captured History repaired; full calendar/AppNav status acceptance remains.",
         "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
-        "p05Contribution": "P05 2b956ad4a8b55e9492d15c424bc7994bfb47f052: fresh full app 4449 / standalone 1707, native 18, process 2 and one 360×640/font-2 Home journey with identical execution inputs/APKs and two pinned reviews. Completed strength/cardio return, private Retry/Reset, current-day Start and same-live-id mechanically verified. Scope is limited to this Home contribution; participant interpretation, wider capture modes and whole-app closure remain with their assigned P13/P14/P19/P20 owners."
+        "p05Contribution": "P05 2b956ad4a8b55e9492d15c424bc7994bfb47f052: fresh full app 4449 / standalone 1707, native 18, process 2 and one 360×640/font-2 Home journey with identical execution inputs/APKs and two pinned reviews. Completed strength/cardio return, private Retry/Reset, current-day Start and same-live-id mechanically verified. Scope is limited to this Home contribution; participant interpretation, wider capture modes and whole-app closure remain with their assigned P13/P14/P19/P20 owners.",
+        "closureRationale": "P05/P06 calendar contributions remain bounded; P08 changes no calendar selector. Full AppNav calendar geometry, combined status and neighboring-month acceptance is the existing P19 integration scope. The P01 last-contributing-packet closure assignment was overly broad; no new P08 native case is claimed to close these tasks."
       },
       "UX13": {
         "primaryPacket": "P08",

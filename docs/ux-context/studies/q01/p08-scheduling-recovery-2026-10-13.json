@@ -970,5 +970,16 @@
         "sha256": "C8424D275A308094F2691AC01AF3FBE953D4E372B8A499A5BC4032E02E8036C3"
       }
     ]
+  },
+  "trackingCorrection": {
+    "criteria": [
+      "UX12-AC01",
+      "UX12-AC02",
+      "UX12-AC03"
+    ],
+    "state": "Remaining calendar/AppNav integration stays open P19; participant interpretation stays P20",
+    "reason": "P05/P06 calendar contributions remain bounded; P08 changes no calendar selector. Full AppNav calendar geometry, combined status and neighboring-month acceptance is the existing P19 integration scope. The P01 last-contributing-packet closure assignment was overly broad; no new P08 native case is claimed to close these tasks.",
+    "originalError": "Final-record updater selected every legacy closurePacket=P08 rather than the nine explicit study IDs. Removed unsupported verified text and restored prior contribution fields.",
+    "changeScope": "Documentation only; no product behavior, native test, gate input or calendar acceptance was changed."
   }
 }
