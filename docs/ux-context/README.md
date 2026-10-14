@@ -4,6 +4,8 @@ P10 Library-context core is integrated through [PR #503](https://github.com/sinu
 
 P10R now has scoped Create children, transaction-bound owner checks, durable view/Create controllers, routine/workout-add wiring and confirmed private Reset. Fresh targeted discard-recovery22 passed51 checks with no failures/errors/skips, including native JVM small/landscape font2 reopen/Retry and delayed/removed-anchor recovery. One actual routine AppNav picker journey passed on transaction-recovery12 APKs. These are partial evidence: other picker callers, the final native states/full gate/reviews/integration and signed Drop A remain outstanding. Historical failed/aborted attempts and bounded review reports remain in the same P10 study; no required-criterion count has advanced.
 
+Unmatched import picks now use their intended imported routine and prescription. A failed final departure blocks new operations, retains its intent across remount and has exact Retry/confirmed Reset. Fresh remount-recovery28 passed114 targeted checks and requested APK/release/R8 assembly. Three actual AppNav Create/checkpoint/process-reopen journeys passed on matching APKs, preserving raw fields and a single Create ID. [Resumed native Create](studies/q01/assets/p10-owned-create-resumed-2026-10-14.png) and [large-text Reset dialog](studies/q01/assets/p10-picker-reset-landscape-font20-2026-10-14.png) are synthetic native evidence. Workout swaps, activity/custom-week callers, final packet gates/reviews/integration and Drop A remain open;41/96 and signed125 are unchanged.
+
 
 **Created:** 8 October 2026
 

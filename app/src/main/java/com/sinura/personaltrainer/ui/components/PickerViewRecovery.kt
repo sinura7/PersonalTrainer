@@ -54,8 +54,9 @@ internal class PickerViewRecovery(
     private var revision = 0L
     private var unkept = false
     private var pendingLeave: (() -> Unit)? = null
+    private var departureUnsettled = false
     private var unreadableSeed: PickerContextSnapshot? = null
-    val editable: Boolean get() = !status.value.busy && !status.value.changedElsewhere
+    val editable: Boolean get() = !status.value.busy && !status.value.changedElsewhere && !departureUnsettled
     val activeOwner: DraftOwner? get() = handle?.owner
 
     fun open() {
@@ -162,6 +163,11 @@ internal class PickerViewRecovery(
 
     fun closeVisit() { foreground = false; epoch += 1L; pendingLeave = null }
 
+    /** Rebind a retired composition's close action without admitting another operation. */
+    fun bindDeparture(onKept: () -> Unit) {
+        if (departureUnsettled) pendingLeave = onKept
+    }
+
     /** A layout observation cannot replace remembered authored fields after a failed read. */
     fun positionChanged(index: Int, offsetDp: Float, anchor: String?) {
         if (handle?.readable != true || status.value.busy || status.value.error != null || fields.value.creating) return
@@ -170,6 +176,7 @@ internal class PickerViewRecovery(
 
     fun leave(onKept: () -> Unit) {
         if (!foreground || status.value.busy || status.value.changedElsewhere) return
+        departureUnsettled = true
         pendingLeave = onKept
         keep()
     }
@@ -219,6 +226,7 @@ internal class PickerViewRecovery(
                 mutableStatus.value = PickerViewStatus(opening = false)
                 val action = pendingLeave
                 pendingLeave = null
+                if (action != null) departureUnsettled = false
                 action?.invoke()
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: Exception) { if (visit == epoch) failed() }
@@ -254,7 +262,6 @@ internal class PickerViewRecovery(
         val active = handle ?: return
         val visit = ++epoch
         revision++
-        pendingLeave = null
         mutableStatus.value = status.value.copy(keeping = true)
         scope.launch { serial.withLock {
             if (visit != epoch) return@withLock
@@ -269,6 +276,8 @@ internal class PickerViewRecovery(
                 restored(fields.value)
                 handle = drafts.open(active.owner)
                 check(checkNotNull(handle).readable)
+                pendingLeave = null
+                departureUnsettled = false
                 mutableStatus.value = PickerViewStatus(opening = false)
                 onReset()
             } catch (cancelled: CancellationException) { throw cancelled }

@@ -781,7 +781,7 @@
       "After accepted restore or removed/changed owner, require ownership reconciliation before submission; cleanup/stale callbacks cannot resurrect completed work."
     ],
     "partialImplementation": {
-      "state": "Owner-scoped storage, view/Create controllers and routine/workout-add callers implemented; remaining callers, final native matrix, full gate, final reviews and integration remain open",
+      "state": "Owner-scoped storage, view/Create/reset controllers and routine normal/unmatched/workout-add callers implemented; remaining callers, final native matrix, full gate, final reviews and integration remain open",
       "source": [
         "app/src/main/java/com/sinura/personaltrainer/data/draft/PickerContextDrafts.kt",
         "app/src/main/java/com/sinura/personaltrainer/data/draft/CustomExerciseDrafts.kt"
@@ -856,6 +856,70 @@
           }
         },
         {
+          "attempt": "create27-appnav",
+          "receipt": "build/ux-context/runs/picker-recovery/create27-appnav/summary.json",
+          "receiptSha256": "9DC131FC4CB431C8126700969E3F96DCCC70BB382D09137EE79AB590257F7350",
+          "exit": 0,
+          "result": "FAIL",
+          "sourceInputs": 1670,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 0,
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "apks": {
+            "app": "72C238D31FE5CC731A04996F9F580197F47B06CC4AC259EFD70F0634AFE6599C",
+            "tests": "B47479C283E8688768BC1C498D718668E7921EB19CDE0253F008AEF4E7FFFA47"
+          }
+        },
+        {
+          "attempt": "create29-appnav",
+          "receipt": "build/ux-context/runs/picker-recovery/create29-appnav/summary.json",
+          "receiptSha256": "9D281DD01E5108AF3475456551C506F0717DDDCE49B425534EEA562A76F5FDDB",
+          "exit": 0,
+          "result": "PASS",
+          "sourceInputs": 1670,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 1,
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "apks": {
+            "tests": "6A3F0057F726EF4C78BD75797B2CA48469AF841DF9273079E6D1937AC5890ED0",
+            "app": "5EB0021DC33500EF683BBD69476A212758FE872538A994D17FFF61D518AA0FEC"
+          }
+        },
+        {
+          "attempt": "create30-process-stage",
+          "receipt": "build/ux-context/runs/picker-recovery/create30-process-stage/summary.json",
+          "receiptSha256": "64246CF13FEABBE832ED6170208F87BDE30FCF67EA9B49CB3C014A8032F337E8",
+          "exit": 0,
+          "result": "PASS",
+          "sourceInputs": 1670,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 1,
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "apks": {
+            "app": "5EB0021DC33500EF683BBD69476A212758FE872538A994D17FFF61D518AA0FEC",
+            "tests": "6A3F0057F726EF4C78BD75797B2CA48469AF841DF9273079E6D1937AC5890ED0"
+          }
+        },
+        {
+          "attempt": "create31-process-resume",
+          "receipt": "build/ux-context/runs/picker-recovery/create31-process-resume/summary.json",
+          "receiptSha256": "54DBF94382382C0DB58D009FC742C717E9A3AD73F054C54848AF861F6BA3D934",
+          "exit": 0,
+          "result": "PASS",
+          "sourceInputs": 1670,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 1,
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "apks": {
+            "app": "5EB0021DC33500EF683BBD69476A212758FE872538A994D17FFF61D518AA0FEC",
+            "tests": "6A3F0057F726EF4C78BD75797B2CA48469AF841DF9273079E6D1937AC5890ED0"
+          }
+        },
+        {
           "attempt": "discard-recovery21",
           "receipt": "build/ux-context/runs/picker-recovery/discard-recovery21/summary.json",
           "receiptSha256": "797F65956F7A3017A7E50D6468221026D753E0B78A9CCB25E60280285F3F9702",
@@ -884,6 +948,40 @@
           "freshTests": 51,
           "counts": {
             "tests": 51,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "handoff-recovery25",
+          "receipt": "build/ux-context/runs/picker-recovery/handoff-recovery25/summary.json",
+          "receiptSha256": "CF1E84AA90F24C66A6CC96C447F52F902F221AAE6D68A31F1528981D734E9360",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1670,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 113,
+          "counts": {
+            "tests": 113,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "handoff-recovery26",
+          "receipt": "build/ux-context/runs/picker-recovery/handoff-recovery26/summary.json",
+          "receiptSha256": "06ECC4ED5C59D7EB56E56B785334EFE6173939AD8FB71702DC92157E59943FB6",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1670,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 114,
+          "counts": {
+            "tests": 114,
             "failures": 0,
             "errors": 0,
             "skipped": 0
@@ -954,6 +1052,39 @@
           "apks": {
             "tests": "CF562BD8C368481B4867EDD31460A19B47A2FE16D599A0E4B8E55B1A4440F7AA",
             "app": "B8B57F040C9788BA32756C26A6A369F89EFBDFBA535D55B0B01141AACBDBF889"
+          }
+        },
+        {
+          "attempt": "picker24-appnav",
+          "receipt": "build/ux-context/runs/picker-recovery/picker24-appnav/summary.json",
+          "receiptSha256": "8B00DD68957B11DB76DA11796F6B3B074657A7869B1F0847FD068820CA5B3467",
+          "exit": 0,
+          "result": "PASS",
+          "sourceInputs": 1670,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshNativeTests": 1,
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "apks": {
+            "app": "F356517546AB79F1BD7EA54455F9826AF47C57C949FAA8105ACF5C40718F0F11",
+            "tests": "CF562BD8C368481B4867EDD31460A19B47A2FE16D599A0E4B8E55B1A4440F7AA"
+          }
+        },
+        {
+          "attempt": "remount-recovery28",
+          "receipt": "build/ux-context/runs/picker-recovery/remount-recovery28/summary.json",
+          "receiptSha256": "09C9B1E60C2A5DEA265324DF6BAA512D94166E6A64DFBCE32A69A7E4658A5AD9",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1670,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 114,
+          "counts": {
+            "tests": 114,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
           }
         },
         {
@@ -1110,6 +1241,23 @@
           }
         },
         {
+          "attempt": "unmatched-recovery23",
+          "receipt": "build/ux-context/runs/picker-recovery/unmatched-recovery23/summary.json",
+          "receiptSha256": "9A45519D46ACEFF2787851F8325B5F1C46AA32B99DB1A93A36302BA4CD297900",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1670,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 101,
+          "counts": {
+            "tests": 101,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
           "attempt": "view-recovery05",
           "receipt": "build/ux-context/runs/picker-recovery/view-recovery05/summary.json",
           "receiptSha256": "C5C26D9E0E7E09888708205B06179D535816DE2851052263E6BED2D592827E63",
@@ -1130,6 +1278,16 @@
       "scope": "Executed targeted counts are verification evidence, not usability percentages. Original failed/aborted attempts remain retained. P10 is open; required-criterion coverage remains41/96 and latest signed delivery remains125.",
       "boundedReviews": [
         {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-discard-recovery21-source-2026-10-14.md",
+          "sha256": "CED8C3525827879B38EEFAC6465AB197D43A776D94729D0C754A76F0D2B0908A",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-handoff-recovery26-addendum-2026-10-14.md",
+          "sha256": "61C555B67A633D15B66DF5D26CDC37E4C599C8C49118438C82C9A85B00E32464",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
           "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-owner-boundary04-addendum-2026-10-14.md",
           "sha256": "C53D50FD584C78020027C236AE3CBC77089D5A06BD7658A071E5C70DFB24157F",
           "scope": "Historical bounded source review; does not establish final packet eligibility"
@@ -1142,6 +1300,11 @@
         {
           "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-owner-recovery11-correction-2026-10-14.md",
           "sha256": "FF9BEE56A8CD16EA3B44DFF111CAC662B1CFDF48EF1CA28AFB80A11676AA2EF7",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-remount-recovery28-correction-2026-10-14.md",
+          "sha256": "A793D3FA48C8A253B5C292E1A68A8957DD619CB1C853460FDB7DE41F65F3158C",
           "scope": "Historical bounded source review; does not establish final packet eligibility"
         },
         {
@@ -1170,6 +1333,11 @@
           "scope": "Historical bounded source review; does not establish final packet eligibility"
         },
         {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-unmatched-recovery23-2026-10-14.md",
+          "sha256": "71205A777CBFEAD4DBE306243DCE6E96D6522EEE492E64B59F7BBB35A5F65275",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
           "path": "build/ux-context/runs/picker-recovery/reviews/p10r-preliminary-adversarial-controllers-caller09-2026-10-14.md",
           "sha256": "46E436069433CA6AD775AAD9BC26004298B6F4AFB735B4B06C39BD1A4A247AC4",
           "scope": "Historical bounded source review; does not establish final packet eligibility"
@@ -1185,15 +1353,31 @@
         "Create reserves a frozen command, reconciles uncertain outcomes, and checks actual parent ownership inside the Room write transaction.",
         "Raw query/facet/view checkpoint controllers preserve unreadable/conflicting data; explicit departure waits for the latest durable checkpoint.",
         "Routine and workout-add callers use private recovery; saved Create selection requires caller proof before clearing the child.",
-        "Actual routine AppNav selection/order/cancellation/resumed-query journey passed once on transaction-recovery12 APKs."
+        "Unmatched custom Create uses the intended imported routine and its prescription; failed final departure blocks another operation, survives remount with a rebound continuation, and confirmed Reset retires a resolved matching context.",
+        "Actual routine AppNav selection/order/cancellation/resumed-query journey passed on transaction-recovery12 and unmatched-recovery23 APKs.",
+        "Fresh remount-recovery28 passed114 targeted checks, release/R8/debug/test-APK assembly; it is not the complete gate.",
+        "Three fresh actual AppNav Create/checkpoint-stage/process-reopen journeys passed on identical remount-recovery28 APKs. Process26625 was externally force-stopped after a completed durable checkpoint; resumed raw fields and stable ID were verified before accepted-once selection.",
+        "Corrected native JVM dialog-window captures show Reset at font2; earlier Activity-only reset-confirmation captures remain original incomplete visual evidence."
       ],
       "remaining": [
-        "Native position restoration and failed-Keep regression closure, including delayed catalogue loading.",
-        "Workout swaps, unmatched import picks, activity-composer and custom-week ownership/handoff wiring.",
-        "Explicit discard/reset and opaque custom-draft recovery; accepted parent selection must never replay.",
-        "Actual navigation Create/return/interruption/process-reopen evidence and final relevant layout states.",
+        "Workout swaps, activity-composer and custom-week ownership/handoff wiring.",
+        "Final relevant native layout/recovery states and real navigation evidence for the remaining callers.",
         "Fresh complete local gate, final independent/adversarial reviews, archived integration proof and signed Drop A."
-      ]
+      ],
+      "nativeCreate": {
+        "runs": [
+          "create29-appnav",
+          "create30-process-stage",
+          "create31-process-resume"
+        ],
+        "freshTests": 3,
+        "sourceInputs": 1670,
+        "appSha256": "5EB0021DC33500EF683BBD69476A212758FE872538A994D17FFF61D518AA0FEC",
+        "testSha256": "6A3F0057F726EF4C78BD75797B2CA48469AF841DF9273079E6D1937AC5890ED0",
+        "termination": "build/ux-context/runs/picker-recovery/create30-process-stage/external-process-termination.json",
+        "scope": "Actual MainActivity/AppNav; owned disposable API29 AVD at412x840/font1.6. Not physical acceptance or a guarantee for unfinished IO.",
+        "originalFailure": "create27-appnav failed awaiting Save after correct return to an empty routine. Original trace/PNG preserved; corrected fixture verifies the owning Add-lifts screen and absent picker, then exact durable fields and stable-ID writes."
+      }
     }
   },
   "layoutRepairs": [

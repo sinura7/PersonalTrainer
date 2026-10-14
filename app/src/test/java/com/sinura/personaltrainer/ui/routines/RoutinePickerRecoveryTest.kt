@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.ui.components.PickerCreatePhase
+import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
@@ -144,5 +145,99 @@ class RoutinePickerRecoveryTest {
         assertEquals("Exact notes", saved.exercises.single().exercise.notes)
         assertFalse(recovery.view.fields.value.creating)
         assertEquals(null, recovery.view.fields.value.customDraftId)
+    }
+
+    @Test fun unmatchedCreateUsesTheImportedRoutineAndRetainsItsPrescriptionWithoutAnotherCreate() = runBlocking {
+        val imported = importedPicker()
+        val vm = imported.model
+        val recovery = imported.recovery
+        val target = imported.targetId
+        val baseId = imported.mainId
+        recovery.openCreate()
+        recovery.create.status.awaitFirst { it.phase == PickerCreatePhase.EDITING }
+        recovery.create.update(name = "Controlled unknown press", muscle = "Chest", loadType = LoadType.EXTERNAL, notes = "")
+        val identity = checkNotNull(recovery.create.status.value.fields).createId
+        recovery.saveCreate(); recovery.saveCreate()
+        vm.uiState.awaitFirst { !it.showExercisePicker && it.unmatched.isEmpty() }
+        val selected = deps.routineRepository.getById(target)!!.exercises.single()
+        assertEquals(identity, selected.exercise.id)
+        assertEquals(2, selected.targetSets)
+        assertEquals(11, selected.targetReps)
+        assertTrue(deps.routineRepository.getById(baseId)!!.exercises.none { it.exercise.id == identity })
+        assertEquals(1, deps.database.exerciseDao().getAllCustom().count { it.id == identity })
+        assertEquals(null, recovery.view.fields.value.customDraftId)
+    }
+
+    @Test fun failedDepartureAfterUnmatchedSelectionBlocksANewCreateUntilExactRetryClosesThePicker() = runBlocking {
+        val imported = importedPicker()
+        val recovery = imported.recovery
+        recovery.openCreate()
+        recovery.create.status.awaitFirst { it.phase == PickerCreatePhase.EDITING }
+        recovery.create.update(name = "Controlled unknown press", muscle = "Chest", loadType = LoadType.EXTERNAL, notes = "")
+        io.failView = true
+        recovery.saveCreate()
+        recovery.view.status.awaitFirst { it.error != null && !it.busy && recovery.create.status.value.phase == PickerCreatePhase.CLOSED }
+        assertTrue(imported.model.uiState.awaitFirst { it.showExercisePicker && it.unmatched.isEmpty() }.showExercisePicker)
+        val before = deps.routineRepository.getById(imported.targetId)
+        val catalogue = deps.database.exerciseDao().getAllCustom()
+        assertFalse(recovery.view.editable)
+        // A native sheet is disposed and recreated on configuration remount.
+        recovery.view.closeVisit(); recovery.create.closeVisit()
+        recovery.view.bindDeparture { imported.model.setPickerVisible(false) }
+        recovery.view.open()
+        recovery.view.status.awaitFirst { !it.busy }
+        assertFalse(recovery.view.editable)
+        recovery.change(PickerContextSnapshot(query = "Another unrelated new lift"))
+        recovery.openCreate()
+        assertEquals("Controlled unknown press", recovery.view.fields.value.query)
+        assertEquals(PickerCreatePhase.CLOSED, recovery.create.status.value.phase)
+        assertEquals(catalogue, deps.database.exerciseDao().getAllCustom())
+        io.failView = false
+        recovery.view.keep()
+        imported.model.uiState.awaitFirst { !it.showExercisePicker }
+        assertEquals(before, deps.routineRepository.getById(imported.targetId))
+    }
+
+    private data class ImportedPicker(val model: RoutineEditorViewModel, val mainId: String,
+        val targetId: String, val recovery: OwnedPickerRecovery)
+
+    @Test fun resetAfterResolvedMatchClosesItsContextAndTheNextPickerUsesNormalAddOwnership() = runBlocking {
+        val imported = importedPicker()
+        val recovery = imported.recovery
+        recovery.openCreate()
+        recovery.create.status.awaitFirst { it.phase == PickerCreatePhase.EDITING }
+        recovery.create.update(name = "Controlled unknown press", muscle = "Chest", loadType = LoadType.EXTERNAL, notes = "")
+        io.failView = true
+        recovery.saveCreate()
+        recovery.view.status.awaitFirst { it.error != null && !it.busy && recovery.create.status.value.phase == PickerCreatePhase.CLOSED }
+        val saved = deps.routineRepository.getById(imported.targetId)
+        val catalogue = deps.database.exerciseDao().getAllCustom()
+        io.failView = false
+        recovery.discardPrivate()
+        imported.model.uiState.awaitFirst { !it.showExercisePicker }
+        assertEquals(saved, deps.routineRepository.getById(imported.targetId))
+        assertEquals(catalogue, deps.database.exerciseDao().getAllCustom())
+        imported.model.setPickerVisible(true)
+        assertTrue(imported.model.recoveryForPicker() === imported.model.pickerRecovery)
+        assertTrue(imported.model.recoveryForPicker() !== recovery)
+    }
+
+    private suspend fun importedPicker(): ImportedPicker {
+        val base = deps.routineRepository.create("Synthetic import owner")
+        deps.exerciseRepository.createCustom("Known row", "Back")
+        val vm = editor(base.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.catalog.isNotEmpty() }
+        vm.importPaste("Upper A\n1. Known row — 3×8\n\nLower B\n1. Controlled unknown press — 2×11")
+        val preview = vm.imports.awaitFirst { it.preview != null && it.visible }
+        val target = checkNotNull(preview.details).owners.single { it.name == "Lower B" }.id
+        vm.confirmImport()
+        vm.imports.awaitFirst { it.applied && !it.applying }
+        val unmatched = vm.uiState.awaitFirst { it.unmatched.size == 1 }.unmatched.single()
+        vm.requestUnmatchedPick(unmatched)
+        val recovery = checkNotNull(vm.recoveryForPicker())
+        recovery.view.open()
+        recovery.view.status.awaitFirst { !it.busy }
+        recovery.change(PickerContextSnapshot(query = "Controlled unknown press"))
+        return ImportedPicker(model = vm, mainId = base.id, targetId = target, recovery = recovery)
     }
 }

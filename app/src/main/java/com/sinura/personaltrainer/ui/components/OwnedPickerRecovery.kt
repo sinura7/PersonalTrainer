@@ -27,6 +27,7 @@ internal class OwnedPickerRecovery(
     private val selectCreated: suspend (Exercise) -> Boolean,
     private val onSelected: () -> Unit = {},
     ownedAtCommit: suspend (DraftOwner) -> Boolean,
+    private val onReset: () -> Unit = {},
 ) {
     private val key = "picker.framework.v1"
     val view = PickerViewRecovery(
@@ -67,7 +68,7 @@ internal class OwnedPickerRecovery(
     fun discardPrivate() {
         if (view.status.value.busy || create.status.value.busy) return
         val requested = view.activeOwner ?: return
-        create.discard(requested) { view.reset() }
+        create.discard(requested) { view.reset(onReset) }
     }
 }
 

@@ -68,7 +68,7 @@ class LibraryWorkflowInstrumentedTest {
     private var retain = false
     private val gson = Gson()
     private data class Fixture(val original: LibraryBrowseSnapshot?, val inventory: String,
-        var ownedRoutine: String? = null, var expectedPosition: Float? = null)
+        var ownedRoutine: String? = null, var expectedPosition: Float? = null, var ownedCreateId: String? = null)
     private val preparation = object : ExternalResource() {
         override fun before() {
             val app = ApplicationProvider.getApplicationContext<PersonalTrainerApp>()
@@ -83,7 +83,7 @@ class LibraryWorkflowInstrumentedTest {
                 container.preferencesRepository.setLaunchPermissionsAsked(true)
                 container.preferencesRepository.markRestAlertsAsked()
                 container.preferencesRepository.markRestBatteryHintShown()
-                if (phase == "resume") fixture = gson.fromJson(marker.readText(), Fixture::class.java)
+                if (phase == "resume" || phase == "picker-create-resume") fixture = gson.fromJson(marker.readText(), Fixture::class.java)
                 else {
                     check(!marker.exists()) { "Earlier P10 fixture needs reconciliation" }
                     val handle = container.libraryBrowseDrafts.open()
@@ -91,7 +91,7 @@ class LibraryWorkflowInstrumentedTest {
                     fixture = Fixture(handle.remembered, inventory())
                     marker.writeText(gson.toJson(fixture))
                     container.libraryBrowseDrafts.reset(handle)
-                    if (phase == "picker") {
+                    if (phase.startsWith("picker")) {
                         fixture.ownedRoutine = container.routineRepository.create("Synthetic P10 picker").id
                         marker.writeText(gson.toJson(fixture))
                     }
@@ -121,6 +121,7 @@ class LibraryWorkflowInstrumentedTest {
         assertInventory()
         tap("navigation-routines")
         if (phase == "picker") { pickerJourney(); return }
+        if (phase.startsWith("picker-create")) { pickerCreateJourney(); return }
         tap(PlanTags.LIBRARY)
         awaitTag(LibraryTags.SEARCH)
         val lift = "ex-incline-dumbbell-bench-press"
@@ -251,6 +252,67 @@ class LibraryWorkflowInstrumentedTest {
         capture("picker-cancel-keeps-saved-lifts")
     }
 
+    private fun pickerCreateJourney() {
+        val routine = checkNotNull(fixture.ownedRoutine)
+        val rawName = "  Synthetic P10 owned press  "
+        val rawNotes = "  Exact synthetic notes  "
+        val owner = DraftOwner(DraftForm.ROUTINE, "lifts:$routine")
+        scrollTo(PlanTags.routine(routine)); tap(PlanTags.routine(routine))
+        awaitTag(RoutineEditorTags.ADD_LIFTS); scrollTo(RoutineEditorTags.ADD_LIFTS); tap(RoutineEditorTags.ADD_LIFTS)
+        awaitTag("picker-search")
+        val query = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")), useUnmergedTree = true)
+        if (phase == "picker-create-resume") query.assertTextContains(rawName)
+        else query.performTextReplacement(rawName)
+        compose.onNodeWithTag("picker-content").performScrollToNode(hasTestTag("picker-create-entry"))
+        tap("picker-create-entry"); awaitTag("picker-create-name")
+        val name = compose.onNodeWithTag("picker-create-name")
+        if (phase != "picker-create-resume") {
+            name.performTextReplacement(rawName)
+            compose.onNodeWithTag("picker-content").performScrollToNode(hasText("Chest"))
+            compose.onNode(hasText("Chest") and hasAnyAncestor(hasTestTag("picker-create-form")))
+                .performTouchInput { click(center) }
+            compose.onNodeWithTag("picker-content").performScrollToNode(hasText("Notes (optional)"))
+            compose.onNodeWithText("Notes (optional)").performTouchInput { click(center) }
+            compose.onNodeWithTag("picker-create-notes").performTextReplacement(rawNotes)
+        } else {
+            name.assertTextContains(rawName)
+            compose.onNodeWithTag("picker-content").performScrollToNode(hasText("Chest"))
+            compose.onNode(hasText("Chest") and hasAnyAncestor(hasTestTag("picker-create-form"))).assertIsOn()
+        }
+        // Back to the list flushes all authored fields before the orderly departure.
+        compose.onNodeWithText("Back to lifts").performTouchInput { click(center) }
+        awaitTag("picker-search"); tap("picker-action"); awaitTag(RoutineEditorTags.ADD_LIFTS)
+        compose.waitUntil(30_000) { compose.onAllNodesWithTag("picker-search").fetchSemanticsNodes().isEmpty() }
+        val kept = read { container.customExerciseDrafts.openForPicker(owner, "Chest") }
+        assertEquals(rawName, kept.authored.name)
+        assertEquals(rawNotes, kept.authored.notes)
+        assertEquals("Chest", kept.authored.muscle)
+        val identity = kept.authored.createId
+        if (phase == "picker-create-resume") assertEquals(fixture.ownedCreateId, identity)
+        else { fixture.ownedCreateId = identity; marker.writeText(gson.toJson(fixture)) }
+        assertNull(read { container.exerciseRepository.getById(identity) })
+        assertInventory()
+        capture("custom-draft-kept-before-save")
+        if (phase == "picker-create-stage") { retain = true; return }
+        scrollTo(RoutineEditorTags.ADD_LIFTS); tap(RoutineEditorTags.ADD_LIFTS); awaitTag("picker-search")
+        compose.onNodeWithTag("picker-content").performScrollToNode(hasTestTag("picker-create-entry"))
+        tap("picker-create-entry"); awaitTag("picker-create-name")
+        compose.onNodeWithTag("picker-create-name").assertTextContains(rawName)
+        capture("custom-draft-resumed")
+        compose.onNodeWithTag("picker-action").performSemanticsAction(SemanticsActions.OnClick) { action -> action(); action() }
+        compose.waitUntil(30_000) { read {
+            container.routineRepository.getById(routine)?.exercises?.map { it.exercise.id } == listOf(identity)
+        } }
+        compose.waitUntil(30_000) { compose.onAllNodesWithTag("picker-search").fetchSemanticsNodes().isNotEmpty() }
+        val actual = checkNotNull(read { container.exerciseRepository.getById(identity) })
+        assertEquals(rawName.trim(), actual.name); assertEquals(rawNotes.trim(), actual.notes)
+        assertEquals(1, read { container.exerciseRepository.observeAll().first().count { it.id == identity } })
+        assertInventory()
+        capture("custom-create-selected-once")
+        tap("picker-action"); awaitTag(RoutineEditorTags.ADD_LIFTS)
+        compose.waitUntil(30_000) { compose.onAllNodesWithTag("picker-search").fetchSemanticsNodes().isEmpty() }
+    }
+
     private fun assertContext(lift: String) {
         search().assertIsDisplayed().assertTextContains("  press  ")
         facet("Chest", LibraryTags.MUSCLE_FILTERS).assertIsOn()
@@ -291,7 +353,8 @@ class LibraryWorkflowInstrumentedTest {
         finally { bitmap.recycle() }
     }
     private suspend fun inventory(): String {
-        val records = listOf(container.exerciseRepository.observeAll().first().sortedBy { it.id },
+        val records = listOf(container.exerciseRepository.observeAll().first().filter {
+                !::fixture.isInitialized || it.id != fixture.ownedCreateId }.sortedBy { it.id },
             container.routineRepository.observeAll().first().filter { !::fixture.isInitialized || it.id != fixture.ownedRoutine }.sortedBy { it.id },
             container.workoutRepository.observeHistory().first().sortedBy { it.id })
         return MessageDigest.getInstance("SHA-256").digest(gson.toJson(records).toByteArray(Charsets.UTF_8))
@@ -306,6 +369,12 @@ class LibraryWorkflowInstrumentedTest {
                 fixture.ownedRoutine?.let { id ->
                     check(container.routineRepository.getById(id)?.name == "Synthetic P10 picker")
                     container.routineRepository.delete(id)
+                }
+                fixture.ownedCreateId?.let { id ->
+                    container.exerciseRepository.getById(id)?.let { saved ->
+                        check(saved.isCustom && saved.name == "Synthetic P10 owned press")
+                        container.exerciseRepository.deleteCustom(id)
+                    }
                 }
                 val handle = container.libraryBrowseDrafts.open()
                 val original = fixture.original

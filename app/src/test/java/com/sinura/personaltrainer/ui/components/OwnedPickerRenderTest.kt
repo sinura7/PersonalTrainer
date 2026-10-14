@@ -60,6 +60,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
 
 /** Shipping content/controller/files in a native JVM host; separate from AppNav and phone evidence. */
 @RunWith(RobolectricTestRunner::class)
@@ -207,6 +208,20 @@ class OwnedPickerRenderTest {
         io.failView = false
         compose.onNodeWithText("Retry").performClick()
         compose.waitUntil(30_000) { !showing.value }
+        compose.settle()
+        compose.runOnIdle { current.value = fresh(); showing.value = true }
+        ready()
+        val beforeReset = checkNotNull(current.value).view.fields.value
+        compose.onNodeWithTag("picker-content").performScrollToNode(hasTestTag("picker-reset"))
+        compose.onNodeWithTag("picker-reset").performClick()
+        compose.onNodeWithTag(ConfirmActionTags.CANCEL).performClick()
+        assertEquals(beforeReset.query, checkNotNull(current.value).view.fields.value.query)
+        compose.onNodeWithTag("picker-reset").performClick()
+        capture(profile, "reset-confirmation")
+        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).performClick()
+        compose.waitUntil(30_000) { checkNotNull(current.value).view.fields.value.query.isEmpty() &&
+            !checkNotNull(current.value).view.status.value.busy && !checkNotNull(current.value).create.status.value.busy }
+        capture(profile, "reset-accepted")
         assertTrue(runBlocking { deps.database.exerciseDao().getAllCustom().isEmpty() })
     }
     private fun ready() {
@@ -217,10 +232,11 @@ class OwnedPickerRenderTest {
     private fun search() = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")), useUnmergedTree = true)
     private fun capture(profile: String, phase: String) {
         compose.settle()
-        val view = compose.activity.window.decorView
-        val bitmap = compose.runOnUiThread { Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888).also {
-            view.draw(Canvas(it))
-        } }
+        val bitmap = compose.runOnUiThread {
+            val view = ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }?.window?.decorView
+                ?: compose.activity.window.decorView
+            Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888).also { view.draw(Canvas(it)) }
+        }
         try {
             val target = File("build/screen-renders/owned-picker/$runId/$profile/$phase.png")
             check(target.parentFile.isDirectory || target.parentFile.mkdirs())

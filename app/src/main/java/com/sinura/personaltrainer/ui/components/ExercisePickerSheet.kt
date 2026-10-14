@@ -123,7 +123,9 @@ internal fun OwnedExercisePickerSheet(
     recovery: OwnedPickerRecovery,
     canDismiss: () -> Boolean,
 ) {
+    val currentEvent by rememberUpdatedState(onEvent)
     DisposableEffect(recovery) {
+        recovery.view.bindDeparture { currentEvent(ExercisePickerEvent.Dismissed) }
         recovery.view.open()
         onDispose { recovery.view.closeVisit(); recovery.create.closeVisit() }
     }
@@ -207,7 +209,7 @@ internal fun ExercisePickerContent(
     val createName = createStatus?.fields?.name ?: localCreateName
     val group = createStatus?.fields?.muscle ?: localGroup
     val loadTypeName = createStatus?.fields?.loadType?.name ?: localLoadTypeName
-    val editable = viewStatus?.let { !it.busy && !it.changedElsewhere } ?: true
+    val editable = recovery?.view?.editable ?: true
     val customEditable = createStatus?.editable ?: true
     var consumedCreation by rememberSaveable { mutableStateOf(state.progress.createdGeneration) }
     val selectedMuscle = if (recovery == null) CanonicalMuscle.bodyMapOrder.firstOrNull { it.name == selectedMuscleName } else retained?.muscle

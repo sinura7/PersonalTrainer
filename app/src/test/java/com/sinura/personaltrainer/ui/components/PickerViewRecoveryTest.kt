@@ -125,6 +125,9 @@ class PickerViewRecoveryTest {
         assertEquals(0, exits)
         assertEquals("  exact latest  ", actor.fields.value.query)
         assertNotNull(actor.status.value.error)
+        assertFalse(actor.editable)
+        actor.changed(PickerContextSnapshot(query = "another operation"))
+        assertEquals("  exact latest  ", actor.fields.value.query)
         io.fail = false
         actor.keep()
         actor.keep()

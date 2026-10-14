@@ -382,7 +382,7 @@ fun RoutineEditorScreen(
 
     if (state.showExercisePicker) {
         RecoverableExercisePickerSheet(
-            recovery = viewModel.pickerRecovery.takeIf { state.unmatchedPick == null },
+            recovery = viewModel.recoveryForPicker(),
             canDismiss = viewModel::canDismissPicker,
             state = ExercisePickerState(
                 query = state.searchQuery,
