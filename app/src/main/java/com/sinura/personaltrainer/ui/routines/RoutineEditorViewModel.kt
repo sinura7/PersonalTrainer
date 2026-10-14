@@ -9,6 +9,15 @@ import com.sinura.personaltrainer.util.PickerWrites
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.AppContainer
+import com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome
+import com.sinura.personaltrainer.data.draft.RoutineDraftFields
+import com.sinura.personaltrainer.data.draft.RoutineDraftHandle
+import com.sinura.personaltrainer.data.draft.RoutineDrafts
+import com.sinura.personaltrainer.data.draft.RoutineNumberDraft
+import com.sinura.personaltrainer.data.draft.RoutineNumberField
+import com.sinura.personaltrainer.data.draft.RoutineTargetDraft
+import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
@@ -16,6 +25,7 @@ import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.EditorPhase
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LibraryGrouping
@@ -143,11 +153,15 @@ data class RoutineEditorUiState(
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class RoutineEditorViewModel @JvmOverloads constructor(
+class RoutineEditorViewModel internal constructor(
     application: Application,
     private val savedStateHandle: SavedStateHandle,
-    container: AppDependencies = application.appContainer(),
+    container: AppDependencies,
+    private val durable: RoutineDrafts?,
 ) : AppViewModel(application, container) {
+    @JvmOverloads constructor(application: Application, savedStateHandle: SavedStateHandle,
+        container: AppDependencies = application.appContainer()) :
+        this(application, savedStateHandle, container, (container as? AppContainer)?.routineDrafts)
     private val incomingId: String? = RoutineEditorPolicy.incomingId(
         savedStateHandle.get<String>("routineId"),
     )
@@ -168,7 +182,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val load = MutableStateFlow(
         RoutineEditorLoad(
             opensExisting = incomingId != null,
-            hydrated = incomingId == null && initialExerciseId == null,
+            hydrated = durable == null && incomingId == null && initialExerciseId == null,
         ),
     )
     private val missing: Boolean get() = load.value.phase == EditorPhase.MISSING
@@ -189,6 +203,79 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val taps = AtomicLong()
     private val exitState = MutableStateFlow(ExitState())
     private val pasteState = MutableStateFlow(PasteUi())
+    private val stagedTargets = ConcurrentHashMap<String, StagedTargets>()
+    private val targetOrigins = ConcurrentHashMap<String, RoutineExerciseEntity>()
+    private var nameEdited = false
+    private var notesEdited = false
+    private var needsRestoredFieldReview = false
+    private val _recovery = MutableStateFlow(RoutineRecoveryState(ready = durable == null))
+    internal val recovery = _recovery.asStateFlow()
+    private val checkpointWrites = Mutex()
+    private val checkpointSequence = AtomicLong()
+    private var latestCheckpoint = 0L
+    private var draftHandle: RoutineDraftHandle? = null
+    private val pasteTextState = MutableStateFlow(savedStateHandle.get<String>(KEY_PASTE).orEmpty())
+    internal val pasteEntry = pasteTextState.asStateFlow()
+    private var pasteText: String
+        get() = pasteTextState.value
+        set(value) { pasteTextState.value = value }
+    private val numberDrafts = MutableStateFlow<List<RoutineNumberDraft>>(emptyList())
+    internal val retainedNumbers = numberDrafts.asStateFlow()
+    private val _imports = MutableStateFlow(RoutineImportState())
+    internal val imports: StateFlow<RoutineImportState> = _imports.asStateFlow()
+    private var draftOpen: Deferred<RoutineDraftHandle?>? = null
+    private fun openDraft(): Deferred<RoutineDraftHandle?> = draftOpen ?: viewModelScope.async(start = CoroutineStart.LAZY) {
+        durable?.open(incomingId ?: savedStateHandle.get<String>(KEY_ID), initialExerciseId)?.also { handle ->
+            draftHandle = handle
+            val inspected = if (handle.pending && !handle.problem) durable.inspect(handle) else null
+            val fields = handle.fields
+            routineId.value = fields.routineId.takeIf { fields.before != null }
+            createdThisSession = fields.createdHere
+            val legacyName = savedStateHandle.contains(KEY_NAME) && !savedStateHandle.contains(KEY_NAME_EDITED) && name.value != fields.name
+            val legacyNotes = savedStateHandle.contains(KEY_NOTES) && !savedStateHandle.contains(KEY_NOTES_EDITED) && notes.value != fields.notes
+            val unmatchedFrameworkFields = savedStateHandle.contains(KEY_NAME) && name.value != fields.name ||
+                savedStateHandle.contains(KEY_NOTES) && notes.value != fields.notes
+            // Completed private checkpoints outrank an older framework snapshot. SavedState
+            // complements a fresh checkpoint, but cannot overwrite a durably resumed form.
+            nameEdited = if (handle.resumed) fields.nameEdited else savedStateHandle.get<Boolean>(KEY_NAME_EDITED) ?: legacyName
+            notesEdited = if (handle.resumed) fields.notesEdited else savedStateHandle.get<Boolean>(KEY_NOTES_EDITED) ?: legacyNotes
+            needsRestoredFieldReview = fields.needsReview || !handle.resumed && unmatchedFrameworkFields
+            if (handle.resumed || !savedStateHandle.contains(KEY_NAME)) name.value = fields.name
+            if (handle.resumed || !savedStateHandle.contains(KEY_NOTES)) notes.value = fields.notes
+            savedStateHandle[KEY_NAME] = name.value
+            savedStateHandle[KEY_NOTES] = notes.value
+            savedStateHandle[KEY_NAME_EDITED] = nameEdited
+            savedStateHandle[KEY_NOTES_EDITED] = notesEdited
+            pasteText = fields.pasteText
+            numberDrafts.value = fields.numbers
+            _imports.value = RoutineImportState(preview = fields.importPreview.takeUnless { fields.importApplied }, details = fields.importDetails,
+                visible = fields.importVisible && !fields.importApplied, applied = fields.importApplied)
+            if (fields.importApplied) pasteState.value = PasteUi(
+                unmatched = fields.importDetails?.unmatched.orEmpty(),
+                createdNames = fields.importDetails?.owners.orEmpty().drop(1).map { it.name })
+            fields.targets.forEach { t -> stagedTargets[t.itemId] = StagedTargets(t.sets, t.reps,
+                t.weightKg, t.restSeconds, t.invalidReason, t.seconds, t.secondsMax)
+                t.before?.let { targetOrigins[t.itemId] = it } }
+            savedStateHandle[KEY_INITIAL_EXERCISE_ADDED] = fields.initialExerciseAdded ||
+                savedStateHandle.get<Boolean>(KEY_INITIAL_EXERCISE_ADDED) == true
+            _recovery.value = RoutineRecoveryState(ready = true, resumed = handle.resumed,
+                problem = when {
+                    handle.problem -> "The original routine is missing or changed. Unfinished fields are kept; read again or discard them."
+                    needsRestoredFieldReview -> "Android restored fields with a different baseline. Review the current routine before applying them."
+                    else -> null
+                },
+                fields = fields)
+            if (inspected != null && inspected != DraftRecoveryOutcome.EXACT_SAVED) recoveryRefused(inspected)
+            if (needsRestoredFieldReview && !handle.fields.needsReview) {
+                durable.keep(handle, handle.fields.copy(name = name.value, notes = notes.value,
+                    nameEdited = nameEdited, notesEdited = notesEdited, needsReview = true))
+                _recovery.update { it.copy(fields = handle.fields) }
+            }
+        }
+    }
+    .also { draftOpen = it }
+    private val routineWrites = RoutineEditorWrites(repository = container.routineRepository, drafts = durable,
+        readyHandle = { openDraft().await() }, checkpoint = { checkpointNow() }, refused = ::recoveryRefused)
 
     /**
      * Picker writes run one at a time, in tap order. Two taps on the same row are an add
@@ -213,7 +300,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     // rather than the data itself. The seeded null is safe: onRoutineEmission only treats null
     // as a deletion once the routine has been seen present.
     private val routineFlow: StateFlow<Routine?> = routineId.flatMapLatest { id ->
-        if (id == null) flowOf(null) else container.routineRepository.observeById(id)
+        if (id == null) flowOf(null) else routineWrites.observeById(id)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val resultsFlow = combine(
@@ -254,9 +341,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // getById and the collector below both touch Room; an uncaught failure
             // here would kill the collector and leave the editor frozen with no clue why.
             runCatchingCancellable {
+                openDraft().await()
                 initialWrite?.await()
                 val id = incomingId ?: routineId.value
-                val existing = id?.let { container.routineRepository.getById(it) }
+                val existing = id?.let { routineWrites.getById(it) }
                 if (existing != null) {
                     if (!savedStateHandle.contains(KEY_NAME)) name.value = existing.name
                     if (!savedStateHandle.contains(KEY_NOTES)) notes.value = existing.notes
@@ -271,6 +359,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 // sat on ScreenLoading forever. FAILED turns that dead spinner into a retriable
                 // error state. Preparing a new routine from Library uses the same recovery.
                 AppLog.e(TAG, "Loading the routine editor failed", it)
+                _recovery.update { current -> current.copy(ready = true,
+                    problem = "The saved routine or unfinished fields could not be read. Try again; no edits were submitted.") }
                 applyLoad { it.markFailed() }
             }
         }
@@ -283,6 +373,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         initialExerciseUnavailable = false
         return registerWrite(viewModelScope.async(start = CoroutineStart.LAZY) {
             pickWrites.withLock {
+                openDraft().await()
+                if (savedStateHandle.get<Boolean>(KEY_INITIAL_EXERCISE_ADDED) == true) return@withLock
+                // Reopening restores the selection; it does not retry an unfinished write.
+                if (draftHandle?.resumed == true) return@withLock
+                if (durable != null && draftHandle?.fields?.createdHere == false) return@withLock
                 // Validate first: a stale Library selection must not create an empty routine.
                 val exercise = container.exerciseRepository.getById(exerciseId) ?: run {
                     initialExerciseUnavailable = true
@@ -296,7 +391,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                         exercise,
                         goal = container.preferencesRepository.coachPreferences.first().goal,
                     )
-                    container.routineRepository.addExercise(
+                    routineWrites.addExercise(
                         routineId = id,
                         exercise = exercise,
                         targetSets = defaults.sets,
@@ -309,6 +404,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 }
                 // Once consumed, removing this lift in the editor must survive recreation too.
                 savedStateHandle[KEY_INITIAL_EXERCISE_ADDED] = true
+                persistDraft()
                 error.clearFrom(source = ERR_ROUTINE, before = started)
             }
         })
@@ -318,6 +414,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     fun retryHydration() {
         if (leaving || load.value.phase != EditorPhase.FAILED) return
         error.clearFrom(source = ERR_LOAD)
+        if (draftOpen?.isCancelled == true) {
+            draftOpen = null
+            draftHandle = null
+        }
         applyLoad { it.onRetry() }
         hydrate()
     }
@@ -396,10 +496,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         )
     }.combine(pickerWrites.state) { state, progress ->
         state.copy(pickerProgress = progress, addingLifts = state.addingLifts || progress.busy)
+    }.combine(_recovery) { state, restored ->
+        state.copy(isLoading = state.isLoading || !restored.ready)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = RoutineEditorUiState(isLoading = incomingId != null || startsWithSelectedExercise),
+        initialValue = RoutineEditorUiState(isLoading = durable != null || incomingId != null || startsWithSelectedExercise),
     )
 
     fun requestSwap(itemId: String) {
@@ -426,7 +528,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val dropped = stagedTargets.remove(itemId)
         launchWrite {
             runCatchingCancellable {
-                val message = container.routineRepository.swapExercise(routineId, itemId, replacement)
+                val message = routineWrites.swapExercise(routineId, itemId, replacement)
                 if (message != null) {
                     error.fail(source = ERR_SWAP_LIFT, message = message)
                 } else {
@@ -442,12 +544,16 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     fun onNameChange(value: String) {
+        if (leaving || !_recovery.value.ready) return
         name.value = value
+        nameEdited = true
         persistDraft()
     }
 
     fun onNotesChange(value: String) {
+        if (leaving || !_recovery.value.ready) return
         notes.value = value
+        notesEdited = true
         persistDraft()
     }
 
@@ -468,7 +574,6 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * is free to stage the next keystroke at the same moment. A plain LinkedHashMap mutated
      * from both is a data race, and the lost update it hides is the one [clearStaged] names.
      */
-    private val stagedTargets = ConcurrentHashMap<String, StagedTargets>()
 
     /**
      * Record what is currently in a card's four fields, without touching the database.
@@ -493,6 +598,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetSeconds: Int? = null,
         targetSecondsMax: Int? = null,
     ) {
+        if (leaving) return
+        routineFlow.value?.exercises?.firstOrNull { it.id == itemId }?.let { item ->
+            targetOrigins.putIfAbsent(itemId, RoutineExerciseEntity(item.id, item.routineId,
+                item.exercise.id, item.sortOrder, item.targetSets, item.targetReps, item.targetWeightKg,
+                item.restSeconds, item.targetSeconds, item.targetSecondsMax))
+        }
         stagedTargets[itemId] = StagedTargets(
             targetSets = targetSets,
             targetReps = targetReps,
@@ -502,6 +613,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             targetSeconds = targetSeconds,
             targetSecondsMax = targetSecondsMax,
         )
+        persistDraft()
     }
 
     /**
@@ -602,6 +714,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val staged = stagedTargets[itemId] ?: return null
         val stored = routineFlow.value?.exercises?.firstOrNull { it.id == itemId }
         if (stored == null) {
+            if (durable != null) return TargetsCommit(
+                RoutineTargetsOutcome("Unavailable lift", RoutineWriteOutcome.Rejected(
+                    "This lift changed or is no longer in the routine. Your unfinished targets are kept for review.")), ERR_TARGETS)
             stagedTargets.remove(itemId)
             return null
         }
@@ -680,7 +795,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * the gap between the read and the remove, which is the very drop this exists to stop.
      */
     private fun clearStaged(itemId: String, committed: StagedTargets) {
-        stagedTargets.remove(itemId, committed)
+        if (stagedTargets.remove(itemId, committed)) targetOrigins.remove(itemId)
+        persistDraft()
     }
 
     /**
@@ -742,6 +858,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // on screen deaf to Back, Save and every edit. It is now one more unsaved outcome.
             val outcome = runCatchingCancellable {
                 joinWrites()
+                reconcileOutstanding()
                 val targets = flushStagedTargets()
                 // Housekeeping, not a save, and [leaveAnyway] already states the rule this
                 // broke: an empty routine left behind is a nuisance, an editor that cannot be
@@ -751,10 +868,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 // over a Back that then refused to pop — with nothing actually unsaved.
                 // Only the cleanup is relaxed: `flushStagedTargets` and `persistDetailsOnExit`
                 // below are real writes and must still hold the screen when they fail.
-                runCatchingCancellable { discardEmptyStub() }
+                if (durable != null) discardEmptyStub() else runCatchingCancellable { discardEmptyStub() }
                     .onFailure { AppLog.w(TAG, "Leaving could not check for an empty stub", it) }
                 val details = persistDetailsOnExit()
-                RoutineEditorPolicy.exitOutcome(details, targets)
+                val decided = RoutineEditorPolicy.exitOutcome(details, targets)
+                if (decided == RoutineExitOutcome.Landed) completeDraftExit()
+                decided
             }.getOrElse { thrown ->
                 AppLog.w(TAG, "Leaving the routine editor failed before it could decide", thrown)
                 RoutineExitOutcome.Unsaved(
@@ -783,6 +902,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             val outcome = runCatchingCancellable {
                 joinWrites()
+                reconcileOutstanding()
                 val targets = flushStagedTargets()
                 val id = routineId.value
                 val count = if (id == null) 0 else currentExerciseCount(id)
@@ -792,7 +912,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     return@launch
                 }
                 val details = persistDetailsOnExit()
-                RoutineEditorPolicy.exitOutcome(details, targets)
+                val decided = RoutineEditorPolicy.exitOutcome(details, targets)
+                if (decided == RoutineExitOutcome.Landed) completeDraftExit()
+                decided
             }.getOrElse { thrown ->
                 // Same shape as leave(): a read fault is reported at the dock, not left to
                 // strand the screen with Save disabled forever.
@@ -830,6 +952,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      */
     fun leaveAnyway() {
         if (leaving || pickerWrites.creating) return
+        if (durable != null) { keepAndLeave(); return }
         beginExit()
         viewModelScope.launch {
             joinWrites()
@@ -839,6 +962,62 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             runCatchingCancellable { discardEmptyStub() }
                 .onFailure { AppLog.w(TAG, "Leaving anyway could not check for an empty stub", it) }
             _exitRequested.value = true
+        }
+    }
+
+    private suspend fun reconcileOutstanding() {
+        if (durable == null) return
+        checkpointNow()
+        val handle = checkNotNull(draftHandle)
+        if (handle.pending) {
+            val outcome = durable.retry(handle)
+            recoveryRefused(outcome)
+            check(outcome == DraftRecoveryOutcome.EXACT_SAVED) { "An outstanding routine change could not be reconciled" }
+        }
+    }
+
+    private suspend fun completeDraftExit() {
+        val port = durable ?: return
+        checkpointNow()
+        val handle = checkNotNull(draftHandle)
+        val fields = handle.fields
+        if (routineId.value == null || fields.numbers.isNotEmpty() || fields.importPreview != null ||
+            fields.pasteText.isNotEmpty() || fields.importDetails?.unmatched?.isNotEmpty() == true) return
+        port.discard(handle)
+    }
+
+    private fun keepAndLeave() {
+        beginExit()
+        viewModelScope.launch {
+            runCatchingCancellable {
+                joinWrites()
+                // Initialization accepted no edits when the private owner could not open.
+                // Leave its opaque checkpoint untouched; Back must still return to the caller.
+                if (draftHandle != null && draftOpen?.isCancelled != true) checkpointNow()
+                _exitRequested.value = true
+            }.onFailure { stayOnScreen(saveError = "Unfinished fields could not be kept. Stay here and retry before leaving.") }
+        }
+    }
+
+    internal fun discardUnfinishedFields() {
+        if (leaving) return
+        beginExit()
+        viewModelScope.launch {
+            runCatchingCancellable {
+                joinWrites()
+                val handle = draftHandle
+                if (handle != null) {
+                    // Abandon pending intent before cleanup, which must never retry an Add
+                    // or import merely because the user chose Discard.
+                    checkNotNull(durable).abandonPending(handle)
+                    createdThisSession = handle.fields.createdHere
+                    _imports.update { it.copy(applied = handle.fields.importApplied) }
+                    discardEmptyStub()
+                    durable.discard(handle)
+                } else checkNotNull(durable).discardOwner(incomingId ?: savedStateHandle.get<String>(KEY_ID))
+                stagedTargets.clear(); targetOrigins.clear(); numberDrafts.value = emptyList()
+                _exitRequested.value = true
+            }.onFailure { stayOnScreen(saveError = "Unfinished fields could not be discarded. Nothing already saved was undone; read again or retry.") }
         }
     }
 
@@ -891,7 +1070,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private suspend fun persistDetailsOnExit(): RoutineWriteOutcome {
         val id = routineId.value ?: return RoutineWriteOutcome.NothingToWrite
         return runCatchingCancellable<RoutineWriteOutcome> {
-            val stored = container.routineRepository.getById(id)
+            val stored = routineWrites.getById(id)
                 ?: return RoutineWriteOutcome.NothingToWrite
             val pending = RoutineEditorPolicy.detailsToPersistOnExit(
                 // LOADING means the seed from Room has not landed, so the typed fields are still
@@ -902,7 +1081,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 storedName = stored.name,
                 storedNotes = stored.notes,
             ) ?: return RoutineWriteOutcome.NothingToWrite
-            container.routineRepository.updateDetails(id, pending.name, pending.notes)
+            routineWrites.updateDetails(id, pending.name, pending.notes)
             RoutineWriteOutcome.Stored
         }.getOrElse { thrown ->
             AppLog.w(TAG, "persistDetailsOnExit failed", thrown)
@@ -933,6 +1112,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * same paste become more routines. Nothing is invented.
      */
     fun importPaste(text: String) {
+        if (durable != null) { previewImport(text); return }
         val started = error.mark()
         if (leaving) return
         if (text.isBlank()) {
@@ -958,7 +1138,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 val extras = mutableListOf<String>()
                 val idsByName = mutableMapOf(first.name to currentId)
                 for (session in plan.sessions.drop(1)) {
-                    val created = container.routineRepository.create(
+                    val created = routineWrites.create(
                         session.name,
                         plan.combinedNotes(session),
                     )
@@ -1001,6 +1181,124 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
     }
 
+    private fun previewImport(text: String) {
+        if (leaving || pasteState.value.pasting) return
+        if (text.isBlank()) { error.fail(source = ERR_PASTE, message = WorkoutPasteCopy.EMPTY); return }
+        val earlierWrites = inFlight.toTypedArray()
+        pasteText = text
+        pasteState.update { it.copy(pasting = true) }
+        launchWrite {
+            runCatchingCancellable {
+                earlierWrites.forEach { it.join() }
+                checkpointNow()
+                val handle = checkNotNull(draftHandle)
+                if (handle.pending) {
+                    val outcome = checkNotNull(durable).inspect(handle)
+                    if (outcome != DraftRecoveryOutcome.EXACT_SAVED) {
+                        recoveryRefused(outcome)
+                        throw RoutineImportValidation(checkNotNull(_recovery.value.problem))
+                    }
+                }
+                val catalogRead = container.exerciseRepository.observeAllHealth().first()
+                val catalog = (catalogRead as? DataHealth.Available)?.value
+                    ?: error("The current lift library could not be read")
+                if (catalog.isEmpty()) throw RoutineImportValidation(WorkoutPasteCopy.EMPTY_LIBRARY)
+                val plan = WorkoutPaste.parseAndMatch(text, catalog)
+                WorkoutPaste.unreadableReason(text, plan)?.let { throw RoutineImportValidation(it) }
+                val current = container.routineRepository.editorRecord(handle.fields.routineId)
+                check(handle.fields.before == null && current == null ||
+                    current?.routine?.createdAt == handle.fields.before?.routine?.createdAt) { "The original routine changed" }
+                val preview = prepareRoutineImport(primaryId = handle.fields.routineId, current = current,
+                    plan = plan, existingPins = container.scheduleRepository.slots(), atMs = System.currentTimeMillis())
+                _imports.value = RoutineImportState(preview = preview.command, details = preview.details, visible = false)
+                checkpointNow()
+                // Publish an actionable preview only after durable preparation and release.
+                pasteState.update { it.copy(pasting = false) }
+                _imports.update { it.copy(visible = true) }
+                persistDraft()
+                error.clearFrom(source = ERR_PASTE)
+            }.onFailure {
+                val reason = (it as? RoutineImportValidation)?.reason
+                _imports.update { importState -> importState.copy(problem = reason ?: "The import preview could not be prepared or kept. Your text remains here; read it again.") }
+                error.fail(source = ERR_PASTE, message = reason ?: "Could not preview this workout. Check its session names and lift lines, then try again.")
+            }
+            pasteState.update { it.copy(pasting = false) }
+        }
+    }
+
+    internal fun closeImportPreview() {
+        if (_imports.value.applying || _imports.value.keeping) return
+        _imports.update { it.copy(keeping = true) }
+        launchWrite {
+            runCatchingCancellable {
+                openDraft().await()
+                val sequence = checkpointSequence.incrementAndGet()
+                checkpointWrites.withLock {
+                    keepSnapshot(authoredSnapshot().copy(importVisible = false))
+                    latestCheckpoint = maxOf(latestCheckpoint, sequence)
+                }
+                _imports.update { it.copy(keeping = false, visible = false) }
+            }.onFailure { _imports.update { it.copy(keeping = false,
+                problem = "The closed preview could not be kept. Stay here and try Close again.") } }
+        }
+    }
+
+    internal fun showImportPreview() {
+        if (leaving || _imports.value.preview == null) return
+        _imports.update { it.copy(visible = true) }
+        persistDraft()
+    }
+
+    internal fun confirmImport() {
+        val command = _imports.value.preview ?: return
+        if (leaving || pasteState.value.pasting || _imports.value.applying || _imports.value.keeping) return
+        // Admission starts with this activation, before checkpoint or Room can suspend.
+        leaving = true
+        _imports.update { it.copy(applying = true, problem = null) }
+        pasteState.update { it.copy(pasting = true) }
+        launchWrite {
+            try {
+                checkpointNow()
+                val handle = checkNotNull(draftHandle)
+                val port = checkNotNull(durable)
+                val outcome = if (handle.commandCheckpoint.pending?.value == command) port.retry(handle)
+                    else port.execute(handle) { fields ->
+                        check(fields.importPreview == command) { "The preview changed before confirmation" }; command
+                    }
+                if (outcome != DraftRecoveryOutcome.EXACT_SAVED) {
+                    recoveryRefused(outcome)
+                    _imports.update { it.copy(problem = _recovery.value.problem, outcome = outcome) }
+                    return@launchWrite
+                }
+                val main = checkNotNull(command.changes.first { it.id == handle.fields.routineId }.after)
+                routineId.value = main.routine.id
+                createdThisSession = false
+                name.value = main.routine.name
+                notes.value = main.routine.notes
+                nameEdited = false; notesEdited = false
+                pasteText = ""
+                savedStateHandle[KEY_INITIAL_EXERCISE_ADDED] = true
+                val details = checkNotNull(_imports.value.details)
+                _imports.update { it.copy(preview = null, visible = false, applied = true, problem = null) }
+                pasteState.value = PasteUi(unmatched = details.unmatched, createdNames = details.owners.drop(1).map { it.name })
+                savedStateHandle[KEY_ID] = routineId.value
+                savedStateHandle[KEY_NAME] = name.value
+                savedStateHandle[KEY_NOTES] = notes.value
+                savedStateHandle[KEY_CREATED] = false
+                checkpointNow()
+                recoveryRefused(DraftRecoveryOutcome.EXACT_SAVED)
+                error.clearFrom(source = ERR_PASTE)
+            } catch (thrown: CancellationException) { throw thrown }
+            catch (thrown: Exception) {
+                _imports.update { it.copy(problem = "The accepted import result could not be confirmed. Keep this preview and read the saved result before retrying.", outcome = DraftRecoveryOutcome.UNAVAILABLE) }
+            } finally {
+                leaving = false
+                _imports.update { it.copy(applying = false) }
+                pasteState.update { it.copy(pasting = false) }
+            }
+        }
+    }
+
     fun requestUnmatchedPick(item: PastedUnmatched) {
         if (leaving || missing) return
         pasteState.update { it.copy(unmatchedPick = item) }
@@ -1025,13 +1323,17 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         launchWrite {
             try {
                 pickWrites.withLock {
-                    val id = ensureRoutineId()
+                    val mainId = ensureRoutineId()
+                    val importedOwner = _imports.value.details?.owners?.firstOrNull { owner ->
+                        pending.sessionName != null && owner.name.equals(pending.sessionName, ignoreCase = true)
+                    }
+                    val id = importedOwner?.id ?: mainId
                     if (id == null) {
                         pickerWrites.fail(ticket, error.message ?: "Could not prepare this routine. Try again.") { resolveUnmatched(exercise, pending, created) }
                         return@withLock
                     }
                     if (storedRow(id, exercise.id) == null) {
-                        container.routineRepository.addExercise(
+                        routineWrites.addExercise(
                             routineId = id, exercise = exercise,
                             targetSets = scheme?.storedSets ?: defaults.sets,
                             targetReps = if (scheme?.isTimed == true) HoldWork.HOLD_REPS_PLACEHOLDER else scheme?.storedReps ?: defaults.reps,
@@ -1044,6 +1346,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     pasteState.update {
                         it.copy(unmatchedPick = null, unmatched = it.unmatched.filterNot { row -> row == pending })
                     }
+                    _imports.update { importState -> importState.copy(details = importState.details?.copy(
+                        unmatched = importState.details.unmatched.filterNot { it == pending })) }
+                    persistDraft()
                     pickerWrites.succeed(ticket, created)
                     if (created) createdPickerLift = null
                     setPickerVisible(false)
@@ -1066,7 +1371,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         name.value = session.name
         notes.value = notesText
         persistDraft()
-        container.routineRepository.updateDetails(id, session.name, notesText)
+        routineWrites.updateDetails(id, session.name, notesText)
         applyPastedLifts(id, session)
     }
 
@@ -1101,7 +1406,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     private suspend fun applyPastedLifts(id: String, session: PastedSession) {
         session.lifts.forEach { lift ->
-            container.routineRepository.addExercise(
+            routineWrites.addExercise(
                 routineId = id,
                 exercise = lift.exercise,
                 targetSets = lift.targetSets,
@@ -1173,7 +1478,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     exercise,
                     goal = container.preferencesRepository.coachPreferences.first().goal,
                 )
-                container.routineRepository.addExercise(
+                routineWrites.addExercise(
                     routineId = id,
                     exercise = exercise,
                     targetSets = defaults.sets,
@@ -1184,7 +1489,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     targetSecondsMax = defaults.secondsMax,
                 )
             } else if (!adding && row != null) {
-                container.routineRepository.removeExercise(row.id, id)
+                routineWrites.removeExercise(row.id, id)
                 stagedTargets.remove(row.id)
             }
             // Settle here as well as on the routine's own emissions: a tap the store already
@@ -1229,7 +1534,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     private suspend fun storedRow(routineId: String, exerciseId: String) =
-        container.routineRepository.getById(routineId)
+        routineWrites.getById(routineId)
             ?.exercises
             ?.firstOrNull { it.exercise.id == exerciseId }
 
@@ -1253,7 +1558,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val shown = committedIds(routine).toSet()
         val waiting = pendingPicks.value.filter { it.landed && (it.id in shown) != it.adding }
         if (waiting.isEmpty()) return
-        val stored = runCatchingCancellable { container.routineRepository.getById(id) }
+        val stored = runCatchingCancellable { routineWrites.getById(id) }
             .getOrNull()
             ?.let { committedIds(it).toSet() }
             ?: return
@@ -1295,7 +1600,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 return@launchWrite
             }
             try {
-                container.routineRepository.addExercise(
+                routineWrites.addExercise(
                     routineId = id,
                     exercise = exercise,
                     targetSets = targetSets,
@@ -1396,7 +1701,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
         val id = ensureRoutineId() ?: return RoutineWriteOutcome.Failed
         return runCatchingCancellable<RoutineWriteOutcome> {
-            container.routineRepository.updateExercise(
+            routineWrites.updateExercise(
                 itemId = itemId,
                 routineId = id,
                 targetSets = targetSets,
@@ -1419,7 +1724,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         launchWrite {
             val id = ensureRoutineId() ?: return@launchWrite
             try {
-                container.routineRepository.removeExercise(itemId, id)
+                routineWrites.removeExercise(itemId, id)
                 stagedTargets.remove(itemId)
                 error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
             } catch (thrown: CancellationException) {
@@ -1436,7 +1741,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         launchWrite {
             val id = ensureRoutineId() ?: return@launchWrite
             try {
-                container.routineRepository.moveExercise(id, itemId, direction)
+                routineWrites.moveExercise(id, itemId, direction)
             } catch (thrown: CancellationException) {
                 throw thrown
             } catch (thrown: Exception) {
@@ -1481,7 +1786,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
         val current = routineId.value
         if (current != null) {
-            val row = container.routineRepository.getById(current)
+            val row = routineWrites.getById(current)
             if (row != null) return current
             if (!createdThisSession) {
                 applyLoad { it.markMissing() }
@@ -1490,7 +1795,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             routineId.value = null
         }
         return try {
-            val created = container.routineRepository.create(
+            val created = routineWrites.create(
                 name.value.trim().ifBlank { "Untitled routine" },
                 notes.value,
             )
@@ -1508,7 +1813,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     private suspend fun currentExerciseCount(id: String): Int {
-        return container.routineRepository.getById(id)?.exercises?.size
+        return routineWrites.getById(id)?.exercises?.size
             ?: routineFlow.value?.exercises?.size
             ?: 0
     }
@@ -1517,12 +1822,18 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val id = routineId.value ?: return
         val count = currentExerciseCount(id)
         if (!RoutineEditorPolicy.shouldDiscardStub(createdThisSession, count)) return
+        if (durable != null && !container.routineRepository.editorStubUnused(id)) {
+            createdThisSession = false
+            persistDraft()
+            return
+        }
         try {
-            container.routineRepository.delete(id)
+            routineWrites.delete(id)
         } catch (thrown: CancellationException) {
             throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "discardEmptyStub failed", thrown)
+            if (durable != null) throw thrown
             // Keep navigating back; an empty stub can be deleted later.
         }
         routineId.value = null
@@ -1533,7 +1844,143 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         savedStateHandle[KEY_ID] = routineId.value
         savedStateHandle[KEY_NAME] = name.value
         savedStateHandle[KEY_NOTES] = notes.value
+        savedStateHandle[KEY_PASTE] = pasteText
         savedStateHandle[KEY_CREATED] = createdThisSession
+        savedStateHandle[KEY_NAME_EDITED] = nameEdited
+        savedStateHandle[KEY_NOTES_EDITED] = notesEdited
+        if (durable != null && draftHandle != null) {
+            val snapshot = authoredSnapshot()
+            val sequence = checkpointSequence.incrementAndGet()
+            launchWrite {
+                runCatchingCancellable { checkpointWrites.withLock {
+                    if (sequence > latestCheckpoint) { keepSnapshot(snapshot); latestCheckpoint = sequence }
+                } }
+                    .onFailure { _recovery.update { current -> current.copy(problem = "Unfinished fields could not be kept. Stay here and try again.") } }
+            }
+        }
+    }
+
+    private fun authoredSnapshot(): RoutineDraftFields {
+        val handle = checkNotNull(draftHandle)
+        val original = handle.fields
+        val targets = stagedTargets.entries.mapNotNull { (id, t) ->
+            val exercise = routineFlow.value?.exercises?.firstOrNull { it.id == id }?.exercise?.id
+                ?: original.targets.firstOrNull { it.itemId == id }?.exerciseId
+            exercise?.let { RoutineTargetDraft(id, it, t.targetSets, t.targetReps, t.targetWeightKg,
+                t.restSeconds, t.invalidReason, t.targetSeconds, t.targetSecondsMax,
+                original.targets.firstOrNull { it.itemId == id }?.before ?: targetOrigins[id]) }
+        }.sortedBy { it.itemId }
+        return original.copy(name = name.value, notes = notes.value, targets = targets,
+            nameEdited = nameEdited, notesEdited = notesEdited,
+            needsReview = needsRestoredFieldReview || original.needsReview,
+            createdHere = createdThisSession,
+            numbers = numberDrafts.value, pasteText = pasteText,
+            importPreview = _imports.value.preview, importDetails = _imports.value.details,
+            importVisible = _imports.value.visible, importApplied = _imports.value.applied,
+            initialExerciseAdded = savedStateHandle.get<Boolean>(KEY_INITIAL_EXERCISE_ADDED) == true)
+    }
+
+    private suspend fun keepSnapshot(snapshot: RoutineDraftFields) {
+        val handle = checkNotNull(draftHandle)
+        checkNotNull(durable).keep(handle, snapshot)
+        _recovery.update { it.copy(fields = handle.fields) }
+    }
+
+    private suspend fun checkpointNow() {
+        if (durable == null) return
+        openDraft().await()
+        val sequence = checkpointSequence.incrementAndGet()
+        checkpointWrites.withLock {
+            if (sequence > latestCheckpoint) { keepSnapshot(authoredSnapshot()); latestCheckpoint = sequence }
+        }
+    }
+
+    private fun recoveryRefused(outcome: DraftRecoveryOutcome) {
+        val message = when (outcome) {
+            DraftRecoveryOutcome.EXACT_SAVED -> null
+            DraftRecoveryOutcome.UNCOMMITTED -> "The change did not save. Your intended values are kept; retry the outstanding change."
+            DraftRecoveryOutcome.CONFLICT -> "The saved routine changed. Unfinished fields are kept; read again before applying them."
+            DraftRecoveryOutcome.UNAVAILABLE -> "The saved result could not be read. Your fields are kept; read again before retrying."
+        }
+        _recovery.update { it.copy(problem = message, fields = draftHandle?.fields ?: it.fields) }
+    }
+
+    internal fun onPasteTextChange(value: String) {
+        if (leaving || pasteState.value.pasting) return
+        pasteText = value
+        persistDraft()
+    }
+
+    internal fun putNumberDraft(value: RoutineNumberDraft) {
+        if (leaving) return
+        numberDrafts.update { old -> old.filterNot { it.itemId == value.itemId && it.field == value.field } + value }
+        persistDraft()
+    }
+
+    internal fun clearNumberDraft(itemId: String, field: RoutineNumberField) {
+        if (leaving) return
+        numberDrafts.update { old -> old.filterNot { it.itemId == itemId && it.field == field } }
+        persistDraft()
+    }
+
+    internal fun allowsNumberInput(itemId: String?, exerciseId: String?): Boolean =
+        !leaving && _recovery.value.ready && routineFlow.value?.exercises?.any {
+            it.id == itemId && it.exercise.id == exerciseId
+        } == true
+
+    internal fun selectedLiftChanged() {
+        numberDrafts.update { values -> values.map { it.copy(open = false) } }
+        persistDraft()
+    }
+
+    internal fun readRecovery() {
+        if (leaving) return
+        if (draftHandle == null) { retryHydration(); return }
+        launchWrite {
+            runCatchingCancellable {
+                checkpointNow()
+                val handle = checkNotNull(draftHandle)
+                val preview = _imports.value.preview
+                val result = if (preview != null && handle.commandCheckpoint.pending?.value != preview)
+                    container.dbMaintenance.withMaintenanceLock { container.routineRepository.inspectEditorCommand(preview) }
+                else checkNotNull(durable).inspect(handle)
+                recoveryRefused(result)
+                _imports.update { importState -> importState.copy(outcome = result, problem = _recovery.value.problem) }
+            }.onFailure { _recovery.update { it.copy(problem = "The saved result could not be read. Unfinished fields remain on this device.") } }
+        }
+    }
+
+    internal fun reviewCurrentRoutine() {
+        if (leaving || _imports.value.preview != null) return
+        launchWrite {
+            runCatchingCancellable {
+                checkpointNow()
+                val handle = checkNotNull(draftHandle)
+                checkNotNull(durable).reviewCurrent(handle)
+                needsRestoredFieldReview = false
+                _recovery.update { it.copy(fields = handle.fields, problem = null) }
+            }.onFailure { _recovery.update { it.copy(problem = "The original routine or an unfinished lift is missing or changed. Your fields remain kept; discard only when you intend to abandon them.") } }
+        }
+    }
+
+    internal fun resumeSelectedLift() {
+        if (leaving) return
+        val handle = draftHandle ?: return
+        val selected = handle.fields.initialExerciseId ?: return
+        if (handle.fields.initialExerciseAdded) return
+        launchWrite {
+            runCatchingCancellable {
+                val exercise = container.exerciseRepository.getById(selected) ?: error("The selected lift is unavailable")
+                val id = ensureRoutineId() ?: return@runCatchingCancellable
+                val defaults = AddDefaults.forExercise(exercise, goal = container.preferencesRepository.coachPreferences.first().goal)
+                routineWrites.addExercise(routineId = id, exercise = exercise, targetSets = defaults.sets,
+                    targetReps = defaults.reps, targetWeightKg = null, restSeconds = defaults.restSeconds,
+                    targetSeconds = defaults.seconds, targetSecondsMax = defaults.secondsMax)
+                savedStateHandle[KEY_INITIAL_EXERCISE_ADDED] = true
+                checkpointNow()
+                _recovery.update { it.copy(problem = null, fields = handle.fields) }
+            }.onFailure { error.fail(source = ERR_ADD_LIFT, message = "The selected lift could not be added. Its selection is kept; try again.") }
+        }
     }
 
     /** Nulls are empty boxes; [RoutineEditorPolicy.targetsToPersist] decides what they mean. */
@@ -1603,7 +2050,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         const val KEY_ID = "editor.routineId"
         const val KEY_NAME = "editor.name"
         const val KEY_NOTES = "editor.notes"
+        const val KEY_PASTE = "editor.paste"
         const val KEY_CREATED = "editor.createdThisSession"
+        const val KEY_NAME_EDITED = "editor.nameEdited"
+        const val KEY_NOTES_EDITED = "editor.notesEdited"
         const val KEY_INITIAL_EXERCISE_ADDED = "editor.initialExerciseAdded"
     }
 }

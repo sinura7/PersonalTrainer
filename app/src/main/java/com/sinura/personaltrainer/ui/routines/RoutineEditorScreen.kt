@@ -20,9 +20,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -43,6 +45,8 @@ import com.sinura.personaltrainer.domain.PastedUnmatched
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WorkoutPasteCopy
+import com.sinura.personaltrainer.data.draft.RoutineNumberDraft
+import com.sinura.personaltrainer.data.draft.RoutineNumberField
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.NotesKind
@@ -71,10 +75,15 @@ fun RoutineEditorScreen(
     viewModel: RoutineEditorViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val recovery by viewModel.recovery.collectAsStateWithLifecycle()
+    val numbers by viewModel.retainedNumbers.collectAsStateWithLifecycle()
+    val imports by viewModel.imports.collectAsStateWithLifecycle()
+    val pasteText by viewModel.pasteEntry.collectAsStateWithLifecycle()
     var pendingRemoveId by rememberSaveable { mutableStateOf<String?>(null) }
+    var discardDraft by rememberSaveable { mutableStateOf(false) }
+    var reviewDraft by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var expandedLiftRequest by rememberSaveable { mutableStateOf<String?>(null) }
-    var pasteText by rememberSaveable { mutableStateOf("") }
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
 
     // Back is state, not a callback: leaving first deletes the empty stub routine, and if the
@@ -110,31 +119,48 @@ fun RoutineEditorScreen(
         }
         if (state.failed) {
             val selectedLiftMissing = viewModel.initialExerciseUnavailable
-            EmptyState(
-                scene = EmptyScene.RETRY,
-                title = when {
-                    selectedLiftMissing -> RoutineSaveCopy.SELECTED_LIFT_MISSING_TITLE
-                    viewModel.startsWithSelectedExercise -> RoutineSaveCopy.PREPARE_FAILED_TITLE
-                    else -> DataHealthCopy.ROUTINE_EDITOR_TITLE
-                },
-                body = when {
-                    selectedLiftMissing -> RoutineSaveCopy.SELECTED_LIFT_MISSING_BODY
-                    viewModel.startsWithSelectedExercise -> RoutineSaveCopy.PREPARE_FAILED_BODY
-                    else -> DataHealthCopy.ROUTINE_EDITOR_BODY
-                },
-                actionLabel = if (selectedLiftMissing) RoutineSaveCopy.BACK_TO_LIBRARY else DataHealthCopy.RETRY,
-                onAction = {
-                    if (selectedLiftMissing) viewModel.leave() else viewModel.retryHydration()
-                },
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(Metrics.gutter),
-            )
+            Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(Metrics.gutter), verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                EmptyState(
+                    scene = EmptyScene.RETRY,
+                    title = when {
+                        selectedLiftMissing -> RoutineSaveCopy.SELECTED_LIFT_MISSING_TITLE
+                        viewModel.startsWithSelectedExercise -> RoutineSaveCopy.PREPARE_FAILED_TITLE
+                        else -> DataHealthCopy.ROUTINE_EDITOR_TITLE
+                    },
+                    body = when {
+                        selectedLiftMissing -> RoutineSaveCopy.SELECTED_LIFT_MISSING_BODY
+                        viewModel.startsWithSelectedExercise -> RoutineSaveCopy.PREPARE_FAILED_BODY
+                        else -> DataHealthCopy.ROUTINE_EDITOR_BODY
+                    },
+                    actionLabel = if (selectedLiftMissing) RoutineSaveCopy.BACK_TO_LIBRARY else DataHealthCopy.RETRY,
+                    onAction = {
+                        if (selectedLiftMissing) viewModel.leave() else viewModel.retryHydration()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SecondaryGymButton(text = "Back · keep unfinished fields", onClick = viewModel::leaveAnyway,
+                    height = Metrics.touchMin)
+                SecondaryGymButton(text = "Discard unfinished fields", onClick = { discardDraft = true },
+                    height = Metrics.touchMin, modifier = Modifier.testTag(RoutineEditorTags.DRAFT_DISCARD))
+            }
             return@Scaffold
         }
         if (state.missing) {
+            if (recovery.fields != null) {
+                Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
+                    .padding(Metrics.gutter), verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                    Text("Original routine missing", style = InstrumentType.title, color = TextPrimary)
+                    Text("Your unfinished fields remain on this device. No routine has been recreated.",
+                        style = InstrumentType.caption, color = TextTertiary)
+                    Text(recovery.fields?.name.orEmpty(), style = InstrumentType.bodyStrong, color = TextPrimary)
+                    Text(recovery.fields?.notes.orEmpty(), style = InstrumentType.body, color = TextPrimary)
+                    SecondaryGymButton(text = "Read again", onClick = viewModel::readRecovery, height = Metrics.touchMin)
+                    SecondaryGymButton(text = "Back · keep unfinished fields", onClick = viewModel::leaveAnyway, height = Metrics.touchMin)
+                    SecondaryGymButton(text = "Discard unfinished fields", onClick = { discardDraft = true }, height = Metrics.touchMin)
+                }
+                return@Scaffold
+            }
             EmptyState(
                 scene = EmptyScene.GONE,
                 title = "Routine missing",
@@ -154,7 +180,8 @@ fun RoutineEditorScreen(
         // a new list allocated on every recomposition to drive a side effect whose whole job
         // was to undo state that should never have been readable. A row that is not in the
         // list cannot be the expanded one, so it is not one.
-        val expandedLiftId = expandedLiftRequest?.takeIf { id -> exercises.any { it.id == id } }
+        val expandedLiftId = (expandedLiftRequest ?: numbers.firstOrNull { it.open }?.itemId)
+            ?.takeIf { id -> exercises.any { it.id == id } }
 
         LazyColumn(
             modifier = Modifier
@@ -170,6 +197,22 @@ fun RoutineEditorScreen(
         ) {
             item(key = "name") {
                 RoutineTitleField(name = state.name, onNameChange = viewModel::onNameChange)
+            }
+            if (recovery.resumed || recovery.problem != null) {
+                item(key = "recovery") {
+                    Text(if (recovery.resumed) "Resumed unfinished edits" else "Unfinished edits",
+                        style = InstrumentType.caption, color = Volt)
+                    recovery.problem?.let { message ->
+                        Text(message, style = InstrumentType.caption, color = TextTertiary)
+                        SecondaryGymButton(text = "Read saved result", onClick = viewModel::readRecovery,
+                            height = Metrics.touchMin, modifier = Modifier.testTag(RoutineEditorTags.RECOVERY_READ))
+                        if (imports.preview == null) SecondaryGymButton(text = "Review current routine",
+                            onClick = { reviewDraft = true }, height = Metrics.touchMin)
+                    }
+                    SecondaryGymButton(text = "Discard unfinished fields", onClick = { discardDraft = true },
+                        enabled = !state.saving && !state.pasting, height = Metrics.touchMin,
+                        modifier = Modifier.testTag(RoutineEditorTags.DRAFT_DISCARD))
+                }
             }
             state.createdFromPaste.takeIf { it.isNotEmpty() }?.let { names ->
                 item(key = "paste-created") {
@@ -187,9 +230,16 @@ fun RoutineEditorScreen(
                         text = pasteText,
                         enabled = !state.addingLifts && !state.pasting,
                         pasting = state.pasting,
-                        onTextChange = { pasteText = it },
+                        onTextChange = viewModel::onPasteTextChange,
                         onConfirm = { viewModel.importPaste(pasteText) },
                     )
+                }
+                if (imports.preview != null) {
+                    item(key = "kept-import-preview") {
+                        SecondaryGymButton(text = "Review import preview", onClick = viewModel::showImportPreview,
+                            enabled = !state.pasting, height = Metrics.touchMin,
+                            modifier = Modifier.testTag(RoutineEditorTags.IMPORT_RESUME))
+                    }
                 }
             }
             // Every complaint this screen can raise goes to the banner, which owns the only
@@ -224,12 +274,14 @@ fun RoutineEditorScreen(
 
             if (exercises.isEmpty()) {
                 item(key = "empty") {
+                    val selectedId = recovery.fields?.initialExerciseId?.takeUnless { recovery.fields?.initialExerciseAdded == true }
+                    val selected = state.catalog.firstOrNull { it.id == selectedId }
                     EmptyState(
                         scene = EmptyScene.RACK,
                         title = "Add your first lift",
                         body = SessionOrderCopy.EMPTY_EDITOR_BODY,
-                        actionLabel = "Add lifts",
-                        onAction = { viewModel.setPickerVisible(true) },
+                        actionLabel = selected?.let { "Add ${it.name}" } ?: "Add lifts",
+                        onAction = { if (selected != null) viewModel.resumeSelectedLift() else viewModel.setPickerVisible(true) },
                         compact = true,
                         actionEnabled = !state.addingLifts,
                         actionTag = RoutineEditorTags.ADD_LIFTS,
@@ -244,6 +296,19 @@ fun RoutineEditorScreen(
                     )
                 }
                 item(key = "lifts-strip") {
+                    val targetExerciseId = exercises.firstOrNull { it.id == expandedLiftId }?.exercise?.id
+                    val numberPort = remember(viewModel, expandedLiftId, targetExerciseId) { object : RoutineNumberEntries {
+                        override val itemId = expandedLiftId
+                        override val exerciseId = targetExerciseId
+                        override val entries = viewModel.retainedNumbers
+                        override val target get() = viewModel.recovery.value.fields?.targets?.firstOrNull {
+                            it.itemId == itemId && it.exerciseId == exerciseId
+                        }
+                        override fun put(value: RoutineNumberDraft) = viewModel.putNumberDraft(value)
+                        override fun clear(field: RoutineNumberField) { itemId?.let { viewModel.clearNumberDraft(it, field) } }
+                        override fun allowsInput() = viewModel.allowsNumberInput(itemId, exerciseId)
+                    } }
+                    CompositionLocalProvider(LocalRoutineNumbers provides numberPort) {
                     SessionLiftStrip(
                         lifts = exercises.map { item ->
                             SessionLiftItem(
@@ -259,6 +324,7 @@ fun RoutineEditorScreen(
                         },
                         selectedId = expandedLiftId,
                         onSelect = { id ->
+                            viewModel.selectedLiftChanged()
                             expandedLiftRequest = if (expandedLiftId == id) null else id
                         },
                         onMoveEarlier = { id -> viewModel.moveExercise(id, -1) },
@@ -275,6 +341,7 @@ fun RoutineEditorScreen(
                         onCommitTargets = { id -> viewModel.commitTargets(id) },
                         onForgetTargetRule = { id -> viewModel.forgetTargetRule(id) },
                     )
+                    }
                 }
             }
             if (exercises.isNotEmpty()) {
@@ -381,13 +448,23 @@ fun RoutineEditorScreen(
         ConfirmActionDialog(
             title = RoutineSaveCopy.UNSAVED_TITLE,
             body = unsaved.backPromptBody,
-            confirmLabel = RoutineSaveCopy.LEAVE_ANYWAY,
-            destructive = true,
+            confirmLabel = if (recovery.fields != null) "Keep unfinished edits and return" else RoutineSaveCopy.LEAVE_ANYWAY,
+            destructive = recovery.fields == null,
             onConfirm = viewModel::leaveAnyway,
             onDismiss = viewModel::leave,
             dismissLabel = RoutineSaveCopy.TRY_AGAIN,
         )
     }
+    if (discardDraft) ConfirmActionDialog(title = "Discard unfinished fields?",
+        body = "Only unfinished fields and pending private commands are abandoned. Already saved lifts, targets, order, imported routines and workout history stay saved.",
+        confirmLabel = "Discard unfinished fields", destructive = true,
+        onConfirm = { discardDraft = false; viewModel.discardUnfinishedFields() }, onDismiss = { discardDraft = false })
+    if (reviewDraft) ConfirmActionDialog(title = "Review current routine",
+        body = "The saved routine is ${state.routine?.name ?: "unavailable"}. Saved notes: ${state.routine?.notes.orEmpty()}\n\nSaved lift targets appear in the row summaries; unfinished values remain in the expanded fields. Keeping these fields for the current routine submits nothing. Save must be pressed again.",
+        confirmLabel = "Keep my fields for this routine", destructive = false,
+        onConfirm = { reviewDraft = false; viewModel.reviewCurrentRoutine() }, onDismiss = { reviewDraft = false })
+    RoutineImportSheet(state = imports, catalog = state.catalog,
+        onConfirm = viewModel::confirmImport, onClose = viewModel::closeImportPreview, onRead = viewModel::readRecovery)
 }
 
 /**
@@ -418,6 +495,12 @@ object RoutineEditorTags {
     const val PASTE_FIELD = "routine-editor-paste-field"
     const val PASTE_CONFIRM = "routine-editor-paste-confirm"
     const val UNMATCHED = "routine-editor-unmatched"
+    const val RECOVERY_READ = "routine-editor-recovery-read"
+    const val IMPORT_PREVIEW = "routine-editor-import-preview"
+    const val IMPORT_CONFIRM = "routine-editor-import-confirm"
+    const val IMPORT_CLOSE = "routine-editor-import-close"
+    const val IMPORT_RESUME = "routine-editor-import-resume"
+    const val DRAFT_DISCARD = "routine-editor-draft-discard"
 }
 
 @Composable
@@ -444,7 +527,7 @@ private fun PasteWorkoutBlock(
             minLines = 6,
         )
         PrimaryGymButton(
-            text = if (pasting) WorkoutPasteCopy.PASTING else WorkoutPasteCopy.CONFIRM,
+            text = if (pasting) WorkoutPasteCopy.PASTING else "Preview import",
             onClick = onConfirm,
             enabled = enabled,
             height = Metrics.touchMin,

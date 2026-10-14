@@ -3098,13 +3098,13 @@
         "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P08"
         ],
         "closurePacket": "P08",
         "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
         }
       }
     },
@@ -3128,13 +3128,13 @@
         "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P08"
         ],
         "closurePacket": "P08",
         "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
         }
       }
     },
@@ -3158,13 +3158,13 @@
         "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P08"
         ],
         "closurePacket": "P08",
         "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
         }
       }
     },
@@ -3281,13 +3281,13 @@
         "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P08"
         ],
         "closurePacket": "P08",
         "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
         }
       }
     },
@@ -3311,13 +3311,13 @@
         "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P08"
         ],
         "closurePacket": "P08",
         "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
         }
       }
     },
@@ -3341,13 +3341,13 @@
         "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P08"
         ],
         "closurePacket": "P08",
         "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
         }
       }
     },
@@ -3372,13 +3372,13 @@
         "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P08"
         ],
         "closurePacket": "P08",
         "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
         }
       }
     },
@@ -3403,13 +3403,13 @@
         "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P08"
         ],
         "closurePacket": "P08",
         "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
         }
       }
     },
@@ -3434,13 +3434,13 @@
         "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded evidence verified; final review/integration pending",
+        "state": "Bounded automated evidence; integrated",
         "implementationPackets": [
           "P08"
         ],
         "closurePacket": "P08",
         "packetEvidence": {
-          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
         }
       }
     },
@@ -4903,12 +4903,12 @@
       {
         "id": "P08",
         "title": "Scheduling, ordering and missed work",
-        "state": "Verified; final review/integration pending"
+        "state": "Closed"
       },
       {
         "id": "P09",
         "title": "Routine editor recovery and import",
-        "state": "Open"
+        "state": "In progress"
       },
       {
         "id": "P10",
@@ -5022,7 +5022,7 @@
         "baselineExecutedTests": 8,
         "scope": "Integrated receipt, exact duration correction and Summary refresh; full missing/read-fault/type coverage remains.",
         "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
-        "packetEvidenceP07": "Verified candidate, nine scoped automated criteria; integration pending. q01/p07-details-receipts-2026-10-13.json preserves exact scope/failures/manifests and P19/P20 limits."
+        "packetEvidenceP07": "Integrated PR500 at1ab4c1ab; nine bounded criteria. Exact input/APK/tree proof and fresh merged native journey; original failures and P19/P20 limits remain in q01/p07-details-receipts-2026-10-13.json."
       },
       "UX06": {
         "primaryPacket": "P04",
@@ -5115,7 +5115,7 @@
         "baselineExecutedTests": 23,
         "scope": "One period/lifetime reads and flat ledger integrated; calendar, multi-year and supporting-record journeys remain.",
         "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
-        "packetEvidenceP07": "Verified candidate, nine scoped automated criteria; integration pending. q01/p07-details-receipts-2026-10-13.json preserves exact scope/failures/manifests and P19/P20 limits."
+        "packetEvidenceP07": "Integrated PR500 at1ab4c1ab; nine bounded criteria. Exact input/APK/tree proof and fresh merged native journey; original failures and P19/P20 limits remain in q01/p07-details-receipts-2026-10-13.json."
       },
       "UX16": {
         "primaryPacket": "P07",
@@ -5125,7 +5125,7 @@
         "baselineExecutedTests": 14,
         "scope": "Exercise readouts/correction integrated; complete chart axes, sparse values and equivalent list acceptance remains.",
         "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
-        "packetEvidenceP07": "Verified candidate, nine scoped automated criteria; integration pending. q01/p07-details-receipts-2026-10-13.json preserves exact scope/failures/manifests and P19/P20 limits."
+        "packetEvidenceP07": "Integrated PR500 at1ab4c1ab; nine bounded criteria. Exact input/APK/tree proof and fresh merged native journey; original failures and P19/P20 limits remain in q01/p07-details-receipts-2026-10-13.json."
       },
       "UX17": {
         "primaryPacket": "P11",
@@ -5245,7 +5245,7 @@
         "baselineExecutedTests": 8,
         "scope": "Exact strength/hold correction and compact receipt integrated; complete cardio/mixed capabilities remain with P13/P14.",
         "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
-        "packetEvidenceP07": "Verified candidate, nine scoped automated criteria; integration pending. q01/p07-details-receipts-2026-10-13.json preserves exact scope/failures/manifests and P19/P20 limits."
+        "packetEvidenceP07": "Integrated PR500 at1ab4c1ab; nine bounded criteria. Exact input/APK/tree proof and fresh merged native journey; original failures and P19/P20 limits remain in q01/p07-details-receipts-2026-10-13.json."
       },
       "UX30": {
         "primaryPacket": "P01",
@@ -5286,8 +5286,8 @@
           "P08",
           "P09"
         ],
-        "existing": "Direct routines, scopes, flat Plan/editor rows and retained bodyweight targets integrated through #489.",
-        "remaining": "Ordering, missed-work preview, import, persistent staged fields and partial writes."
+        "existing": "Direct routines, scopes, flat Plan/editor rows and retained bodyweight targets integrated through #489. P08#501 closes bounded scheduling scopes, future ordering and durable missed-work previews.",
+        "remaining": "P09 staged import, persistent routine fields and partial write-through recovery; P19/P20 integration and physical acceptance."
       },
       "F8": {
         "owners": [

@@ -1,6 +1,6 @@
 {
   "packet": "P08",
-  "state": "Complete local gate and final native journeys verified; final evidence reviews and trunk integration pending.",
+  "state": "Integrated through PR501 at 944d37fb; nine bounded P08 criteria complete. P19/P20 remain open.",
   "base": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
   "architecture": [
     "ADR-012",
@@ -981,5 +981,46 @@
     "reason": "P05/P06 calendar contributions remain bounded; P08 changes no calendar selector. Full AppNav calendar geometry, combined status and neighboring-month acceptance is the existing P19 integration scope. The P01 last-contributing-packet closure assignment was overly broad; no new P08 native case is claimed to close these tasks.",
     "originalError": "Final-record updater selected every legacy closurePacket=P08 rather than the nine explicit study IDs. Removed unsupported verified text and restored prior contribution fields.",
     "changeScope": "Documentation only; no product behavior, native test, gate input or calendar acceptance was changed."
-  }
+  },
+  "integration": {
+    "packet": "P08",
+    "state": "Integrated",
+    "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/501",
+    "reviewedHead": "17ff274f71501505be028aafbb89ace898f0a109",
+    "merge": "944d37fb1f62d95658207e62fe084e817c4a1cd2",
+    "exactTreeAndExecutionInputs": {
+      "packet": "P08",
+      "candidate": "17ff274f71501505be028aafbb89ace898f0a109",
+      "merge": "944d37fb1f62d95658207e62fe084e817c4a1cd2",
+      "tree": "ac578fbd3773ecb5157873dd57cf6e9c603c29d8",
+      "identicalExecutionInputs": 1644,
+      "sourceAndApksMatch": true,
+      "apks": {
+        "tests": "8C1AFA0C84FF8954C5E4207173454B80FE685E955CBA3FF3A59CC07342243DD9",
+        "app": "A67B8EC6B070F51B4454F151BAA479C2428163D7551B9088EAD75DB30122D869"
+      },
+      "scope": "Exact merged tree and all app/tools/config inputs match the freshly gated and reviewed candidate. Eight candidate native results explicitly retained; fresh shortest merged AppNav journey remains required."
+    },
+    "freshMergedAppNavJourney": 1,
+    "reusedCandidateGate": {
+      "appTests": 4543,
+      "standaloneTests": 1715,
+      "failuresErrorsSkips": 0,
+      "reason": "All 1644 execution inputs, full tree and APK bytes match the fresh executed candidate; no redundant full suite after exact squash integration."
+    },
+    "candidateNative": {
+      "fresh": 8,
+      "retained": true
+    },
+    "hostedRuns": [
+      38491801437,
+      38491796998
+    ],
+    "finalIndependentReview": "reviews/p08-final-independent-review.md",
+    "finalAdversarialReview": "reviews/p08-final-evidence-seal-adversarial-20261013-204132.md",
+    "remainingCriticalHigh": 0,
+    "boundedCriteria": 9,
+    "scope": "UX11/13/14 bounded development acceptance. Calendar UX12 remains P19; physical/owner/performance acceptance remains P20. Signed Debug125 unchanged; Drop A after P10."
+  },
+  "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/501"
 }

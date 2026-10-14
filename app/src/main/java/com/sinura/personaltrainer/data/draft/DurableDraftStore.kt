@@ -138,10 +138,21 @@ internal class DurableDraftStore(
     }
 
     /** Explicit user discard only; fences old writers and keeps opaque originals private. */
-    internal suspend fun <D, C> discardUnreadable(owner: DraftOwner, codec: DraftCodec<D, C>): DraftChange<D, C> = ordered {
+    internal suspend fun <D, C> discardUnreadable(owner: DraftOwner, codec: DraftCodec<D, C>,
+        requireUnreadable: Boolean = false): DraftChange<D, C> = ordered {
         try {
+            val currentGeneration = generation()
+            if (requireUnreadable) {
+                try {
+                    load(owner, codec, currentGeneration)
+                    return@ordered DraftChange.Rejected(DraftRejection.STALE_VERSION)
+                } catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: DraftTooLarge) { /* The opaque oversized checkpoint can be quarantined. */ }
+                catch (_: IOException) { return@ordered DraftChange.Unavailable(DraftReadProblem.STORAGE) }
+                catch (_: SecurityException) { return@ordered DraftChange.Unavailable(DraftReadProblem.STORAGE) }
+                catch (_: Exception) { /* Structural decoding failure: explicit quarantine is allowed. */ }
+            }
             val fresh = UUID.randomUUID().toString()
-            generation() // A broken global coordinator is not silently rebuilt from an owner.
             writeGeneration(fresh)
             val source = ownerFile(owner)
             files.quarantine(source, File(directory, source.name + ".quarantine-" + UUID.randomUUID()))
@@ -329,6 +340,8 @@ internal class DraftBinding<D, C> internal constructor(
 ) {
     suspend fun read(): DraftRead<D, C> = store.read(owner, codec)
     suspend fun discardUnreadable(): DraftChange<D, C> = store.discardUnreadable(owner, codec)
+    suspend fun discardUnreadableIfStillUnreadable(): DraftChange<D, C> =
+        store.discardUnreadable(owner, codec, requireUnreadable = true)
 
     suspend fun checkpoint(expected: DraftVersion, draft: D): DraftChange<D, C> = store.change(owner, codec, expected) {
         rejectUnless(it.pending == null, DraftRejection.PENDING_COMMAND)

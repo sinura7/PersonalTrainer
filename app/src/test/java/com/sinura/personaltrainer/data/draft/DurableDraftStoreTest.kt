@@ -52,6 +52,30 @@ class DurableDraftStoreTest {
     }
     private fun ownerFile(root: File): File = root.listFiles()!!.single { it.name.endsWith(".json") && it.name != "generation.json" }
 
+    @Test fun conditionalUnreadableDiscardRefusesARepairedReadableCheckpointAtomically() = runTest {
+        val root = temporary.newFolder(); val form = binding(root)
+        written(form.checkpoint(read(form).version, listOf("Newer authored input")))
+        val file = ownerFile(root); val repaired = file.readBytes()
+        file.writeText("{broken")
+        assertTrue(form.read() is DraftRead.UnreadableCheckpoint)
+        file.writeBytes(repaired)
+        rejected(DraftRejection.STALE_VERSION, form.discardUnreadableIfStillUnreadable())
+        assertTrue(file.readBytes().contentEquals(repaired))
+        assertEquals(listOf("Newer authored input"), read(form).draft)
+    }
+
+    @Test fun conditionalUnreadableDiscardQuarantinesAnOversizedCheckpointWithoutLosingItsOriginal() = runTest {
+        val root = temporary.newFolder(); val form = binding(root)
+        written(form.checkpoint(read(form).version, listOf("Original")))
+        val file = ownerFile(root); val oversized = ByteArray(MAX_DRAFT_BYTES + 1) { 65 }
+        file.writeBytes(oversized)
+        assertEquals(DraftRead.UnreadableCheckpoint(DraftReadProblem.TOO_LARGE), form.read())
+        written(form.discardUnreadableIfStillUnreadable())
+        assertEquals(null, read(form).draft)
+        val original = root.listFiles()!!.single { it.name.contains(".quarantine-") }
+        assertTrue(original.readBytes().contentEquals(oversized))
+    }
+
     @Test fun reopeningRecoversExactRawAuthoredFieldsWithoutACommand() = runTest {
         val root = temporary.newFolder()
         val form = binding(root)

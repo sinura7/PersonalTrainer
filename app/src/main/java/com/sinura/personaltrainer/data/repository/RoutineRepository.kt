@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
 import androidx.room.withTransaction
+import com.sinura.personaltrainer.data.draft.DraftRecoveryOutcome
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
@@ -37,6 +38,89 @@ class RoutineRepository(
         .observeHealth("a routine").presentValues()
 
     suspend fun getById(id: String): Routine? = routineDao.getById(id)?.toDomain()
+
+    internal suspend fun editorRecord(id: String): RoutineEditRecord? = routineDao.getById(id)?.let { row ->
+        RoutineEditRecord(row.routine, row.items.map { it.item }.sortedWith(compareBy<RoutineExerciseEntity> { it.sortOrder }.thenBy { it.id }))
+    }
+
+    /** A previously used or scheduled routine is an existing program, even if this form began it. */
+    internal suspend fun editorStubUnused(id: String): Boolean = writeRoutine {
+        val db = checkNotNull(database)
+        val current = editorRecord(id) ?: return@writeRoutine false
+        current.items.isEmpty() && db.workoutDao().getAllSessions().none { it.routineId == id } &&
+            db.scheduleDao().getAll().none { it.routineId == id } && db.plannerDao().getRules().none { it.routineId == id }
+    }
+
+    /** Stable identities and exact values decide an uncertain result, including partial batches. */
+    internal suspend fun inspectEditorCommand(command: RoutineEditCommand): DraftRecoveryOutcome = writeRoutine {
+        inspectEditorLocked(command)
+    }
+
+    private suspend fun inspectEditorLocked(command: RoutineEditCommand): DraftRecoveryOutcome {
+        command.validate()
+        val db = checkNotNull(database)
+        var outstanding = false
+        for (change in command.changes) {
+            val actual = editorRecord(change.id)
+            if (actual == change.after) continue
+            if (actual != change.before) return DraftRecoveryOutcome.CONFLICT
+            if (change.after == null && !editorStubUnused(change.id)) return DraftRecoveryOutcome.CONFLICT
+            for (item in change.after?.items.orEmpty()) {
+                val existingItem = routineDao.getRoutineExercise(item.id)
+                if (existingItem != null && existingItem.routineId != change.id) return DraftRecoveryOutcome.CONFLICT
+                val exercise = db.exerciseDao().getById(item.exerciseId)?.toDomain() ?: return DraftRecoveryOutcome.CONFLICT
+                val prior = change.before?.items?.firstOrNull { it.id == item.id && it.exerciseId == item.exerciseId }
+                if (prior == null && HoldWork.isHold(exercise) != (item.targetSeconds != null)) return DraftRecoveryOutcome.CONFLICT
+            }
+            outstanding = true
+        }
+        if (command.pinsBefore != null) {
+            val actual = checkNotNull(database).scheduleDao().getAll()
+            if (actual != command.pinsAfter) {
+                if (actual != command.pinsBefore) return DraftRecoveryOutcome.CONFLICT
+                outstanding = true
+            }
+        }
+        return if (outstanding) DraftRecoveryOutcome.UNCOMMITTED else DraftRecoveryOutcome.EXACT_SAVED
+    }
+
+    /** Caller holds maintenance. Read/compare/mutate is one Room transaction; no REPLACE cascade. */
+    internal suspend fun commitEditorCommandLocked(command: RoutineEditCommand) {
+        val db = checkNotNull(database) { "Editor recovery requires a database transaction" }
+        db.withTransaction {
+            val observed = inspectEditorLocked(command)
+            check(observed != DraftRecoveryOutcome.CONFLICT) { "The routine changed; review the unfinished edits" }
+            if (observed == DraftRecoveryOutcome.EXACT_SAVED) return@withTransaction
+            for (change in command.changes) {
+                val actual = editorRecord(change.id)
+                if (actual == change.after) continue
+                check(actual == change.before)
+                val after = change.after
+                if (after == null) {
+                    syncAuthoring?.onRoutineDeleted(routineDao.getById(change.id))
+                    planner?.onRoutineDeleted(change.id)
+                    routineDao.deleteRoutine(change.id)
+                } else {
+                    // A globally colliding item ID must never replace another routine's lift.
+                    after.items.forEach { item ->
+                        val existing = routineDao.getRoutineExercise(item.id)
+                        check(existing == null || existing.routineId == change.id) { "A lift identity changed" }
+                    }
+                    routineDao.upsertRoutineInPlace(after.routine)
+                    actual?.items.orEmpty().filter { old -> after.items.none { it.id == old.id } }.forEach { old ->
+                        routineDao.deleteRoutineExercise(old.id)
+                        syncAuthoring?.onRoutineExerciseRemoved(old, after.routine.updatedAt)
+                    }
+                    after.items.forEach { item -> routineDao.upsertRoutineExercise(item) }
+                }
+            }
+            if (command.pinsAfter != null && db.scheduleDao().getAll() != command.pinsAfter) {
+                check(db.scheduleDao().getAll() == command.pinsBefore)
+                db.scheduleDao().insertAll(command.pinsAfter)
+            }
+        }
+        notifyRoutinesSync()
+    }
 
     /** How many routines exist. Cheaper than loading them all to ask whether any do. */
     suspend fun count(): Int = routineDao.getAllRoutines().size
