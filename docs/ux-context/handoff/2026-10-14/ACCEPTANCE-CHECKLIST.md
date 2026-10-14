@@ -254,4 +254,3 @@ The original implementation/closure owner is retained below even when its packet
 | UX30-AC01 | Yes | P01 | Open | Each implemented UX item has acceptance evidence, source/commit links and limitations. | Complete the evidence/commit/limitation record as each remaining UX item is delivered; final audit is criterion reconciliation, not another broad redesign audit. |
 | UX30-AC02 | Yes | P01 | Open | Global-navigation changes follow the repository's current comparative task gate; no extra tab appears from taste alone. | Retain the five destinations. If a global-navigation change is proposed, satisfy the current comparative task gate before accepting that change. |
 | UX30-AC03 | Yes | P01 | Open | Required device/accessibility gaps remain visibly open until actually tested. | Keep required device/accessibility gaps open until recorded execution closes them; reconcile the final P19/P20 ledger. |
-
