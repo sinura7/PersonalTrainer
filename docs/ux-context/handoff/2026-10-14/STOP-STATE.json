@@ -1,0 +1,55 @@
+{
+  "recordedAtUtc": "2026-10-14T22:02:35.570740+00:00",
+  "handoffUpdatedAtUtc": "2026-10-14T22:14:54.872940+00:00",
+  "reason": "Owner requested immediate development stop, cleanup and transfer handoff.",
+  "head": "158f492b552e839c7f5ee1cd27e1ef464980d7ff",
+  "branch": "codex/ux-core-debug-126",
+  "integratedTrunk": "eea668ce5105a5f4c4058b2d4aad35991416a174",
+  "managedTrackedStatus": "",
+  "versionGate": {
+    "attempt": "drop-a-version01",
+    "outcome": "CANCELLED at owner stop request; incomplete, not a complete gate pass",
+    "standalonePreflight": "PASS, 1715 standalone tests",
+    "androidGate": "Interrupted during testDebugUnitTest; no final local result asserted",
+    "freshFinalAppTestCount": null
+  },
+  "release": {
+    "latestVerified": 125,
+    "preparedUnmerged": 126,
+    "newDropPublished": false
+  },
+  "cleanup": {
+    "versionPr": "505 converted to draft; source branch retained",
+    "hostedRuns": "38641525755 and 38641515310 confirmed cancelled",
+    "localGate": "terminated, exec returned -1; no successful final summary",
+    "previewServers": "task-owned Python servers on 8881, 8882, 8883 stopped",
+    "emulator": "confirmed temper-tests-api29 at emulator-5554 shut down",
+    "ownerCheckout": "existing unrelated dirty checkout left untouched",
+    "buildAndEvidence": "preserved for recovery; no destructive deletion"
+  },
+  "coverage": {
+    "boundedRequiredCriteria": 45,
+    "requiredTotal": 96,
+    "physicalAcceptance": "open"
+  },
+  "remainingPackets": [
+    "P11",
+    "P12",
+    "P13",
+    "P14",
+    "P15",
+    "P16",
+    "P17",
+    "P18",
+    "P19",
+    "P20"
+  ],
+  "planReconciliation": {
+    "document": "PLAN-RECONCILIATION.md",
+    "checklist": "ACCEPTANCE-CHECKLIST.json",
+    "requiredOpen": 48,
+    "requiredPartial": 3,
+    "earlierPacketResiduals": "P01 UX30-AC01/02/03; P03 UX10-AC01/02/03 remain Open in the source ledger.",
+    "boundary": "Handoff documentation only; no product development or delivery resumed."
+  }
+}

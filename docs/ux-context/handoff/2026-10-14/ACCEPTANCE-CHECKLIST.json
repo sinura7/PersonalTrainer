@@ -1,0 +1,3083 @@
+{
+  "snapshotAtUtc": "2026-10-14T22:14:05.998092+00:00",
+  "sourceCommit": "158f492b552e839c7f5ee1cd27e1ef464980d7ff",
+  "sourceFile": "docs/ux-program/UX-Backlog.json",
+  "sourceSha256": "AE837DBEC6A0A9D8407FA295D9168F115BDBFFF8DA4AF8E673DE43E31802C927",
+  "scope": "Transfer snapshot of the existing checklist; no original criterion renamed, dropped or promoted to final acceptance.",
+  "counts": {
+    "total": 97,
+    "required": 96,
+    "requiredWithBoundedEvidence": 45,
+    "requiredOpen": 48,
+    "requiredPartialCalendarContributions": 3,
+    "optionalOpen": 1
+  },
+  "statusInterpretation": "Recorded top-level Not executed and bounded completion evidence coexist. Preserve both; bounded evidence is not full participant/physical acceptance.",
+  "criteria": [
+    {
+      "id": "UX01-AC01",
+      "required": true,
+      "requirement": "Given both a planned workout and freestyle control, a participant can correctly explain which follows the routine and which starts empty.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX01",
+        "implementation": "P05 Home implementation integrated in PR498 at eb3a5797; retains start contracts, exact completed/live return and durable civil selection.",
+        "automated": "p05-home-continuity-2026-10-13.json: fresh complete app4449/standalone1707, native18/process2/small-font2 Home1, matching source/APKs, two pinned reviews, fresh exact merged Home journey1.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P05"
+        ],
+        "closurePacket": "P05",
+        "p05Boundary": "Participant understanding, broader capture modes and complete integration remain with P13/P14/P19/P20; this is not final criterion acceptance."
+      },
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX01-AC02",
+      "required": true,
+      "requirement": "Given another selected day, starting/logging behavior matches explicit copy and existing date rules; no silent backdating.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX01",
+        "implementation": "P05 Home implementation integrated in PR498 at eb3a5797; retains start contracts, exact completed/live return and durable civil selection.",
+        "automated": "p05-home-continuity-2026-10-13.json: fresh complete app4449/standalone1707, native18/process2/small-font2 Home1, matching source/APKs, two pinned reviews, fresh exact merged Home journey1.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P05"
+        ],
+        "closurePacket": "P05",
+        "p05Boundary": "Participant understanding, broader capture modes and complete integration remain with P13/P14/P19/P20; this is not final criterion acceptance."
+      },
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX01-AC03",
+      "required": true,
+      "requirement": "At 360 dp and large text, the planned row's start action is discoverable without an unrelated statistics detour; measure rather than assert this has improved.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX01",
+        "implementation": "P05 Home implementation integrated in PR498 at eb3a5797; retains start contracts, exact completed/live return and durable civil selection.",
+        "automated": "p05-home-continuity-2026-10-13.json: fresh complete app4449/standalone1707, native18/process2/small-font2 Home1, matching source/APKs, two pinned reviews, fresh exact merged Home journey1.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P05"
+        ],
+        "closurePacket": "P05",
+        "p05Boundary": "Participant understanding, broader capture modes and complete integration remain with P13/P14/P19/P20; this is not final criterion acceptance."
+      },
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX02-AC01",
+      "required": true,
+      "requirement": "With 0, 3 and 50 routines, participants can find past strength, manual cardio, mixed entry and live cardio.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX02",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P05",
+          "P13",
+          "P14"
+        ],
+        "closurePacket": "P14"
+      },
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P14, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX02-AC02",
+      "required": true,
+      "requirement": "Selecting a manual entry does not start a timer; dismissing the sheet makes no training-data write.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P14",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX02",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P05",
+          "P14"
+        ],
+        "closurePacket": "P14"
+      },
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P14, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX02-AC03",
+      "required": true,
+      "requirement": "Opening the sheet while a session runs produces one clear answer and no duplicate session.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX02",
+        "implementation": "P05 Home implementation integrated in PR498 at eb3a5797; retains start contracts, exact completed/live return and durable civil selection.",
+        "automated": "p05-home-continuity-2026-10-13.json: fresh complete app4449/standalone1707, native18/process2/small-font2 Home1, matching source/APKs, two pinned reviews, fresh exact merged Home journey1.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P05",
+          "P13",
+          "P14"
+        ],
+        "closurePacket": "P14",
+        "p05Boundary": "Participant understanding, broader capture modes and complete integration remain with P13/P14/P19/P20; this is not final criterion acceptance."
+      },
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX03-AC01",
+      "required": true,
+      "requirement": "Rapid repeated activation while a write is pending commits one set.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX03",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX03-AC02",
+      "required": true,
+      "requirement": "Warmup, bodyweight, added-weight and assisted movements show the correct labels and units; no universal '0 kg' assumption.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX03",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX03-AC03",
+      "required": true,
+      "requirement": "Keyboard open at 360 dp and landscape leaves the active field and commit action reachable.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX03",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX03-AC04",
+      "required": true,
+      "requirement": "Undo/edit/next transitions preserve exercise identity and announce accepted results once.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX03",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX04-AC01",
+      "required": true,
+      "requirement": "Inject details-write failure after editing a name: Save remains on screen, preserves text and offers retry.",
+      "recordedStatus": "Written, not executed (Robolectric: RoutineEditorViewModelTest)",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX04",
+        "implementation": "Private typed routine fields/commands, stable IDs, exact before/after inspection, outstanding-only Retry, guarded Back/Discard/cleanup and confirmed illustrated import; exact criterion tasks in P09 study.",
+        "automated": "Fresh complete local gate4577 app/1715 standalone; nine final-input native executions; exact candidate/merge proof and fresh merged import journey. Failure injection is JVM evidence, distinct from native/physical acceptance.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09",
+        "packetEvidence": {
+          "P09": "q01/p09-routine-recovery-2026-10-13.json; https://github.com/sinura7/PersonalTrainer/pull/502 integrated 928cd374. Exact1654-input/tree/APK proof; fresh merged AppNav import journey. Final review seals and all original failures retained. P19/P20 limits remain."
+        }
+      },
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX04-AC02",
+      "required": true,
+      "requirement": "Inject one staged-target failure: no blanket success/exit; retry persists the intended value once.",
+      "recordedStatus": "Written, not executed (Robolectric: RoutineEditorViewModelTest)",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX04",
+        "implementation": "Private typed routine fields/commands, stable IDs, exact before/after inspection, outstanding-only Retry, guarded Back/Discard/cleanup and confirmed illustrated import; exact criterion tasks in P09 study.",
+        "automated": "Fresh complete local gate4577 app/1715 standalone; nine final-input native executions; exact candidate/merge proof and fresh merged import journey. Failure injection is JVM evidence, distinct from native/physical acceptance.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09",
+        "packetEvidence": {
+          "P09": "q01/p09-routine-recovery-2026-10-13.json; https://github.com/sinura7/PersonalTrainer/pull/502 integrated 928cd374. Exact1654-input/tree/APK proof; fresh merged AppNav import journey. Final review seals and all original failures retained. P19/P20 limits remain."
+        }
+      },
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX04-AC03",
+      "required": true,
+      "requirement": "Back after successful edits remains consistent with existing autosave; empty new stubs retain their documented cleanup.",
+      "recordedStatus": "Written, not executed (Robolectric: RoutineEditorViewModelTest, existing + new)",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX04",
+        "implementation": "Private typed routine fields/commands, stable IDs, exact before/after inspection, outstanding-only Retry, guarded Back/Discard/cleanup and confirmed illustrated import; exact criterion tasks in P09 study.",
+        "automated": "Fresh complete local gate4577 app/1715 standalone; nine final-input native executions; exact candidate/merge proof and fresh merged import journey. Failure injection is JVM evidence, distinct from native/physical acceptance.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09",
+        "packetEvidence": {
+          "P09": "q01/p09-routine-recovery-2026-10-13.json; https://github.com/sinura7/PersonalTrainer/pull/502 integrated 928cd374. Exact1654-input/tree/APK proof; fresh merged AppNav import journey. Final review seals and all original failures retained. P19/P20 limits remain."
+        }
+      },
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX04-AC04",
+      "required": true,
+      "requirement": "Process recreation during failure retains sufficient draft state; reopening shows the accepted persisted result.",
+      "recordedStatus": "Implemented (SavedStateHandle keeps name/notes); Robolectric processDeathKeepsNameAndDoesNotMintASecondRoutine written, not executed; device check pending",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX04",
+        "implementation": "Private typed routine fields/commands, stable IDs, exact before/after inspection, outstanding-only Retry, guarded Back/Discard/cleanup and confirmed illustrated import; exact criterion tasks in P09 study.",
+        "automated": "Fresh complete local gate4577 app/1715 standalone; nine final-input native executions; exact candidate/merge proof and fresh merged import journey. Failure injection is JVM evidence, distinct from native/physical acceptance.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09",
+        "packetEvidence": {
+          "P09": "q01/p09-routine-recovery-2026-10-13.json; https://github.com/sinura7/PersonalTrainer/pull/502 integrated 928cd374. Exact1654-input/tree/APK proof; fresh merged AppNav import journey. Final review seals and all original failures retained. P19/P20 limits remain."
+        }
+      },
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX05-AC01",
+      "required": true,
+      "requirement": "Missing ID, deleted/restored-over row, computation failure after confirmed save and valid no-work data each render distinct truthful states.",
+      "recordedStatus": "Written, not executed (Robolectric: WorkoutSummaryViewModelTest — missing id, missing row, read fault, summary fault, no-work); device render pending",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX05",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
+        }
+      },
+      "fixtures": [
+        "F03",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX05-AC02",
+      "required": true,
+      "requirement": "Retrying summary never creates or re-finishes a workout.",
+      "recordedStatus": "Written, not executed (Robolectric: aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing asserts one row, same finish stamp, no live session)",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX05",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
+        }
+      },
+      "fixtures": [
+        "F03",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX05-AC03",
+      "required": true,
+      "requirement": "A bodyweight-only workout does not appear worthless because its load-volume is zero.",
+      "recordedStatus": "Executed (JVM lane: WorkoutSummaryBuilderTest.aBodyweightOnlySessionHeadlinesItsRepsNotZeroKilograms); Robolectric written; device render pending",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX05",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
+        }
+      },
+      "fixtures": [
+        "F03",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX05-AC04",
+      "required": true,
+      "requirement": "Back and Done exit once and do not return to an already-finished live session.",
+      "recordedStatus": "Not executed — navigation unchanged (popUpTo Home on finish; Back is Done); emulator check pending",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX05",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
+        }
+      },
+      "fixtures": [
+        "F03",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX06-AC01",
+      "required": true,
+      "requirement": "8.5 reps is rejected rather than saved as 85; -50 kg is rejected rather than saved as 50.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX06",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F10"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX06-AC02",
+      "required": true,
+      "requirement": "1.2.3 and 8e2 do not become different accepted values; 62,5 and 62.5 behave equivalently under the supported decimal policy.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX06",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F10"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX06-AC03",
+      "required": true,
+      "requirement": "Existing valid values survive unit conversion/round trips without drift beyond specified display precision.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX06",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F10"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX06-AC04",
+      "required": true,
+      "requirement": "All shared filter callers are covered, including composer, live cardio and routine targets.",
+      "recordedStatus": "Executed for the domain rules; caller wiring changed in composer, live cardio, custom rest, routine card — Compose-level check pending (no SDK here)",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX06",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P04",
+          "P09",
+          "P13",
+          "P14",
+          "P17"
+        ],
+        "closurePacket": "P19",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F10"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX07-AC01",
+      "required": true,
+      "requirement": "Build a multi-row mixed draft, background, recreate the process and restore: date, rows, order and values survive.",
+      "recordedStatus": "Already covered at HEAD by R09 (SavedStateComposerDraft); Robolectric processRecreationRestoresTheTypedDraft written, not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P14",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX07",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P14"
+        ],
+        "closurePacket": "P14"
+      },
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P14, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX07-AC02",
+      "required": true,
+      "requirement": "Cancel/Back during delayed accepted save neither creates a duplicate nor tells the user committed work was discarded.",
+      "recordedStatus": "Written, not executed (Robolectric: cancelWhileSavingIsRefusedAndTheSaveStillLandsOnce)",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P14",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX07",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P09",
+          "P13",
+          "P14",
+          "P16"
+        ],
+        "closurePacket": "P16",
+        "packetEvidence": {
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P16, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX07-AC03",
+      "required": true,
+      "requirement": "Failed save preserves the draft; successful save clears only that draft.",
+      "recordedStatus": "Written, not executed (Robolectric: anAcceptedSaveClearsTheDraft, save() keeps draft on Rejected/thrown)",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P03",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX07",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P09",
+          "P13",
+          "P14",
+          "P15",
+          "P16"
+        ],
+        "closurePacket": "P16",
+        "packetEvidence": {
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P16, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX07-AC04",
+      "required": true,
+      "requirement": "Onboarding draft restoration does not overwrite the saved current plan or create a new one without acceptance.",
+      "recordedStatus": "Written, not executed (Robolectric: processRecreationRestoresTheStepAndAnswersWithoutWritingAPlan)",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P15",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX07",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P15",
+          "P16"
+        ],
+        "closurePacket": "P16"
+      },
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P16, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX08-AC01",
+      "required": true,
+      "requirement": "Every question and Continue/Skip action is reachable at 360×640 dp, font 2.0, and the smaller supported window configuration.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P15",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX08",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P15"
+        ],
+        "closurePacket": "P15"
+      },
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P15, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX08-AC02",
+      "required": true,
+      "requirement": "Typed bodyweight, wheel, unit switch and Skip produce consistent optional values.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P15",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX08",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P15"
+        ],
+        "closurePacket": "P15"
+      },
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P15, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX08-AC03",
+      "required": true,
+      "requirement": "Screen-reader focus lands on the new question and Back keeps the selected answer.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P15",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX08",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P15"
+        ],
+        "closurePacket": "P15"
+      },
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P15, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX08-AC04",
+      "required": true,
+      "requirement": "Accepting a plan once creates the intended program; reopening setup does not silently apply a draft.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P16",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX08",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P15",
+          "P16"
+        ],
+        "closurePacket": "P16"
+      },
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P16, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX09-AC01",
+      "required": true,
+      "requirement": "From an empty routine catalogue, choose a lift → Create routine → save: exactly one routine contains that lift, without another search.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX09",
+        "implementation": "Private typed routine fields/commands, stable IDs, exact before/after inspection, outstanding-only Retry, guarded Back/Discard/cleanup and confirmed illustrated import; exact criterion tasks in P09 study.",
+        "automated": "Fresh complete local gate4577 app/1715 standalone; nine final-input native executions; exact candidate/merge proof and fresh merged import journey. Failure injection is JVM evidence, distinct from native/physical acceptance.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09",
+        "packetEvidence": {
+          "P09": "q01/p09-routine-recovery-2026-10-13.json; https://github.com/sinura7/PersonalTrainer/pull/502 integrated 928cd374. Exact1654-input/tree/APK proof; fresh merged AppNav import journey. Final review seals and all original failures retained. P19/P20 limits remain."
+        }
+      },
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX09-AC02",
+      "required": true,
+      "requirement": "Cancel returns to the original context and leaves no empty stub.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX09",
+        "implementation": "Private typed routine fields/commands, stable IDs, exact before/after inspection, outstanding-only Retry, guarded Back/Discard/cleanup and confirmed illustrated import; exact criterion tasks in P09 study.",
+        "automated": "Fresh complete local gate4577 app/1715 standalone; nine final-input native executions; exact candidate/merge proof and fresh merged import journey. Failure injection is JVM evidence, distinct from native/physical acceptance.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09",
+        "packetEvidence": {
+          "P09": "q01/p09-routine-recovery-2026-10-13.json; https://github.com/sinura7/PersonalTrainer/pull/502 integrated 928cd374. Exact1654-input/tree/APK proof; fresh merged AppNav import journey. Final review seals and all original failures retained. P19/P20 limits remain."
+        }
+      },
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX09-AC03",
+      "required": true,
+      "requirement": "Rotation/process recreation retains the pending exercise ID according to the draft contract.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX09",
+        "implementation": "Private typed routine fields/commands, stable IDs, exact before/after inspection, outstanding-only Retry, guarded Back/Discard/cleanup and confirmed illustrated import; exact criterion tasks in P09 study.",
+        "automated": "Fresh complete local gate4577 app/1715 standalone; nine final-input native executions; exact candidate/merge proof and fresh merged import journey. Failure injection is JVM evidence, distinct from native/physical acceptance.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09",
+        "packetEvidence": {
+          "P09": "q01/p09-routine-recovery-2026-10-13.json; https://github.com/sinura7/PersonalTrainer/pull/502 integrated 928cd374. Exact1654-input/tree/APK proof; fresh merged AppNav import journey. Final review seals and all original failures retained. P19/P20 limits remain."
+        }
+      },
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX10-AC01",
+      "required": true,
+      "requirement": "Searching 'bench' with existing matching variants prioritizes choosing them over creating 'bench'.",
+      "recordedStatus": "Executed: ExercisePickerRenderTest retains matching illustrated results before secondary Create across the layout/font matrix.",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P03",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX10",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P03"
+        ],
+        "closurePacket": "P03",
+        "packetEvidence": {
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "nextClosureTask": "Verify existing-variant prioritization in the actual Library/Create flow before adding a duplicate. Implement only a demonstrated gap; retain existing custom Save recovery."
+    },
+    {
+      "id": "UX10-AC02",
+      "required": true,
+      "requirement": "Duplicate/disk/create errors are visible within the active sheet in single and multi modes.",
+      "recordedStatus": "Executed targeted UI recovery and exact-identity ownership checks. Final complete-gate verification remains pending; native-graphics hosts are synthetic, not phone acceptance.",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P03",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX10",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P03"
+        ],
+        "closurePacket": "P03",
+        "packetEvidence": {
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "nextClosureTask": "Exercise duplicate, disk and Create failures inside the active single- and multiple-selection sheets. Verify reachable errors and preserved fields; P19 confirms shared callers."
+    },
+    {
+      "id": "UX10-AC03",
+      "required": true,
+      "requirement": "Create then cancel activity follows the disclosed catalogue persistence rule.",
+      "recordedStatus": "Implemented disclosure and Room cancellation regression in ActivityComposerViewModelTest; the final added regression awaits the complete gate.",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P03",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX10",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P03"
+        ],
+        "closurePacket": "P03",
+        "packetEvidence": {
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "nextClosureTask": "Create a custom lift, cancel activity creation and verify the actual catalogue persistence matches its disclosure; retain exact canonical identity."
+    },
+    {
+      "id": "UX10-AC04",
+      "required": true,
+      "requirement": "Double confirmation adds the selected IDs once and preserves order.",
+      "recordedStatus": "Bounded automated contribution integrated; participant/physical/final integration acceptance separate.",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P10",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX10",
+        "implementation": "Integrated through P10 core#503/ddc4a49c and P10R#504/eea668ce; owner and P19/P20 acceptance separate.",
+        "automated": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate. Integration71 proves unchanged1678 inputs and intact reused4700/1715 results; merged72 passed1 fresh actual AppNav Swap with identical APKs.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P09",
+          "P10"
+        ],
+        "closurePacket": "P10",
+        "p10Boundary": "Participant interpretation and physical acceptance are unobserved. Native65 limitation remains P19; candidate verification is not final programme acceptance."
+      },
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX11-AC01",
+      "required": true,
+      "requirement": "A participant can state the scope before saving a swap or schedule edit.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX11",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
+        }
+      },
+      "fixtures": [
+        "F02",
+        "F06"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX11-AC02",
+      "required": true,
+      "requirement": "Routine management is reachable without relying solely on long press, or documented usability evidence supports retaining the existing affordance.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX11",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
+        }
+      },
+      "fixtures": [
+        "F02",
+        "F06"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX11-AC03",
+      "required": true,
+      "requirement": "Deleting a routine preserves history and accurately explains its impact on scheduled days.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX11",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
+        }
+      },
+      "fixtures": [
+        "F02",
+        "F06"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX12-AC01",
+      "required": true,
+      "requirement": "At 320/360/412 dp, date targets are measurable and usable without overlapping ambiguous activation regions, or an equivalent accessible selector is supplied.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX12",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
+        "implementationPackets": [
+          "P05",
+          "P06",
+          "P08"
+        ],
+        "closurePacket": "P19",
+        "closureRationale": "P05/P06 calendar contributions remain bounded; P08 changes no calendar selector. Full AppNav calendar geometry, combined status and neighboring-month acceptance is the existing P19 integration scope. The P01 last-contributing-packet closure assignment was overly broad; no new P08 native case is claimed to close these tasks."
+      },
+      "fixtures": [
+        "F02",
+        "F09",
+        "F11"
+      ],
+      "nextClosureTask": "Use existing P05/P06 evidence, then execute the complete calendar/AppNav criterion in P19; record actual date/target/semantics results."
+    },
+    {
+      "id": "UX12-AC02",
+      "required": true,
+      "requirement": "A week containing done, skipped, missed, future and rest days has unambiguous spoken and visible detail.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX12",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
+        "implementationPackets": [
+          "P05",
+          "P06",
+          "P08"
+        ],
+        "closurePacket": "P19",
+        "closureRationale": "P05/P06 calendar contributions remain bounded; P08 changes no calendar selector. Full AppNav calendar geometry, combined status and neighboring-month acceptance is the existing P19 integration scope. The P01 last-contributing-packet closure assignment was overly broad; no new P08 native case is claimed to close these tasks."
+      },
+      "fixtures": [
+        "F02",
+        "F09",
+        "F11"
+      ],
+      "nextClosureTask": "Use existing P05/P06 evidence, then execute the complete calendar/AppNav criterion in P19; record actual date/target/semantics results."
+    },
+    {
+      "id": "UX12-AC03",
+      "required": true,
+      "requirement": "Selecting a neighboring-month date opens the correct civil date; today remains distinguishable from selection.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX12",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
+        "implementationPackets": [
+          "P05",
+          "P06",
+          "P08"
+        ],
+        "closurePacket": "P19",
+        "closureRationale": "P05/P06 calendar contributions remain bounded; P08 changes no calendar selector. Full AppNav calendar geometry, combined status and neighboring-month acceptance is the existing P19 integration scope. The P01 last-contributing-packet closure assignment was overly broad; no new P08 native case is claimed to close these tasks."
+      },
+      "fixtures": [
+        "F02",
+        "F09",
+        "F11"
+      ],
+      "nextClosureTask": "Use existing P05/P06 evidence, then execute the complete calendar/AppNav criterion in P19; record actual date/target/semantics results."
+    },
+    {
+      "id": "UX13-AC01",
+      "required": true,
+      "requirement": "Add the same type once and recurring in separate scenarios; next week contains only the recurring case.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX13",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
+        }
+      },
+      "fixtures": [
+        "F02",
+        "F09"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX13-AC02",
+      "required": true,
+      "requirement": "Reordering states exactly which future/reminder behavior changes and preserves completed history.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX13",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
+        }
+      },
+      "fixtures": [
+        "F02",
+        "F09"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX13-AC03",
+      "required": true,
+      "requirement": "Home and Plan show the same dated occurrences after changes.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX13",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
+        }
+      },
+      "fixtures": [
+        "F02",
+        "F09"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX14-AC01",
+      "required": true,
+      "requirement": "Preview and committed outcome match for missed work crossing week boundaries.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX14",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
+        }
+      },
+      "fixtures": [
+        "F02",
+        "F09",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX14-AC02",
+      "required": true,
+      "requirement": "Completed sessions remain unchanged and are explicitly separated from future schedule adjustments.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX14",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
+        }
+      },
+      "fixtures": [
+        "F02",
+        "F09",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX14-AC03",
+      "required": true,
+      "requirement": "Commit failure preserves the proposal and offers retry; repeated taps do not apply it twice.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX14",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json; PR501 integrated944d37fb, exact1644-input/tree/APK proof and fresh merged AppNav Home-preview-Plan-confirm journey passed. Both hosted deterministic and native jobs passed; physical acceptance remains P20."
+        }
+      },
+      "fixtures": [
+        "F02",
+        "F09",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX15-AC01",
+      "required": true,
+      "requirement": "With years of synthetic history, a participant can reach lifetime records and the newest activity without an unbounded scroll.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX15",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "P06 fresh full04 app4467/standalone1707 gate; final candidate reused only verified identical JVM/standalone execution inputs with fresh statics/build/lint/native assembly. Fresh19 native checks,2 real process-reopening phases and1 large-text AppNav journey passed. Participant/whole-app closure remains P19/P20.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P06"
+        ],
+        "closurePacket": "P06",
+        "packetEvidence": {
+          "P06": "q01/p06-history-continuity-2026-10-13.json; PR#499 integrated074f9c50, exact-tree/input/APK merged AppNav journey passed once."
+        }
+      },
+      "fixtures": [
+        "F05"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX15-AC02",
+      "required": true,
+      "requirement": "Changing a horizon produces exactly the documented scope across totals/list/records.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX15",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "P06 fresh full04 app4467/standalone1707 gate; final candidate reused only verified identical JVM/standalone execution inputs with fresh statics/build/lint/native assembly. Fresh19 native checks,2 real process-reopening phases and1 large-text AppNav journey passed. Participant/whole-app closure remains P19/P20.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P06"
+        ],
+        "closurePacket": "P06",
+        "packetEvidence": {
+          "P06": "q01/p06-history-continuity-2026-10-13.json; PR#499 integrated074f9c50, exact-tree/input/APK merged AppNav journey passed once."
+        }
+      },
+      "fixtures": [
+        "F05"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX15-AC03",
+      "required": true,
+      "requirement": "Editing a prior best refreshes visible results and record drill-down identifies the supporting session.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX15",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P06",
+          "P07"
+        ],
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
+        }
+      },
+      "fixtures": [
+        "F05"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX16-AC01",
+      "required": true,
+      "requirement": "Jan 1, Jan 2 and Apr 1 samples do not imply equal elapsed intervals without an explicit session-axis label.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX16",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
+        }
+      },
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX16-AC02",
+      "required": true,
+      "requirement": "Screen-reader/data-list users can recover values and dates without relying on the plotted line.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX16",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
+        }
+      },
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX16-AC03",
+      "required": true,
+      "requirement": "Bodyweight-rep series use reps, loaded series use the selected physical unit, and empty/flat series are truthful.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX16",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
+        }
+      },
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX17-AC01",
+      "required": true,
+      "requirement": "Participants can explain that an uncolored muscle means no mapped work in the selected period, not a recovery guarantee.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P11",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX17",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P11"
+        ],
+        "closurePacket": "P11"
+      },
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P11, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX17-AC02",
+      "required": true,
+      "requirement": "All muscles remain reachable via full-size text rows with equivalent detail/actions.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P11",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX17",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P11"
+        ],
+        "closurePacket": "P11"
+      },
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P11, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX17-AC03",
+      "required": true,
+      "requirement": "The selected window and contributor data agree; caption remains readable at font 2.0.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P11",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX17",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P11"
+        ],
+        "closurePacket": "P11"
+      },
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P11, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX18-AC01",
+      "required": true,
+      "requirement": "All four kg/lb × km/mi combinations render consistent input, summary, history and export behavior.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX18",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
+      },
+      "fixtures": [
+        "F10",
+        "F12"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P17, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX18-AC02",
+      "required": true,
+      "requirement": "Changing preference does not change stored distance or weight.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX18",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
+      },
+      "fixtures": [
+        "F10",
+        "F12"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P17, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX18-AC03",
+      "required": true,
+      "requirement": "Old backups lacking distance preference restore to the documented default and drafts do not reinterpret numbers.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX18",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
+      },
+      "fixtures": [
+        "F10",
+        "F12"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P17, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX19-AC01",
+      "required": true,
+      "requirement": "Correcting an older synthetic measurement changes that date and refreshes the affected review.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P12",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX19",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P12"
+        ],
+        "closurePacket": "P12"
+      },
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P12, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX19-AC02",
+      "required": true,
+      "requirement": "Clear/delete copy identifies the exact affected data; cancelling leaves it unchanged.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P12",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX19",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P12"
+        ],
+        "closurePacket": "P12"
+      },
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P12, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX19-AC03",
+      "required": true,
+      "requirement": "No bodyweight entry is required to record a workout or complete setup.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P12",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX19",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P12"
+        ],
+        "closurePacket": "P12"
+      },
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P12, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX20-AC01",
+      "required": true,
+      "requirement": "A participant can change units/rest preferences and find export/restore with no worse success than the baseline.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX20",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
+      },
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P17, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX20-AC02",
+      "required": true,
+      "requirement": "Reopening Settings restores useful context without hiding an unresolved save error.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX20",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
+      },
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P17, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX20-AC03",
+      "required": true,
+      "requirement": "Production and debug build screenshots are evaluated separately.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX20",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
+      },
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P17, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX21-AC01",
+      "required": true,
+      "requirement": "Wrong password, oversized input, unsupported version, offline Drive, live workout, partial preferences failure and completed restore each have a distinct actionable screen.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P18",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX21",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P18"
+        ],
+        "closurePacket": "P18"
+      },
+      "fixtures": [
+        "F12",
+        "F08"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P18, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX21-AC02",
+      "required": true,
+      "requirement": "Displayed success follows the actual accepted operation; no UI-only fix masks R01–R04.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P18",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX21",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P18"
+        ],
+        "closurePacket": "P18"
+      },
+      "fixtures": [
+        "F12",
+        "F08"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P18, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX21-AC03",
+      "required": true,
+      "requirement": "Back/rotation/permission return retains the operation's correct stage and never repeats a destructive commit.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P18",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX21",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P18"
+        ],
+        "closurePacket": "P18"
+      },
+      "fixtures": [
+        "F12",
+        "F08"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P18, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX22-AC01",
+      "required": true,
+      "requirement": "Repeated delivery/recreation of the same reminder intent does not stack duplicate live screens or start twice.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX22",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F04",
+        "F09"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX22-AC02",
+      "required": true,
+      "requirement": "Returning from system settings keeps the active session/draft and reflects the real permission result.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX22",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F04",
+        "F09"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX22-AC03",
+      "required": true,
+      "requirement": "Back from a completed summary cannot reopen the finished workout as live.",
+      "recordedStatus": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
+      "recordedCompletionState": "Bounded automated evidence",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX22",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
+        "required": true,
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F04",
+        "F09"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX23-AC01",
+      "required": true,
+      "requirement": "Injected initial/later load failures, invalid fields and post-commit side-effect failures produce the defined states.",
+      "recordedStatus": "Partially: summary read/compute faults, composer save faults, finish outcomes distinguished; injected load faults on other screens remain open (see UX23 residue)",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX23",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P04",
+          "P05",
+          "P06",
+          "P07",
+          "P08",
+          "P09",
+          "P10",
+          "P11",
+          "P12",
+          "P13",
+          "P14",
+          "P15",
+          "P16",
+          "P17",
+          "P18"
+        ],
+        "closurePacket": "P19",
+        "packetEvidence": {
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json.",
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX23-AC02",
+      "required": true,
+      "requirement": "Users can locate the error and retry at the point of action without losing authored data.",
+      "recordedStatus": "Implemented for the composer (error above Save, field errors inline); device/IME check pending",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX23",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P04",
+          "P05",
+          "P06",
+          "P07",
+          "P08",
+          "P09",
+          "P10",
+          "P11",
+          "P12",
+          "P13",
+          "P14",
+          "P15",
+          "P16",
+          "P17",
+          "P18"
+        ],
+        "closurePacket": "P19",
+        "packetEvidence": {
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json.",
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX23-AC03",
+      "required": true,
+      "requirement": "Missing, empty and unavailable never share a misleading generic success or start-new-workout remedy.",
+      "recordedStatus": "Implemented for summary, finish and History stale wording; remaining conflations listed in UX23 residue",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX23",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P04",
+          "P05",
+          "P06",
+          "P07",
+          "P08",
+          "P09",
+          "P10",
+          "P11",
+          "P12",
+          "P13",
+          "P14",
+          "P15",
+          "P16",
+          "P17",
+          "P18"
+        ],
+        "closurePacket": "P19",
+        "packetEvidence": {
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json.",
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
+      },
+      "fixtures": [
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX24-AC01",
+      "required": true,
+      "requirement": "Two long similarly named variants can be distinguished before selection.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX24",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
+      },
+      "fixtures": [
+        "F06",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX24-AC02",
+      "required": true,
+      "requirement": "At font 2.0, primary actions and full values/units are readable and not clipped.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX24",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
+      },
+      "fixtures": [
+        "F06",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX24-AC03",
+      "required": true,
+      "requirement": "Shared component changes preserve all callers and do not reduce touch targets.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX24",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
+      },
+      "fixtures": [
+        "F06",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX25-AC01",
+      "required": false,
+      "requirement": "Physical TalkBack can complete planned start, set log/edit, cardio finish, routine create, history correction and export review.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX25",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": false,
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
+      },
+      "fixtures": [
+        "F11"
+      ],
+      "nextClosureTask": "Optional physical TalkBack refinement; keep labeled optional. This does not waive required automated accessibility or other physical checks."
+    },
+    {
+      "id": "UX25-AC02",
+      "required": true,
+      "requirement": "Search and routine-name fields announce their purpose when empty and populated.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX25",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
+      },
+      "fixtures": [
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX25-AC03",
+      "required": true,
+      "requirement": "Large text/IME does not hide essential actions; measured issues have production-screen regression coverage.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX25",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
+      },
+      "fixtures": [
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX26-AC01",
+      "required": true,
+      "requirement": "With reduced motion enabled, all data and records appear immediately and remain accessible.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX26",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
+      },
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX26-AC02",
+      "required": true,
+      "requirement": "An extended accessibility timeout is honored for relevant messages or equivalent persistent access exists.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX26",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
+      },
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX26-AC03",
+      "required": true,
+      "requirement": "Save failure remains actionable after any transient banner disappears.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX26",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
+      },
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P19, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX27-AC01",
+      "required": true,
+      "requirement": "A participant finds a specified muscle+equipment variant and clears a restrictive filter without losing orientation.",
+      "recordedStatus": "Bounded automated contribution integrated; participant/physical/final integration acceptance separate.",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P10",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX27",
+        "implementation": "Integrated through P10 core#503/ddc4a49c and P10R#504/eea668ce; owner and P19/P20 acceptance separate.",
+        "automated": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate. Integration71 proves unchanged1678 inputs and intact reused4700/1715 results; merged72 passed1 fresh actual AppNav Swap with identical APKs.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P10"
+        ],
+        "closurePacket": "P10",
+        "p10Boundary": "Participant interpretation and physical acceptance are unobserved. Native65 limitation remains P19; candidate verification is not final programme acceptance."
+      },
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX27-AC02",
+      "required": true,
+      "requirement": "Returning from detail restores the original results position.",
+      "recordedStatus": "Bounded automated contribution integrated; participant/physical/final integration acceptance separate.",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P10",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX27",
+        "implementation": "Integrated through P10 core#503/ddc4a49c and P10R#504/eea668ce; owner and P19/P20 acceptance separate.",
+        "automated": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate. Integration71 proves unchanged1678 inputs and intact reused4700/1715 results; merged72 passed1 fresh actual AppNav Swap with identical APKs.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P10"
+        ],
+        "closurePacket": "P10",
+        "p10Boundary": "Participant interpretation and physical acceptance are unobserved. Native65 limitation remains P19; candidate verification is not final programme acceptance."
+      },
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX27-AC03",
+      "required": true,
+      "requirement": "Load failure does not invite creating a duplicate exercise because the catalogue appeared empty.",
+      "recordedStatus": "Bounded automated contribution integrated; participant/physical/final integration acceptance separate.",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P10",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX27",
+        "implementation": "Integrated through P10 core#503/ddc4a49c and P10R#504/eea668ce; owner and P19/P20 acceptance separate.",
+        "automated": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate. Integration71 proves unchanged1678 inputs and intact reused4700/1715 results; merged72 passed1 fresh actual AppNav Swap with identical APKs.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P10"
+        ],
+        "closurePacket": "P10",
+        "p10Boundary": "Participant interpretation and physical acceptance are unobserved. Native65 limitation remains P19; candidate verification is not final programme acceptance."
+      },
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX28-AC01",
+      "required": true,
+      "requirement": "A user can inspect the proposed week, change equipment/days and return to an updated preview with other answers preserved.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P16",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX28",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P16"
+        ],
+        "closurePacket": "P16"
+      },
+      "fixtures": [
+        "F07"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P16, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX28-AC02",
+      "required": true,
+      "requirement": "An existing user can explain the acceptance impact before tapping Use this plan.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P16",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX28",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P16"
+        ],
+        "closurePacket": "P16"
+      },
+      "fixtures": [
+        "F07"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P16, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX28-AC03",
+      "required": true,
+      "requirement": "Dismissed/failed setup does not create a partial unexpected program.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P16",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX28",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P16"
+        ],
+        "closurePacket": "P16"
+      },
+      "fixtures": [
+        "F07"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P16, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX29-AC01",
+      "required": true,
+      "requirement": "Each supported type has an accurate receipt and correct units with clear action capabilities.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX29",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P07",
+          "P13",
+          "P14"
+        ],
+        "closurePacket": "P14"
+      },
+      "fixtures": [
+        "F05",
+        "F08",
+        "F10"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P14, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX29-AC02",
+      "required": true,
+      "requirement": "Opening history detail does not replay a misleading new-save confirmation.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Bounded automated evidence; integrated",
+      "boundedAutomatedEvidence": true,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX29",
+        "implementation": "P07 notes/correction durability, truthful receipts and exact supporting-record navigation implemented; scope and executed cases in q01/p07-details-receipts-2026-10-13.json criterionEvidence.",
+        "automated": "Both final seals verify full02 fresh app4521/standalone1712 and full04 fresh statics/lint/native assembly with exact unchanged JVM/environment/output reuse. Final matching-APK native13 with four actual force-stop/reopen phases. Per-criterion component/JVM/AppNav limits remain explicit; P19/P20 open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence; integrated",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07",
+        "packetEvidence": {
+          "P07": "q01/p07-details-receipts-2026-10-13.json; PR500 integrated1ab4c1ab, exact1634 input/tree/APK proof and fresh merged AppNav correction-record-source-History journey passed once. Physical acceptance remains unobserved P20."
+        }
+      },
+      "fixtures": [
+        "F05",
+        "F08",
+        "F10"
+      ],
+      "nextClosureTask": "Retain cited bounded evidence; verify affected complete navigation/accessibility in P19 and participant/physical aspects in P20. This row is not final acceptance."
+    },
+    {
+      "id": "UX29-AC03",
+      "required": true,
+      "requirement": "Repeat/edit where supported preserves correct IDs, chronology and plan linkage and cannot silently convert one type to another.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX29",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P07",
+          "P13",
+          "P14"
+        ],
+        "closurePacket": "P14"
+      },
+      "fixtures": [
+        "F05",
+        "F08",
+        "F10"
+      ],
+      "nextClosureTask": "Implement or verify this exact requirement in P14, preserving existing working behavior; then record affected P19 integration and P20 physical acceptance as applicable."
+    },
+    {
+      "id": "UX30-AC01",
+      "required": true,
+      "requirement": "Each implemented UX item has acceptance evidence, source/commit links and limitations.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P01",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX30",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P01"
+        ],
+        "closurePacket": "P01"
+      },
+      "fixtures": [
+        "F01",
+        "F02",
+        "F03",
+        "F05",
+        "F11",
+        "F12"
+      ],
+      "nextClosureTask": "Complete the evidence/commit/limitation record as each remaining UX item is delivered; final audit is criterion reconciliation, not another broad redesign audit."
+    },
+    {
+      "id": "UX30-AC02",
+      "required": true,
+      "requirement": "Global-navigation changes follow the repository's current comparative task gate; no extra tab appears from taste alone.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P01",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX30",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P01"
+        ],
+        "closurePacket": "P01"
+      },
+      "fixtures": [
+        "F01",
+        "F02",
+        "F03",
+        "F05",
+        "F11",
+        "F12"
+      ],
+      "nextClosureTask": "Retain the five destinations. If a global-navigation change is proposed, satisfy the current comparative task gate before accepting that change."
+    },
+    {
+      "id": "UX30-AC03",
+      "required": true,
+      "requirement": "Required device/accessibility gaps remain visibly open until actually tested.",
+      "recordedStatus": "Not executed",
+      "recordedCompletionState": "Open",
+      "boundedAutomatedEvidence": false,
+      "finalAcceptanceClaimed": false,
+      "recordedOwnershipAndEvidence": {
+        "owner": "P01",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX30",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open",
+        "implementationPackets": [
+          "P01"
+        ],
+        "closurePacket": "P01"
+      },
+      "fixtures": [
+        "F01",
+        "F02",
+        "F03",
+        "F05",
+        "F11",
+        "F12"
+      ],
+      "nextClosureTask": "Keep required device/accessibility gaps open until recorded execution closes them; reconcile the final P19/P20 ledger."
+    }
+  ]
+}
