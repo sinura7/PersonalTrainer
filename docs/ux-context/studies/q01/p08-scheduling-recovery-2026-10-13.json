@@ -1,6 +1,6 @@
 {
   "packet": "P08",
-  "state": "Native scheduling/recovery implemented. Two preliminary review findings repaired; final gate, review closure and integration pending.",
+  "state": "Complete local gate and final native journeys verified; final evidence reviews and trunk integration pending.",
   "base": "1ab4c1abcdada28dc445fe56d42a1dd0fdd5b8d7",
   "architecture": [
     "ADR-012",
@@ -30,7 +30,7 @@
   ],
   "criteria": {
     "UX11-AC01": {
-      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "state": "Bounded automated evidence verified; final evidence review and trunk integration pending; P19/P20 open",
       "physical": "Unobserved P20",
       "evidence": [
         "PlanRoutineActionsInstrumentedTest.optionsEditRenamesOnlyChosenTemplateAndKeepsCapturedWorkout",
@@ -38,7 +38,7 @@
       ]
     },
     "UX11-AC02": {
-      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "state": "Bounded automated evidence verified; final evidence review and trunk integration pending; P19/P20 open",
       "physical": "Unobserved P20",
       "evidence": [
         "PlanRoutineActionsInstrumentedTest options edit/delete; direct visible controls and no long-press required",
@@ -46,7 +46,7 @@
       ]
     },
     "UX11-AC03": {
-      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "state": "Bounded automated evidence verified; final evidence review and trunk integration pending; P19/P20 open",
       "physical": "Unobserved P20",
       "evidence": [
         "RoutineDeletionCopyTest moved-date/one-off/past-outcome disclosures",
@@ -54,7 +54,7 @@
       ]
     },
     "UX13-AC01": {
-      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "state": "Bounded automated evidence verified; final evidence review and trunk integration pending; P19/P20 open",
       "physical": "Unobserved P20",
       "evidence": [
         "PlanViewModelTest.addAuxiliaryOnceDisablesTheRuleAfterMintingThisWeek",
@@ -63,7 +63,7 @@
       ]
     },
     "UX13-AC02": {
-      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "state": "Bounded automated evidence verified; final evidence review and trunk integration pending; P19/P20 open",
       "physical": "Unobserved P20",
       "evidence": [
         "MissedWorkPreviewTest.orderingKeepsCompletedRowsExactAndUpdatesAlreadyGeneratedFutureRows",
@@ -72,7 +72,7 @@
       ]
     },
     "UX13-AC03": {
-      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "state": "Bounded automated evidence verified; final evidence review and trunk integration pending; P19/P20 open",
       "physical": "Unobserved P20",
       "evidence": [
         "MissedWorkWorkflowInstrumentedTest real Home preview→Plan same proposal→Confirm→same exact dated row on Home/Plan",
@@ -80,7 +80,7 @@
       ]
     },
     "UX14-AC01": {
-      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "state": "Bounded automated evidence verified; final evidence review and trunk integration pending; P19/P20 open",
       "physical": "Unobserved P20",
       "evidence": [
         "MissedWorkPreviewTest all four choices/read-only preview/week boundary/unchanged next-week rules",
@@ -88,7 +88,7 @@
       ]
     },
     "UX14-AC02": {
-      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "state": "Bounded automated evidence verified; final evidence review and trunk integration pending; P19/P20 open",
       "physical": "Unobserved P20",
       "evidence": [
         "MissedWorkPreviewTest.allFourPolicyPreviewsPreserveACompletedOccurrenceAndWeeklyRules",
@@ -96,7 +96,7 @@
       ]
     },
     "UX14-AC03": {
-      "state": "Implemented with bounded evidence; final gate/review/integration pending",
+      "state": "Bounded automated evidence verified; final evidence review and trunk integration pending; P19/P20 open",
       "physical": "Unobserved P20",
       "evidence": [
         "MissedWorkDraftsTest immutable pending/exact Retry/lost acknowledgement/unavailable/conflict/restore fencing",
@@ -749,6 +749,52 @@
       "fullGate": false,
       "sourceStable": true,
       "apks": null
+    },
+    "conflict-final01": {
+      "receipt": "scheduling-recovery/conflict-final01/summary.json",
+      "sha256": "9eece2db64751d8766125b6a8f794e3bd59243968cb08a542658cc011b69b91c",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 1,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "8C1AFA0C84FF8954C5E4207173454B80FE685E955CBA3FF3A59CC07342243DD9",
+        "app": "A67B8EC6B070F51B4454F151BAA479C2428163D7551B9088EAD75DB30122D869"
+      }
+    },
+    "final-full19": {
+      "receipt": "scheduling-recovery/final-full19/summary.json",
+      "sha256": "815dab51e1af30a25ceda33f5baf88d98b7d799a32eed421fbd61dea795ee436",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "freshJvm": 4543,
+      "freshNative": 0,
+      "fullGate": true,
+      "sourceStable": true,
+      "apks": null
+    },
+    "process-final01": {
+      "receipt": "scheduling-recovery/process-final01/summary.json",
+      "sha256": "e66fdb253f7ae05ca554a7d0d2312af3837b827d4eb447dc0f536b225890e12f",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 0,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": null
+    },
+    "routine-final01": {
+      "receipt": "scheduling-recovery/routine-final01/summary.json",
+      "sha256": "e2dd5bcd7e11c00d7e3a52fa6100e3b47041cdb2210ec22ab25c9fa761ef7572",
+      "result": "PASS",
+      "freshJvm": 0,
+      "freshNative": 5,
+      "fullGate": false,
+      "sourceStable": true,
+      "apks": {
+        "tests": "8C1AFA0C84FF8954C5E4207173454B80FE685E955CBA3FF3A59CC07342243DD9",
+        "app": "A67B8EC6B070F51B4454F151BAA479C2428163D7551B9088EAD75DB30122D869"
+      }
     }
   },
   "originalFailures": {
@@ -780,6 +826,149 @@
   "reviewFindings": {
     "M1": "Deletion listed recurrence weekdays but omitted relocated planned dates, and unfinished overstated deletion of retained MISSED outcomes. Now states all PLANNED scope, enabled weekdays, actual visible-week planned dates, preserved completed sessions/past outcomes; moved/one-off regressions added.",
     "M2": "Equal-hour rows received unchanged order keys. Now preserves distinct clock slots and minimally separates ties within the existing minute field; rules/generated future rows/reminders follow, settled rows stay exact. Domain/day-end/repository and actual native Up regression added.",
-    "state": "Fix verification and final review closure pending."
+    "state": "Both source reviews close M1/M2; complete gate/final native evidence verified. Final evidence seals pending."
+  },
+  "finalCandidate": "4a55c97a92275d07a53bab26c5084e8b77c6bdb8",
+  "finalVerification": {
+    "freshFullGate": {
+      "startedAtUtc": "2026-10-13T23:59:01.7851360Z",
+      "endedAtUtc": "2026-10-14T00:35:59.7106685Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "4a55c97a92275d07a53bab26c5084e8b77c6bdb8",
+      "sourceFilesBefore": 1644,
+      "sourceFilesAfter": 1644,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 4543,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 618,
+      "freshXmlFiles": 618,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 4543,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "assemblyOnly": false,
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": true
+    },
+    "freshStandaloneTests": 1715,
+    "gateReceipt": "scheduling-recovery/final-full19/summary.json",
+    "gateSha256": "815DAB51E1AF30A25CEDA33F5BAF88D98B7D799A32EED421FBD61DEA795EE436",
+    "executionInputs": 1644,
+    "apks": {
+      "app": "A67B8EC6B070F51B4454F151BAA479C2428163D7551B9088EAD75DB30122D869",
+      "tests": "8C1AFA0C84FF8954C5E4207173454B80FE685E955CBA3FF3A59CC07342243DD9"
+    },
+    "freshNative": {
+      "conflict-final01": {
+        "receipt": "scheduling-recovery/conflict-final01/summary.json",
+        "sha256": "9EECE2DB64751D8766125B6A8F794E3BD59243968CB08A542658CC011B69B91C",
+        "summary": {
+          "head": "4a55c97a92275d07a53bab26c5084e8b77c6bdb8",
+          "sourceFiles": 1644,
+          "freshTests": 1,
+          "startedUtc": "2026-10-13T23:57:27.1533918Z",
+          "sourceStable": true,
+          "exit": 0,
+          "result": "PASS",
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "class": "com.sinura.personaltrainer.ui.plan.MissedWorkWorkflowInstrumentedTest",
+          "phase": "",
+          "recoveryPhase": "conflict",
+          "apks": {
+            "tests": "8C1AFA0C84FF8954C5E4207173454B80FE685E955CBA3FF3A59CC07342243DD9",
+            "app": "A67B8EC6B070F51B4454F151BAA479C2428163D7551B9088EAD75DB30122D869"
+          },
+          "finishedUtc": "2026-10-13T23:57:40.8225954Z",
+          "changedInputs": [],
+          "apkStable": true
+        }
+      },
+      "routine-final01": {
+        "receipt": "scheduling-recovery/routine-final01/summary.json",
+        "sha256": "E2DD5BCD7E11C00D7E3A52FA6100E3B47041CDB2210EC22AB25C9FA761EF7572",
+        "summary": {
+          "head": "4a55c97a92275d07a53bab26c5084e8b77c6bdb8",
+          "sourceFiles": 1644,
+          "freshTests": 5,
+          "startedUtc": "2026-10-13T23:58:10.1431504Z",
+          "sourceStable": true,
+          "exit": 0,
+          "result": "PASS",
+          "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+          "class": "com.sinura.personaltrainer.ui.plan.PlanRoutineActionsInstrumentedTest",
+          "phase": "",
+          "recoveryPhase": "",
+          "apks": {
+            "tests": "8C1AFA0C84FF8954C5E4207173454B80FE685E955CBA3FF3A59CC07342243DD9",
+            "app": "A67B8EC6B070F51B4454F151BAA479C2428163D7551B9088EAD75DB30122D869"
+          },
+          "finishedUtc": "2026-10-13T23:58:45.2680932Z",
+          "changedInputs": [],
+          "apkStable": true
+        }
+      },
+      "process-final01": {
+        "receipt": "scheduling-recovery/process-final01/summary.json",
+        "sha256": "E66FDB253F7AE05CA554A7D0D2312AF3837B827D4EB447DC0F536B225890E12F",
+        "summary": {
+          "sourceStatus": "See source-status and exact source snapshots",
+          "changedInputs": [],
+          "head": "4a55c97a92275d07a53bab26c5084e8b77c6bdb8",
+          "sourceFiles": 1644,
+          "result": "PASS",
+          "endedAtUtc": "2026-10-13T23:58:08.0703770Z",
+          "startedAtUtc": "2026-10-13T23:57:41.9296789Z",
+          "phases": [
+            {
+              "phase": "stage",
+              "tests": 1,
+              "passed": true,
+              "exit": 0
+            },
+            {
+              "phase": "resume",
+              "tests": 1,
+              "passed": true,
+              "exit": 0
+            }
+          ],
+          "scope": "Real schedule AppNav preview and Retry; stage injects durable admission, explicit stage/resume includes actual process termination. Isolated API29, no physical acceptance",
+          "sourceStable": true
+        }
+      }
+    },
+    "scope": "All app/standalone tests freshly executed. Eight final native executions match current production/test APKs and all execution inputs. Layout01 fifteen earlier AppNav profiles remain labeled with their original APKs; later changed deletion/order behavior verified by final native font2 touch journeys. Native reordering activates Home Up and checks Plan readout; it does not claim a separate Plan Up/Down activation.",
+    "preliminaryReviews": [
+      "p08-independent-fix-closure-preliminary.md",
+      "p08-fix-closure-adversarial-20261013-200038.md"
+    ],
+    "reviewState": "Both source closures no C/H/M; final evidence seals pending",
+    "captures": [
+      {
+        "path": "assets/p08-scheduling-preview.png",
+        "sha256": "5982021D0C50572BB07EA7635987C638F60E75A8C77B157E3260098672D76D6E"
+      },
+      {
+        "path": "assets/p08-scheduling-conflict.png",
+        "sha256": "E6D271D685D3A483F035426F3959A9593B51F23318E0447C4BCA4A88747FA8AB"
+      },
+      {
+        "path": "assets/p08-routine-deletion-font20.png",
+        "sha256": "C8424D275A308094F2691AC01AF3FBE953D4E372B8A499A5BC4032E02E8036C3"
+      }
+    ]
   }
 }

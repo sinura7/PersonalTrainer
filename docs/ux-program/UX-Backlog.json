@@ -3094,15 +3094,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX11",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3121,15 +3124,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX11",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3148,15 +3154,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX11",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3176,17 +3185,20 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX12",
-        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P05",
           "P06",
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3206,17 +3218,20 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX12",
-        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P05",
           "P06",
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3236,17 +3251,20 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX12",
-        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P05",
           "P06",
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3265,15 +3283,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX13",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3292,15 +3313,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX13",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3319,15 +3343,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX13",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3347,15 +3374,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX14",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3375,15 +3405,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX14",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -3403,15 +3436,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX14",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Private missed-work preview/admission/recovery, accurate removal scope, settled-history-safe ordering including ties; current criterion tasks in q01/p08-scheduling-recovery-2026-10-13.json.",
+        "automated": "Fresh complete local gate 4543 app/1715 standalone, eight current-APK native executions; original failures retained. Exact per-criterion evidence in P08 study.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded evidence verified; final review/integration pending",
         "implementationPackets": [
           "P08"
         ],
-        "closurePacket": "P08"
+        "closurePacket": "P08",
+        "packetEvidence": {
+          "P08": "q01/p08-scheduling-recovery-2026-10-13.json#finalVerification; physical remains unobserved P20"
+        }
       }
     },
     {
@@ -4873,7 +4909,7 @@
       {
         "id": "P08",
         "title": "Scheduling, ordering and missed work",
-        "state": "In progress"
+        "state": "Verified; final review/integration pending"
       },
       {
         "id": "P09",
