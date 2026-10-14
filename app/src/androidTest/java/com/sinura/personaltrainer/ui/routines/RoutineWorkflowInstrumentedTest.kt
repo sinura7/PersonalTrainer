@@ -231,7 +231,11 @@ class RoutineWorkflowInstrumentedTest {
         assertOriginalInventory()
         capture("import-preview")
         compose.onNodeWithTag(RoutineEditorTags.IMPORT_CLOSE).performScrollTo().performClick()
-        compose.onNodeWithTag(RoutineEditorTags.IMPORT_RESUME).performScrollTo().performClick()
+        compose.waitUntil(30_000) {
+            !fields().importVisible && compose.onAllNodesWithTag(RoutineEditorTags.IMPORT_PREVIEW).fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithTag(RoutineEditorTags.IMPORT_RESUME).performScrollTo().assertIsDisplayed()
+            .performTouchInput { click(center) }
         awaitTag(RoutineEditorTags.IMPORT_PREVIEW)
         assertEquals(preview, fields().importPreview)
         compose.onNodeWithTag(RoutineEditorTags.IMPORT_CONFIRM).performScrollTo().assertIsDisplayed().performTouchInput { click(center); click(center) }
