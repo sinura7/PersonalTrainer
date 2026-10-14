@@ -47,6 +47,23 @@
 -keep class com.sinura.personaltrainer.domain.ScheduleOccurrence { *; }
 -keep class com.sinura.personaltrainer.domain.CapturedCivilTime { *; }
 
+# Private typed routine checkpoints have stable field names across signed upgrades.
+-keep class com.sinura.personaltrainer.data.draft.RoutineDraftFields { *; }
+-keep class com.sinura.personaltrainer.data.draft.RoutineTargetDraft { *; }
+-keep class com.sinura.personaltrainer.data.draft.RoutineNumberDraft { *; }
+-keep class com.sinura.personaltrainer.data.draft.RoutineNumberField { *; }
+-keep class com.sinura.personaltrainer.data.draft.RoutineImportDetails { *; }
+-keep class com.sinura.personaltrainer.data.draft.RoutineImportedOwner { *; }
+-keep class com.sinura.personaltrainer.domain.PastedUnmatched { *; }
+-keep class com.sinura.personaltrainer.domain.WorkScheme { *; }
+-keep class com.sinura.personaltrainer.domain.PasteIssueKind { *; }
+-keep class com.sinura.personaltrainer.data.repository.RoutineEditRecord { *; }
+-keep class com.sinura.personaltrainer.data.repository.RoutineEditChange { *; }
+-keep class com.sinura.personaltrainer.data.repository.RoutineEditCommand { *; }
+-keep class com.sinura.personaltrainer.data.local.entity.RoutineEntity { *; }
+-keep class com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity { *; }
+-keep class com.sinura.personaltrainer.data.local.entity.ScheduleSlotEntity { *; }
+
 # Temper Account sync rows go through Gson by reflection, and most of their fields (id,
 # status, title, notes, ...) carry no @SerializedName, so a renamed field is a renamed JSON
 # key and the server rejects the row. Same reason as data.backup above.

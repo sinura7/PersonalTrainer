@@ -52,6 +52,7 @@ import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.draft.MissedWorkDrafts
+import com.sinura.personaltrainer.data.draft.RoutineDrafts
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
@@ -106,6 +107,15 @@ class AppContainer(context: Context) : AppDependencies {
             preview = plannerRepository::previewMissedWork,
             inspectSaved = plannerRepository::inspectMissedWork,
             commitLocked = plannerRepository::commitMissedWorkLocked, dispatcher = ioDispatcher,
+        )
+    }
+    internal val routineDrafts: RoutineDrafts by lazy {
+        RoutineDrafts(
+            store = durableDrafts, maintenance = dbMaintenance,
+            restoreOpen = { backupService.restoreInProgress() },
+            readRecord = routineRepository::editorRecord,
+            inspectSaved = routineRepository::inspectEditorCommand,
+            commitLocked = routineRepository::commitEditorCommandLocked, dispatcher = ioDispatcher,
         )
     }
     internal val finishedSetDrafts: FinishedSetDrafts by lazy {

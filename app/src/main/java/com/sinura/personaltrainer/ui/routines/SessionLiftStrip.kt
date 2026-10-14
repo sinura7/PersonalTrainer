@@ -19,6 +19,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +42,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.data.draft.RoutineNumberField
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
@@ -534,15 +536,21 @@ internal fun CompactTargetFields(
     val showWeight = weightLabel != null
     val storedWeightKg = if (showWeight) targetWeightKg ?: 0.0 else 0.0
     val storedHold = targetSeconds ?: HoldWork.DEFAULT_SECONDS
-    var setsValue by rememberSaveable(rowKey) { mutableIntStateOf(sets) }
-    var repsValue by rememberSaveable(rowKey) { mutableIntStateOf(reps) }
-    var restValue by rememberSaveable(rowKey) { mutableIntStateOf(restSeconds) }
-    var secondsValue by rememberSaveable(rowKey) { mutableIntStateOf(storedHold) }
-    var secondsMaxValue by rememberSaveable(rowKey) {
-        mutableStateOf(targetSecondsMax)
+    val retainedTarget = LocalRoutineNumbers.current?.target
+    val port = LocalRoutineNumbers.current
+    val numbers = if (port == null) emptyList() else {
+        val values by port.entries.collectAsState()
+        values.filter { it.itemId == port.itemId && it.exerciseId == port.exerciseId }
     }
-    var weightValue by rememberSaveable(rowKey) { mutableStateOf(storedWeightKg) }
-    var typing by rememberSaveable(rowKey) { mutableStateOf<TargetWell?>(null) }
+    var setsValue by rememberSaveable(rowKey) { mutableIntStateOf(retainedTarget?.sets ?: sets) }
+    var repsValue by rememberSaveable(rowKey) { mutableIntStateOf(retainedTarget?.reps ?: reps) }
+    var restValue by rememberSaveable(rowKey) { mutableIntStateOf(retainedTarget?.restSeconds ?: restSeconds) }
+    var secondsValue by rememberSaveable(rowKey) { mutableIntStateOf(retainedTarget?.seconds ?: storedHold) }
+    var secondsMaxValue by rememberSaveable(rowKey) {
+        mutableStateOf(retainedTarget?.secondsMax ?: targetSecondsMax)
+    }
+    var weightValue by rememberSaveable(rowKey) { mutableStateOf(retainedTarget?.weightKg ?: storedWeightKg) }
+    var typing by rememberSaveable(rowKey) { mutableStateOf(numbers.firstOrNull { it.open }?.let { TargetWell.valueOf(it.field.name) }) }
     val persist: (Int, Int, Int, Double, Int, Int?) -> Unit =
         { nextSets, nextReps, nextRest, nextKg, nextSeconds, nextSecondsMax ->
             onStageTargets(
@@ -563,7 +571,7 @@ internal fun CompactTargetFields(
         (hold && (secondsValue != storedHold || secondsMaxValue != targetSecondsMax)) ||
         (if (showWeight) TargetStepper.weightToStage(stagedWeight) else targetWeightKg) != targetWeightKg
     LaunchedEffect(rowKey, differsFromStored) {
-        if (differsFromStored) {
+        if (differsFromStored && retainedTarget == null) {
             persist(setsValue, repsValue, restValue, stagedWeight, secondsValue, secondsMaxValue)
         }
     }
@@ -725,6 +733,7 @@ internal fun CompactTargetFields(
         }
     }
     if (typing == TargetWell.SETS) {
+        RoutineNumberEntry(field = RoutineNumberField.SETS) {
         NumberEntryDialog(
             title = CompactLiftCopy.SETS,
             unitLabel = null,
@@ -738,8 +747,10 @@ internal fun CompactTargetFields(
             },
             onDismiss = { typing = null },
         )
+        }
     }
     if (typing == TargetWell.REPS) {
+        RoutineNumberEntry(field = RoutineNumberField.REPS) {
         NumberEntryDialog(
             title = CompactLiftCopy.REPS,
             unitLabel = null,
@@ -753,8 +764,10 @@ internal fun CompactTargetFields(
             },
             onDismiss = { typing = null },
         )
+        }
     }
     if (typing == TargetWell.REST) {
+        RoutineNumberEntry(field = RoutineNumberField.REST) {
         NumberEntryDialog(
             title = CompactLiftCopy.REST,
             unitLabel = "s",
@@ -768,25 +781,30 @@ internal fun CompactTargetFields(
             },
             onDismiss = { typing = null },
         )
+        }
     }
     if (showWeight && typing == TargetWell.WEIGHT) {
+        val typedUnit = retainedRoutineNumber(RoutineNumberField.WEIGHT)?.unit ?: unit
+        RoutineNumberEntry(field = RoutineNumberField.WEIGHT, unit = typedUnit) {
         NumberEntryDialog(
             title = weightLabel ?: CompactLiftCopy.TARGET_WEIGHT,
-            unitLabel = unit.suffix,
+            unitLabel = typedUnit.suffix,
             initial = WeightConverter.formatDisplayNumber(
-                WeightConverter.toDisplayValue(weightValue, unit),
+                WeightConverter.toDisplayValue(weightValue, typedUnit),
             ),
             decimal = true,
             helper = "A number, up to two decimals. 0 means no target.",
-            parse = { NumericEntry.parseWeightKg(it, unit) },
+            parse = { NumericEntry.parseWeightKg(it, typedUnit) },
             onConfirm = { next ->
                 weightValue = next
                 persist(setsValue, repsValue, restValue, next, secondsValue, secondsMaxValue)
             },
             onDismiss = { typing = null },
         )
+        }
     }
     if (hold && typing == TargetWell.TIME) {
+        RoutineNumberEntry(field = RoutineNumberField.TIME) {
         NumberEntryDialog(
             title = CompactLiftCopy.TIME,
             unitLabel = "s",
@@ -808,6 +826,7 @@ internal fun CompactTargetFields(
             },
             onDismiss = { typing = null },
         )
+        }
     }
 }
 
