@@ -1,7 +1,7 @@
 {
   "id": "P10",
   "preparedOn": "2026-10-14",
-  "state": "Library core focused render/native evidence retained; fresh corrected final gate/reviews/native/integration pending. P10 stays open for required P10R shared-picker recovery.",
+  "state": "Library-context core integrated through PR503; P10R shared-picker recovery in progress. P10 and Drop A remain open.",
   "base": "928cd374e011ed7d108791d346c0c19c19d1e79e",
   "branch": "codex/library-context",
   "criteria": [
@@ -657,6 +657,21 @@
       "fullGate": true,
       "sourceStable": true,
       "result": "Failed complete gate: app4612/one copy-policy failure; standalone1715 passed; build/lint downstream of test failure did not execute."
+    },
+    {
+      "name": "core-full23",
+      "summary": "build/ux-context/runs/library-context/core-full23/summary.json",
+      "counts": {
+        "tests": 4612,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "freshStandaloneTests": 1715,
+      "freshXmlFiles": 623,
+      "fullGate": true,
+      "sourceStable": true,
+      "result": "Fresh final complete Library-core gate passed; exact merged inputs reuse these executed results, with one fresh merged AppNav test."
     }
   ],
   "failureInterpretation": [
@@ -718,9 +733,9 @@
       "reason": "Stopped incomplete Gradle gate for required ADR-032 recovery-state matrix gap. Fresh standalone preflight passed 1715 tests; that is not a full gate."
     }
   ],
-  "currentImplementationPacket": "P10 Library-context core",
+  "currentImplementationPacket": "P10R owner-scoped picker recovery",
   "requiredCorrection": {
-    "state": "Required before P10 closure and Drop A",
+    "state": "In progress; required before P10 closure and Drop A",
     "source": [
       "app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt",
       "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
@@ -731,7 +746,65 @@
     "tracking": "UX27/P10 and F08; Create foundations UX10/P03 retained. No new documentation system or optional deferral.",
     "owner": "P10",
     "evidence": "build/ux-context/runs/library-context/reviews/p10-independent-picker-recovery-scope06-2026-10-14.md",
-    "id": "P10R"
+    "id": "P10R",
+    "branch": "codex/picker-recovery",
+    "base": "ddc4a49cf9e6ae3f4ea4e3da451345d7228d5f3f",
+    "design": {
+      "concept": "build/ux-context/runs/picker-recovery-preparation/concept.html",
+      "preview": "build/ux-context/runs/picker-recovery-preparation/concept-resumed-final.png",
+      "shownBeforeNativeCode": true,
+      "scope": "Retain illustrated sheet and existing selection modes; restore last-used fields only in matching owning form, quiet resumed state, actionable Keep failure, inspect interrupted Create before Retry/use saved result.",
+      "browserEvidence": "Connected synthetic concept: selection order, query reopening, interrupted Create/exact saved-result action. In-memory browser simulation, not durable/native/data evidence.",
+      "normalOwnerForms": [
+        "Routine",
+        "Active workout add/swap",
+        "Backdated activity",
+        "Custom week day"
+      ],
+      "states": [
+        "Normal/resumed",
+        "Unfinished Create",
+        "Keeping/failed Keep",
+        "Catalogue unavailable",
+        "Saving/checking",
+        "Exact saved/uncommitted/conflict"
+      ],
+      "tradeoff": "A durable flush can briefly hold orderly dismissal; failure preserves actionability. Required effort/progression/live-activity rules remain unchanged."
+    },
+    "acceptanceTasks": [
+      "Reopen each matching owning picker with exact raw query, selected muscle, stable result anchor and unfinished Create fields; do not redirect app startup.",
+      "Close/Done flush latest owned checkpoint; failed Keep remains actionable; explicit discard only clears this private draft and cannot undo accepted multi-adds.",
+      "Keep two routines, workout add/swap and different day/form contexts isolated; Library new-lift draft remains independent.",
+      "Reserve a stable custom Create ID/frozen command before business mutation; duplicate activation, interrupted/slow/failed Save inspect exact identity before Retry.",
+      "Exact saved Create resumes safe selection/handoff without creating another lift or replaying accepted owner additions; conflict/unavailable data retain draft.",
+      "Preserve canonical IDs/artwork, single/multiple/write-through modes, exact order and cancellation; provide real AppNav and native matrix evidence.",
+      "After accepted restore or removed/changed owner, require ownership reconciliation before submission; cleanup/stale callbacks cannot resurrect completed work."
+    ],
+    "partialImplementation": {
+      "state": "Private ownership foundation implemented and targeted-verified; UI/caller wiring, final gate/reviews/native/integration remain pending",
+      "source": [
+        "app/src/main/java/com/sinura/personaltrainer/data/draft/PickerContextDrafts.kt",
+        "app/src/main/java/com/sinura/personaltrainer/data/draft/CustomExerciseDrafts.kt"
+      ],
+      "checks": [
+        {
+          "attempt": "scoped-create01",
+          "result": "Compile failed before tests: scoped index command type was String, not Unit. Corrected generic type; original receipt preserved."
+        },
+        {
+          "attempt": "scoped-create02",
+          "freshTests": 21,
+          "failures": 0
+        },
+        {
+          "attempt": "owned-context03",
+          "freshTests": 29,
+          "failures": 0,
+          "sourceInputs": 1663
+        }
+      ],
+      "scope": "Per-owner custom Create pointers, raw view/custom reference checkpoints, stale-visit/discard fencing, uncertain checkpoint acknowledgement, explicit restored-owner reconciliation, opaque-read safety and strict redacted codec. Private/JVM evidence only; no picker UX acceptance yet."
+    }
   },
   "layoutRepairs": [
     "Selected filter chip stays in view after return/recreation and choice changes.",
@@ -755,7 +828,8 @@
     "source": "app/src/test/java/com/sinura/personaltrainer/ui/library/LibraryBrowseRenderTest.kt",
     "frames": "build/ux-context/runs/library-context/browse-render21/frame-review/inventory.json",
     "review": "Root inspected all65 frames in three contact sheets plus normal/native previews. Status copy wraps, Retry/Reset and pinned confirmation reachable; catalogue unchanged. JVM/native graphics, not phone rendering.",
-    "requiredGap": "ADR-032 conditional review gap addressed by executed passing focused matrix; fresh final complete gate and reviews still required."
+    "requiredGap": "Closed at e4fd8099 by both final reviews; exact source integrated at ddc4a49c.",
+    "finalExecutedMatrix": "core-full23/frame-review:65 new recovery frames,13 profiles, all actual gate assertions passed and frames reviewed."
   },
   "priorNative": {
     "termination": "build/ux-context/runs/library-context/process-stage17-font16/external-process-termination.json",
@@ -774,5 +848,84 @@
     ],
     "freshExecutedTests": 7,
     "currentCandidateLimit": "Seven native17 executions predate the explicit48dp recovery-button change and new JVM test. They remain original executed evidence, not a claim of exact final candidate inputs/APK. Final affected native execution pending."
+  },
+  "integratedCore": {
+    "packet": "P10 Library-context core",
+    "pullRequest": 503,
+    "merge": "ddc4a49cf9e6ae3f4ea4e3da451345d7228d5f3f",
+    "reviewedCandidate": "e4fd8099f1f5790ff7068ed59193d81561e092cf",
+    "exactTree": "3426d522d3e68da5651e9a5340369afa12bfde24",
+    "identicalExecutionInputs": 1661,
+    "reusedGate": {
+      "appTests": 4612,
+      "standaloneTests": 1715,
+      "freshIntegrationAppTests": 0,
+      "freshIntegrationStandaloneTests": 0
+    },
+    "freshMergedNativeTests": 1,
+    "nativeSummarySha256": "EEA57B039A2E89208C3EA6A5759A0EAA94941F41DB38DD851D8916156C3B4F6F",
+    "apks": {
+      "app": "0F0A510AD45EABDABDB577AF2E5AF058A51D431E8D4E704F2FA0BF6A012D23E2",
+      "tests": "0CB8EB33EAAB825CD35F642C3364BCD8AA8BAEE6BDDF3AEFAFACB8EBBBF51F45"
+    },
+    "candidateArchiveSha256": "048590E22FA1F84E3642590EA807C25B259B66F6EB7BB4DAD3D0D55703741580",
+    "reviewsArchiveSha256": "281FC430B5732B4FE5B763EBC1A7B840F2CA804E4D14026D749671891C8F9FD1",
+    "development": "Library-context core integrated; P01-P09 closed, P10 open for P10R",
+    "requiredCriteria": {
+      "verified": 41,
+      "total": 96,
+      "scope": "Bounded automated checklist coverage, not usability percentage"
+    },
+    "criticalHighFindings": 0,
+    "latestSignedDebug": 125,
+    "next": "P10R owner-scoped shared-picker recovery before P10 closure and Drop A",
+    "physicalAcceptance": "P20 outstanding; no owner-phone claim",
+    "evidenceArchives": {
+      "candidate": {
+        "path": "C:/Users/allen/.codex/ux-context-artifacts/P10-core/p10-core-candidate-evidence-e4fd8099-r02.zip",
+        "sha256": "048590E22FA1F84E3642590EA807C25B259B66F6EB7BB4DAD3D0D55703741580",
+        "verifiedFiles": 2685
+      },
+      "reviews": {
+        "path": "C:/Users/allen/.codex/ux-context-artifacts/P10-core/p10-core-final-reviews-e4fd8099.zip",
+        "sha256": "281FC430B5732B4FE5B763EBC1A7B840F2CA804E4D14026D749671891C8F9FD1",
+        "verifiedFiles": 84
+      },
+      "integration": {
+        "path": "C:/Users/allen/.codex/ux-context-artifacts/P10-core/p10-core-integration-evidence-ddc4a49c.zip",
+        "sha256": "4C00538B621879032468A6FE0A68914D4C00EFAB53DF3001F010A2B15D17D644",
+        "verifiedFiles": 20
+      }
+    },
+    "finalReviews": [
+      "build/ux-context/runs/library-context/reviews/p10-core-independent-final-seal-e4fd8099.json",
+      "build/ux-context/runs/library-context/reviews/p10-final-adversarial-eligibility-e4fd809-2026-10-14.seal.json"
+    ],
+    "hostedRuns": {
+      "pullRequest": 38556622706,
+      "push": 38556619228,
+      "deterministic": "Both passed",
+      "native": "Both passed, supplemental"
+    },
+    "retirement": "Feature branch retired after verified full-history candidate bundle and exact merge-tree proof; checkout reused for codex/picker-recovery.",
+    "observations": "Initial whole-image header impressions corrected by identical RGB crops from both original PNGs; no product finding or cause inferred. Rejected partial archive retained; successful r02 archive verifies every file."
+  },
+  "finalNative": {
+    "scope": "MainActivity/AppNav query+combined facets, canonical detail, actual nonzero scroll return/recreate, no-match/clear, process reopening at412/font1.6, ordered immediate multi-add/repeated Done/cancel and canonical routine create/recreate/Save. Failure check uses shipping Library screen with injected private IO and generic Compose host; no AppNav or phone claim for that check.",
+    "testSha256": "0CB8EB33EAAB825CD35F642C3364BCD8AA8BAEE6BDDF3AEFAFACB8EBBBF51F45",
+    "freshExecutedTests": 7,
+    "runs": [
+      "connected23-landscape",
+      "connected23-font20",
+      "failure23-font20",
+      "process-stage23-font16",
+      "process-resume23-font16",
+      "picker23-font16",
+      "handoff23-font16"
+    ],
+    "appSha256": "0F0A510AD45EABDABDB577AF2E5AF058A51D431E8D4E704F2FA0BF6A012D23E2",
+    "sourceInputs": 1661,
+    "termination": "build/ux-context/runs/library-context/process-stage23-font16/external-process-termination.json",
+    "candidate": "e4fd8099f1f5790ff7068ed59193d81561e092cf"
   }
 }

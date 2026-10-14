@@ -79,6 +79,60 @@ class CustomExerciseDraftsTest {
         assertTrue(deps.database.exerciseDao().getAllCustom().isEmpty())
     }
 
+    @Test fun owningPickersResumeTheirOwnCreateFieldsWithoutConsumingLibraryDraft() = runBlocking {
+        val first = service()
+        val library = first.open(null, "Chest")
+        val libraryFields = fields(library).copy(name = "  Library draft  ")
+        first.checkpoint(library, libraryFields)
+        val routineOwner = DraftOwner(DraftForm.ROUTINE, "synthetic-routine")
+        val workoutOwner = DraftOwner(DraftForm.WORKOUT, "synthetic-session:add")
+        val routine = first.openForPicker(routineOwner, "")
+        val workout = first.openForPicker(workoutOwner, "")
+        val routineFields = fields(routine).copy(name = "  Routine lift  ", muscle = "Chest")
+        val workoutFields = fields(workout).copy(name = "  Workout lift  ", loadType = LoadType.ASSISTED)
+        first.checkpoint(routine, routineFields)
+        first.checkpoint(workout, workoutFields)
+        val reopened = service()
+        assertEquals(routineFields, reopened.openForPicker(routineOwner, "Other").authored)
+        assertEquals(workoutFields, reopened.openForPicker(workoutOwner, "Chest").authored)
+        assertEquals(libraryFields, reopened.open(null, "Other").authored)
+        assertEquals(3, setOf(library.authored.createId, routine.authored.createId, workout.authored.createId).size)
+        assertTrue(deps.database.exerciseDao().getAllCustom().isEmpty())
+    }
+
+    @Test fun sameIdentityInDifferentFormTypesDoesNotAliasPickerOwnership() = runBlocking {
+        val ownerId = "synthetic-same-identity"
+        val routine = service().openForPicker(DraftOwner(DraftForm.ROUTINE, ownerId), "Chest")
+        val activity = service().openForPicker(DraftOwner(DraftForm.ACTIVITY, ownerId), "Back")
+        val week = service().openForPicker(DraftOwner(DraftForm.ONBOARDING, ownerId), "Shoulders")
+        assertEquals(3, setOf(routine.authored.createId, activity.authored.createId, week.authored.createId).size)
+        assertEquals("Chest", routine.authored.muscle)
+        assertEquals("Back", activity.authored.muscle)
+        assertEquals("Shoulders", week.authored.muscle)
+        assertTrue(deps.database.exerciseDao().getAllCustom().isEmpty())
+    }
+
+    @Test fun acceptedPickerCreateSettlesOnceAndClearsOnlyItsOwningDraft() = runBlocking {
+        val owner = DraftOwner(DraftForm.ROUTINE, "synthetic-routine")
+        val otherOwner = DraftOwner(DraftForm.ROUTINE, "synthetic-other-routine")
+        val first = service()
+        val handle = first.openForPicker(owner, "Back")
+        val other = first.openForPicker(otherOwner, "Chest")
+        val otherFields = fields(other).copy(name = "  Still unfinished  ")
+        first.checkpoint(other, otherFields)
+        first.admit(handle, fields(handle))
+        assertTrue(first.execute(handle) is SaveExerciseResult.Saved)
+        val once = deps.database.exerciseDao().getAllCustom()
+        val reopenedService = service()
+        val reopened = reopenedService.openForPicker(owner, "Chest")
+        assertEquals(DraftRecoveryOutcome.EXACT_SAVED, reopenedService.inspect(reopened))
+        assertEquals(once, deps.database.exerciseDao().getAllCustom())
+        reopenedService.finish(reopened)
+        assertEquals(otherFields, service().openForPicker(otherOwner, "Other").authored)
+        assertNotEquals(handle.authored.createId, service().openForPicker(owner, "Back").authored.createId)
+        assertEquals(once, deps.database.exerciseDao().getAllCustom())
+    }
+
     @Test fun pendingReopenProvesUncommittedAndRetriesTheExactStableCommandOnce() = runBlocking {
         val first = service()
         val handle = first.open(null, "Back")

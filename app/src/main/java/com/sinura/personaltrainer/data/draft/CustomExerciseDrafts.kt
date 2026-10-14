@@ -36,10 +36,23 @@ internal class CustomExerciseDrafts(
 ) {
     private val index = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, "index:new-lift"), CustomLiftIndexCodec)
 
-    suspend fun open(editId: String?, muscle: String): CustomLiftHandle = withContext(dispatcher) {
+    suspend fun open(editId: String?, muscle: String): CustomLiftHandle = openOwned(editId, muscle, index)
+
+    /** Picker drafts share admission/reconciliation, but never the Library's new-lift pointer. */
+    suspend fun openForPicker(owner: DraftOwner, muscle: String): CustomLiftHandle {
+        require(owner.form in setOf(DraftForm.ROUTINE, DraftForm.WORKOUT, DraftForm.ACTIVITY, DraftForm.ONBOARDING))
+        val scope = MessageDigest.getInstance("SHA-256")
+            .digest((owner.form.name + "\u0000" + owner.identity).toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        val scopedIndex = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, "picker-index:$scope"), CustomLiftIndexCodec)
+        return openOwned(null, muscle, scopedIndex)
+    }
+
+    private suspend fun openOwned(editId: String?, muscle: String,
+        draftIndex: DraftBinding<String, String>): CustomLiftHandle = withContext(dispatcher) {
         maintenance.withMaintenanceLock {
             check(!restoreOpen())
-            val identity = editId ?: newIdentity()
+            val identity = editId ?: newIdentity(draftIndex)
             val key = if (editId == null) "create:$identity" else editOwner(identity)
             val binding = store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, key), CustomLiftCodec)
             var current = load(binding)
@@ -67,15 +80,15 @@ internal class CustomExerciseDrafts(
         }
     }
 
-    private suspend fun newIdentity(): String {
-        var pointer = available(index.read())
-        if (pointer.needsReconciliation) pointer = written(index.reconcileOwner(pointer.version, pointer.currentGeneration))
+    private suspend fun newIdentity(draftIndex: DraftBinding<String, String>): String {
+        var pointer = available(draftIndex.read())
+        if (pointer.needsReconciliation) pointer = written(draftIndex.reconcileOwner(pointer.version, pointer.currentGeneration))
         pointer.draft?.let { id ->
             val prior = load(store.bind(DraftOwner(DraftForm.CUSTOM_EXERCISE, "create:$id"), CustomLiftCodec))
             if (prior.draft != null) return id
         }
         val id = UUID.randomUUID().toString()
-        written(index.checkpoint(pointer.version, id))
+        written(draftIndex.checkpoint(pointer.version, id))
         return id
     }
 

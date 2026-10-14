@@ -1,5 +1,8 @@
 # Temper UX foundation
 
+P10 Library-context core is integrated through [PR #503](https://github.com/sinura7/PersonalTrainer/pull/503) at `ddc4a49c`. Fresh core-full23 passed app4,612/standalone1,715,623 fresh XML, statics/lint/R8/both APKs; both final reviews have zero C/H/M. Seven exact-candidate native tasks and one fresh exact-merge AppNav journey passed. Integration reused only verified identical1,661 execution inputs and APKs;0 new integration JVM/standalone tests. Original failures and recoverable archives are retained in the [existing P10 study](studies/q01/p10-library-context-2026-10-14.json). P10 remains open for required **P10R shared-picker recovery**, now on `codex/picker-recovery`;41/96 required criteria have bounded automated evidence. Latest signed delivery remains Debug125; Drop A follows full P10, P19/P20 remain open.
+
+
 **Created:** 8 October 2026
 
 **Completion train accepted, 12 October 2026:** The owner approved P01–P20

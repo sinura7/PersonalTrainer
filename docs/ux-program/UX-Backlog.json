@@ -4873,7 +4873,7 @@
     }
   ],
   "updatedOn": "2026-09-07",
-  "updatedAgainst": "156cc400a0bc7974209e494e4e4cf0525b29bb7d (branch claude/file-visibility-check-jraqc2; trunk 28f485f carries R01–R19)",
+  "updatedAgainst": "ddc4a49cf9e6ae3f4ea4e3da451345d7228d5f3f",
   "completionPlan": {
     "approvedOn": "2026-10-12",
     "baselineCommit": "587e9577ee30f1962fa0a6db1a6acd2aad0b642c",
@@ -4935,8 +4935,8 @@
         "id": "P10",
         "title": "Complete Library and picker workflows",
         "state": "In progress",
-        "coreState": "Native Library-context tasks passed; complete gate/final review/integration pending",
-        "requiredCorrection": "P10R shared-picker recovery before closure/Drop A"
+        "coreState": "Library-context core integrated through PR503 at ddc4a49c; full gate/reviews/exact merged AppNav verified",
+        "requiredCorrection": "P10R shared-picker recovery in progress before closure/Drop A"
       },
       {
         "id": "P11",
@@ -5313,8 +5313,8 @@
           "P08",
           "P09"
         ],
-        "existing": "Direct routines, scopes, flat Plan/editor rows and retained bodyweight targets integrated through #489. P08#501 closes bounded scheduling scopes, future ordering and durable missed-work previews.",
-        "remaining": "P09 staged import, persistent routine fields and partial write-through recovery; P19/P20 integration and physical acceptance."
+        "existing": "Direct routines, scopes, flat Plan/editor rows and retained bodyweight targets integrated through #489. P08#501 closes bounded scheduling scopes, future ordering and durable missed-work previews. P09#502 completed durable routine fields, partial write-through recovery and staged import.",
+        "remaining": "P19 whole-app integration and accessibility; P20 physical acceptance."
       },
       "F8": {
         "owners": [
@@ -5324,8 +5324,8 @@
           "P15",
           "P16"
         ],
-        "existing": "Full Library names/facets/route state and required-read Retry integrated through #491.",
-        "remaining": "Durable drafts, uncertain Save, picker position, onboarding and full preview/apply."
+        "existing": "Full Library names/facets/route state and required-read Retry integrated through #491. P02/P03 private drafts and uncertain custom-editor Save are integrated; P10 Library-context core#503 retains last-used browse context.",
+        "remaining": "Required P10R shared-picker owner/context/Create recovery; P15/P16 onboarding/preview, P19/P20 full integration and acceptance."
       },
       "F9": {
         "owners": [
@@ -5366,7 +5366,7 @@
     ],
     "requiredCorrections": [
       {
-        "state": "Required before P10 closure and Drop A",
+        "state": "In progress; required before P10 closure and Drop A",
         "source": [
           "app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt",
           "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
@@ -5377,7 +5377,40 @@
         "tracking": "UX27/P10 and F08; Create foundations UX10/P03 retained. No new documentation system or optional deferral.",
         "owner": "P10",
         "evidence": "build/ux-context/runs/library-context/reviews/p10-independent-picker-recovery-scope06-2026-10-14.md",
-        "id": "P10R"
+        "id": "P10R",
+        "branch": "codex/picker-recovery",
+        "base": "ddc4a49cf9e6ae3f4ea4e3da451345d7228d5f3f",
+        "design": {
+          "concept": "build/ux-context/runs/picker-recovery-preparation/concept.html",
+          "preview": "build/ux-context/runs/picker-recovery-preparation/concept-resumed-final.png",
+          "shownBeforeNativeCode": true,
+          "scope": "Retain illustrated sheet and existing selection modes; restore last-used fields only in matching owning form, quiet resumed state, actionable Keep failure, inspect interrupted Create before Retry/use saved result.",
+          "browserEvidence": "Connected synthetic concept: selection order, query reopening, interrupted Create/exact saved-result action. In-memory browser simulation, not durable/native/data evidence.",
+          "normalOwnerForms": [
+            "Routine",
+            "Active workout add/swap",
+            "Backdated activity",
+            "Custom week day"
+          ],
+          "states": [
+            "Normal/resumed",
+            "Unfinished Create",
+            "Keeping/failed Keep",
+            "Catalogue unavailable",
+            "Saving/checking",
+            "Exact saved/uncommitted/conflict"
+          ],
+          "tradeoff": "A durable flush can briefly hold orderly dismissal; failure preserves actionability. Required effort/progression/live-activity rules remain unchanged."
+        },
+        "acceptanceTasks": [
+          "Reopen each matching owning picker with exact raw query, selected muscle, stable result anchor and unfinished Create fields; do not redirect app startup.",
+          "Close/Done flush latest owned checkpoint; failed Keep remains actionable; explicit discard only clears this private draft and cannot undo accepted multi-adds.",
+          "Keep two routines, workout add/swap and different day/form contexts isolated; Library new-lift draft remains independent.",
+          "Reserve a stable custom Create ID/frozen command before business mutation; duplicate activation, interrupted/slow/failed Save inspect exact identity before Retry.",
+          "Exact saved Create resumes safe selection/handoff without creating another lift or replaying accepted owner additions; conflict/unavailable data retain draft.",
+          "Preserve canonical IDs/artwork, single/multiple/write-through modes, exact order and cancellation; provide real AppNav and native matrix evidence.",
+          "After accepted restore or removed/changed owner, require ownership reconciliation before submission; cleanup/stale callbacks cannot resurrect completed work."
+        ]
       }
     ]
   }
