@@ -3080,23 +3080,24 @@
         "F08"
       ],
       "requirement": "Double confirmation adds the selected IDs once and preserves order.",
-      "status": "Existing ordered write-through contract retained with synchronous pending ownership and exact-ID Retry. Targeted picker write/routine checks executed; final source changes await the complete gate.",
+      "status": "Bounded automated candidate evidence recorded; integration/participant/physical acceptance separate.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P10",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX10",
-        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Implemented in P10 core#503 and reviewed P10R candidate; integration pending.",
+        "automated": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P09",
           "P10"
         ],
-        "closurePacket": "P10"
+        "closurePacket": "P10",
+        "p10Boundary": "Participant interpretation and physical acceptance are unobserved. Native65 limitation remains P19; candidate verification is not final programme acceptance."
       }
     },
     {
@@ -4537,22 +4538,23 @@
         "F08"
       ],
       "requirement": "A participant finds a specified muscle+equipment variant and clears a restrictive filter without losing orientation.",
-      "status": "Not executed",
+      "status": "Bounded automated candidate evidence recorded; integration/participant/physical acceptance separate.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P10",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX27",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Implemented in P10 core#503 and reviewed P10R candidate; integration pending.",
+        "automated": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P10"
         ],
-        "closurePacket": "P10"
+        "closurePacket": "P10",
+        "p10Boundary": "Participant interpretation and physical acceptance are unobserved. Native65 limitation remains P19; candidate verification is not final programme acceptance."
       }
     },
     {
@@ -4564,22 +4566,23 @@
         "F08"
       ],
       "requirement": "Returning from detail restores the original results position.",
-      "status": "Not executed",
+      "status": "Bounded automated candidate evidence recorded; integration/participant/physical acceptance separate.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P10",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX27",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Implemented in P10 core#503 and reviewed P10R candidate; integration pending.",
+        "automated": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P10"
         ],
-        "closurePacket": "P10"
+        "closurePacket": "P10",
+        "p10Boundary": "Participant interpretation and physical acceptance are unobserved. Native65 limitation remains P19; candidate verification is not final programme acceptance."
       }
     },
     {
@@ -4591,22 +4594,23 @@
         "F08"
       ],
       "requirement": "Load failure does not invite creating a duplicate exercise because the catalogue appeared empty.",
-      "status": "Not executed",
+      "status": "Bounded automated candidate evidence recorded; integration/participant/physical acceptance separate.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P10",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX27",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Implemented in P10 core#503 and reviewed P10R candidate; integration pending.",
+        "automated": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P10"
         ],
-        "closurePacket": "P10"
+        "closurePacket": "P10",
+        "p10Boundary": "Participant interpretation and physical acceptance are unobserved. Native65 limitation remains P19; candidate verification is not final programme acceptance."
       }
     },
     {
@@ -4934,9 +4938,9 @@
       {
         "id": "P10",
         "title": "Complete Library and picker workflows",
-        "state": "In progress",
+        "state": "Candidate verified; integration pending",
         "coreState": "Library-context core integrated through PR503 at ddc4a49c; full gate/reviews/exact merged AppNav verified",
-        "requiredCorrection": "P10R shared-picker recovery in progress before closure/Drop A"
+        "requiredCorrection": "P10R candidate verified at dccd7f4e; merge/integration proof and Drop A pending"
       },
       {
         "id": "P11",
@@ -5092,7 +5096,9 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.library.ExerciseLibraryReadRecoveryTest.xml",
         "baselineExecutedTests": 12,
         "scope": "Integrated names, picker errors and read Retry; durable custom drafts and uncertain Save remain.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "p10Contribution": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate.",
+        "remaining": "P10R integration and signed Drop A; P19 whole-app/native65 follow-up and P20 physical/participant acceptance."
       },
       "UX11": {
         "primaryPacket": "P08",
@@ -5253,7 +5259,8 @@
         "scope": "Integrated filter clearing, names and saved route state; persistent scroll/context and discovery acceptance remain.",
         "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
         "coreEvidence": "docs/ux-context/studies/q01/p10-library-context-2026-10-14.json",
-        "remaining": "Required shared-picker owner-scoped context/Create reconstruction P10R; full core gate/integration pending. Participant/whole-app acceptance remains P19/P20."
+        "remaining": "P10R integration and signed Drop A; P19 whole-app/native65 follow-up and P20 physical/participant acceptance.",
+        "p10Contribution": "P10 core#503 plus corrected picker candidate dccd7f4e: fresh final64 app4700/standalone1715,631 XML,statics/lint/R8/APKs; both pinned reviews zero unresolved C/H/M. Actual normal Swap/activity/week reopening pass on matching APKs; original native65 failure retained with unproven cause. Owner interpretation, P19 integration and P20 physical acceptance are separate."
       },
       "UX28": {
         "primaryPacket": "P16",
@@ -5362,11 +5369,17 @@
         "source": "q01/p07-details-receipts-2026-10-13.json#integration",
         "observation": "Hosted PR run failed one of306 before a historical editor/write; exact-candidate push native passed. LIST exists during loading; fixture scrolls to Current before establishing ready content.",
         "action": "Bounded ready-content wait and read/navigation diagnostics; preserve exact downstream saved-record assertions. No host-only cause or C/H app defect established."
+      },
+      {
+        "id": "P10R-native65",
+        "source": "build/ux-context/runs/picker-recovery/native65-swap",
+        "state": "Unexplained native opening/sequencing limitation; unchanged isolated native66 passes.",
+        "boundary": "No demonstrated C/H source blocker or wrong write; do not relabel original batch as passing or assume Windows/fixture-only cause."
       }
     ],
     "requiredCorrections": [
       {
-        "state": "In progress; required before P10 closure and Drop A",
+        "state": "Candidate verified; integration and signed Drop A pending",
         "source": [
           "app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt",
           "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
