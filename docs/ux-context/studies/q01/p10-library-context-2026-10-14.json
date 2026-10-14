@@ -735,7 +735,7 @@
   ],
   "currentImplementationPacket": "P10R owner-scoped picker recovery",
   "requiredCorrection": {
-    "state": "Corrected candidate verified; integration and signed Drop A pending",
+    "state": "Complete bounded development and integration; signed Drop A is a separate version packet",
     "source": [
       "app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt",
       "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
@@ -781,7 +781,7 @@
       "After accepted restore or removed/changed owner, require ownership reconciliation before submission; cleanup/stale callbacks cannot resurrect completed work."
     ],
     "partialImplementation": {
-      "state": "Corrected candidate dccd7f4e passed fresh final64:4700 app/1715 standalone tests,631 fresh XML, statics/lint/R8/debug/test APKs,1678 unchanged inputs. Both final pinned reviews have zero unresolved Critical/High/Medium source findings and permit integration. Native66/67/68 passed actual normal Swap/activity/week reopening; native65 remains a failed combined batch with1 raw method pass/1 pre-picker timeout, unchanged isolated normal replay passes, cause unproven.71 fresh component frames are preserved separately. Integration and signed Drop A remain pending.",
+      "state": "Integrated through PR504 at eea668ce. Exact candidate/merge tree and all1678 execution inputs match. Fresh final64 app4700/standalone1715 preserved; candidate69/integrated71 reused those exact executed results with0 new JVM/standalone executions and fresh static/build invocations. merged72 passed1 fresh actual AppNav Swap on identical APKs. Both candidate hosted deterministic/emulator jobs passed. No unresolved Critical/High/Medium source findings. Signed Drop A remains pending.",
       "source": [
         "app/src/main/java/com/sinura/personaltrainer/data/draft/PickerContextDrafts.kt",
         "app/src/main/java/com/sinura/personaltrainer/data/draft/CustomExerciseDrafts.kt"
@@ -1892,9 +1892,36 @@
             "app": "EFB9CEE00779ACB5FD4FF23A8BEF336623BBD7979E77E888F13A35424B757503",
             "tests": "8AE9DCA0BE904CC3DED30E0AB588A1FA7866AB380EF051DE67CC559CD0A18996"
           }
+        },
+        {
+          "attempt": "candidate69-receipts",
+          "receipt": "build/ux-context/runs/picker-recovery/candidate69-receipts/summary.json",
+          "exit": 0,
+          "result": "PASS complete gate; unchanged JVM inputs and exact preserved executed XML proven; JVM task UP-TO-DATE or FROM-CACHE, not a new test execution",
+          "freshTests": 0,
+          "reusedAppTests": 4700,
+          "sourceStable": true
+        },
+        {
+          "attempt": "integrated71-gate",
+          "receipt": "build/ux-context/runs/picker-recovery/integrated71-gate/summary.json",
+          "exit": 0,
+          "result": "PASS complete gate; unchanged JVM inputs and exact preserved executed XML proven; JVM task UP-TO-DATE or FROM-CACHE, not a new test execution",
+          "freshTests": 0,
+          "reusedAppTests": 4700,
+          "sourceStable": true
+        },
+        {
+          "attempt": "merged72-swap",
+          "receipt": "build/ux-context/runs/picker-recovery/merged72-swap/summary.json",
+          "exit": 0,
+          "result": "PASS",
+          "freshTests": 1,
+          "reusedAppTests": 0,
+          "sourceStable": true
         }
       ],
-      "scope": "Executed targeted counts are verification evidence, not usability percentages. Original failed/aborted attempts remain retained. P10 is open; required-criterion coverage remains41/96 and latest signed delivery remains125.",
+      "scope": "P10 bounded implementation/integration closed.45/96 required criteria have bounded automated evidence; participant/P19/P20 acceptance remains separate. Native65 failed combined observation retains an unproven cause. Signed Debug125 remains latest published.",
       "boundedReviews": [
         {
           "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-correction62-2026-10-14.md",
@@ -2105,9 +2132,8 @@
         "final64 native-layouts archives71 fresh shared/owned-picker component captures with per-file hashes. Large-text Continue and landscape Reset dialog were visually inspected, alongside current normal Swap and Activity/week AppNav captures. These do not establish phone acceptance or every P19 integration profile."
       ],
       "remaining": [
-        "Exact integration-input proof and shortest affected merged AppNav journey.",
-        "Signed Drop A with fresh planner, increasing code, exact source/hash/package/version/stable-signer verification.",
-        "P19 retains unexplained native65 combined-run picker-opening timeout; no cause is attributed and the failed batch is not reported as passing. P20 physical acceptance remains separate."
+        "Signed milestone Drop A with planner-approved increasing version and verified package/source/hash/stable signer.",
+        "P19 retains unexplained native65 combined opening/sequencing observation; P20 physical acceptance remains unobserved. These are not relabeled as passed."
       ],
       "nativeCreate": {
         "runs": [
@@ -2235,6 +2261,62 @@
         "sha256": "070BE9C5168FADFE8317FA7BDA335A89CFC7895B96292CBD5DC38122F5AA1EDC"
       },
       "limitation": "Native65 combined batch remains failed: accepted recovery passed, normal Swap timed out before picker display; unchanged isolated native66 passed. Cause unproven. P19 follow-up; not labeled Windows/fixture-only. P20 physical acceptance unobserved."
+    },
+    "integration": {
+      "packet": "P10R",
+      "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/504",
+      "merge": "eea668ce5105a5f4c4058b2d4aad35991416a174",
+      "candidate": "0178df9c77c5e1d3ce9da3853ea1ca7f943db9db",
+      "sourceCandidate": "dccd7f4eae96149f57967beb95e56ea4cf609e92",
+      "exactTree": "0645a75ad2122fd8f05c1c2ce05cb58af5201987",
+      "executionInputs": 1678,
+      "freshIntegrationJvmTests": 0,
+      "reusedAppTests": 4700,
+      "reusedStandaloneTests": 1715,
+      "freshMergedAppNavTests": 1,
+      "apks": {
+        "app": "8837106245606DBF84332B6B1F46DA10B99B6238C824682C81497F63C621D2E8",
+        "tests": "8AE9DCA0BE904CC3DED30E0AB588A1FA7866AB380EF051DE67CC559CD0A18996"
+      },
+      "hostedPushRun": 38635754788,
+      "hostedPrRun": 38635761967,
+      "hosted": "Both deterministic and both supplemental emulator jobs passed before merge.",
+      "bundle": {
+        "path": "C:\\Users\\allen\\.codex\\ux-context-artifacts\\P10-picker-recovery\\picker-recovery-integration-eea668ce.bundle",
+        "sha256": "73E8A08C7938ABC4418557499F3FB2F55B3FC7B2FD47032E21C5C1AC2C2DCEEC"
+      },
+      "remaining": "Signed Drop A; P11–P19 development and P20 physical acceptance. Native65 unexplained failed combined run remains P19 follow-up.",
+      "archive": {
+        "path": "C:\\Users\\allen\\.codex\\ux-context-artifacts\\P10-picker-recovery\\picker-recovery-integration-eea668ce.zip",
+        "sha256": "8579E6A0A646D38AA30F1FA570B81D5B7B5506D8BF1D83713C8CEAB30E4EC0AF",
+        "filesVerified": 1313,
+        "closeout": {
+          "packet": "P10R",
+          "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/504",
+          "merge": "eea668ce5105a5f4c4058b2d4aad35991416a174",
+          "candidate": "0178df9c77c5e1d3ce9da3853ea1ca7f943db9db",
+          "sourceCandidate": "dccd7f4eae96149f57967beb95e56ea4cf609e92",
+          "exactTree": "0645a75ad2122fd8f05c1c2ce05cb58af5201987",
+          "executionInputs": 1678,
+          "freshIntegrationJvmTests": 0,
+          "reusedAppTests": 4700,
+          "reusedStandaloneTests": 1715,
+          "freshMergedAppNavTests": 1,
+          "apks": {
+            "app": "8837106245606DBF84332B6B1F46DA10B99B6238C824682C81497F63C621D2E8",
+            "tests": "8AE9DCA0BE904CC3DED30E0AB588A1FA7866AB380EF051DE67CC559CD0A18996"
+          },
+          "hostedPushRun": 38635754788,
+          "hostedPrRun": 38635761967,
+          "hosted": "Both deterministic and both supplemental emulator jobs passed before merge.",
+          "bundle": {
+            "path": "C:\\Users\\allen\\.codex\\ux-context-artifacts\\P10-picker-recovery\\picker-recovery-integration-eea668ce.bundle",
+            "sha256": "73E8A08C7938ABC4418557499F3FB2F55B3FC7B2FD47032E21C5C1AC2C2DCEEC"
+          },
+          "remaining": "Signed Drop A; P11–P19 development and P20 physical acceptance. Native65 unexplained failed combined run remains P19 follow-up."
+        }
+      },
+      "retirement": "Remote feature branch absent; local codex/picker-recovery retired after verified source/docs/integration bundles and merged native journey."
     }
   },
   "layoutRepairs": [
@@ -2358,5 +2440,14 @@
     "sourceInputs": 1661,
     "termination": "build/ux-context/runs/library-context/process-stage23-font16/external-process-termination.json",
     "candidate": "e4fd8099f1f5790ff7068ed59193d81561e092cf"
+  },
+  "milestoneA": {
+    "state": "Preparing version packet; not published",
+    "plannedDebugVersionCode": 126,
+    "latestVerifiedPublishedCode": 125,
+    "integratedBase": "eea668ce5105a5f4c4058b2d4aad35991416a174",
+    "plannerObservation": "Fresh planner fetched tags on14Oct2026:125 not above shipped125; recommends126; debug-live/2026-10-14 free.",
+    "publicationRule": "Rerun the planner after version integration. The observed suffix is not a reservation. Publish exact merge SHA and independently verify downloaded APK identity/signature.",
+    "phoneAcceptance": "Unobserved; owner testing begins after planned development."
   }
 }
