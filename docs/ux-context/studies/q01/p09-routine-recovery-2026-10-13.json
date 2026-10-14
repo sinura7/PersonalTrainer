@@ -1,7 +1,7 @@
 {
   "id": "P09",
   "preparedOn": "2026-10-13",
-  "state": "Implemented candidate under verification; full gate, final reviews and integration pending",
+  "state": "Implemented candidate; fresh gate/native accepted, final evidence reviews and integration pending",
   "base": "944d37fb1f62d95658207e62fe084e817c4a1cd2",
   "branch": "codex/routine-editor-recovery",
   "scope": "Persistent routine fields, partial write-through recovery, stable new identities and read-before-confirm import. Preserve ADR-021 write-through/Back and ADR-033 private recovery.",
@@ -47,7 +47,17 @@
     "Confirm the exact frozen import once; reconcile interrupted/partial outcomes and show accurate receipt. Preserve established authored notes, hold prescriptions, alternatives and weekly-layout rules.",
     "Remove only the empty newly created stub, preserve existing empty/imported routines and saved history, and keep cleanup failure truthful."
   ],
-  "verification": "Executed targeted results and native evidence have exact bounded scope in attempts. Review fixes, final affected native journeys, fresh complete gate, final reviews and integration remain pending. No signed delivery or physical acceptance claimed.",
+  "verification": {
+    "completeGate": "build/ux-context/runs/routine-recovery/final-full25/summary.json",
+    "freshAppTests": 4577,
+    "freshStandaloneChecks": 1715,
+    "freshXml": 620,
+    "failuresErrorsSkips": 0,
+    "sourceInputs": 1654,
+    "result": "Fresh unfiltered complete gate; earlier full20 and native-only full21-23 are historical evidence, not reused for changed paste-input production.",
+    "nativeExecutions": 9,
+    "nativeScope": "Six bounded import/editor AppNav profiles, Library cancellation/create/recreation/Save, actual durable stage/process-stop/resume. Identical final execution inputs and APK bytes. No injected native business-write failure or physical acceptance."
+  },
   "boundaries": "No Room schema, public repository signature, backup format, navigation destination, calculation or coaching change. No owner-phone synthetic data. P19 whole-app layouts/accessibility and P20 physical/user/performance acceptance remain open.",
   "latestSignedDebug": {
     "versionCode": 125,
@@ -178,6 +188,311 @@
         "skipped": 0
       },
       "assemblyOnly": false
+    },
+    {
+      "attempt": "final-full20",
+      "receipt": "build/ux-context/runs/routine-recovery/final-full20/summary.json",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": true,
+      "freshJvmTests": 4576,
+      "counts": {
+        "tests": 4576,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assemblyOnly": false
+    },
+    {
+      "attempt": "final-full21",
+      "receipt": "build/ux-context/runs/routine-recovery/final-full21/summary.json",
+      "result": "PASS complete gate; unchanged JVM inputs and exact preserved executed XML proven; JVM task UP-TO-DATE or FROM-CACHE, not a new test execution",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": true,
+      "freshJvmTests": 0,
+      "counts": {
+        "tests": 4576,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assemblyOnly": false
+    },
+    {
+      "attempt": "final-full22",
+      "receipt": "build/ux-context/runs/routine-recovery/final-full22/summary.json",
+      "result": "PASS complete gate; unchanged JVM inputs and exact preserved executed XML proven; JVM task UP-TO-DATE or FROM-CACHE, not a new test execution",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": true,
+      "freshJvmTests": 0,
+      "counts": {
+        "tests": 4576,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assemblyOnly": false
+    },
+    {
+      "attempt": "final-full23",
+      "receipt": "build/ux-context/runs/routine-recovery/final-full23/summary.json",
+      "result": "PASS complete gate; unchanged JVM inputs and exact preserved executed XML proven; JVM task UP-TO-DATE or FROM-CACHE, not a new test execution",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": true,
+      "freshJvmTests": 0,
+      "counts": {
+        "tests": 4576,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assemblyOnly": false
+    },
+    {
+      "attempt": "final-full25",
+      "receipt": "build/ux-context/runs/routine-recovery/final-full25/summary.json",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": true,
+      "freshJvmTests": 4577,
+      "counts": {
+        "tests": 4577,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assemblyOnly": false
+    },
+    {
+      "attempt": "final-layout01-360x640-font20-import",
+      "receipt": "build/ux-context/runs/routine-recovery/final-layout01-360x640-font20-import/summary.json",
+      "result": "FAIL",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 0,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-final-layout01-360x640-font20-import"
+        ],
+        [
+          "routineRecoveryPhase",
+          "import"
+        ]
+      ]
+    },
+    {
+      "attempt": "final-layout02-360x640-font20-import",
+      "receipt": "build/ux-context/runs/routine-recovery/final-layout02-360x640-font20-import/summary.json",
+      "result": "FAIL",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 0,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-final-layout02-360x640-font20-import"
+        ],
+        [
+          "routineRecoveryPhase",
+          "import"
+        ]
+      ]
+    },
+    {
+      "attempt": "final-layout03-360x640-font20-import",
+      "receipt": "build/ux-context/runs/routine-recovery/final-layout03-360x640-font20-import/summary.json",
+      "result": "FAIL",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 0,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-final-layout03-360x640-font20-import"
+        ],
+        [
+          "routineRecoveryPhase",
+          "import"
+        ]
+      ]
+    },
+    {
+      "attempt": "final-layout04-360x640-font20-connected",
+      "receipt": "build/ux-context/runs/routine-recovery/final-layout04-360x640-font20-connected/summary.json",
+      "result": "PASS",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 1,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-final-layout04-360x640-font20-connected"
+        ],
+        [
+          "routineRecoveryPhase",
+          "connected"
+        ]
+      ]
+    },
+    {
+      "attempt": "final-layout04-360x640-font20-import",
+      "receipt": "build/ux-context/runs/routine-recovery/final-layout04-360x640-font20-import/summary.json",
+      "result": "PASS",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 1,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-final-layout04-360x640-font20-import"
+        ],
+        [
+          "routineRecoveryPhase",
+          "import"
+        ]
+      ]
+    },
+    {
+      "attempt": "final-layout04-412x840-font16-connected",
+      "receipt": "build/ux-context/runs/routine-recovery/final-layout04-412x840-font16-connected/summary.json",
+      "result": "PASS",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 1,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-final-layout04-412x840-font16-connected"
+        ],
+        [
+          "routineRecoveryPhase",
+          "connected"
+        ]
+      ]
+    },
+    {
+      "attempt": "final-layout04-412x840-font16-import",
+      "receipt": "build/ux-context/runs/routine-recovery/final-layout04-412x840-font16-import/summary.json",
+      "result": "PASS",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 1,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-final-layout04-412x840-font16-import"
+        ],
+        [
+          "routineRecoveryPhase",
+          "import"
+        ]
+      ]
+    },
+    {
+      "attempt": "final-layout04-800x360-font10-connected",
+      "receipt": "build/ux-context/runs/routine-recovery/final-layout04-800x360-font10-connected/summary.json",
+      "result": "PASS",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 1,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-final-layout04-800x360-font10-connected"
+        ],
+        [
+          "routineRecoveryPhase",
+          "connected"
+        ]
+      ]
+    },
+    {
+      "attempt": "final-layout04-800x360-font10-import",
+      "receipt": "build/ux-context/runs/routine-recovery/final-layout04-800x360-font10-import/summary.json",
+      "result": "PASS",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 1,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-final-layout04-800x360-font10-import"
+        ],
+        [
+          "routineRecoveryPhase",
+          "import"
+        ]
+      ]
     },
     {
       "attempt": "foundation-target01",
@@ -410,6 +725,56 @@
       ]
     },
     {
+      "attempt": "library-native05",
+      "receipt": "build/ux-context/runs/routine-recovery/library-native05/summary.json",
+      "result": "PASS",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 1,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-library-native05"
+        ],
+        [
+          "routineRecoveryPhase",
+          "library"
+        ]
+      ]
+    },
+    {
+      "attempt": "library-native06",
+      "receipt": "build/ux-context/runs/routine-recovery/library-native06/summary.json",
+      "result": "PASS",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 1,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseArguments": [
+        [
+          "class",
+          "com.sinura.personaltrainer.ui.routines.RoutineWorkflowInstrumentedTest"
+        ],
+        [
+          "artifactRunId",
+          "p09-library-native06"
+        ],
+        [
+          "routineRecoveryPhase",
+          "library"
+        ]
+      ]
+    },
+    {
       "attempt": "library-save-assembly16",
       "receipt": "build/ux-context/runs/routine-recovery/library-save-assembly16/summary.json",
       "result": "PASS static checks and native APK assembly only; no JVM/standalone tests requested or counted; full gate remains pending",
@@ -506,6 +871,22 @@
       "assemblyOnly": true
     },
     {
+      "attempt": "paste-live-target24",
+      "receipt": "build/ux-context/runs/routine-recovery/paste-live-target24/summary.json",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "freshJvmTests": 54,
+      "counts": {
+        "tests": 54,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "assemblyOnly": false
+    },
+    {
       "attempt": "process-native01",
       "receipt": "build/ux-context/runs/routine-recovery/process-native01/summary.json",
       "result": "FAIL or incomplete; original evidence preserved",
@@ -552,6 +933,31 @@
           "phase": "resume",
           "tests": 1,
           "passed": true
+        }
+      ]
+    },
+    {
+      "attempt": "process-native03",
+      "receipt": "build/ux-context/runs/routine-recovery/process-native03/summary.json",
+      "result": "PASS",
+      "sourceFiles": 1654,
+      "sourceStable": true,
+      "fullGate": false,
+      "nativePassed": 0,
+      "rawResult": "instrumentation.txt",
+      "scope": "Actual MainActivity/AppNav, isolated API29. Native failures are executed failures, even when the wrapper reports zero passed tests. No physical acceptance.",
+      "actualPhaseResults": [
+        {
+          "passed": true,
+          "exit": 0,
+          "tests": 1,
+          "phase": "stage"
+        },
+        {
+          "passed": true,
+          "exit": 0,
+          "tests": 1,
+          "phase": "resume"
         }
       ]
     },
@@ -652,7 +1058,10 @@
     "library-native03": "Cancellation and exact canonical selection reached the editor. Fixture attempted Save while the title keyboard covered its dock, then expected Plan. Keyboard dismissal and original Library return expectation corrected; no native pass claimed.",
     "library-native04": "The visible Save was pressed after dismissing the keyboard. Fixture incorrectly awaited Plan rather than the original Library route; no native pass claimed and saved-record/return verification reruns with Library assertion.",
     "review-recovery-target17": "25 fresh checks, 24 passed/one failed. A new routine was marked hydrated before private open, so unreadable initialization could not reach FAILED. Durable opening now starts unhydrated. Raw failure and source retained.",
-    "review-recovery-target18": "29 fresh checks, 28 passed/one failed. The same-visit import fixture tapped preview before the preceding removal command settled. Preview preparation now waits earlier admitted jobs and only inspects pending state; it never retries failed intent. The fixture also now injects unavailability only after the import is actually saved, preserving the intended post-commit failure scenario."
+    "review-recovery-target18": "29 fresh checks, 28 passed/one failed. The same-visit import fixture tapped preview before the preceding removal command settled. Preview preparation now waits earlier admitted jobs and only inspects pending state; it never retries failed intent. The fixture also now injects unavailability only after the import is actually saved, preserving the intended post-commit failure scenario.",
+    "final-layout01": "Executed 360x640/font-2 import failed reopening its sheet. No later profiles executed. Original raw result and preview retained; subsequent fixture awaits durable Close before reopening.",
+    "final-layout02": "Executed 360x640/font-2 import failed reaching Resume import. No later profiles executed. Original result retained. Launcher image taken after cleanup is not a failure-state capture.",
+    "final-layout03": "Executed 360x640/font-2 import exposed a real production input-reset defect. Failure-before-cleanup shows blank paste text after authored replacement while checkpoint IO was pending. Live StateFlow now owns visible text; checkpoint acknowledgement cannot reset it. Slow-IO regression plus the same final-layout04 native path pass. Original failure image/raw source preserved."
   },
   "implementationInProgress": [
     "Private raw fields and commands with durable visit fencing and stable create IDs",
@@ -664,10 +1073,12 @@
     "Retained numeric raw text/selection/unit and native recovery/readiness controls"
   ],
   "reviewFindings": {
-    "status": "Preliminary independent and adversarial findings preserved; focused fixes and regressions under verification, no closure inferred.",
+    "status": "Source findings addressed by focused regressions; preliminary/focused reports and original failures preserved. Final exact candidate/evidence reviews remain required.",
     "reports": [
       "build/ux-context/runs/routine-recovery/reviews/p09-independent-preliminary-review.md",
-      "build/ux-context/runs/routine-recovery/reviews/p09-preliminary-adversarial-20261014-001436.md"
+      "build/ux-context/runs/routine-recovery/reviews/p09-preliminary-adversarial-20261014-001436.md",
+      "build/ux-context/runs/routine-recovery/reviews/p09-independent-live-paste-review.md",
+      "build/ux-context/runs/routine-recovery/reviews/p09-paste-live-state-closure-20261014-061201.md"
     ],
     "issues": [
       "Older SavedState overwrites newer durable authored fields",
@@ -677,13 +1088,54 @@
       "Fresh framework fields after accepted private cleanup require baseline review",
       "Same-visit Discard must retain accepted import provenance",
       "Handle-free opaque discard must refuse newer readable ownership",
-      "Concurrent pending-job snapshot and oversized-checkpoint handling"
+      "Concurrent pending-job snapshot and oversized-checkpoint handling",
+      "Visible paste input used completed checkpoint fields and could revert during pending IO; fixed with live StateFlow and slow-checkpoint regression."
     ]
   },
   "nativeEvidence": {
-    "import": "import-native02: real illustrated preview/Close/reopen/double Confirm, exact records and original inventory. Current native preview shown; no owner-phone acceptance.",
-    "process": "process-native02: stage and resume pass, external PID479 to empty, exact incomplete numeric field restored before explicit valid Set and Save.",
-    "connected": "connected-native03: actual AppNav, canonical lift and exact unit conversion; earlier source/APK identity archived. Final fixed source requires fresh affected native evidence.",
-    "library": "Real Library handoff fixture correction pending executed success; original failed attempts retained."
-  }
+    "layouts": "final-layout04: six fresh AppNav executions at 360x640/font2, 412x840/font1.6 and landscape800x360/font1, import and connected numeric editor in each. Device settings restored exactly.",
+    "library": "library-native06: actual Library query/cancel/no stub/create with canonical bench press, activity recreation, exactly one Save and return to the same Library route; IDs and original inventory checked.",
+    "process": "process-native03: stage/resume both pass; external PID 8389 to empty, Home startup does not redirect, owning editor restores authored name and incomplete raw numeric value before explicit Set/Save.",
+    "sourceAndApks": {
+      "app": "C3D5990A969A7D5F28FCD1AD0C0715126D9154FAEF0C4673AF3C574CD8E1C4EF",
+      "tests": "01E3D34EAC256344A84122C01487E433D46AF068744866EECC8E023A67C76B5D"
+    }
+  },
+  "finalCandidateSource": "87b5b7cc020e54f98f8989a5ddb2e4ca2d2e5067",
+  "criterionEvidence": {
+    "UX04-AC01": [
+      "failedDetailsSaveKeepsNameAndNotesAcrossReopeningAndRetriesTheFrozenIntentOnce"
+    ],
+    "UX04-AC02": [
+      "partialTargetFlushRetainsOnlyOutstandingWorkAcrossReopeningAndRetriesItOnce"
+    ],
+    "UX04-AC03": [
+      "successfulBackFlushesAuthoredDetailsAndTargetsUnderTheDurablePath",
+      "discardingAFailedInitialAddNeverReplaysTheLiftAndRemovesOnlyTheEmptyNewStub",
+      "anEmptyRoutineUsedBySavedHistoryIsNotAnImplicitlyDisposableStub"
+    ],
+    "UX04-AC04": [
+      "freshHandleReopensRawFieldsTargetsNumericTextAndUnitsWithoutSaving",
+      "restoredNewRouteAfterAcceptedSaveKeepsItsSavedOwnerAndDoesNotReAddARemovedInitialLift",
+      "process-native03 stage/resume"
+    ],
+    "UX09-AC01": [
+      "canonicalLibrarySelectionSavesExactlyOneRoutineAndRemainsConsumedAfterReopening",
+      "library-native06 actual empty catalogue/create/Save exact IDs"
+    ],
+    "UX09-AC02": [
+      "library-native06 actual modal Cancel returns to Library with zero routines",
+      "failed initial Add private Discard/guarded stub regression"
+    ],
+    "UX09-AC03": [
+      "library-native06 activity recreation retains canonical exercise/item/routine IDs",
+      "reopeningRetainsRawFieldsSelectionAndStableCreateIdWithoutBusinessWrites"
+    ]
+  },
+  "remaining": [
+    "Final clean-context independent/adversarial exact candidate/evidence seals and integration",
+    "P19 whole-app native matrix/IME and accessibility closure",
+    "P20 required physical/owner/performance acceptance",
+    "Drop A after P10; latest signed Debug125 unchanged"
+  ]
 }
