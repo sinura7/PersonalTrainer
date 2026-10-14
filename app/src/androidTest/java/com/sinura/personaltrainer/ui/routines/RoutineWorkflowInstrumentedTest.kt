@@ -121,6 +121,14 @@ class RoutineWorkflowInstrumentedTest {
     @get:Rule val rules: RuleChain = RuleChain.outerRule(preparation).around(compose)
 
     @Test fun connectedRoutineDraftAndImportPreserveExactRecords() {
+        try { runJourney() }
+        catch (failure: Throwable) {
+            runCatching { capture("failure-before-cleanup") }
+            throw failure
+        }
+    }
+
+    private fun runJourney() {
         awaitTag("navigation-routines")
         compose.onNodeWithTag("navigation-home").assertIsSelected()
         if (phase == "library") { libraryJourney(); return }
@@ -220,6 +228,7 @@ class RoutineWorkflowInstrumentedTest {
         scrollTo(RoutineEditorTags.PASTE_FIELD)
         val text = "Upper A\n1. Barbell Bench Press — 3×8\n2. Barbell Bench Press — 5×6\n\nLower A\n1. Barbell Bench Press — 2×10"
         compose.onNodeWithTag(RoutineEditorTags.PASTE_FIELD).performTextReplacement(text)
+        hideKeyboardIfShown()
         compose.onNodeWithTag(RoutineEditorTags.PASTE_CONFIRM).performScrollTo().performClick()
         awaitTag(RoutineEditorTags.IMPORT_PREVIEW)
         val preview = checkNotNull(fields().importPreview)
@@ -234,8 +243,10 @@ class RoutineWorkflowInstrumentedTest {
         compose.waitUntil(30_000) {
             !fields().importVisible && compose.onAllNodesWithTag(RoutineEditorTags.IMPORT_PREVIEW).fetchSemanticsNodes().isEmpty()
         }
-        compose.onNodeWithTag(RoutineEditorTags.IMPORT_RESUME).performScrollTo().assertIsDisplayed()
-            .performTouchInput { click(center) }
+        hideKeyboardIfShown()
+        scrollTo(RoutineEditorTags.IMPORT_RESUME)
+        capture("import-preview-closed")
+        compose.onNodeWithTag(RoutineEditorTags.IMPORT_RESUME).assertIsDisplayed().performTouchInput { click(center) }
         awaitTag(RoutineEditorTags.IMPORT_PREVIEW)
         assertEquals(preview, fields().importPreview)
         compose.onNodeWithTag(RoutineEditorTags.IMPORT_CONFIRM).performScrollTo().assertIsDisplayed().performTouchInput { click(center); click(center) }
@@ -249,6 +260,17 @@ class RoutineWorkflowInstrumentedTest {
     }
     private fun binding() = container.durableDrafts.bind(DraftOwner(DraftForm.ROUTINE, "fields:existing:${fixture.id}"), RoutineFieldsCodec)
     private fun fields() = read { checkNotNull((binding().read() as DraftRead.PresentCheckpoint).checkpoint.draft) }
+    private fun hideKeyboardIfShown() {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val input = automation.executeShellCommand("dumpsys input_method").use { pipe ->
+            FileInputStream(pipe.fileDescriptor).use { it.readBytes().toString(Charsets.UTF_8) }
+        }
+        if (input.contains("mInputShown=true")) automation.executeShellCommand("input keyevent KEYCODE_BACK").use { pipe ->
+            FileInputStream(pipe.fileDescriptor).use { it.readBytes() }
+        }
+        compose.waitForIdle()
+    }
+
     private fun awaitTag(tag: String) = compose.waitUntil(30_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
     private fun scrollTo(tag: String) {
         if (runCatching { compose.onNodeWithTag(tag).assertIsDisplayed() }.isSuccess) return
