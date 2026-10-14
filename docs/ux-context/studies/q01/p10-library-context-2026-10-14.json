@@ -781,7 +781,7 @@
       "After accepted restore or removed/changed owner, require ownership reconciliation before submission; cleanup/stale callbacks cannot resurrect completed work."
     ],
     "partialImplementation": {
-      "state": "All requested picker callers have targeted and actual AppNav recovery evidence. staged-callers55-native passed10 new caller regressions and debug/release/R8/test-APK assembly; activity59/week60 passed actual AppNav reopening. Final complete gate, native closure review, clean reviews and integration remain open.",
+      "state": "All requested picker callers have targeted and actual AppNav recovery evidence. Original final61 passed4693 fresh app/1715 standalone tests, lint and APK assembly at9a21. Clean independent review found two Medium staged-parent recovery regressions; both and their acknowledgement-loss refinement were corrected. correction62 passed15 and correction63 passed17 fresh real-service tests. Both bounded correction63 reviews have no new Critical/High/Medium findings. The corrected committed-candidate complete gate, native closure, final receipt reconciliation and integration remain open.",
       "source": [
         "app/src/main/java/com/sinura/personaltrainer/data/draft/PickerContextDrafts.kt",
         "app/src/main/java/com/sinura/personaltrainer/data/draft/CustomExerciseDrafts.kt"
@@ -888,6 +888,40 @@
           }
         },
         {
+          "attempt": "correction62",
+          "receipt": "build/ux-context/runs/picker-recovery/correction62/summary.json",
+          "receiptSha256": "1F86E6AB77240A9389C71F4AEC659DD029C45DCD7C8447BE9DBED2BB3BF4D8A4",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 15,
+          "counts": {
+            "tests": 15,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "correction63",
+          "receipt": "build/ux-context/runs/picker-recovery/correction63/summary.json",
+          "receiptSha256": "570E905E722B051D8C0913D044664740F48934BED4AC3C352193F3FE0AB9D248",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1678,
+          "fullGate": false,
+          "sourceStable": true,
+          "freshTests": 17,
+          "counts": {
+            "tests": 17,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
           "attempt": "create27-appnav",
           "receipt": "build/ux-context/runs/picker-recovery/create27-appnav/summary.json",
           "receiptSha256": "9DC131FC4CB431C8126700969E3F96DCCC70BB382D09137EE79AB590257F7350",
@@ -980,6 +1014,23 @@
           "freshTests": 51,
           "counts": {
             "tests": 51,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        {
+          "attempt": "final61",
+          "receipt": "build/ux-context/runs/picker-recovery/final61/summary.json",
+          "receiptSha256": "C39D7E8335FE4D2941E91DC15A8F37EA53C0886EA79C3FA07CFD67DAF3DD89C8",
+          "exit": 0,
+          "result": "PASS executed checks at archived unchanged source; scope defined by command",
+          "sourceInputs": 1678,
+          "fullGate": true,
+          "sourceStable": true,
+          "freshTests": 4693,
+          "counts": {
+            "tests": 4693,
             "failures": 0,
             "errors": 0,
             "skipped": 0
@@ -1765,6 +1816,16 @@
       "scope": "Executed targeted counts are verification evidence, not usability percentages. Original failed/aborted attempts remain retained. P10 is open; required-criterion coverage remains41/96 and latest signed delivery remains125.",
       "boundedReviews": [
         {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-correction62-2026-10-14.md",
+          "sha256": "B4F87AFA03131B0996C18122CC25E9D42A1F77C4B20823FCDEBB8B2FC8FFA6E3",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-correction63-2026-10-14.md",
+          "sha256": "FF32E3590ECCD5F43114932C22E59F5B7AF1ABF13AD11E76C549F8B54B2BF117",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
           "path": "build/ux-context/runs/picker-recovery/reviews/p10r-adversarial-discard-recovery21-source-2026-10-14.md",
           "sha256": "CED8C3525827879B38EEFAC6465AB197D43A776D94729D0C754A76F0D2B0908A",
           "scope": "Historical bounded source review; does not establish final packet eligibility"
@@ -1895,6 +1956,26 @@
           "scope": "Historical bounded source review; does not establish final packet eligibility"
         },
         {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-correction62-independent-2026-10-14.md",
+          "sha256": "BB3056DA4D9242B448D0084DBC2131CE5194493E4AFFA00A88CB0F7B46809A0A",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-correction63-independent-2026-10-14.md",
+          "sha256": "944494B032772C9AA98759C803659473292DADB8F267F50D68F7573AD2BB191E",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-final-adversarial-9a21-2026-10-14.md",
+          "sha256": "41EFFA5C7F0109BC48CA39D1FF1EF67A5AEBC38A6923BEBFA064A8AB5509B406",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
+          "path": "build/ux-context/runs/picker-recovery/reviews/p10r-final-independent-9a21-2026-10-14.md",
+          "sha256": "731A6FF0BE1B26DFA8DF87CEF5DDEFB641477DED0694F8F632F9E939C60E895F",
+          "scope": "Historical bounded source review; does not establish final packet eligibility"
+        },
+        {
           "path": "build/ux-context/runs/picker-recovery/reviews/p10r-preliminary-adversarial-controllers-caller09-2026-10-14.md",
           "sha256": "46E436069433CA6AD775AAD9BC26004298B6F4AFB735B4B06C39BD1A4A247AC4",
           "scope": "Historical bounded source review; does not establish final packet eligibility"
@@ -1924,12 +2005,15 @@
         "A private staged submission fence precedes the existing activity/plan business operation and prevents pending or accepted forms from reopening as new submissions. Repository-level exact retry, partial-plan reconciliation and full manual-entry/onboarding acceptance remain P14/P16; they are not claimed complete by this fence.",
         "staged-callers55-native passed10 fresh recovery checks in1 XML against1678 unchanged inputs, including captured weight-unit restoration and failed week-picker Close with exact Retry; debug/release/R8/test-APK builds passed. Explicit reflection keep rules preserve private typed field/enum names. This is not the full gate.",
         "staged58-native-fixtures ran static checks and APK assembly only (zero JVM tests counted). activity59-appnav and week60-appnav freshly passed1 actual MainActivity/AppNav journey each using the same app/test APKs. Activity restores raw title/selected ID/query; week restores exact staged row/search without applying a plan. Preview controls are scrolled into composition; setup-step semantic invocation does not close P15 question reachability or P20 touch acceptance.",
-        "Original activity56-appnav failed Back before native keyboard dismissal settled; corrected59 waits for actual window IME visibility. Original week57-appnav failed before scrolling the virtualized Preview action into composition; corrected60 scrolls and passes. Original traces/captures remain preserved."
+        "Original activity56-appnav failed Back before native keyboard dismissal settled; corrected59 waits for actual window IME visibility. Original week57-appnav failed before scrolling the virtualized Preview action into composition; corrected60 scrolls and passes. Original traces/captures remain preserved.",
+        "Known no-write activity refusal durably records UNCOMMITTED before returning to editing. Exact Retry recovers a landed refusal-inspection or editing-release checkpoint after lost acknowledgement and unavailable confirmation read; accepted/uncertain commands stay fenced.",
+        "Corrupt picker Reset preserves healthy staged activity/week fields through generation reconciliation under the restore/catalog coordinator. Actual exercise and optional occurrence ownership must still agree; pending/accepted commands never become editable through this path.",
+        "correction63 freshly passed17 real-service caller tests, including correction/reopen/save-once after empty Save, corrupt child Reset in both parents, missing owner conflict, accepted-generation fencing, and deterministic acknowledgement/read failures. Original independent2M and correction62 remainingM reports are retained, alongside both correction63 source reviews with no new C/H/M findings."
       ],
       "remaining": [
-        "Final relevant native recovery/layout closure and executed whole-packet gate.",
-        "Final relevant native layout/recovery states and real navigation evidence for the remaining callers.",
-        "Fresh complete local gate, final independent/adversarial reviews, archived integration proof and signed Drop A."
+        "Fresh complete local gate at the corrected committed candidate; original final61 is not reused for changed inputs.",
+        "Final affected AppNav replay and relevant native recovery/layout closure.",
+        "Final pinned independent/adversarial receipt reconciliation, archived integration proof and signed Drop A."
       ],
       "nativeCreate": {
         "runs": [

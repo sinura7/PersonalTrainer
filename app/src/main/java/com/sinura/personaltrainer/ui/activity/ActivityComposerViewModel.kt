@@ -242,7 +242,14 @@ class ActivityComposerViewModel internal constructor(
                     adder.value = StrengthAdderFields(fields.pickedId, fields.weightText, fields.repsText, fields.weightUnit)
                     savedStateHandle["composer.private.identity"] = formIdentity
                     rememberSavedDraft()
-                }, available = { !container.backupService.restoreInProgress() })
+                }, available = { !container.backupService.restoreInProgress() }, stillOwned = { fields ->
+                    val occurrence = fields.occurrenceId?.let { container.plannerRepository.getOccurrence(it) }
+                    fields.mode == mode.value.name && fields.occurrenceId == heldOccurrenceId &&
+                        (fields.occurrenceId == null || occurrence != null && occurrence.completedActivityId == null &&
+                            occurrence.status != com.sinura.personaltrainer.domain.OccurrenceStatus.DONE) &&
+                        fields.strength.all { container.exerciseRepository.getById(it.exercise.id) == it.exercise } &&
+                        (fields.pickedId.isEmpty() || container.exerciseRepository.getById(fields.pickedId) != null)
+                })
         }
         pickerRecovery = if (contexts != null && customDrafts != null && formRecovery != null) {
             OwnedPickerRecovery(scope = viewModelScope, contextDrafts = contexts, customDrafts = customDrafts,
@@ -250,7 +257,7 @@ class ActivityComposerViewModel internal constructor(
                 owner = { formRecovery.opening.join(); check(formRecovery.status.value.ready); pickerOwner() },
                 stillOwned = ::pickerOwned, ownedAtCommit = ::pickerOwned, onQuery = { pickerQuery.value = it },
                 selectCreated = { exercise -> selectOwnedExercise(exercise) },
-                onSelected = { pickerOpen.value = false })
+                onSelected = { pickerOpen.value = false }, onReset = { formRecovery.retry() })
         } else null
     }
 
@@ -411,8 +418,10 @@ class ActivityComposerViewModel internal constructor(
                         error.clearFrom(source = ERR_SAVE, before = started)
                         _savedId.value = result.id
                     }
-                    is CompleteTrainingOutcome.RuledOut ->
+                    is CompleteTrainingOutcome.RuledOut -> {
+                        formRecovery?.rejected()
                         error.fail(source = ERR_SAVE, message = result.reason)
+                    }
                     is CompleteTrainingOutcome.Failed ->
                         error.fail(source = ERR_SAVE, message = result.message)
                 }

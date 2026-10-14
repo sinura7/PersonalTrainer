@@ -27,12 +27,14 @@ internal class StagedFormRecovery<T>(
     private val owner: suspend () -> DraftOwner, private val codec: DraftCodec<T, Unit>,
     private val snapshot: () -> T, private val restore: (T) -> Unit,
     private val available: () -> Boolean,
+    private val stillOwned: suspend (T) -> Boolean,
 ) {
     private val serial = Mutex()
     private var handle: StagedFormHandle<T>? = null
     private var revision = 0L
     private var authoredSinceFailedRead = false
     private var failedReadConflict = false
+    private var knownRefusal = false
     private val mutableStatus: MutableStateFlow<StagedFormStatus> = MutableStateFlow(StagedFormStatus())
     val status: StateFlow<StagedFormStatus> = mutableStatus
     val opening: Job = scope.launch { open() }
@@ -43,8 +45,7 @@ internal class StagedFormRecovery<T>(
             check(available())
             val opened = drafts.open(owner(), codec)
             handle = opened
-            val checkpoint = checkNotNull(opened.checkpoint)
-            check(!checkpoint.needsReconciliation)
+            var checkpoint = checkNotNull(opened.checkpoint)
             val resumed = opened.fields != null
             if (authoredSinceFailedRead && resumed) {
                 failedReadConflict = true
@@ -53,12 +54,20 @@ internal class StagedFormRecovery<T>(
                 return@withLock
             }
             opened.fields?.let(restore)
+            // RETRYABLE is durable proof that this command was refused without writing.
+            if (!checkpoint.needsReconciliation && checkpoint.pending?.phase == DraftCommandPhase.RETRYABLE) {
+                knownRefusal = true
+                drafts.rejected(opened)
+                checkpoint = checkNotNull(opened.checkpoint)
+                knownRefusal = false
+            }
             checkpoint.pending?.let {
                 mutableStatus.value = StagedFormStatus(loading = false, resumed = resumed, pending = true,
-                    accepted = it.phase == DraftCommandPhase.ACCEPTED,
-                    error = if (it.phase == DraftCommandPhase.ACCEPTED) null else "The earlier submission needs checking. It will not be repeated. Saved records remain in History or Plan.")
+                    accepted = !checkpoint.needsReconciliation && it.phase == DraftCommandPhase.ACCEPTED,
+                    error = if (!checkpoint.needsReconciliation && it.phase == DraftCommandPhase.ACCEPTED) null else "The earlier submission needs checking. It will not be repeated. Saved records remain in History or Plan.")
                 return@withLock
             }
+            reconcile(opened)
             drafts.keep(opened, snapshot())
             mutableStatus.value = StagedFormStatus(loading = false, resumed = resumed)
         } catch (cancelled: CancellationException) { throw cancelled }
@@ -94,7 +103,10 @@ internal class StagedFormRecovery<T>(
             if (status.value.pending || failedReadConflict) return@withLock false
             mutableStatus.value = status.value.copy(keeping = true)
             try {
-                check(available()); drafts.keep(checkNotNull(handle), snapshot())
+                check(available())
+                val current = checkNotNull(handle)
+                reconcile(current)
+                drafts.keep(current, snapshot())
                 mutableStatus.value = status.value.copy(keeping = false, error = null)
                 true
             } catch (cancelled: CancellationException) { throw cancelled }
@@ -102,7 +114,7 @@ internal class StagedFormRecovery<T>(
         }
     }
     fun leave(onKept: () -> Unit) { scope.launch { if (status.value.pending || flush()) onKept() } }
-    fun retry() { scope.launch { if (handle?.checkpoint == null) open() else flush() } }
+    fun retry() { scope.launch { if (knownRefusal) rejected() else if (handle?.checkpoint == null) open() else flush() } }
     suspend fun beginSubmission(): Boolean {
         if (!flush()) return false
         return serial.withLock {
@@ -129,6 +141,21 @@ internal class StagedFormRecovery<T>(
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { mutableStatus.value = status.value.copy(pending = true,
             error = "Saved. Private confirmation is still pending; the submission will not be repeated.") }
+    }
+    suspend fun rejected() = serial.withLock {
+        knownRefusal = true
+        try {
+            check(available()); drafts.rejected(checkNotNull(handle))
+            knownRefusal = false
+            mutableStatus.value = status.value.copy(pending = false, accepted = false, error = null)
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { mutableStatus.value = status.value.copy(pending = true,
+            error = "Nothing was saved. Your fields remain here. Retry to continue editing.") }
+    }
+    private suspend fun reconcile(current: StagedFormHandle<T>) {
+        drafts.reconcile(current) {
+            available() && stillOwned(it)
+        }
     }
     suspend fun discard(): Boolean {
         opening.join()

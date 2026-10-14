@@ -56,14 +56,22 @@ class StagedPickerCallerRecoveryTest {
     private lateinit var forms: StagedPickerForms
     private lateinit var contexts: PickerContextDrafts
     private lateinit var custom: CustomExerciseDrafts
+    private lateinit var store: DurableDraftStore
     private val activities = mutableListOf<ActivityComposerViewModel>()
     private val weeks = mutableListOf<CustomWeekViewModel>()
     private val io = object : DraftFileIO by AtomicDraftFiles {
         var failParent = false
         var failCleanup = false
         var failParentRead = false
+        var loseRefusalAck = false
+        var loseResumeAck = false
+        var loseReconcileAck = false
+        var failConfirmationReads = 0
         override fun read(file: File): ByteArray? {
             val bytes = AtomicDraftFiles.read(file)
+            if (failConfirmationReads > 0 && bytes?.toString(Charsets.UTF_8)?.contains("activity-picker-parent") == true) {
+                failConfirmationReads--; throw IOException("synthetic unavailable confirmation read")
+            }
             if (failParentRead && bytes?.toString(Charsets.UTF_8)?.contains("activity-picker-parent") == true) throw IOException("synthetic initial parent read failure")
             return bytes
         }
@@ -71,14 +79,26 @@ class StagedPickerCallerRecoveryTest {
             if (failCleanup && bytes.toString(Charsets.UTF_8).contains("activity-picker-parent") && bytes.toString(Charsets.UTF_8).contains("\"draft\":null")) throw IOException("synthetic accepted cleanup failure")
             if (failParent && (bytes.toString(Charsets.UTF_8).contains("activity-picker-parent") ||
                 bytes.toString(Charsets.UTF_8).contains("custom-week-picker-parent"))) throw IOException("synthetic parent checkpoint failure")
+            val text = bytes.toString(Charsets.UTF_8)
+            val parent = text.contains("activity-picker-parent")
+            val refusal = parent && loseRefusalAck && text.contains("\"phase\":\"RETRYABLE\"")
+            val resume = parent && loseResumeAck && text.contains("\"pending\":null") && text.contains("\"draft\":{")
+            val reconcile = parent && loseReconcileAck && text.contains("\"pending\":null")
             AtomicDraftFiles.replace(file, bytes)
+            if (refusal || resume || reconcile) {
+                if (refusal) loseRefusalAck = false
+                if (resume) loseResumeAck = false
+                if (reconcile) loseReconcileAck = false
+                failConfirmationReads = 1
+                throw IOException("synthetic lost private acknowledgement")
+            }
         }
     }
     @Before fun setup() {
         Dispatchers.setMain(dispatcher)
         deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
-        val store = DurableDraftStore(directory = temporary.newFolder(), dispatcher = dispatcher, files = io)
-        forms = StagedPickerForms(store); contexts = PickerContextDrafts(store)
+        store = DurableDraftStore(directory = temporary.newFolder(), dispatcher = dispatcher, files = io)
+        forms = StagedPickerForms(store, deps.dbMaintenance); contexts = PickerContextDrafts(store)
         custom = CustomExerciseDrafts(store = store, repository = deps.exerciseRepository,
             maintenance = deps.dbMaintenance, restoreOpen = { false }, dispatcher = dispatcher)
     }
@@ -102,6 +122,124 @@ class StagedPickerCallerRecoveryTest {
         assertEquals(null, recovery.view.status.value.error)
     }
     private suspend fun seedLift() = (deps.exerciseRepository.createCustom("Synthetic baseline press", "Chest") as SaveExerciseResult.Saved).exercise
+
+    private fun corruptChild(id: String) {
+        val file = temporary.root.walkTopDown().filter { it.isFile && it.extension == "json" }
+            .single { it.readText().contains("\"createId\":\"$id\"") }
+        file.writeText("{synthetic corrupt child")
+    }
+
+    @Test fun refusedEmptySaveRetainsEditableFieldsAcrossReopeningAndThenSavesOnce() = runBlocking {
+        val first = activity(); ready(first); first.setTitle("Keep this refused title")
+        first.save(); first.uiState.awaitFirst { it.error == "Nothing to save." }
+        assertTrue(checkNotNull(first.formRecovery).status.value.ready)
+        assertTrue(deps.database.activityDao().getAllGraphs().isEmpty())
+        first.setTitle("Corrected title after refusal"); assertTrue(first.formRecovery.flush())
+        first.clearAndJoinForTest(); activities.remove(first)
+        val reopened = activity(); ready(reopened)
+        assertEquals("Corrected title after refusal", reopened.uiState.awaitFirst { it.title.isNotEmpty() }.title)
+        reopened.addCardio(CardioType.RUN, 19, 3.25, true); reopened.save(); reopened.save()
+        val id = reopened.savedId.awaitFirst { it != null }
+        assertEquals(id, deps.database.activityDao().getAllGraphs().single().session.id)
+    }
+
+    @Test fun corruptActivityPickerResetPreservesHealthyParentAndAllowsSaving() = runBlocking {
+        val lift = seedLift(); val vm = activity(); ready(vm)
+        vm.setTitle("Preserve activity after picker reset"); vm.addStrength(lift, 17.5, 11)
+        assertTrue(checkNotNull(vm.formRecovery).flush()); vm.setPickerVisible(true)
+        val recovery = checkNotNull(vm.pickerRecovery); picker(recovery); recovery.openCreate()
+        recovery.create.status.awaitFirst { it.phase == PickerCreatePhase.EDITING }
+        val id = checkNotNull(recovery.create.status.value.fields).createId
+        recovery.backToList(); recovery.view.fields.awaitFirst { !it.creating }
+        corruptChild(id); recovery.discardPrivate()
+        recovery.view.fields.awaitFirst { it.customDraftId == null }
+        assertTrue(vm.formRecovery.flush())
+        vm.clearAndJoinForTest(); activities.remove(vm)
+        val reopened = activity(); ready(reopened)
+        val fields = reopened.uiState.awaitFirst { it.strength.isNotEmpty() }
+        assertEquals("Preserve activity after picker reset", fields.title)
+        assertEquals(lift.id, fields.strength.single().exercise.id)
+        assertEquals(17.5, fields.strength.single().weightKg, 0.0); assertEquals(11, fields.strength.single().reps)
+        reopened.save(); reopened.savedId.awaitFirst { it != null }
+        assertEquals(1, deps.database.activityDao().getAllGraphs().size)
+        assertEquals(null, deps.exerciseRepository.getById(id))
+    }
+
+    @Test fun corruptWeekPickerResetPreservesDayTargetsAndStagedIdentity() = runBlocking {
+        val lift = seedLift(); val vm = week(); ready(vm); vm.selectDay(Weekday.FRIDAY); vm.selectPickerExercise(lift)
+        val row = vm.uiState.awaitFirst { it.selectedLifts.isNotEmpty() }.selectedLifts.single()
+        vm.stageTargets(itemId = row.id, sets = 4, reps = 9, rest = 75, weightKg = 17.5, seconds = null, secondsMax = null)
+        assertTrue(checkNotNull(vm.formRecovery).flush()); vm.setPickerVisible(true)
+        val recovery = checkNotNull(vm.pickerRecovery); picker(recovery); recovery.openCreate()
+        recovery.create.status.awaitFirst { it.phase == PickerCreatePhase.EDITING }
+        val id = checkNotNull(recovery.create.status.value.fields).createId
+        recovery.backToList(); recovery.view.fields.awaitFirst { !it.creating }
+        corruptChild(id); recovery.discardPrivate(); recovery.view.fields.awaitFirst { it.customDraftId == null }
+        assertTrue(vm.formRecovery.flush()); vm.clearAndJoinForTest(); weeks.remove(vm)
+        val reopened = week(); ready(reopened)
+        val fields = reopened.uiState.awaitFirst { it.selectedLifts.isNotEmpty() }
+        assertEquals(Weekday.FRIDAY, fields.selectedDay); assertEquals(row.id, fields.selectedLifts.single().id)
+        assertEquals(4, fields.selectedLifts.single().targetSets); assertEquals(9, fields.selectedLifts.single().targetReps)
+        assertEquals(17.5, fields.selectedLifts.single().targetWeightKg)
+        assertEquals(null, deps.exerciseRepository.getById(id)); assertFalse(reopened.finished.value)
+    }
+
+    @Test fun missingExerciseAfterGenerationChangeRetainsFieldsAndBlocksSubmission() = runBlocking {
+        val lift = seedLift(); val first = activity(); ready(first)
+        first.setTitle("Keep missing owner's values"); first.addStrength(lift, 17.5, 11)
+        assertTrue(checkNotNull(first.formRecovery).flush()); first.clearAndJoinForTest(); activities.remove(first)
+        deps.exerciseRepository.deleteCustom(lift.id)
+        deps.dbMaintenance.withMaintenanceLock { store.invalidateOnce("synthetic restored catalog") }
+        val reopened = activity()
+        val recovery = checkNotNull(reopened.formRecovery).status.awaitFirst { !it.loading }
+        assertFalse(recovery.ready); assertTrue(recovery.error != null)
+        assertEquals("Keep missing owner's values", reopened.uiState.awaitFirst { it.title.isNotEmpty() }.title)
+        reopened.save(); assertTrue(deps.database.activityDao().getAllGraphs().isEmpty())
+    }
+
+    @Test fun acceptedFenceCannotReconcileIntoAnEditableFormAfterGenerationChange() = runBlocking {
+        val first = activity(); ready(first); first.addCardio(CardioType.RUN, 19, 3.25, true)
+        io.failCleanup = true; first.save(); first.savedId.awaitFirst { it != null }
+        first.clearAndJoinForTest(); activities.remove(first)
+        deps.dbMaintenance.withMaintenanceLock { store.invalidateOnce("synthetic restored history") }
+        val reopened = activity()
+        val recovery = checkNotNull(reopened.formRecovery).status.awaitFirst { !it.loading }
+        assertTrue(recovery.pending); assertFalse(recovery.ready); assertFalse(recovery.accepted)
+        reopened.save(); assertEquals(1, deps.database.activityDao().getAllGraphs().size)
+    }
+
+    @Test fun refusalRetrySettlesLandedInspectionAndEditingWithUnavailableConfirmationReads() = runBlocking {
+        val vm = activity(); ready(vm); vm.setTitle("Keep exact refused fields")
+        assertTrue(checkNotNull(vm.formRecovery).flush())
+        io.loseRefusalAck = true; vm.save()
+        vm.formRecovery.status.awaitFirst { it.pending && it.error?.startsWith("Nothing was saved") == true }
+        assertTrue(deps.database.activityDao().getAllGraphs().isEmpty())
+        io.loseResumeAck = true; vm.formRecovery.retry()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertTrue(vm.formRecovery.status.value.pending)
+        vm.formRecovery.retry(); vm.formRecovery.status.awaitFirst { it.ready }
+        vm.setTitle("Corrected after exact Retry"); vm.addCardio(CardioType.RUN, 19, 3.25, true)
+        vm.save(); vm.savedId.awaitFirst { it != null }
+        assertEquals("Corrected after exact Retry", vm.uiState.awaitFirst { it.title.startsWith("Corrected") }.title)
+        assertEquals(1, deps.database.activityDao().getAllGraphs().size)
+    }
+
+    @Test fun generationRetrySettlesItsExactLandedCheckpointAfterUnavailableConfirmation() = runBlocking {
+        val lift = seedLift(); val vm = activity(); ready(vm)
+        vm.setTitle("Generation acknowledgement recovery"); vm.addStrength(lift, 17.5, 11)
+        assertTrue(checkNotNull(vm.formRecovery).flush())
+        deps.dbMaintenance.withMaintenanceLock { store.invalidateOnce("synthetic child quarantine") }
+        io.loseReconcileAck = true
+        assertFalse(vm.formRecovery.flush())
+        vm.formRecovery.retry(); vm.formRecovery.status.awaitFirst { it.ready }
+        vm.clearAndJoinForTest(); activities.remove(vm)
+        val reopened = activity(); ready(reopened)
+        val fields = reopened.uiState.awaitFirst { it.strength.isNotEmpty() }
+        assertEquals("Generation acknowledgement recovery", fields.title)
+        assertEquals(lift.id, fields.strength.single().exercise.id)
+        assertEquals(17.5, fields.strength.single().weightKg, 0.0)
+        assertTrue(deps.database.activityDao().getAllGraphs().isEmpty())
+    }
 
     @Test fun reopeningActivityRestoresItsFormAndPickerWithoutSavingAnActivity() = runBlocking {
         val lift = seedLift()

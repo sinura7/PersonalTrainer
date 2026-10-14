@@ -135,7 +135,9 @@ class CustomWeekViewModel internal constructor(
                 pendingWeightUnit = fields.weightUnit; preferredDays.value = fields.preferredDays
                 savedStateHandle["week.private.identity"] = formIdentity
                 persistSavedDraft()
-            }, available = { !container.backupService.restoreInProgress() })
+            }, available = { !container.backupService.restoreInProgress() }, stillOwned = { fields ->
+                fields.days.values.flatten().all { container.exerciseRepository.getById(it.exercise.id) == it.exercise }
+            })
     }
     private fun pickerOwner() = DraftOwner(DraftForm.ONBOARDING, "custom-week:$formIdentity:${selectedDay.value.name}")
     internal val pickerRecovery = if (contexts != null && customDrafts != null && formRecovery != null) {
@@ -145,7 +147,7 @@ class CustomWeekViewModel internal constructor(
             }, stillOwned = ::pickerOwned, ownedAtCommit = ::pickerOwned,
             selectionBlocked = { pickerWrites.canRetry },
             selectionBusy = { pickerWrites.busy }, retryLabel = { "Retry closing" },
-            onQuery = { searchQuery.value = it }, selectCreated = { exercise ->
+            onQuery = { searchQuery.value = it }, onReset = { formRecovery.retry() }, selectCreated = { exercise ->
                 if (!pickerOwned(pickerOwner())) false else {
                     addPicked(exercise, selectedDay.value); formRecovery.flush()
                 }

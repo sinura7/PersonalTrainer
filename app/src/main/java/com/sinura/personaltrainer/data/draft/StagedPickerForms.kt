@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.data.draft
 import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
+import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CustomWeekLift
 import com.sinura.personaltrainer.domain.Exercise
@@ -32,9 +33,12 @@ internal data class WeekFormFields(
 internal class StagedFormHandle<T> internal constructor(
     val owner: DraftOwner, val binding: DraftBinding<T, Unit>, internal val claim: Long,
     internal var checkpoint: DraftCheckpoint<T, Unit>?,
-) { val fields: T? get() = checkpoint?.draft }
+) {
+    val fields: T? get() = checkpoint?.draft
+    internal var reconciliation: Pair<DraftVersion, String>? = null
+}
 
-internal class StagedPickerForms(private val store: DurableDraftStore) {
+internal class StagedPickerForms(private val store: DurableDraftStore, private val maintenance: DbMaintenance) {
     private val serial = Mutex()
     private val claims = mutableMapOf<DraftOwner, Long>()
 
@@ -51,6 +55,64 @@ internal class StagedPickerForms(private val store: DurableDraftStore) {
     }
     suspend fun <T> refresh(handle: StagedFormHandle<T>) = serial.withLock {
         requireCurrent(handle); handle.checkpoint = read(handle.binding)
+    }
+
+    /** Unsubmitted fields may follow a generation change only after their actual owners are checked.
+     * The restore/catalog coordinator covers both that read and the private acknowledgement. */
+    suspend fun <T> reconcile(handle: StagedFormHandle<T>, stillOwned: suspend (T) -> Boolean) =
+        maintenance.withMaintenanceLock { serial.withLock {
+            requireCurrent(handle)
+            val current = read(handle.binding)
+            val attempt = handle.reconciliation
+            if (attempt != null && current.version != handle.checkpoint?.version) {
+                check(!current.needsReconciliation && current.pending == null && current.draft == handle.fields &&
+                    current.version == DraftVersion(handle.owner, attempt.second, Math.addExact(attempt.first.revision, 1L)))
+                check(current.draft?.let { stillOwned(it) } != false)
+                handle.checkpoint = current
+                handle.reconciliation = null
+                return@withLock
+            }
+            check(current.version == handle.checkpoint?.version && current.pending == null)
+            if (!current.needsReconciliation) return@withLock
+            check(current.draft?.let { stillOwned(it) } != false) { "The staged form's owner changed." }
+            handle.reconciliation = current.version to current.currentGeneration
+            val result = handle.binding.reconcileOwner(current.version, current.currentGeneration)
+            handle.checkpoint = if (result is DraftChange.Written) result.checkpoint else {
+                read(handle.binding).also { check(!it.needsReconciliation && it.draft == current.draft && it.pending == null) }
+            }
+            handle.reconciliation = null
+        } }
+
+    /** Only a repository outcome guaranteeing no business write may release this fence. */
+    suspend fun <T> rejected(handle: StagedFormHandle<T>) = serial.withLock {
+        requireCurrent(handle)
+        var current = read(handle.binding)
+        val before = checkNotNull(handle.checkpoint)
+        check(!current.needsReconciliation && current.draft == before.draft)
+        if (current.version != before.version) {
+            check(current.version == before.version.copy(revision = Math.addExact(before.version.revision, 1L)))
+            val intended = checkNotNull(before.pending)
+            check(when (intended.phase) {
+                DraftCommandPhase.PENDING -> current.pending?.identity == intended.identity && current.pending.phase == DraftCommandPhase.RETRYABLE
+                DraftCommandPhase.RETRYABLE -> current.pending == null
+                DraftCommandPhase.ACCEPTED -> false
+            })
+            handle.checkpoint = current
+        }
+        val pending = current.pending ?: return@withLock
+        check(pending.phase != DraftCommandPhase.ACCEPTED)
+        if (pending.phase != DraftCommandPhase.RETRYABLE) {
+            val inspected = handle.binding.inspect(expected = current.version, commandIdentity = pending.identity,
+                outcome = DraftRecoveryOutcome.UNCOMMITTED)
+            current = if (inspected is DraftChange.Written) inspected.checkpoint else {
+                read(handle.binding).also { check(!it.needsReconciliation && it.pending?.identity == pending.identity && it.pending.phase == DraftCommandPhase.RETRYABLE) }
+            }
+            handle.checkpoint = current
+        }
+        val resumed = handle.binding.resumeEditing(current.version, pending.identity)
+        handle.checkpoint = if (resumed is DraftChange.Written) resumed.checkpoint else {
+            read(handle.binding).also { check(!it.needsReconciliation && it.pending == null && it.draft == current.draft) }
+        }
     }
 
     suspend fun <T> keep(handle: StagedFormHandle<T>, fields: T) = serial.withLock {
