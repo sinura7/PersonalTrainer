@@ -574,31 +574,29 @@ class HistoryViewModel internal constructor(
         if (!repeating.compareAndSet(false, true)) return
         val started = errors.mark()
         viewModelScope.launch {
-            try {
-                runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
-                    .onSuccess { outcome ->
-                        when (outcome) {
-                            is RepeatOutcome.Started -> {
-                                errors.clearFrom(source = ERR_REPEAT, before = started)
-                                _navigateToSession.value = outcome.sessionId
-                            }
-                            is RepeatOutcome.Blocked -> {
-                                errors.clearFrom(source = ERR_REPEAT, before = started)
-                                _blockedRepeat.value = outcome
-                            }
-                            is RepeatOutcome.Failed ->
-                                errors.fail(source = ERR_REPEAT, message = outcome.message)
-                        }
+            val outcome = runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
+            // The refusal or the new session is the result. Drop the guard before publishing
+            // it, or the screen's reaction (Retry on the same row) is ignored.
+            repeating.set(false)
+            outcome.onSuccess { result ->
+                when (result) {
+                    is RepeatOutcome.Started -> {
+                        errors.clearFrom(source = ERR_REPEAT, before = started)
+                        _navigateToSession.value = result.sessionId
                     }
-                    .onFailure { thrown ->
-                        AppLog.w(TAG, "repeatSession failed", thrown)
-                        errors.fail(
-                            source = ERR_REPEAT,
-                            message = "Could not repeat that workout. Try again.",
-                        )
+                    is RepeatOutcome.Blocked -> {
+                        errors.clearFrom(source = ERR_REPEAT, before = started)
+                        _blockedRepeat.value = result
                     }
-            } finally {
-                repeating.set(false)
+                    is RepeatOutcome.Failed ->
+                        errors.fail(source = ERR_REPEAT, message = result.message)
+                }
+            }.onFailure { thrown ->
+                AppLog.w(TAG, "repeatSession failed", thrown)
+                errors.fail(
+                    source = ERR_REPEAT,
+                    message = "Could not repeat that workout. Try again.",
+                )
             }
         }
     }

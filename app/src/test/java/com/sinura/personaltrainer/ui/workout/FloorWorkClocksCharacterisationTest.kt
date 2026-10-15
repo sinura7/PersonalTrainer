@@ -538,8 +538,9 @@ class FloorWorkClocksCharacterisationTest {
 
         vm.undoRemoveLift()
         vm.awaitState { it.selectedExerciseId == ROW && !it.entryLocked }
-
-        val watch = vm.setStopwatch.value
+        val watch = vm.setStopwatch.awaitFirst {
+            it.exerciseId == ROW && it.used && !it.running && it.elapsedSeconds == 6
+        }
         assertEquals("Undo brings the lift back with its clock", ROW, watch.exerciseId)
         assertTrue("used: $watch", watch.used)
         assertFalse("stopped: $watch", watch.running)

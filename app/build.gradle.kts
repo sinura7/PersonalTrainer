@@ -132,6 +132,15 @@ android {
             // Robolectric: serves the app's (and test source set's) assets —
             // MigrationTestHelper reads app/schemas from there.
             isIncludeAndroidResources = true
+            all {
+                // JDK 21's C2 compiler segfaults while compiling Room's
+                // SupportSQLiteConnection.prepare (SIGSEGV in Node::uncast).
+                // The test process then exits 134 and Gradle reports only the
+                // tests that had already finished. C1 still runs the method.
+                it.jvmArgs(
+                    "-XX:CompileCommand=exclude,androidx/room/driver/SupportSQLiteConnection.prepare",
+                )
+            }
         }
     }
 

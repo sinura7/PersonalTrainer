@@ -22,6 +22,8 @@ import com.sinura.personaltrainer.workout.WorkoutNumberDraft
 import com.sinura.personaltrainer.workout.WorkoutNumberField
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -237,6 +239,44 @@ class WorkoutPrivateRecoveryTest {
         assertEquals(logged.id, saved.id); assertEquals(52.0, saved.weightKg, 0.0); assertEquals(9, saved.rpe)
     }
 
+    @Test fun swapSeedKeepsTypedWeightWhenTheFillAlreadyDecidedTheEntryWasUntouched() = runBlocking {
+        val vm = active(); ready(vm)
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val decided = CountDownLatch(1)
+        vm.beforeUntouchedSeed = {
+            vm.beforeUntouchedSeed = null
+            entered.countDown()
+            check(release.await(10, TimeUnit.SECONDS)) { "The untouched-seed pause was not released" }
+        }
+        vm.afterUntouchedSeed = {
+            vm.afterUntouchedSeed = null
+            decided.countDown()
+        }
+        try {
+            vm.numberEntry.put(WorkoutNumberDraft(fixture.exercise.id, WorkoutNumberField.WEIGHT, "82.", WeightUnit.KG, 3, 3, false))
+            val replacement = insertTestExercise(deps, "replacement-seed", "Replacement seed")
+            vm.requestSwap(); vm.addExercise(replacement)
+            assertTrue(entered.await(10, TimeUnit.SECONDS))
+            vm.setWeight(42.5)
+            release.countDown()
+            assertTrue(decided.await(10, TimeUnit.SECONDS))
+            vm.setReps(12); vm.setRpe(8)
+            vm.uiState.awaitFirst {
+                it.selectedExerciseId == replacement.id && !it.mutating && it.draft.weightKg == 42.5 && it.draft.reps == 12 && it.draft.rpe == 8
+            }
+            vm.requestNotesExit(); vm.exitRequested.awaitFirst { it == WorkoutExit.Kept }
+            forget(vm)
+            val reopened = active(); ready(reopened)
+            val restored = reopened.uiState.awaitFirst {
+                it.selectedExerciseId == replacement.id && it.draft.reps == 12 && it.draft.rpe == 8
+            }
+            assertEquals(42.5, restored.draft.weightKg, 0.0)
+        } finally {
+            release.countDown()
+        }
+    }
+
     @Test fun acceptedSwapRetiresOnlyTheReplacedLiftsPrivateFields() = runBlocking {
         val vm = active(); ready(vm)
         vm.numberEntry.put(WorkoutNumberDraft(fixture.exercise.id, WorkoutNumberField.WEIGHT, "82.", WeightUnit.KG, 3, 3, false))
@@ -247,6 +287,9 @@ class WorkoutPrivateRecoveryTest {
         vm.requestNotesExit(); vm.exitRequested.awaitFirst { it == WorkoutExit.Kept }
         forget(vm)
         val reopened = active(); ready(reopened)
+        reopened.uiState.awaitFirst {
+            it.selectedExerciseId == replacement.id && it.draft.weightKg == 42.5 && it.draft.reps == 12
+        }
         assertEquals(replacement.id, reopened.uiState.value.selectedExerciseId)
         assertEquals(42.5, reopened.uiState.value.draft.weightKg, 0.0)
         assertTrue(reopened.numberEntry.entries.value.isEmpty())

@@ -257,6 +257,9 @@ class HomeReadRecoveryTest {
             model.uiState.awaitFirst { it.readState == HomeReadState.CURRENT }
             assertTrue(model.startRoutine(routineId))
             val blocked = model.blockedByInProgress.awaitFirst { it != null }
+            // The blocked sheet is published before the start coroutine clears pending.
+            // Skip is refused until that flag drops; wait for the flag, then require Skip.
+            model.startState.awaitFirst { !it.pending }
             assertTrue(model.skipOccurrence(leftover.id))
             val offered = model.skippedDay.awaitFirst { it != null }
             val complete = model.uiState.awaitFirst { state ->

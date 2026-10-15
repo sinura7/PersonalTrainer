@@ -370,7 +370,10 @@ class SessionDetailViewModel internal constructor(
                     when (intent) {
                         NotesExitIntent.Back -> _notesExitRequested.value = true
                         NotesExitIntent.Repeat -> repeatAfterNotes()
-                        is NotesExitIntent.Resume -> _navigateToSession.value = intent.sessionId
+                        is NotesExitIntent.Resume -> {
+                            notesExitPending.value = false
+                            _navigateToSession.value = intent.sessionId
+                        }
                     }
                 } else {
                     _notesExitBlocked.value = true
@@ -556,9 +559,11 @@ class SessionDetailViewModel internal constructor(
     private fun finishSetEditor(command: WorkoutSetSave) {
         // Persist acknowledgement before clearing the pending command: recreation in this
         // window must close the same editor rather than insert an additional set again.
+        // Clear the pending command before publishing the exit. Observers of the exit
+        // (the next delete, a recreated screen) otherwise still see the save as owned.
         savedSetExit.write(command)
-        _setEditorExit.value = command
         historySaves.clear(command)
+        _setEditorExit.value = command
         errors.clearFrom(ERR_SET_SAVE)
     }
 
@@ -678,20 +683,22 @@ class SessionDetailViewModel internal constructor(
 
     private suspend fun repeatAfterNotes() {
         if (!mutating.compareAndSet(false, true)) return
-        try {
+        val outcome = try {
             runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
-                .onSuccess { outcome ->
-                    when (outcome) {
-                        is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
-                        is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
-                        is RepeatOutcome.Failed ->
-                            errors.fail(source = ERR_REPEAT, message = outcome.message)
-                    }
-                }
-                .onFailure { report(it, "Could not repeat that workout. Try again.") }
         } finally {
             mutating.set(false)
         }
+        // Notes stay locked for the database call. Resume reads this flag, so it
+        // drops in the same step that publishes the blocked or started result.
+        notesExitPending.value = false
+        outcome.onSuccess { result ->
+            when (result) {
+                is RepeatOutcome.Started -> _navigateToSession.value = result.sessionId
+                is RepeatOutcome.Blocked -> _blockedRepeat.value = result
+                is RepeatOutcome.Failed ->
+                    errors.fail(source = ERR_REPEAT, message = result.message)
+            }
+        }.onFailure { report(it, "Could not repeat that workout. Try again.") }
     }
 
     fun resumeBlockedSession() {

@@ -270,9 +270,15 @@ internal class SavedWorkRenderHost(
             } finally { frame.recycle() }
         }
         var pixels = emptyList<Int>()
-        compose.awaitThat("actual native artwork is loaded", { pixels.count { !isNear(it, Pit) } }) {
-            pixels = sample()
-            pixels.count { !isNear(it, Pit) } > 25
+        var previous = emptyList<Int>()
+        compose.awaitThat("actual native artwork is loaded and steady", { pixels.count { !isNear(it, Pit) } }) {
+            val next = sample()
+            val ink = next.count { !isNear(it, Pit) } > 25
+            val steady = previous.size == next.size && previous.isNotEmpty() &&
+                previous.indices.count { isNear(previous[it], Color(next[it])) } >= next.size * 0.98f
+            previous = next
+            pixels = next
+            ink && steady
         }
         return pixels
     }

@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
@@ -457,31 +458,54 @@ fun SessionDetailScreen(
     val adding = addingToExerciseId
     val addingExercise = session?.filledLifts()?.firstOrNull { it.exercise.id == adding }?.exercise
     LaunchedEffect(adding, addingSessionId, addingExercise?.id, session?.id, state.isLoading, state.failed) {
-        if (adding != null && !setSave.pending && !state.isLoading && !state.failed &&
-            (addingExercise == null || session?.id != addingSessionId)) {
+        // A missing row is not proof the lift was removed. Retry publishes a loading
+        // snapshot with no session before the row returns; clearing here would drop the
+        // open Add sheet and it would not come back.
+        if (!keepAddSelection(
+                adding = adding,
+                sessionId = session?.id,
+                addingSessionId = addingSessionId,
+                liftPresent = addingExercise != null,
+                loading = state.isLoading,
+                failed = state.failed,
+                savePending = setSave.pending,
+            )
+        ) {
             discardAddDraft()
         }
     }
     // A degraded read can retain the last session. Expose Retry while unavailable,
     // retaining the exact owner and its draft until a successful read confirms removal.
-    if (adding != null && session != null && session.id == addingSessionId && addingExercise != null &&
-        !state.isLoading && !state.failed) {
+    val openAdding = adding
+    val openSession = session
+    val openExercise = addingExercise
+    val addReadable = openAdding != null && openSession != null && openSession.id == addingSessionId &&
+        openExercise != null && !state.isLoading && !state.failed
+    val dismissEpoch = remember { intArrayOf(0) }
+    val addSheetHiddenForRead = remember { booleanArrayOf(false) }
+    if (!addReadable && openAdding != null) {
+        if (!addSheetHiddenForRead[0]) dismissEpoch[0] += 1
+        addSheetHiddenForRead[0] = true
+    }
+    if (addReadable && addSheetHiddenForRead[0]) addSheetHiddenForRead[0] = false
+    if (openAdding != null && openSession != null && openExercise != null && addReadable) {
         // A new set almost always continues the last one, so it opens on those numbers rather
         // than on zero — the same courtesy the live logger extends.
-        val previous = session.setsFor(adding).lastOrNull()
-        val name = session.exercises.firstOrNull { it.exercise.id == adding }?.exercise?.name
-            ?: session.sets.firstOrNull { it.exerciseId == adding }?.exerciseName
+        val previous = openSession.setsFor(openAdding).lastOrNull()
+        val name = openSession.exercises.firstOrNull { it.exercise.id == openAdding }?.exercise?.name
+            ?: openSession.sets.firstOrNull { it.exerciseId == openAdding }?.exerciseName
             ?: "Exercise"
-        addDrafts.SaveableStateProvider(key = addSetDraftKey(session.id, adding)) {
+        val openedAt = dismissEpoch[0]
+        addDrafts.SaveableStateProvider(key = addSetDraftKey(openSession.id, openAdding)) {
             CompositionLocalProvider(LocalFinishedSetForm provides viewModel.finishedSetForm,
             LocalFinishedSetDiscard provides { viewModel.discardHistoricalEditor {} },
             LocalFinishedSetReadAgain provides viewModel::retryHistoricalDraft) {
                 SetEditSheet(
-                exercise = addingExercise.copy(name = name),
+                exercise = openExercise.copy(name = name),
                 initial = null,
                 onSave = { weightKg, reps, rpe, isWarmup, _ ->
                     viewModel.saveAdditionalSet(
-                        exerciseId = adding,
+                        exerciseId = openAdding,
                         weightKg = weightKg,
                         reps = reps,
                         rpe = rpe,
@@ -490,12 +514,17 @@ fun SessionDetailScreen(
                 },
                 onDelete = null,
                 onDismiss = {
-                    if (setSave.pending && viewModel.finishedSetForm == null) viewModel.releaseSetSave(cancel = true) else viewModel.closeHistoricalEditor(discardAddDraft)
+                    // Removing the sheet because the session could not be read is not the
+                    // lifter closing it. A late dismiss from that removal must not drop the Add.
+                    if (dismissEpoch[0] == openedAt) {
+                        if (setSave.pending && viewModel.finishedSetForm == null) viewModel.releaseSetSave(cancel = true)
+                        else viewModel.closeHistoricalEditor(discardAddDraft)
+                    }
                 },
                 prefillWeightKg = previous?.weightKg ?: 0.0,
                 prefillReps = previous?.reps ?: DEFAULT_ADD_REPS,
-                loadClass = session.loadClassOf(adding),
-                plated = session.isBarbell(adding),
+                loadClass = openSession.loadClassOf(openAdding),
+                plated = openSession.isBarbell(openAdding),
                 saveState = setSave,
                 validationMessage = error,
                 onRetry = viewModel::retrySetSave,
@@ -642,3 +671,24 @@ private fun addSetDraftKey(sessionId: String, exerciseId: String): String =
     "${sessionId.length}:$sessionId:$exerciseId"
 
 private const val DEFAULT_ADD_REPS = 5
+
+/**
+ * Whether an open Add must stay selected.
+ *
+ * A successful session that no longer contains the lift is the only reason to drop it.
+ * Loading, a failed read, or a snapshot with no session yet are not that proof: Retry
+ * shows those on the way back to the same row, and dropping the Add there leaves the
+ * sheet unable to open again.
+ */
+internal fun keepAddSelection(
+    adding: String?,
+    sessionId: String?,
+    addingSessionId: String?,
+    liftPresent: Boolean,
+    loading: Boolean,
+    failed: Boolean,
+    savePending: Boolean,
+): Boolean {
+    if (adding == null || savePending || loading || failed || sessionId == null) return true
+    return sessionId == addingSessionId && liftPresent
+}

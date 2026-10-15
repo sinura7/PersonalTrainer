@@ -38,6 +38,7 @@ internal class FloorPrivateDrafts(
     private val onRestored: (WorkoutDraftRestore.ReadyEntry) -> Unit,
 ) {
     private val serial = Mutex()
+    private val latestLock = Any()
     private val requests = Channel<Unit>(Channel.CONFLATED)
     private var latest: WorkoutEntryCheckpoint? = null
     private var opening = false
@@ -50,14 +51,19 @@ internal class FloorPrivateDrafts(
     init {
         if (persistence != null) scope.launch {
             for (ignored in requests) {
-                serial.withLock {
-                    val entry = latest ?: return@withLock
-                    try {
-                        persistence.checkpoint(entry)
+                // Read the snapshot, then release the lock before the disk write. An exit
+                // flush uses the same lock; holding it across the write left that exit waiting
+                // until the background write finished, and under load it never did.
+                val entry = serial.withLock { synchronized(latestLock) { latest } } ?: continue
+                try {
+                    persistence.checkpoint(entry)
+                    serial.withLock {
                         if (_state.value.canEnter) _state.value = _state.value.copy(phase = WorkoutPrivatePhase.READY)
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    serial.withLock {
                         if (_state.value.canEnter) _state.value = _state.value.copy(phase = WorkoutPrivatePhase.PRESERVATION_FAILED)
                     }
                 }
@@ -95,10 +101,23 @@ internal class FloorPrivateDrafts(
     }
 
     fun stage(entry: WorkoutEntryCheckpoint) {
-        if (persistence == null || !_state.value.canEnter || entry.sessionId != sessionId) return
-        if (!persistence.ownsEntry(sessionId)) { ownershipLost(); return }
-        if (entry.authoredRevision < (latest?.authoredRevision ?: 0)) return
+        if (accept(entry)) nudge()
+    }
+
+    /**
+     * Remembers [entry] when it is the newest snapshot. The disk write is [nudge], so a caller
+     * that still holds the entry lock can publish the snapshot before the writer runs.
+     */
+    fun accept(entry: WorkoutEntryCheckpoint): Boolean = synchronized(latestLock) {
+        if (persistence == null || !_state.value.canEnter || entry.sessionId != sessionId) return false
+        if (!persistence.ownsEntry(sessionId)) { ownershipLost(); return false }
+        if (entry.authoredRevision < (latest?.authoredRevision ?: 0)) return false
         latest = entry
+        true
+    }
+
+    fun nudge() {
+        if (persistence == null) return
         requests.trySend(Unit)
     }
 
@@ -113,7 +132,7 @@ internal class FloorPrivateDrafts(
     /** Wait for restoration before the caller captures the fields it promises to keep. */
     suspend fun awaitOpened(): WorkoutPrivateState = recovery.first { it.phase != WorkoutPrivatePhase.OPENING }
     fun reopenAfterDiscard() {
-        latest = null
+        synchronized(latestLock) { latest = null }
         _state.value = WorkoutPrivateState(WorkoutPrivatePhase.CONFLICT)
         open()
     }
@@ -126,10 +145,11 @@ internal class FloorPrivateDrafts(
         val port = persistence ?: return true
         if (!port.ownsEntry(sessionId)) { ownershipLost(); return false }
         if (!_state.value.canEnter || entry.sessionId != sessionId) return false
-        stage(entry)
+        accept(entry)
         return serial.withLock {
+            val chosen = synchronized(latestLock) { latest }
             try {
-                port.checkpoint(checkNotNull(latest))
+                port.checkpoint(checkNotNull(chosen))
                 _state.value = _state.value.copy(phase = WorkoutPrivatePhase.READY)
                 true
             } catch (cancelled: CancellationException) {
