@@ -29,6 +29,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -137,7 +139,12 @@ fun BodyMapCard(
                             }
                         },
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            // SrcAtop clips to this canvas, not to the card behind it.
+                            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
+                    ) {
                         drawTemperFigure(
                             view = view,
                             fill = { plate ->

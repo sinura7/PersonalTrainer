@@ -4945,7 +4945,7 @@
       {
         "id": "P11",
         "title": "Body geometry and interaction",
-        "state": "Merged 9072b6cd; tree matches verified 1e887026 (2bdd68eb). Selection stroke clips to the still. P19 large-text leftovers and P20 physical remain",
+        "state": "Merged 9072b6cd; tree matches verified 1e887026 (2bdd68eb). Heat and selection clip inside an offscreen figure canvas. P19 large-text leftovers and P20 physical remain",
         "mergeSha": "9072b6cddedfa02d51893d9445af38807455a939",
         "verifiedInput": "1e887026ce5716df70fa15d43037e0d6bd85e1b6",
         "tree": "2bdd68eba0bc3f4ac0e957e1829725fd1cb66de8"
