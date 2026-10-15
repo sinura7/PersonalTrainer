@@ -3822,11 +3822,11 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX19",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "recordBodyweight replaces that civil day. The current figure stays the newest day.",
+        "automated": "PreferencesRoomHistoryTest.correctingAnOlderDayKeepsTheNewestAsCurrentAndDeleteRemovesOnlyThatDay and BodyweightLogTest.correctingADayReplacesThatDayAndDeleteRemovesOnlyIt.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P12"
         ],
@@ -3849,11 +3849,11 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX19",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Clear and Delete dialogs name the weight and the day. Dismiss leaves storage unchanged.",
+        "automated": "BodyweightPrefsSection confirm copy. Cancel paths do not call the repository.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P12"
         ],
@@ -3876,11 +3876,11 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX19",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Onboarding offers Skip this when bodyweight is empty. A workout start does not read a weigh-in.",
+        "automated": "OnboardingScreen skip label when bodyweightKg is null. No workout start path requires a weigh-in.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P12"
         ],
@@ -4953,7 +4953,7 @@
       {
         "id": "P12",
         "title": "Body measurements and interpretation",
-        "state": "Open"
+        "state": "Weigh-in day can be corrected or deleted; current figure is the newest day; clear asks first"
       },
       {
         "id": "P13",
