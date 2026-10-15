@@ -154,6 +154,7 @@ class PreferencesRepository(
     private val trainingBlockDao: TrainingBlockDao? = null,
     private val onBodyweightChanged: suspend () -> Unit = {},
     private val onBodyweightDeleted: suspend (BodyweightEntryEntity) -> Unit = {},
+    private val onBodyweightRecorded: suspend (BodyweightEntryEntity) -> Unit = {},
     private val onAccountPrefsChanged: suspend () -> Unit = {},
     private val nowMs: () -> Long = { System.currentTimeMillis() },
     private val store: SettingsStore = SettingsStore(dataStore),
@@ -559,6 +560,8 @@ class PreferencesRepository(
             }
             onBodyweightChanged()
         }
+        val recorded = bodyweightDao?.getAll()?.firstOrNull { it.epochDay == epochDay }
+        if (recorded != null) onBodyweightRecorded(recorded)
         dataStore.edit { prefs ->
             val log = if (bodyweightDao == null) {
                 BodyweightLog.record(
@@ -602,8 +605,28 @@ class PreferencesRepository(
                     if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
                 }
             }
-            if (removed != null) onBodyweightDeleted(removed)
-            onBodyweightChanged()
+        if (removed != null) onBodyweightDeleted(removed)
+        onBodyweightChanged()
+        }
+    }
+
+    /**
+     * A delete downloaded from another phone. Same lock as a delete on this phone,
+     * and a newer weigh-in already stored for that day is left alone.
+     */
+    suspend fun applyDownloadedBodyweightDelete(epochDay: Long, updatedAtMs: Long) {
+        bodyweightWrites.withLock {
+            val local = bodyweightDao?.getAll()?.firstOrNull { it.epochDay == epochDay }
+            if (local != null && local.recordedAtMs > updatedAtMs) return@withLock
+            bodyweightDao?.deleteDay(epochDay)
+            val remaining = bodyweightDao?.getAll()?.map { it.toDomain() } ?: emptyList()
+            dataStore.edit { prefs ->
+                prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(remaining)
+                if (prefs.contains(BODYWEIGHT_KG)) {
+                    val current = BodyweightLog.latest(remaining)?.kg
+                    if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
+                }
+            }
         }
     }
 

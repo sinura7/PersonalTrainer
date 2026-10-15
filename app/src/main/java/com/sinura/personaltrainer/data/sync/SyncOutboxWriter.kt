@@ -298,7 +298,14 @@ class SyncOutboxWriter(
     }
 
     suspend fun enqueueAllBodyweightEntries(userId: String, entries: List<BodyweightEntryEntity>) {
-        entries.forEach { enqueueBodyweightUpsert(userId, it) }
+        entries.forEach { entry ->
+            enqueue(
+                SyncEntityType.BODYWEIGHT_ENTRY,
+                syncBodyweightEntityId(entry.epochDay),
+                SyncOutboxOperation.UPSERT,
+                encodeSync(entry.toRemote(userId)),
+            )
+        }
     }
 
     suspend fun enqueueBodyweightDelete(userId: String, entry: BodyweightEntryEntity, deletedAtMs: Long) {

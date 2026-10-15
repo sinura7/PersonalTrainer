@@ -38,6 +38,7 @@ class SyncEngine(
     private val settingsStore: SettingsStore,
     private val remote: SyncRemotePort,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
+    private val onDownloadedBodyweightDelete: (suspend (epochDay: Long, updatedAtMs: Long) -> Unit)? = null,
 ) {
     suspend fun run(userId: String): Result<Unit> {
         var pushError: Exception? = null
@@ -504,6 +505,10 @@ class SyncEngine(
             return remote.updatedAtMs
         }
         if (remote.deletedAtMs != null) {
+            onDownloadedBodyweightDelete?.let { handler ->
+                handler(remote.epochDay, remote.updatedAtMs)
+                return remote.updatedAtMs
+            }
             val local = bodyweightDao.getAll().firstOrNull { it.epochDay == remote.epochDay }
             if (local != null && local.recordedAtMs > remote.updatedAtMs) return remote.updatedAtMs
             bodyweightDao.deleteDay(remote.epochDay)

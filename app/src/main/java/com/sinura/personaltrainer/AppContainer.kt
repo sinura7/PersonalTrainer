@@ -204,6 +204,7 @@ class AppContainer(context: Context) : AppDependencies {
         trainingBlockDao = database.trainingBlockDao(),
         onBodyweightChanged = syncAuthoringBridge::notifyBodyweightChanged,
         onBodyweightDeleted = syncAuthoringBridge::notifyBodyweightDeleted,
+        onBodyweightRecorded = syncAuthoringBridge::notifyBodyweightRecorded,
         onAccountPrefsChanged = syncAuthoringBridge::notifyAccountPrefsChanged,
     )
 
@@ -238,6 +239,7 @@ class AppContainer(context: Context) : AppDependencies {
             goalDao = database.goalDao(),
             settingsStore = preferencesRepository.accountSyncSettingsStore,
             remote = supabaseRuntime?.syncRemote ?: NoOpSyncRemote,
+            onDownloadedBodyweightDelete = preferencesRepository::applyDownloadedBodyweightDelete,
         ),
         scheduler = syncScheduler,
         authoring = syncAuthoring,
@@ -254,6 +256,10 @@ class AppContainer(context: Context) : AppDependencies {
 
         suspend fun notifyBodyweightDeleted(entry: BodyweightEntryEntity) {
             authoring?.onBodyweightDeleted(entry)
+        }
+
+        suspend fun notifyBodyweightRecorded(entry: BodyweightEntryEntity) {
+            authoring?.onBodyweightRecorded(entry)
         }
 
         suspend fun notifyAccountPrefsChanged() {

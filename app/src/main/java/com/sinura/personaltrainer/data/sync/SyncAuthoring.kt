@@ -145,6 +145,13 @@ class SyncAuthoring(
         requestSync()
     }
 
+    /** One day just written. Clears a tombstone on that day only. */
+    suspend fun onBodyweightRecorded(entry: BodyweightEntryEntity) {
+        val userId = auth.session.first()?.userId ?: return
+        outbox.enqueueBodyweightUpsert(userId, entry)
+        requestSync()
+    }
+
     suspend fun onGoalUpserted(goal: MeasurableGoalEntity) {
         val userId = auth.session.first()?.userId ?: return
         outbox.enqueueMeasurableGoalUpsert(userId, goal)
