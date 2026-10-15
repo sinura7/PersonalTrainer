@@ -5559,6 +5559,13 @@
         "gate": "JDK 17 daemon. testDebugUnitTest 4745 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 12m 52s. The test task ran. Debug APK com.sinura.personaltrainer.debug versionCode 127 versionName 1.0.0+debug.127. Release APK com.sinura.personaltrainer versionCode 1 versionName 1.0.0.",
         "independent": "APPROVE. Zero Critical, High, or Medium. debugLiveCode moves from 126 to 127. The gym-floor version code stays 1. The ledger says this packet is not published.",
         "adversarial": "APPROVE. Zero Critical, High, or Medium. The change is the debug counter and the ledger. No tag, no debug-live branch, and no APK upload are in this commit. The release package name and version code are unchanged."
+      },
+      "a4665bb8": {
+        "when": "2026-10-15",
+        "packet": "Past workout after a failed private cleanup",
+        "gate": "JDK 17 daemon. testDebugUnitTest 4746 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 11m 58s. Two earlier full runs failed one unrelated test each under load; those tests passed alone, and this run is the recorded gate.",
+        "independent": "APPROVE. Zero Critical or High. A new Past workout after a landed save starts empty, even when private cleanup failed. The saved session stays one row. The same visit still opens that session. Medium: the old private file is left in place; a new visit simply uses a fresh file.",
+        "adversarial": "APPROVE. Zero Critical or High. A second Past workout can save a different session without changing the first id, title, or count of the original row. An unsaved draft still comes back on the same visit. A save that never landed can still be saved once under the original id."
       }
     }
   }
