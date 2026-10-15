@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -81,7 +82,7 @@ class SettingsUnitsRenderTest {
         compose.onNodeWithText("Miles").performClick()
         compose.waitForIdle()
         runBlocking {
-            val stored = withTimeout(5_000) {
+            val stored = withTimeout(TestWaits.FLOW_MS) {
                 deps.preferencesRepository.storedDistanceUnit.first { it == DistanceUnit.MI }
             }
             assertEquals(DistanceUnit.MI, stored)
