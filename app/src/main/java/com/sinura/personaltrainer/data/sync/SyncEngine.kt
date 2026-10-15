@@ -123,7 +123,21 @@ class SyncEngine(
                                 val queued = decodeSync<RemoteBodyweightEntryRow>(payload)
                                 val stored = bodyweightDao.getAll().firstOrNull { it.epochDay == queued.epochDay }
                                 if (stored == null) {
-                                    remote.tombstone(type, payload)
+                                    val deleteAt = queued.deletedAtMs ?: queued.updatedAtMs
+                                    val server = currentBodyweightRemote(queued.epochDay)
+                                    val serverDelete = server?.deletedAtMs
+                                    if (server == null) {
+                                        remote.tombstone(type, payload)
+                                    } else if (serverDelete != null && serverDelete >= deleteAt) {
+                                        syncDao.deleteOutbox(row.id)
+                                        continue
+                                    } else if (server.deletedAtMs == null && server.updatedAtMs > deleteAt) {
+                                        adoptRemoteBodyweight(server)
+                                        syncDao.deleteOutbox(row.id)
+                                        continue
+                                    } else {
+                                        remote.tombstone(type, payload)
+                                    }
                                 } else {
                                     val sending = bodyweightUpsertPayload(encodeSync(stored.toRemote(queued.userId)))
                                     if (sending == null) {
