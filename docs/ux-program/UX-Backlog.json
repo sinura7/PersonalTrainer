@@ -5469,7 +5469,7 @@
       "notAcceptanceProgress": true,
       "packet": "codex/test-stability",
       "problem": "Full unit runs failed one or two tests that passed alone. Home skip, history delete, and session-detail Resume observed a result while the operation was still marked busy. Artwork sampling returned the first inky frame before the still had settled.",
-      "fix": "Publish blocked starts, saved-set exits, and repeat results only after the busy flag is clear. Notes stay locked during the repeat database call. The swap-recovery test waits until the restored draft is the screen value before asserting it. Artwork sampling waits until two frames agree, then keeps the 91 percent identity check."
+      "fix": "Publish blocked starts, saved-set exits, and repeat results only after the busy flag is clear. Notes stay locked during the repeat database call. The swap-recovery test waits until the restored draft is the screen value before asserting it. Artwork sampling waits until two frames agree, then keeps the 91 percent identity check. Flow waits are 60 seconds, the same kind of ceiling already documented for a loaded test machine."
     }
   }
 }
