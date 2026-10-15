@@ -22,6 +22,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -520,6 +521,11 @@ class PlanRoutineActionsRenderTest {
     }
 
     private fun reach(tag: String, unmerged: Boolean = false): SemanticsNodeInteraction {
+        // The list tag is in the unmerged tree a frame before it is merged. Scrolling
+        // in that frame looks for plan-content and misses it.
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag(PlanTags.CONTENT, useUnmergedTree = unmerged).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag(PlanTags.CONTENT, useUnmergedTree = unmerged).performScrollToNode(hasTestTag(tag))
         return compose.onNodeWithTag(tag, useUnmergedTree = unmerged).performScrollTo()
     }

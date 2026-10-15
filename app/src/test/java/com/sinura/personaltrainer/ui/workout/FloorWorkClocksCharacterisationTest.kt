@@ -191,7 +191,12 @@ class FloorWorkClocksCharacterisationTest {
 
         val revived = viewModel(handle)
 
-        assertTrue("the set clock comes back running", revived.setStopwatch.value.running)
+        // The clock is restored when the session read arrives, which is after this
+        // ViewModel returns. Reading .value here races that read.
+        assertTrue(
+            "the set clock comes back running",
+            revived.setStopwatch.awaitFirst { it.running }.running,
+        )
         assertFalse("and the rest it overlaps is stopped", deps.restTimerStore.current().running)
         revived.ready()
         assertFalse("and stays stopped", deps.restTimerStore.current().running)

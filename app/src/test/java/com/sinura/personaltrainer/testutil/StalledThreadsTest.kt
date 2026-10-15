@@ -50,7 +50,9 @@ class StalledThreadsTest {
         assertTrue(dump, dump.contains("threads that could be holding this up"))
         // The state is the whole point — parked-and-idle and parked-and-stuck look identical
         // without it.
-        assertTrue(dump, Regex("\"room-txn-test\" [A-Z_]+").containsMatchIn(dump))
+        // A busy transaction thread is renamed to "room-txn-test @coroutine#N" for the
+        // coroutine running on it. The idle name is only the pool name. Both must show a state.
+        assertTrue(dump, Regex("\"room-txn-test(?: @coroutine#\\d+)?\" [A-Z_]+").containsMatchIn(dump))
     }
 
     @Test
