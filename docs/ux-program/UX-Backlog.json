@@ -5429,13 +5429,27 @@
       }
     ],
     "milestoneA": {
-      "state": "Preparing version packet; not published",
+      "state": "Verified version packet; publication pending owner-signed route",
       "plannedDebugVersionCode": 126,
       "latestVerifiedPublishedCode": 125,
       "integratedBase": "eea668ce5105a5f4c4058b2d4aad35991416a174",
+      "versionPacketHead": "158f492b552e839c7f5ee1cd27e1ef464980d7ff",
       "plannerObservation": "Fresh planner fetched tags on14Oct2026:125 not above shipped125; recommends126; debug-live/2026-10-14 free.",
       "publicationRule": "Rerun the planner after version integration. The observed suffix is not a reservation. Publish exact merge SHA and independently verify downloaded APK identity/signature.",
-      "phoneAcceptance": "Unobserved; owner testing begins after planned development."
+      "phoneAcceptance": "Unobserved; owner testing begins after planned development.",
+      "dropAGate2026-10-15": {
+        "fresh": true,
+        "host": "Cursor cloud Linux; JDK 17 (Temurin-equivalent OpenJDK 17; matches CI)",
+        "linuxGateEquivalent": "tools/preflight.sh then ./gradlew testDebugUnitTest assembleDebug lintDebug (DEVELOPMENT.md Windows dev-windows.ps1 equivalent)",
+        "preflight": "PASS — full preflight including 1715 standalone/domain lane",
+        "testDebugUnitTest": "PASS — 4700 tests, 0 failures, 0 errors (XML aggregate after org.gradle.parallel=false run)",
+        "assembleDebug": "PASS — includes unsigned release via assembleRelease dependency",
+        "lintDebug": "PASS",
+        "compileDebugAndroidTestKotlin": "PASS",
+        "connectedDebugAndroidTest": "NOT RUN — API 29 emulator remained adb offline after KVM fix; host device-lane limitation, not a product skip",
+        "intermittentNote": "Two earlier full-suite attempts on this host reported 1–2 JVM failures under default Gradle parallelism; trunk reproduces the same HomeReadRecoveryTest failure in isolation on first attempt; third low-parallelism run is the recorded pass.",
+        "reviews": "Independent and adversarial Drop A reviews: zero Critical/High/Medium; approve version-only packet."
+      }
     }
   }
 }
