@@ -156,6 +156,7 @@ class PreferencesRepository(
     private val onBodyweightChanged: suspend () -> Unit = {},
     private val onBodyweightDeleted: suspend (BodyweightEntryEntity) -> Unit = {},
     private val onBodyweightRecorded: suspend (BodyweightEntryEntity) -> Unit = {},
+    private val onBodyweightRestored: suspend (Long) -> Unit = {},
     private val onAccountPrefsChanged: suspend () -> Unit = {},
     private val nowMs: () -> Long = { System.currentTimeMillis() },
     private val store: SettingsStore = SettingsStore(dataStore),
@@ -407,9 +408,9 @@ class PreferencesRepository(
             if (log.isNotEmpty()) {
                 dao.upsertAll(log.map { it.toEntity(nowMs()) })
             }
-            // The wipe above can run after a snapshot of the pre-restore days was queued.
-            // Queue again from the days now stored, or that snapshot is what gets uploaded.
-            onBodyweightChanged()
+            // A restore is a new decision. The publish time has to replace a delete that
+            // already synced, and a snapshot queued before these rows were written.
+            onBodyweightRestored(nowMs())
         }
         trainingBlockDao?.let { dao ->
             dao.deleteAll()

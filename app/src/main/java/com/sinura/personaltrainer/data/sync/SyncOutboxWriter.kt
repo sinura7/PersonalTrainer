@@ -308,6 +308,30 @@ class SyncOutboxWriter(
         }
     }
 
+    /**
+     * A restore is a new decision to keep these days, even when the weigh-in itself
+     * is older than a delete that already synced. The publish time is that decision.
+     * Pending deletes for those days are replaced.
+     */
+    suspend fun enqueueRestoredBodyweight(
+        userId: String,
+        entries: List<BodyweightEntryEntity>,
+        publishedAtMs: Long,
+    ) {
+        entries.forEach { entry ->
+            val row = entry.toRemote(userId).copy(
+                updatedAtMs = maxOf(entry.recordedAtMs, publishedAtMs),
+                deletedAtMs = null,
+            )
+            enqueue(
+                SyncEntityType.BODYWEIGHT_ENTRY,
+                syncBodyweightEntityId(entry.epochDay),
+                SyncOutboxOperation.UPSERT,
+                encodeSyncKeepingNulls(row),
+            )
+        }
+    }
+
     suspend fun enqueueBodyweightDelete(userId: String, entry: BodyweightEntryEntity, deletedAtMs: Long) {
         enqueue(
             SyncEntityType.BODYWEIGHT_ENTRY,

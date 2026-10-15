@@ -139,6 +139,12 @@ class SyncAuthoring(
         requestSync()
     }
 
+    suspend fun onBodyweightRestored(publishedAtMs: Long) {
+        val userId = auth.session.first()?.userId ?: return
+        outbox.enqueueRestoredBodyweight(userId, bodyweightDao.getAll(), publishedAtMs)
+        requestSync()
+    }
+
     suspend fun onBodyweightDeleted(entry: BodyweightEntryEntity) {
         val userId = auth.session.first()?.userId ?: return
         outbox.enqueueBodyweightDelete(userId, entry, deletedAtMs = nowMillis())

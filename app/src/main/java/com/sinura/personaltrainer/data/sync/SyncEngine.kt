@@ -120,11 +120,17 @@ class SyncEngine(
                         }
                         SyncOutboxOperation.DELETE -> {
                             if (type == SyncEntityType.BODYWEIGHT_ENTRY) {
-                                val restored = bodyweightDeleteReplacedByStoredDay(payload)
-                                if (restored != null) {
-                                    remote.upsert(type, restored)
-                                } else {
+                                val queued = decodeSync<RemoteBodyweightEntryRow>(payload)
+                                val stored = bodyweightDao.getAll().firstOrNull { it.epochDay == queued.epochDay }
+                                if (stored == null) {
                                     remote.tombstone(type, payload)
+                                } else {
+                                    val sending = bodyweightUpsertPayload(encodeSync(stored.toRemote(queued.userId)))
+                                    if (sending == null) {
+                                        syncDao.deleteOutbox(row.id)
+                                        continue
+                                    }
+                                    remote.upsert(type, sending)
                                 }
                             } else {
                                 remote.tombstone(type, payload)
@@ -242,25 +248,26 @@ class SyncEngine(
                 queued.copy(updatedAtMs = deletedAtMs, deletedAtMs = deletedAtMs),
             )
         }
+        // A restore queues a publish time later than the original weigh-in, so the
+        // decision is not stuck on the old recorded clock.
+        val publishAt = maxOf(stored.recordedAtMs, queued.updatedAtMs)
         val deletedAtMs = server?.deletedAtMs
-        if (deletedAtMs != null &&
-            !SyncRevision.recordedWeighInBeatsDelete(stored.recordedAtMs, deletedAtMs)
-        ) {
+        if (deletedAtMs != null && !SyncRevision.recordedWeighInBeatsDelete(publishAt, deletedAtMs)) {
             applyBodyweightDeleteNow(queued.epochDay, deletedAtMs)
             return null
         }
-        if (server != null && deletedAtMs == null && server.updatedAtMs > stored.recordedAtMs) {
+        if (server != null && deletedAtMs == null && server.updatedAtMs > publishAt) {
             adoptRemoteBodyweight(server)
             return null
         }
-        return encodeSyncKeepingNulls(stored.toRemote(queued.userId))
-    }
-
-    /** A delete queued before a restore must not erase the day that restore put back. */
-    private suspend fun bodyweightDeleteReplacedByStoredDay(payload: String): String? {
-        val queued = decodeSync<RemoteBodyweightEntryRow>(payload)
-        val stored = bodyweightDao.getAll().firstOrNull { it.epochDay == queued.epochDay } ?: return null
-        return encodeSyncKeepingNulls(stored.toRemote(queued.userId))
+        val updatedAtMs = if (server == null || publishAt > server.updatedAtMs) {
+            publishAt
+        } else {
+            server.updatedAtMs + 1L
+        }
+        return encodeSyncKeepingNulls(
+            stored.toRemote(queued.userId).copy(updatedAtMs = updatedAtMs, deletedAtMs = null),
+        )
     }
 
     private suspend fun currentBodyweightRemote(epochDay: Long): RemoteBodyweightEntryRow? =

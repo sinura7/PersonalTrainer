@@ -856,4 +856,76 @@ class SyncEngineTest {
         assertEquals(82.0, kept.kg, 0.001)
         assertEquals(200L, kept.recordedAtMs)
     }
+
+    @Test
+    fun aRestoredDayBeatsADeleteThatAlreadySynced() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 80.0, recordedAtMs = 1_000L),
+        )
+        val restored = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 80.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 4_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "restored-monday",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.UPSERT.name,
+                payloadJson = encodeSyncKeepingNulls(restored),
+                createdAtMs = 4_000L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(restored.copy(updatedAtMs = 2_000L, deletedAtMs = 2_000L)),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"updated_at_ms\":4000"))
+        assertTrue(sent.contains("\"deleted_at_ms\":null"))
+        assertEquals(80.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun anOlderPublishDoesNotResurrectANewerCloudDelete() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 80.0, recordedAtMs = 1_000L),
+        )
+        val queued = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 80.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 1_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "old-monday",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.UPSERT.name,
+                payloadJson = encodeSync(queued),
+                createdAtMs = 1_000L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(queued.copy(updatedAtMs = 3_000L, deletedAtMs = 3_000L)),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+    }
 }

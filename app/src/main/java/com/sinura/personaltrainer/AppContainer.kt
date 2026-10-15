@@ -205,6 +205,7 @@ class AppContainer(context: Context) : AppDependencies {
         onBodyweightChanged = syncAuthoringBridge::notifyBodyweightChanged,
         onBodyweightDeleted = syncAuthoringBridge::notifyBodyweightDeleted,
         onBodyweightRecorded = syncAuthoringBridge::notifyBodyweightRecorded,
+        onBodyweightRestored = syncAuthoringBridge::notifyBodyweightRestored,
         onAccountPrefsChanged = syncAuthoringBridge::notifyAccountPrefsChanged,
     )
 
@@ -260,6 +261,10 @@ class AppContainer(context: Context) : AppDependencies {
 
         suspend fun notifyBodyweightRecorded(entry: BodyweightEntryEntity) {
             authoring?.onBodyweightRecorded(entry)
+        }
+
+        suspend fun notifyBodyweightRestored(publishedAtMs: Long) {
+            authoring?.onBodyweightRestored(publishedAtMs)
         }
 
         suspend fun notifyAccountPrefsChanged() {
