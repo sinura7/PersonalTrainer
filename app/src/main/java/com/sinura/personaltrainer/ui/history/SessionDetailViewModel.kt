@@ -369,11 +369,7 @@ class SessionDetailViewModel internal constructor(
                     pendingNotesExit = null
                     when (intent) {
                         NotesExitIntent.Back -> _notesExitRequested.value = true
-                        NotesExitIntent.Repeat -> {
-                            // Resume reads this flag. Clear it before the blocked result is published.
-                            notesExitPending.value = false
-                            repeatAfterNotes()
-                        }
+                        NotesExitIntent.Repeat -> repeatAfterNotes()
                         is NotesExitIntent.Resume -> {
                             notesExitPending.value = false
                             _navigateToSession.value = intent.sessionId
@@ -687,8 +683,14 @@ class SessionDetailViewModel internal constructor(
 
     private suspend fun repeatAfterNotes() {
         if (!mutating.compareAndSet(false, true)) return
-        val outcome = runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
-        mutating.set(false)
+        val outcome = try {
+            runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
+        } finally {
+            mutating.set(false)
+        }
+        // Notes stay locked for the database call. Resume reads this flag, so it
+        // drops in the same step that publishes the blocked or started result.
+        notesExitPending.value = false
         outcome.onSuccess { result ->
             when (result) {
                 is RepeatOutcome.Started -> _navigateToSession.value = result.sessionId
