@@ -111,6 +111,50 @@ class ActivityComposerViewModelTest {
     }
 
     @Test
+    fun backdatedMixedKeepsTheChosenDayAndTheRowOrder() = runBlocking {
+        val squat = seedLift()
+        val benchSaved = deps.exerciseRepository.createCustom("Bench", "Chest")
+        check(benchSaved is com.sinura.personaltrainer.data.repository.SaveExerciseResult.Saved)
+        val bench = benchSaved.exercise
+        val handle = SavedStateHandle(mapOf("mode" to "mixed"))
+        val first = composer(handle)
+        first.setEpochDay(20_000L)
+        first.addStrength(squat, 100.0, 5)
+        first.addStrength(bench, 60.0, 8)
+        first.addCardio(CardioType.RIDE, 20, 4.0, true)
+        first.addCardio(CardioType.RUN, 10, null, false)
+        first.clearAndJoinForTest()
+
+        viewModel = composer(handle)
+        val state = viewModel!!.uiState.awaitFirst { it.strength.size == 2 && it.cardio.size == 2 }
+        assertEquals(20_000L, state.epochDay)
+        assertEquals(listOf(squat.id, bench.id), state.strength.map { it.exercise.id })
+        assertEquals(100.0, state.strength[0].weightKg, 0.0)
+        assertEquals(5, state.strength[0].reps)
+        assertEquals(60.0, state.strength[1].weightKg, 0.0)
+        assertEquals(8, state.strength[1].reps)
+        assertEquals(listOf(CardioType.RIDE, CardioType.RUN), state.cardio.map { it.type })
+        assertEquals(20, state.cardio[0].minutes)
+        assertTrue(state.cardio[0].indoor)
+        assertEquals(4.0, state.cardio[0].distanceKm!!, 0.0)
+        assertEquals(10, state.cardio[1].minutes)
+        assertFalse(state.cardio[1].indoor)
+        assertEquals(null, state.cardio[1].distanceKm)
+
+        viewModel!!.save()
+        val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
+        val session = deps.activityRepository.get(id)!!
+        assertEquals(ActivityOrigin.BACKDATED, session.origin)
+        assertEquals(20_000L, session.localEpochDay)
+        assertEquals(listOf(squat.id, bench.id), session.strengthBlocks.map { it.exerciseId })
+        assertEquals(listOf(0, 1), session.strengthBlocks.map { it.sortOrder })
+        assertEquals(listOf(CardioType.RIDE, CardioType.RUN), session.cardioBlocks.map { it.type })
+        assertEquals(listOf(2, 3), session.cardioBlocks.map { it.sortOrder })
+        assertEquals(null, deps.activityRepository.getLive())
+        assertEquals(null, deps.cardioTimerPersistence.load())
+    }
+
+    @Test
     fun backdatedStrengthWritesAnActivityWithSetsAndNoFutureDate() = runBlocking {
         val exercise = seedLift()
         viewModel = composer("strength")

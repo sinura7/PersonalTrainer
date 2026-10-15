@@ -2096,10 +2096,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX02",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "StartOptionsSheetMixedRowTest.manualLoggingDoesNotStartATimerAndDismissWritesNothing: closing the sheet and tapping Past workout, Cardio, and Mixed session write no session and start no timer.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P05",
           "P14"
@@ -2664,10 +2664,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "ActivityComposerViewModelTest.backdatedMixedKeepsTheChosenDayAndTheRowOrder: two lifts and two cardio rows survive recreation in order, and the saved day is the chosen day.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P02",
           "P14"
@@ -4963,7 +4963,7 @@
       {
         "id": "P14",
         "title": "Backdated and mixed activities",
-        "state": "Open"
+        "state": "A backdated mixed entry keeps the chosen day and the row order. Past workout, typed cardio, and mixed on the start sheet do not start a timer or write a session. Closing the sheet writes nothing. P19 and P20 remain."
       },
       {
         "id": "P15",
@@ -5523,6 +5523,13 @@
         "gate": "JDK 17 daemon. testDebugUnitTest 4734 tests, 0 failures, 0 ignored, duration 10m49s, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 13m36s. An earlier attempt used a JDK 21 daemon from the machine Gradle settings and was discarded.",
         "independent": "APPROVE. Zero Critical or High. System Back on a finished session calls the same leave as the on-screen Back button. A running session still opens the leave dialog and does not leave.",
         "adversarial": "APPROVE. Zero Critical or High. System Back does not open Leave cardio or Discard on a finished session, and does not delete the finished workout. A running session still asks."
+      },
+      "54f505d0": {
+        "when": "2026-10-15",
+        "packet": "P14 backdated and mixed",
+        "gate": "JDK 17 daemon. testDebugUnitTest 4736 tests, 0 failures, 0 ignored, duration 9m59s, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 11m48s.",
+        "independent": "APPROVE. Zero Critical or High. The mixed draft keeps the chosen day, order, and values, and the save stores that day. Past workout, Cardio, and Mixed session write no session and start no timer. Medium: the sheet check does not also look at the strength-workout store.",
+        "adversarial": "APPROVE. Zero Critical or High. The chosen day is what is saved, row order matches the two lists on the screen, and the manual rows do not start the live clock. Medium: a private staged draft can replace a newer saved-state draft if the process dies inside the short keep delay; these tests do not hit that path."
       }
     }
   }
