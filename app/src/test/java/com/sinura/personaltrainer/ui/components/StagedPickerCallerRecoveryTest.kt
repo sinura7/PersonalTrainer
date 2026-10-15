@@ -287,9 +287,11 @@ class StagedPickerCallerRecoveryTest {
         reopened.pickerRecovery.leave { reopened.setPickerVisible(false) }
         reopened.uiState.awaitFirst { !it.showPicker }
         reopened.pickerRecovery.view.closeVisit()
-        reopened.selectDay(Weekday.THURSDAY); reopened.setPickerVisible(true); picker(reopened.pickerRecovery)
+        reopened.selectDay(Weekday.THURSDAY)
+        val thursday = reopened.uiState.awaitFirst { it.selectedDay == Weekday.THURSDAY }
+        reopened.setPickerVisible(true); picker(reopened.pickerRecovery)
         assertEquals("", reopened.pickerRecovery.view.fields.value.query)
-        assertTrue(reopened.uiState.value.selectedLifts.isEmpty())
+        assertTrue(thursday.selectedLifts.isEmpty())
         assertFalse(reopened.finished.value)
     }
 

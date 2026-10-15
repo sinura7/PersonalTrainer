@@ -341,8 +341,11 @@ class NotesTruthMatrixRenderTest {
     }
 
     private fun clearAndConfirm(state: () -> NotesSaveState, flush: () -> Unit, prefix: String) {
+        heldWrite = CompletableDeferred()
         readable(node = noteField(), whole = false).performTextReplacement("")
         releaseEditorFocus(prefix)
+        heldWrite?.complete(Unit)
+        heldWrite = null
         flush()
         compose.awaitThat("$prefix confirmed clear", state) { state().status == NotesSaveStatus.SAVED && state().cleared && !state().busy }
         readable(node = compose.onNodeWithTag(NotesTestTags.STATUS)).assertTextContains("Notes cleared")

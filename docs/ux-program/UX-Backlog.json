@@ -5468,8 +5468,8 @@
       "kind": "test infrastructure",
       "notAcceptanceProgress": true,
       "packet": "codex/test-stability",
-      "problem": "Full unit runs failed one or two tests that passed alone. Home skip, history delete, and session-detail Resume observed a result while the operation was still marked busy. Artwork sampling returned the first inky frame before the still had settled.",
-      "fix": "History delete and session-detail Resume publish their result only after the busy flag is clear. Notes stay locked during the repeat database call. Home Skip waits until the blocked start has finished before it is required to succeed. The swap-recovery test waits until the restored draft is the screen value. Artwork sampling waits until two frames agree, then keeps the 91 percent identity check."
+      "problem": "A full unit run on JDK 21 aborted when the C2 compiler crashed while compiling Room, so Gradle counted only the tests that had finished (4512 of about 4709) and exited 134. Separate from that, some tests saw a result while the operation was still marked busy, or read a screen value before the cached screen state had published the new day or the restored draft.",
+      "fix": "Unit tests exclude C2 compilation of Room's prepare method so a JDK 21 compiler crash cannot abort the process. History repeat, history delete, and session-detail Resume publish their result only after the busy flag is clear. Notes stay locked during the repeat database call. Home Skip waits until the blocked start has finished. The week test waits for the new day before reading that day's lifts. The swap-recovery test waits for the restored draft. Clearing notes holds the write across focus release. Artwork sampling waits until two frames agree, then keeps the 91 percent identity check."
     }
   }
 }
