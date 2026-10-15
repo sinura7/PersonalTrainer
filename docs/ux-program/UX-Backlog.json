@@ -4958,7 +4958,7 @@
       {
         "id": "P13",
         "title": "Live cardio",
-        "state": "A finished session says it is in History. A missing session says it is not on this phone. Finish, leave running, discard, and the clock that keeps running were already in place."
+        "state": "A finished session says it is in History. System Back on that screen leaves immediately, the same as the Back button. A session that is still running still asks. Finish, leave running, discard, and the clock that keeps running were already in place."
       },
       {
         "id": "P14",
@@ -5516,6 +5516,13 @@
         "gate": "testDebugUnitTest 4732 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, JDK 17, default parallelism, on 1b2acce7. BUILD SUCCESSFUL.",
         "independent": "APPROVE. Zero Critical or High. Medium: the phone Back gesture on a finished session still opens the leave-running dialog. The Back button on the screen leaves. Confirming discard from that dialog does not delete the finished workout.",
         "adversarial": "APPROVE. Zero Critical or High. Same Medium on the phone Back gesture. A failed read, a real discard, and a failed discard keep their own messages, and Finish is not offered on a finished or missing session."
+      },
+      "182f0d0f": {
+        "when": "2026-10-15",
+        "packet": "Finished cardio system Back",
+        "gate": "JDK 17 daemon. testDebugUnitTest 4734 tests, 0 failures, 0 ignored, duration 10m49s, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 13m36s. An earlier attempt used a JDK 21 daemon from the machine Gradle settings and was discarded.",
+        "independent": "APPROVE. Zero Critical or High. System Back on a finished session calls the same leave as the on-screen Back button. A running session still opens the leave dialog and does not leave.",
+        "adversarial": "APPROVE. Zero Critical or High. System Back does not open Leave cardio or Discard on a finished session, and does not delete the finished workout. A running session still asks."
       }
     }
   }
