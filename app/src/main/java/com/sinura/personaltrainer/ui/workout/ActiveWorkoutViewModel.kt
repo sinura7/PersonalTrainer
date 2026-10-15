@@ -436,6 +436,23 @@ class ActiveWorkoutViewModel internal constructor(
     private val liftReadiness = MutableStateFlow(LiftEntryReadiness.NONE)
     private val suggestionUnavailable = MutableStateFlow(false)
     private val draftDirty = MutableStateFlow(false)
+    /**
+     * The live entry and the snapshot written for an exit share this lock.
+     * A fill that resumes off the main thread must not read "nobody has typed" and then
+     * store 0 kg over a weight that was typed while that fill was still reading.
+     */
+    private val entryWrites = Any()
+
+    /**
+     * Test seam. Production leaves it null. A test uses it to type a weight after this fill
+     * has decided the entry looks untouched and before that decision is applied.
+     */
+    @VisibleForTesting
+    internal var beforeUntouchedSeed: (() -> Unit)? = null
+
+    /** Fires after that same decision has been applied or refused. Production leaves it null. */
+    @VisibleForTesting
+    internal var afterUntouchedSeed: (() -> Unit)? = null
     private var prefillGeneration = 0
     private val wantAnotherSet = MutableStateFlow(false)
     private val tempoTipDismissed = MutableStateFlow(false)
@@ -1104,29 +1121,42 @@ class ActiveWorkoutViewModel internal constructor(
             restTotal.update { plan ->
                 if (plan.chosenFor == exerciseId) plan else PlannedRest(seconds = seededRest, chosenFor = null)
             }
-            if (keepDraft || draftDirty.value || saves.pending) {
-                liftReadiness.value = LiftEntryReadiness.READY
-                suggestionUnavailable.value = false
-                persistDraft()
-                hintStamp.value = HintStamp(exerciseId = exerciseId, generation = generation, settings = settings)
-                return
+            // The reads above resume off the main thread. Checking "untouched" and then writing
+            // the seed on that same continuation let a typed weight land in the gap and come
+            // back as 0 kg, while the reps and effort typed beside it were kept.
+            val pausingForTypedWeight = !(keepDraft || draftDirty.value || saves.pending)
+            if (pausingForTypedWeight) beforeUntouchedSeed?.invoke()
+            val nudge = synchronized(entryWrites) {
+                if (!isCurrentPrefill(exerciseId, generation)) return@synchronized false
+                if (keepDraft || draftDirty.value || saves.pending) {
+                    liftReadiness.value = LiftEntryReadiness.READY
+                    suggestionUnavailable.value = false
+                    val wrote = writeDraftLocked()
+                    hintStamp.value = HintStamp(exerciseId = exerciseId, generation = generation, settings = settings)
+                    wrote
+                } else {
+                    val lastWeight = progression?.suggestedWeightKg
+                        ?: planned?.targetWeightKg
+                        ?: 0.0
+                    draft.value = ActiveExerciseDraft(
+                        weightKg = lastWeight,
+                        reps = if (hold) 0 else targetReps.coerceAtLeast(1),
+                        rpe = null,
+                        isWarmup = false,
+                        durationSeconds = if (hold) HoldWork.countdownSeconds(planned?.targetSeconds) else null,
+                    )
+                    liftReadiness.value = LiftEntryReadiness.READY
+                    suggestionUnavailable.value = false
+                    val wrote = writeDraftLocked()
+                    // Stamped at the end of the load, not at the hint: a re-read that ran while this load
+                    // still read would follow into an entry this load then overwrites with the older hint.
+                    hintStamp.value = HintStamp(exerciseId = exerciseId, generation = generation, settings = settings)
+                    wrote
+                }
             }
-            val lastWeight = progression?.suggestedWeightKg
-                ?: planned?.targetWeightKg
-                ?: 0.0
-            draft.value = ActiveExerciseDraft(
-                weightKg = lastWeight,
-                reps = if (hold) 0 else targetReps.coerceAtLeast(1),
-                rpe = null,
-                isWarmup = false,
-                durationSeconds = if (hold) HoldWork.countdownSeconds(planned?.targetSeconds) else null,
-            )
-            liftReadiness.value = LiftEntryReadiness.READY
-            suggestionUnavailable.value = false
-            persistDraft()
-            // Stamped at the end of the load, not at the hint: a re-read that ran while this load
-            // still read would follow into an entry this load then overwrites with the older hint.
-            hintStamp.value = HintStamp(exerciseId = exerciseId, generation = generation, settings = settings)
+            if (nudge) privateDrafts.nudge()
+            if (pausingForTypedWeight) afterUntouchedSeed?.invoke()
+            return
         } catch (thrown: CancellationException) {
             throw thrown
         } catch (thrown: Exception) {
@@ -1135,20 +1165,26 @@ class ActiveWorkoutViewModel internal constructor(
             val livePlanned = session.value?.exercises
                 ?.firstOrNull { it.exercise.id == exerciseId }
                 ?: planned
-            if (!saves.pending && !draftDirty.value && (!keepDraft || draft.value.weightKg <= 0.0)) {
-                draft.value = ActiveExerciseDraft(
-                    weightKg = livePlanned?.targetWeightKg ?: 0.0,
-                    reps = if (hold) 0 else targetReps.coerceAtLeast(1),
-                    rpe = null,
-                    isWarmup = false,
-                    durationSeconds = if (hold) {
-                        HoldWork.countdownSeconds(livePlanned?.targetSeconds)
-                    } else {
-                        null
-                    },
-                )
-                persistDraft()
+            val nudge = synchronized(entryWrites) {
+                if (!isCurrentPrefill(exerciseId, generation)) return@synchronized false
+                if (!saves.pending && !draftDirty.value && (!keepDraft || draft.value.weightKg <= 0.0)) {
+                    draft.value = ActiveExerciseDraft(
+                        weightKg = livePlanned?.targetWeightKg ?: 0.0,
+                        reps = if (hold) 0 else targetReps.coerceAtLeast(1),
+                        rpe = null,
+                        isWarmup = false,
+                        durationSeconds = if (hold) {
+                            HoldWork.countdownSeconds(livePlanned?.targetSeconds)
+                        } else {
+                            null
+                        },
+                    )
+                    writeDraftLocked()
+                } else {
+                    false
+                }
             }
+            if (nudge) privateDrafts.nudge()
             liftReadiness.value = LiftEntryReadiness.DEGRADED
             suggestionUnavailable.value = true
         }
@@ -1178,11 +1214,14 @@ class ActiveWorkoutViewModel internal constructor(
      * until the next read of the hint: the next change, or the lift opened again.
      */
     private fun followSuggestion(exerciseId: String) {
-        val suggested = hint.value?.suggestedWeightKg ?: return
-        if (!entryFollowsSuggestion(exerciseId)) return
-        if (draft.value.weightKg == suggested) return
-        draft.value = draft.value.copy(weightKg = suggested)
-        persistDraft()
+        val nudge = synchronized(entryWrites) {
+            val suggested = hint.value?.suggestedWeightKg ?: return@synchronized false
+            if (!entryFollowsSuggestion(exerciseId)) return@synchronized false
+            if (draft.value.weightKg == suggested) return@synchronized false
+            draft.value = draft.value.copy(weightKg = suggested)
+            writeDraftLocked()
+        }
+        if (nudge) privateDrafts.nudge()
     }
 
     /**
@@ -1324,9 +1363,10 @@ class ActiveWorkoutViewModel internal constructor(
     fun setWeight(weightKg: Double) {
         if (!canChangeEntry()) return
         if (!weightKg.isFinite()) return
-        draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
-        markDraftDirty()
-        persistDraft()
+        editEntry {
+            draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
+            markDraftDirty()
+        }
     }
 
     /**
@@ -1341,19 +1381,21 @@ class ActiveWorkoutViewModel internal constructor(
      */
     fun setReps(reps: Int) {
         if (!canChangeEntry()) return
-        draft.value = draft.value.copy(reps = reps.coerceAtLeast(1))
-        markDraftDirty()
-        persistDraft()
+        editEntry {
+            draft.value = draft.value.copy(reps = reps.coerceAtLeast(1))
+            markDraftDirty()
+        }
     }
 
     fun setHoldSeconds(seconds: Int) {
         if (!canChangeEntry()) return
-        draft.value = draft.value.copy(
-            durationSeconds = HoldWork.countdownSeconds(seconds),
-            reps = 0,
-        )
-        markDraftDirty()
-        persistDraft()
+        editEntry {
+            draft.value = draft.value.copy(
+                durationSeconds = HoldWork.countdownSeconds(seconds),
+                reps = 0,
+            )
+            markDraftDirty()
+        }
     }
 
     /**
@@ -1418,24 +1460,26 @@ class ActiveWorkoutViewModel internal constructor(
     fun setRpe(rpe: Int?) {
         if (!canChangeEntry()) return
         if (draft.value.isWarmup) return
-        val current = draft.value
-        draft.value = current.copy(rpe = rpe)
+        editEntry {
+            val current = draft.value
+            draft.value = current.copy(rpe = rpe)
+        }
         // An effort does not make the entry "typed" (P2a, 29 September 2026). Every working
         // set now carries one, so counting it would stop every entry after a logged set from
         // following a unit switch or a lighter week (W2e), and a follow moves only the weight,
         // which an effort says nothing about. The effort itself is cleared by the log.
-        persistDraft()
     }
 
     fun setWarmup(isWarmup: Boolean) {
         if (!canChangeEntry()) return
-        val current = draft.value
-        draft.value = current.copy(
-            isWarmup = isWarmup,
-            rpe = if (isWarmup) null else current.rpe,
-        )
-        markDraftDirty()
-        persistDraft()
+        editEntry {
+            val current = draft.value
+            draft.value = current.copy(
+                isWarmup = isWarmup,
+                rpe = if (isWarmup) null else current.rpe,
+            )
+            markDraftDirty()
+        }
     }
 
     /**
@@ -1446,13 +1490,14 @@ class ActiveWorkoutViewModel internal constructor(
     fun applyWarmupRamp(weightKg: Double) {
         if (!canChangeEntry()) return
         if (!weightKg.isFinite() || weightKg <= 0.0) return
-        draft.value = draft.value.copy(
-            weightKg = weightKg,
-            isWarmup = true,
-            rpe = null,
-        )
-        markDraftDirty()
-        persistDraft()
+        editEntry {
+            draft.value = draft.value.copy(
+                weightKg = weightKg,
+                isWarmup = true,
+                rpe = null,
+            )
+            markDraftDirty()
+        }
     }
 
     fun setNotes(value: String) {
@@ -1460,10 +1505,15 @@ class ActiveWorkoutViewModel internal constructor(
         if (!privateDrafts.recovery.value.canEnter || terminalExit || _exitRequested.value != null || mutating.value || finished.value ||
             sessionReader.observations.value.session?.isFinished == true
         ) return
-        draftCache.editLiveNotes(sessionId) {
-            sessionNotes.edit(value)
-            persistDraft()
+        val nudge = synchronized(entryWrites) {
+            var wrote = false
+            draftCache.editLiveNotes(sessionId) {
+                sessionNotes.edit(value)
+                wrote = writeDraftLocked()
+            }
+            wrote
         }
+        if (nudge) privateDrafts.nudge()
         // The database write is not launched here. See FloorSessionNotes.writeOnTypingPause, launched in init.
     }
 
@@ -2399,12 +2449,13 @@ class ActiveWorkoutViewModel internal constructor(
     fun applyLastTimeSet(weightKg: Double, reps: Int) {
         if (!canChangeEntry()) return
         if (!weightKg.isFinite()) return
-        draft.value = draft.value.copy(
-            weightKg = weightKg.coerceAtLeast(0.0),
-            reps = reps.coerceAtLeast(1),
-        )
-        markDraftDirty()
-        persistDraft()
+        editEntry {
+            draft.value = draft.value.copy(
+                weightKg = weightKg.coerceAtLeast(0.0),
+                reps = reps.coerceAtLeast(1),
+            )
+            markDraftDirty()
+        }
     }
 
     /**
@@ -2448,13 +2499,14 @@ class ActiveWorkoutViewModel internal constructor(
         val liftId = current?.resolveSelectedExerciseId(selectedExerciseId.value)
         val lift = current?.exercises?.firstOrNull { it.exercise.id == liftId }
         if (lift != null && HoldWork.isHold(lift.exercise)) return
-        draft.value = draft.value.copy(
-            weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
-            reps = rec.nextReps.coerceAtLeast(1),
-            rpe = rec.nextRpe,
-        )
-        markDraftDirty()
-        persistDraft()
+        editEntry {
+            draft.value = draft.value.copy(
+                weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
+                reps = rec.nextReps.coerceAtLeast(1),
+                rpe = rec.nextRpe,
+            )
+            markDraftDirty()
+        }
     }
 
     /**
@@ -2662,8 +2714,10 @@ class ActiveWorkoutViewModel internal constructor(
                     return@launch
                 }
                 sessionReader.observations.value.session?.let { sessionNotes.sessionRead(it.notes) }
-                persistDraft()
-                val checkpoint = privateCheckpoint()
+                val (nudge, checkpoint) = synchronized(entryWrites) {
+                    writeDraftLocked() to privateCheckpoint()
+                }
+                if (nudge) privateDrafts.nudge()
                 val preserved = durability == null || checkpoint != null && privateDrafts.flush(checkpoint)
                 if (preserved && (leaveWithDraft || sessionNotes.writeNow())) _exitRequested.value = WorkoutExit.Kept
                 else _notesExitBlocked.value = true
@@ -2753,12 +2807,15 @@ class ActiveWorkoutViewModel internal constructor(
         )
     }
 
-    private fun stagePrivateEntry() {
-        if (durability == null || !privateDrafts.recovery.value.canEnter) return
+    /** Caller holds [entryWrites]. Returns whether the writer should be kicked after the lock. */
+    private fun stagePrivateEntry(): Boolean {
+        if (durability == null || !privateDrafts.recovery.value.canEnter) return false
         authoredRevision = Math.addExact(authoredRevision, 1L)
         privateSavedState["workout.private.authorship.v1"] = authoredRevision
         draftCache.rememberAuthoredRevision(sessionId, authoredRevision)
-        privateCheckpoint()?.let(privateDrafts::stage)
+        val checkpoint = privateCheckpoint() ?: return false
+        privateDrafts.accept(checkpoint)
+        return true
     }
 
     internal fun keepPrivateEntry(): Boolean {
@@ -2791,11 +2848,27 @@ class ActiveWorkoutViewModel internal constructor(
         }
     }
 
+    private fun editEntry(mutate: () -> Unit) {
+        val nudge = synchronized(entryWrites) {
+            mutate()
+            writeDraftLocked()
+        }
+        if (nudge) privateDrafts.nudge()
+    }
+
     private fun persistDraft() {
-        if (sessionId.isBlank() || terminalExit || finished.value || session.value?.isFinished == true) return
-        if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return }
+        val nudge = synchronized(entryWrites) { writeDraftLocked() }
+        if (nudge) privateDrafts.nudge()
+    }
+
+    /** Caller holds [entryWrites]. Weight, reps and effort are copied from one entry object. */
+    private fun writeDraftLocked(): Boolean {
+        if (sessionId.isBlank() || terminalExit || finished.value || session.value?.isFinished == true) return false
+        if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return false }
         val exerciseId = selectedExerciseId.value
-        val canSeed = draftDirty.value ||
+        val fields = draft.value
+        val dirty = draftDirty.value
+        val canSeed = dirty ||
             liftReadiness.value.allowsCommit() ||
             editingSetId.value != null ||
             (exerciseId != null && draftCache.getLift(sessionId, exerciseId) != null)
@@ -2811,19 +2884,18 @@ class ActiveWorkoutViewModel internal constructor(
                 notes = sessionNotes.text.value,
                 editingSetId = editingSetId.value,
             )
-            stagePrivateEntry()
-            return
+            return stagePrivateEntry()
         }
         val current = WorkoutDraft(
             sessionId = sessionId,
             exerciseId = exerciseId,
-            weightKg = draft.value.weightKg,
-            reps = draft.value.reps,
-            rpe = draft.value.rpe,
-            isWarmup = draft.value.isWarmup,
+            weightKg = fields.weightKg,
+            reps = fields.reps,
+            rpe = fields.rpe,
+            isWarmup = fields.isWarmup,
             notes = sessionNotes.text.value,
-            durationSeconds = draft.value.durationSeconds,
-            dirty = draftDirty.value,
+            durationSeconds = fields.durationSeconds,
+            dirty = dirty,
             extraSetRequested = wantAnotherSet.value,
         )
         // The entry, and with it the session's notes (WorkoutDraftCache.sessionNotes).
@@ -2832,7 +2904,7 @@ class ActiveWorkoutViewModel internal constructor(
         // process being killed while the phone sits in a pocket. Packet C upserts this
         // lift without dropping the others.
         savedDraft.write(current, editingSetId.value)
-        stagePrivateEntry()
+        return stagePrivateEntry()
     }
 
     private data class WorkoutCore(
