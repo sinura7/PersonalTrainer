@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -78,6 +79,9 @@ internal class FloorPrivateDrafts(
                         is WorkoutDraftRestore.ReadyEntry -> {
                             onRestored(result.copy(replaceLocal = replaceLocal))
                             openedOnce = true
+                            // Let the screen state publish the restored draft before READY.
+                            // Otherwise a waiter sees READY and reads the previous screen value.
+                            yield()
                             _state.value = WorkoutPrivateState(WorkoutPrivatePhase.READY, result.resumed)
                         }
                         is WorkoutDraftRestore.OwnerConflict -> _state.value = WorkoutPrivateState(WorkoutPrivatePhase.CONFLICT)

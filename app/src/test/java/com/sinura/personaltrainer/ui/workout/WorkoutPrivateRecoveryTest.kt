@@ -247,6 +247,9 @@ class WorkoutPrivateRecoveryTest {
         vm.requestNotesExit(); vm.exitRequested.awaitFirst { it == WorkoutExit.Kept }
         forget(vm)
         val reopened = active(); ready(reopened)
+        reopened.uiState.awaitFirst {
+            it.selectedExerciseId == replacement.id && it.draft.weightKg == 42.5 && it.draft.reps == 12
+        }
         assertEquals(replacement.id, reopened.uiState.value.selectedExerciseId)
         assertEquals(42.5, reopened.uiState.value.draft.weightKg, 0.0)
         assertTrue(reopened.numberEntry.entries.value.isEmpty())
