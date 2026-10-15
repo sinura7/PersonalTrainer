@@ -122,6 +122,18 @@ class BodyweightLogTest {
     }
 
     @Test
+    fun correctingADayReplacesThatDayAndDeleteRemovesOnlyIt() {
+        val older = entry(20_000, 78.0)
+        val newer = entry(20_010, 80.0)
+        val corrected = BodyweightLog.record(listOf(older, newer), entry(20_000, 79.0))
+        assertEquals(79.0, corrected.first { it.epochDay == 20_000L }.kg, 0.0)
+        assertEquals(80.0, BodyweightLog.latest(corrected)!!.kg, 0.0)
+        val removed = BodyweightLog.remove(corrected, 20_000L)
+        assertEquals(listOf(20_010L), removed.map { it.epochDay })
+        assertEquals(corrected, BodyweightLog.remove(corrected, 9L))
+    }
+
+    @Test
     fun halfAKiloIsWaterNotATrend() {
         assertTrue(BodyweightChange(fromKg = 78.0, toKg = 78.3).isFlat)
         assertTrue(!BodyweightChange(fromKg = 78.0, toKg = 81.0).isFlat)

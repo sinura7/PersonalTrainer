@@ -552,16 +552,39 @@ class PreferencesRepository(
             onBodyweightChanged()
         }
         dataStore.edit { prefs ->
-            prefs[BODYWEIGHT_KG] = clean
-            if (bodyweightDao == null) {
-                prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(
-                    BodyweightLog.record(
-                        BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
-                        BodyweightEntry(epochDay = epochDay, kg = clean),
-                    ),
+            val log = if (bodyweightDao == null) {
+                BodyweightLog.record(
+                    BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
+                    BodyweightEntry(epochDay = epochDay, kg = clean),
                 )
+            } else {
+                null
             }
+            if (log != null) prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(log)
+            val current = bodyweightDao?.getAll()?.maxByOrNull { it.epochDay }?.kg
+                ?: log?.let { BodyweightLog.latest(it)?.kg }
+                ?: clean
+            prefs[BODYWEIGHT_KG] = current
         }
+    }
+
+    /**
+     * Remove one weigh-in day. The current figure becomes the newest day still stored,
+     * or clears when the history is empty.
+     */
+    suspend fun deleteBodyweightDay(epochDay: Long) {
+        bodyweightDao?.deleteDay(epochDay)
+        val remaining = bodyweightDao?.getAll()?.map { it.toDomain() }
+        dataStore.edit { prefs ->
+            val log = remaining ?: BodyweightLog.remove(
+                BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
+                epochDay,
+            )
+            if (bodyweightDao == null) prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(log)
+            val current = BodyweightLog.latest(log)?.kg
+            if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
+        }
+        onBodyweightChanged()
     }
 
     suspend fun setBodyweightKg(kg: Double?) {

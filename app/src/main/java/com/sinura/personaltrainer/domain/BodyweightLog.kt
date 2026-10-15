@@ -89,6 +89,10 @@ object BodyweightLog {
             .sortedBy { it.epochDay }
             .takeLast(MAX_ENTRIES)
 
+    /** Drop one civil day. Cancelling a delete never calls this. */
+    fun remove(existing: List<BodyweightEntry>, epochDay: Long): List<BodyweightEntry> =
+        existing.filterNot { it.epochDay == epochDay }
+
     fun latest(entries: List<BodyweightEntry>): BodyweightEntry? = entries.maxByOrNull { it.epochDay }
 
     /**

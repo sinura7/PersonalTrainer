@@ -316,6 +316,9 @@ fun SettingsScreen(
                     onRecordBodyweight = viewModel::recordBodyweight,
                     onClearBodyweight = viewModel::clearBodyweight,
                     onCheckInDay = viewModel::setBodyweightCheckInWeekday,
+                    history = prefs.bodyweightLog,
+                    onCorrectDay = viewModel::correctBodyweight,
+                    onDeleteDay = viewModel::deleteBodyweightDay,
                 )
             }
             SettingsPage.SAVE_POSTURE -> SettingsSubpage(

@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.backup.BackupEnvelope
+import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.DataHealth
@@ -65,6 +66,7 @@ data class SettingsUiState(
     val restTimer: RestTimerPreferences = RestTimerPreferences.DEFAULT,
     val coach: CoachPreferences = CoachPreferences.DEFAULT,
     val bodyweightKg: Double? = null,
+    val bodyweightLog: List<BodyweightEntry> = emptyList(),
     val preferredDays: Set<Weekday> = emptySet(),
     val bodyweightCheckInWeekday: Weekday? = null,
     val trainingAge: TrainingAge = TrainingAge.NEW,
@@ -74,6 +76,13 @@ data class SettingsUiState(
      * while the policy would take the best-effort path. Never says the fallback is reliable.
      */
     val offerExactAlarmAccess: Boolean = false,
+)
+
+private data class SettingsBodyExtras(
+    val offerExactAlarm: Boolean,
+    val trainingAge: TrainingAge,
+    val trainingPlace: TrainingPlace?,
+    val bodyweightLog: List<BodyweightEntry>,
 )
 
 /**
@@ -128,8 +137,14 @@ class SettingsViewModel @JvmOverloads constructor(
                 container.restTimerController.exactAlarmAttempt,
                 container.preferencesRepository.trainingAge,
                 container.preferencesRepository.trainingPlace,
-            ) { eligible, attempt, age, place ->
-                Triple(eligible && attempt == ExactAlarmAttempt.BEST_EFFORT, age, place)
+                container.preferencesRepository.bodyweightLog,
+            ) { eligible, attempt, age, place, log ->
+                SettingsBodyExtras(
+                    offerExactAlarm = eligible && attempt == ExactAlarmAttempt.BEST_EFFORT,
+                    trainingAge = age,
+                    trainingPlace = place,
+                    bodyweightLog = log,
+                )
             },
         ) { coach, bodyweight, days, checkIn, extra ->
             SettingsUiState(
@@ -137,9 +152,10 @@ class SettingsViewModel @JvmOverloads constructor(
                 bodyweightKg = bodyweight,
                 preferredDays = days,
                 bodyweightCheckInWeekday = checkIn,
-                offerExactAlarmAccess = extra.first,
-                trainingAge = extra.second,
-                trainingPlace = extra.third,
+                offerExactAlarmAccess = extra.offerExactAlarm,
+                trainingAge = extra.trainingAge,
+                trainingPlace = extra.trainingPlace,
+                bodyweightLog = extra.bodyweightLog,
             )
         },
     ) { first, second ->
@@ -151,6 +167,7 @@ class SettingsViewModel @JvmOverloads constructor(
             offerExactAlarmAccess = second.offerExactAlarmAccess,
             trainingAge = second.trainingAge,
             trainingPlace = second.trainingPlace,
+            bodyweightLog = second.bodyweightLog,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -495,6 +512,21 @@ class SettingsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             runCatchingCancellable { container.preferencesRepository.setBodyweightKg(null) }
                 .onFailure { AppLog.w(TAG, "Clearing bodyweight failed", it) }
+        }
+    }
+
+    /** Replace the weigh-in on one civil day. The current figure stays the newest day. */
+    fun correctBodyweight(epochDay: Long, kg: Double) {
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.recordBodyweight(kg, epochDay) }
+                .onFailure { AppLog.w(TAG, "Correcting a weigh-in failed", it) }
+        }
+    }
+
+    fun deleteBodyweightDay(epochDay: Long) {
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.deleteBodyweightDay(epochDay) }
+                .onFailure { AppLog.w(TAG, "Deleting a weigh-in failed", it) }
         }
     }
 

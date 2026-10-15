@@ -16,11 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
+import com.sinura.personaltrainer.domain.BodyweightEntry
+import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -42,8 +45,15 @@ internal fun BodyweightPrefsSection(
     onRecordBodyweight: (Double) -> Unit,
     onClearBodyweight: () -> Unit,
     onCheckInDay: (Weekday?) -> Unit,
+    history: List<BodyweightEntry> = emptyList(),
+    onCorrectDay: (Long, Double) -> Unit = { _, _ -> },
+    onDeleteDay: (Long) -> Unit = {},
 ) {
     var weighingIn by rememberSaveable { mutableStateOf(false) }
+    var confirmClear by rememberSaveable { mutableStateOf(false) }
+    var editingDay by rememberSaveable { mutableStateOf(-1L) }
+    var deletingDay by rememberSaveable { mutableStateOf(-1L) }
+    val currentLabel = bodyweightKg?.toWeightLabel(unit) ?: "Not set"
     if (weighingIn) {
         NumberEntryDialog(
             title = "Bodyweight",
@@ -59,6 +69,54 @@ internal fun BodyweightPrefsSection(
                 onRecordBodyweight(it)
             },
             onDismiss = { weighingIn = false },
+        )
+    }
+    if (editingDay >= 0L) {
+        val day = editingDay
+        val existing = history.firstOrNull { it.epochDay == day }
+        NumberEntryDialog(
+            title = "Weigh-in on ${dateLabel(day)}",
+            unitLabel = unit.suffix,
+            initial = existing
+                ?.let { WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(it.kg, unit)) }
+                .orEmpty(),
+            decimal = true,
+            helper = "Replaces only ${dateLabel(day)}. Other days stay as they are.",
+            parse = { NumericEntry.parseWeightKg(it, unit) },
+            onConfirm = {
+                editingDay = -1L
+                onCorrectDay(day, it)
+            },
+            onDismiss = { editingDay = -1L },
+        )
+    }
+    if (confirmClear && bodyweightKg != null) {
+        GymDialog(
+            title = "Clear current bodyweight?",
+            body = "This clears $currentLabel as the current figure. Weigh-in history stays until you delete a day.",
+            confirmLabel = "Clear $currentLabel",
+            destructive = true,
+            onConfirm = {
+                confirmClear = false
+                onClearBodyweight()
+            },
+            onDismiss = { confirmClear = false },
+        )
+    }
+    if (deletingDay >= 0L) {
+        val day = deletingDay
+        val existing = history.firstOrNull { it.epochDay == day }
+        val weight = existing?.kg?.toWeightLabel(unit) ?: "that weigh-in"
+        GymDialog(
+            title = "Delete ${dateLabel(day)}?",
+            body = "This deletes the $weight weigh-in on ${dateLabel(day)}. Cancel leaves it unchanged.",
+            confirmLabel = "Delete $weight",
+            destructive = true,
+            onConfirm = {
+                deletingDay = -1L
+                onDeleteDay(day)
+            },
+            onDismiss = { deletingDay = -1L },
         )
     }
     val autoDay = BodyweightCheckIn.dueWeekday(
@@ -88,13 +146,13 @@ internal fun BodyweightPrefsSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    bodyweightKg?.toWeightLabel(unit) ?: "Not set",
+                    currentLabel,
                     style = InstrumentType.numeralSm,
                     color = if (bodyweightKg != null) TextPrimary else TextTertiary,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                     if (bodyweightKg != null) {
-                        TextButton(onClick = onClearBodyweight) {
+                        TextButton(onClick = { confirmClear = true }) {
                             Text("Clear", style = InstrumentType.bodyStrong, color = TextSecondary)
                         }
                     }
@@ -122,5 +180,36 @@ internal fun BodyweightPrefsSection(
                 onSelect = { onCheckInDay(checkInChoices[it]) },
             )
         }
+        if (history.isNotEmpty()) {
+            Kicker("History")
+            history.sortedByDescending { it.epochDay }.take(8).forEach { entry ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("bodyweight-day-${entry.epochDay}"),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "${dateLabel(entry.epochDay)} · ${entry.kg.toWeightLabel(unit)}",
+                        style = InstrumentType.body,
+                        color = TextPrimary,
+                    )
+                    Row {
+                        TextButton(onClick = { editingDay = entry.epochDay }) {
+                            Text("Correct", color = Volt, style = InstrumentType.bodyStrong)
+                        }
+                        TextButton(onClick = { deletingDay = entry.epochDay }) {
+                            Text("Delete", color = TextSecondary, style = InstrumentType.bodyStrong)
+                        }
+                    }
+                }
+            }
+        }
     }
+}
+
+private fun dateLabel(epochDay: Long): String {
+    val date = CivilDate.fromEpochDay(epochDay)
+    return "%04d-%02d-%02d".format(date.year, date.month, date.day)
 }
