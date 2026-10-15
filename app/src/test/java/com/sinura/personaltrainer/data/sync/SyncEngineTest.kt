@@ -2,6 +2,8 @@ package com.sinura.personaltrainer.data.sync
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.flow.first
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.repository.prefs.SettingsStore
@@ -479,6 +481,41 @@ class SyncEngineTest {
         remote.seed(SyncEntityType.BODYWEIGHT_ENTRY, encodeSync(remoteRow))
         assertTrue(engine.run("user-1").isSuccess)
         assertEquals(79.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun pullDeleteDropsTheDayAndTheEncodedEchoButNotANewerLocalWeighIn() = runTest {
+        database.bodyweightDao().upsert(
+            com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity(
+                epochDay = 20_000L,
+                kg = 80.0,
+                recordedAtMs = 500L,
+            ),
+        )
+        settingsStore.data.edit { prefs ->
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG] =
+                com.sinura.personaltrainer.domain.BodyweightLog.encode(
+                    listOf(com.sinura.personaltrainer.domain.BodyweightEntry(20_000L, 80.0, 500L)),
+                )
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG] = 80.0
+        }
+        val stale = RemoteBodyweightEntryRow(
+            epochDay = 20_000L, userId = "user-1", kg = 80.0, recordedAtMs = 100L,
+            zoneId = "UTC", offsetSeconds = 0, updatedAtMs = 100L, deletedAtMs = 100L,
+        )
+        remote.seed(SyncEntityType.BODYWEIGHT_ENTRY, encodeSync(stale))
+        assertTrue(engine.run("user-1").isSuccess)
+        assertEquals(80.0, database.bodyweightDao().getAll().single().kg, 0.001)
+        val tombstone = stale.copy(updatedAtMs = 900L, deletedAtMs = 900L)
+        remote.seed(SyncEntityType.BODYWEIGHT_ENTRY, encodeSync(tombstone))
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+        val prefs = settingsStore.safePreferences.first()
+        assertEquals(
+            "",
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG].orEmpty(),
+        )
+        assertNull(prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG])
     }
 
     @Test

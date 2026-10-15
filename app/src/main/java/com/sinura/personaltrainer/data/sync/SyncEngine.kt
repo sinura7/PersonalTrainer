@@ -3,7 +3,9 @@ package com.sinura.personaltrainer.data.sync
 import android.database.sqlite.SQLiteConstraintException
 import androidx.datastore.preferences.core.edit
 import com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG
-import kotlinx.coroutines.flow.first
+import com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG
+import com.sinura.personaltrainer.domain.BodyweightEntry
+import com.sinura.personaltrainer.domain.BodyweightLog
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.data.local.dao.CatalogDao
@@ -502,13 +504,17 @@ class SyncEngine(
             return remote.updatedAtMs
         }
         if (remote.deletedAtMs != null) {
+            val local = bodyweightDao.getAll().firstOrNull { it.epochDay == remote.epochDay }
+            if (local != null && local.recordedAtMs > remote.updatedAtMs) return remote.updatedAtMs
             bodyweightDao.deleteDay(remote.epochDay)
-            if (settingsStore.safePreferences.first().contains(BODYWEIGHT_KG)) {
-                val latest = bodyweightDao.getAll().maxByOrNull { it.epochDay }?.kg
-                settingsStore.data.edit { prefs ->
-                    if (prefs.contains(BODYWEIGHT_KG)) {
-                        if (latest == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = latest
-                    }
+            val remaining = bodyweightDao.getAll().map { row ->
+                BodyweightEntry(row.epochDay, row.kg, row.recordedAtMs, row.zoneId, row.offsetSeconds)
+            }
+            settingsStore.data.edit { prefs ->
+                prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(remaining)
+                if (prefs.contains(BODYWEIGHT_KG)) {
+                    val current = BodyweightLog.latest(remaining)?.kg
+                    if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
                 }
             }
             return remote.updatedAtMs
