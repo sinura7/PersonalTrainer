@@ -160,6 +160,9 @@ internal val PAST_BLOCKS = stringPreferencesKey("past_blocks")
 
 internal val DISMISSED_COLLISIONS = stringSetPreferencesKey("library_collision_dismissed_ids")
 internal val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
+
+/** The setup visit that already tapped Use this plan. A second tap of that visit writes nothing. */
+internal val ACCEPTED_PLAN_ID = stringPreferencesKey("accepted_plan_id")
 internal val SAVE_POSTURE = stringPreferencesKey("save_posture")
 internal val SAVE_POSTURE_CHOSEN = booleanPreferencesKey("save_posture_chosen")
 internal val FOUNDATION_GENERATION = stringPreferencesKey("foundation_generation")

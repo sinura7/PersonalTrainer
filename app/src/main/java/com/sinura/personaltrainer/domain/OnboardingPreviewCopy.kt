@@ -38,6 +38,11 @@ object OnboardingPreviewCopy {
     const val FOOTER =
         "Rest days stay rest days. Swap a lift, or change sets and reps, any time after you accept."
 
+    /** Shown above Use this plan when the phone already has routines. */
+    const val EXISTING_PROGRAM =
+        "You already have routines. These will be added alongside them, not replace them. " +
+            "History stays, and accepting starts a new twelve-week block."
+
     const val FULL_WEEK_TITLE = "No rest day this week."
     const val FULL_WEEK_BODY =
         "Seven training days is allowed. Rest is a choice, not a cap."

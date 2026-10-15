@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
+import java.util.UUID
 import kotlinx.coroutines.flow.first
 
 private const val TAG = "PT/Onboarding"
@@ -73,8 +74,32 @@ class OnboardingApplier(
         weekStart: Weekday,
         today: LocalDate,
         keepCurrentBlock: Boolean = false,
+        acceptanceId: String? = null,
     ): ApplyPlanResult {
         val clean = answers.sanitized()
+        // Generate a week is a different door. It may add routines inside the current block
+        // even after setup has already accepted a plan.
+        val visitId = acceptanceId?.takeUnless { keepCurrentBlock }
+        if (visitId != null && preferencesRepository.acceptedPlanId() == visitId) {
+            preferencesRepository.setOnboardingComplete(true)
+            return ApplyPlanResult.Applied(
+                routineCount = blueprint.routines.size,
+                pinnedDays = blueprint.days.count { it.routineKey != null },
+            )
+        }
+        if (visitId != null && blueprint.routines.isNotEmpty()) {
+            val already = blueprint.routines.map { routine ->
+                routineRepository.getById(stableRoutineId(visitId, routine.key))
+            }
+            if (already.all { it != null }) {
+                preferencesRepository.setAcceptedPlanId(visitId)
+                preferencesRepository.setOnboardingComplete(true)
+                return ApplyPlanResult.Applied(
+                    routineCount = already.size,
+                    pinnedDays = blueprint.days.count { it.routineKey != null },
+                )
+            }
+        }
         val createdIds = LinkedHashMap<String, String>()
         return runCatchingCancellable {
             // Preferences first. If anything below fails the lifter still gets an app that
@@ -120,8 +145,9 @@ class OnboardingApplier(
             }
 
             val byId = catalog.associateBy { it.id }
-            val pinned = writeGeneratedProgram(blueprint, byId, createdIds)
+            val pinned = writeGeneratedProgram(blueprint, byId, createdIds, visitId)
             preferencesRepository.setOnboardingComplete(true)
+            if (visitId != null) preferencesRepository.setAcceptedPlanId(visitId)
             ApplyPlanResult.Applied(routineCount = createdIds.size, pinnedDays = pinned)
         }.getOrElse { thrown ->
             AppLog.e(TAG, "Applying the generated plan failed", thrown)
@@ -133,8 +159,10 @@ class OnboardingApplier(
     private suspend fun createRoutine(
         routine: BlueprintRoutine,
         byId: Map<String, Exercise>,
+        id: String? = null,
     ): String {
-        val created = routineRepository.create(name = routine.name)
+        if (id != null) routineRepository.getById(id)?.let { return it.id }
+        val created = routineRepository.create(name = routine.name, id = id ?: UUID.randomUUID().toString())
         routine.lifts.forEach { lift ->
             // A lift the catalog no longer has is skipped rather than fatal. The blueprint was
             // built from this same catalog moments ago, so it should not happen — but a routine
@@ -153,6 +181,10 @@ class OnboardingApplier(
         return created.id
     }
 
+    /** Same visit and same routine key always name the same stored routine. */
+    private fun stableRoutineId(acceptanceId: String, routineKey: String): String =
+        UUID.nameUUIDFromBytes("$acceptanceId:$routineKey".toByteArray(Charsets.UTF_8)).toString()
+
     /**
      * Then the week. Anchored to the weekday rather than to a date, because a slot is
      * "Tuesday is an upper day" and not "the 14th was" — that is what lets the week
@@ -162,10 +194,12 @@ class OnboardingApplier(
         blueprint: PlanBlueprint,
         byId: Map<String, Exercise>,
         createdIds: MutableMap<String, String>,
+        acceptanceId: String? = null,
     ): Int = database.withTransaction {
         createdIds.clear()
         blueprint.routines.forEach { routine ->
-            createdIds[routine.key] = createRoutine(routine, byId)
+            val id = acceptanceId?.let { stableRoutineId(it, routine.key) }
+            createdIds[routine.key] = createRoutine(routine, byId, id)
         }
         if (failAfterRoutines) error("test: fail after routine creates")
         var pinned = 0

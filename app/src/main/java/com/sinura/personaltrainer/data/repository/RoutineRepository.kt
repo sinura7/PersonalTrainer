@@ -183,10 +183,11 @@ class RoutineRepository(
         return prepared.id
     }
 
-    suspend fun create(name: String, notes: String = ""): Routine {
+    suspend fun create(name: String, notes: String = "", id: String = UUID.randomUUID().toString()): Routine {
+        getById(id)?.let { return it }
         val now = System.currentTimeMillis()
         val routine = Routine(
-            id = UUID.randomUUID().toString(),
+            id = id,
             name = name.trim().ifBlank { "Untitled routine" },
             notes = notes.trim(),
             createdAt = now,

@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import java.util.UUID
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/OnboardingVM"
@@ -354,9 +355,9 @@ class OnboardingViewModel @JvmOverloads constructor(
     /**
      * Writes the plan.
      *
-     * The only method here that touches the database, and it is idempotent by accident rather
-     * than design — so it is guarded, because a double tap on "Use this plan" would otherwise
-     * build the program twice.
+     * The only method here that touches the database. A second tap on this visit does not
+     * add another week: the visit id is stable, and the applier refuses that id once it
+     * has landed. A later setup visit gets a new id and may add a week.
      */
     fun applyPlan() {
         val started = error.mark()
@@ -370,6 +371,7 @@ class OnboardingViewModel @JvmOverloads constructor(
                 catalog = catalog.value,
                 weekStart = weekStart.value,
                 today = civilToday().toLocalDate(),
+                acceptanceId = acceptanceId,
             )
             applying.value = false
             when (result) {
@@ -400,6 +402,9 @@ class OnboardingViewModel @JvmOverloads constructor(
     }
 
     /** Mirror the step and the answers so a recreated process reopens where setup left off. */
+    private val acceptanceId: String = savedStateHandle.get<String>(KEY_ACCEPTANCE)
+        ?: UUID.randomUUID().toString().also { savedStateHandle[KEY_ACCEPTANCE] = it }
+
     private fun rememberDraft() {
         savedStateHandle[KEY_STEP] = step.value.name
         savedStateHandle[KEY_ANSWERS] = OnboardingAnswers.encodeDraft(answers.value)
@@ -422,6 +427,7 @@ class OnboardingViewModel @JvmOverloads constructor(
         const val KEY_STEP = "onboarding.step"
         const val KEY_ANSWERS = "onboarding.answers"
         const val KEY_WEIGHT_UNIT = "onboarding.weightUnit"
+        const val KEY_ACCEPTANCE = "onboarding.acceptanceId"
     }
 
     /**

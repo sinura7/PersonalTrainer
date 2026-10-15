@@ -528,7 +528,7 @@ private fun PreviewStep(
                 // with weeks of history pointing at their routines must not lose them to a
                 // second run.
                 Text(
-                    "You already have routines. These will be added alongside them, not replace them.",
+                    OnboardingPreviewCopy.EXISTING_PROGRAM,
                     style = InstrumentType.caption,
                     color = TextTertiary,
                 )

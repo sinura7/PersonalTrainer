@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingEmphasis
+import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.Weekday
@@ -31,6 +32,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -369,6 +371,175 @@ class OnboardingApplierTest {
         assertEquals(TrainingEmphasis.UPPER, preferences.coachPreferences.first().emphasis)
         assertEquals(80.0, preferences.bodyweightKg.first()!!, 0.001)
         assertEquals(setOf(Weekday.WEDNESDAY), preferences.preferredDays.first())
+    }
+
+    @Test
+    fun theSameAcceptanceDoesNotAddASecondProgram() = runBlocking {
+        val input = answers(days = 3, bodyweight = 80.0)
+        val blueprint = RoutineGenerator.generate(input, catalog)
+        val first = applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-1",
+        ) as ApplyPlanResult.Applied
+        val routineCount = routines.count()
+        val slotCount = schedule.slots().size
+        val block = preferences.trainingBlock.first()
+        val weighIns = preferences.bodyweightLog.first().size
+        assertTrue(routineCount > 0)
+        assertEquals(first.pinnedDays, slotCount)
+
+        val second = applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-1",
+        ) as ApplyPlanResult.Applied
+        assertEquals(routineCount, routines.count())
+        assertEquals(slotCount, schedule.slots().size)
+        assertEquals(block, preferences.trainingBlock.first())
+        assertEquals(weighIns, preferences.bodyweightLog.first().size)
+        assertEquals(first.routineCount, second.routineCount)
+        assertEquals("visit-1", preferences.acceptedPlanId())
+    }
+
+    @Test
+    fun aLaterVisitCanAddAnotherProgram() = runBlocking {
+        val input = answers(days = 3)
+        val blueprint = RoutineGenerator.generate(input, catalog)
+        applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-1",
+        )
+        val first = routines.count()
+        applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-2",
+        )
+        assertTrue(routines.count() > first)
+        assertEquals("visit-2", preferences.acceptedPlanId())
+    }
+
+    @Test
+    fun generateAWeekStillAddsRoutinesAfterAPlanWasAccepted() = runBlocking {
+        val input = answers(days = 3)
+        val blueprint = RoutineGenerator.generate(input, catalog)
+        applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-1",
+        )
+        val first = routines.count()
+        val block = preferences.trainingBlock.first()
+        val added = applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            keepCurrentBlock = true,
+        ) as ApplyPlanResult.Applied
+        assertTrue(added.routineCount > 0)
+        assertTrue(routines.count() > first)
+        assertEquals(block, preferences.trainingBlock.first())
+        assertEquals("visit-1", preferences.acceptedPlanId())
+    }
+
+    @Test
+    fun aFailedAcceptanceCanBeRetriedOnce() = runBlocking {
+        val input = answers(days = 3)
+        val blueprint = RoutineGenerator.generate(input, catalog)
+        val failing = OnboardingApplier(
+            database = database,
+            routineRepository = routines,
+            scheduleRepository = schedule,
+            preferencesRepository = preferences,
+            failAfterRoutines = true,
+        )
+        val failed = failing.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-1",
+        )
+        assertTrue(failed is ApplyPlanResult.Failed)
+        assertEquals(0, routines.count())
+        assertEquals(emptyList<com.sinura.personaltrainer.domain.ScheduleSlot>(), schedule.slots())
+        assertNull(preferences.acceptedPlanId())
+
+        val retry = applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-1",
+        ) as ApplyPlanResult.Applied
+        val routineCount = routines.count()
+        val slotCount = schedule.slots().size
+        assertEquals(retry.routineCount, routineCount)
+        assertTrue(slotCount > 0)
+        applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-1",
+        )
+        assertEquals(routineCount, routines.count())
+        assertEquals(slotCount, schedule.slots().size)
+    }
+
+    @Test
+    fun acceptingCardioTwiceDoesNotStartASecondBlock() = runBlocking {
+        val input = answers(days = 4, bodyweight = 70.0).copy(focus = TrainingFocus.CARDIO)
+        val blueprint = RoutineGenerator.generate(input, catalog)
+        assertTrue(blueprint.routines.isEmpty())
+        val first = applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "cardio-1",
+        )
+        assertTrue(first is ApplyPlanResult.Applied)
+        val block = preferences.trainingBlock.first()
+        assertEquals(1, preferences.bodyweightLog.first().size)
+        assertEquals(0, routines.count())
+        assertEquals(0, schedule.slots().size)
+
+        applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "cardio-1",
+        )
+        assertEquals(block, preferences.trainingBlock.first())
+        assertEquals(1, preferences.bodyweightLog.first().size)
+        assertEquals(0, routines.count())
+        assertEquals(0, schedule.slots().size)
     }
 
     private companion object {
