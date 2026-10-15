@@ -89,23 +89,24 @@ class PreferencesRoomHistoryTest {
 
     @Test
     fun importCopiesEncodedDataStoreHistoryOnce() = runBlocking {
-        val isolated = PreferencesRepository(
-            ApplicationProvider.getApplicationContext(),
-            androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
-                produceFile = {
-                    java.io.File(
-                        ApplicationProvider.getApplicationContext<Context>().cacheDir,
-                        "isolated-prefs-${System.nanoTime()}.preferences_pb",
-                    )
-                },
-            ),
+        val store = androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
+            produceFile = {
+                java.io.File(
+                    ApplicationProvider.getApplicationContext<Context>().cacheDir,
+                    "isolated-prefs-${System.nanoTime()}.preferences_pb",
+                )
+            },
         )
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val isolated = PreferencesRepository(context, store)
         isolated.recordBodyweight(80.0, 19_000L)
         isolated.beginBlock(TrainingBlock(19_000L, 12), 19_000L)
-
-        // Production path: Room empty, leftover encoded strings.
-        deps.preferencesRepository.importEncodedHistoryIfNeeded()
-        assertTrue(deps.preferencesRepository.bodyweightLog.first().isEmpty())
-        assertEquals(0, deps.database.bodyweightDao().count())
+        val room = PreferencesRepository(context, store, deps.database.bodyweightDao(), deps.database.trainingBlockDao())
+        room.importEncodedHistoryIfNeeded()
+        assertEquals(listOf(19_000L), room.bodyweightLog.first().map { it.epochDay })
+        room.deleteBodyweightDay(19_000L)
+        room.importEncodedHistoryIfNeeded()
+        assertTrue(room.bodyweightLog.first().isEmpty())
+        assertNull(room.bodyweightKg.first())
     }
 }

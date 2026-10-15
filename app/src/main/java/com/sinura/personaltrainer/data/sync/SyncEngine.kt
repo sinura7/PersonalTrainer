@@ -1,6 +1,9 @@
 package com.sinura.personaltrainer.data.sync
 
 import android.database.sqlite.SQLiteConstraintException
+import androidx.datastore.preferences.core.edit
+import com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG
+import kotlinx.coroutines.flow.first
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.data.local.dao.CatalogDao
@@ -500,6 +503,14 @@ class SyncEngine(
         }
         if (remote.deletedAtMs != null) {
             bodyweightDao.deleteDay(remote.epochDay)
+            if (settingsStore.safePreferences.first().contains(BODYWEIGHT_KG)) {
+                val latest = bodyweightDao.getAll().maxByOrNull { it.epochDay }?.kg
+                settingsStore.data.edit { prefs ->
+                    if (prefs.contains(BODYWEIGHT_KG)) {
+                        if (latest == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = latest
+                    }
+                }
+            }
             return remote.updatedAtMs
         }
         val local = bodyweightDao.getAll().firstOrNull { it.epochDay == remote.epochDay }

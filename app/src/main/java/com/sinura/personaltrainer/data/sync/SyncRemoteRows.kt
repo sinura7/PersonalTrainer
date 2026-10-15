@@ -545,7 +545,8 @@ internal fun BodyweightEntryEntity.toRemote(
     recordedAtMs = recordedAtMs,
     zoneId = zoneId,
     offsetSeconds = offsetSeconds,
-    updatedAtMs = recordedAtMs,
+    // A delete has to move updated_at or a phone that already has this day never pulls it.
+    updatedAtMs = deletedAtMs?.let { maxOf(recordedAtMs, it) } ?: recordedAtMs,
     deletedAtMs = deletedAtMs,
 )
 

@@ -486,7 +486,7 @@ class ActiveWorkoutViewModel internal constructor(
         undoTimeout = undoTimeout,
         unit = { weightUnit.value },
         loadTypeOf = ::liftLoadType,
-        onCheckpoint = ::stagePrivateEntry,
+        onCheckpoint = ::publishPrivateEntry,
     )
 
     /** Every live undo offer, oldest first. The banner shows the last one. */
@@ -527,7 +527,7 @@ class ActiveWorkoutViewModel internal constructor(
         selectedLift = { selectedExerciseId.value },
         holdSoundEnabled = { container.preferencesRepository.restTimerPreferences.first().soundEnabled },
         cancelPendingRest = ::cancelPendingRest,
-        onCheckpoint = ::stagePrivateEntry,
+        onCheckpoint = ::publishPrivateEntry,
     )
     /** The rest preferences as they are now: the hold's GET READY length is read at the tap (P2b). */
     private val restPrefsNow: StateFlow<RestTimerPreferences> = container.preferencesRepository.restTimerPreferences
@@ -581,12 +581,12 @@ class ActiveWorkoutViewModel internal constructor(
             if (!canChangeEntry() || value.exerciseId != exerciseId) return
             numberEntries.value = numberEntries.value.filterNot { it.exerciseId == value.exerciseId && it.field == value.field }
                 .map { if (value.open) it.copy(open = false) else it } + value
-            stagePrivateEntry()
+            publishPrivateEntry()
         }
         override fun clear(field: com.sinura.personaltrainer.workout.WorkoutNumberField) {
             if (!canChangeEntry()) return
             numberEntries.value = numberEntries.value.filterNot { it.exerciseId == exerciseId && it.field == field }
-            stagePrivateEntry()
+            publishPrivateEntry()
         }
     }
     private var clocksRestored = false
@@ -1128,7 +1128,7 @@ class ActiveWorkoutViewModel internal constructor(
             if (pausingForTypedWeight) beforeUntouchedSeed?.invoke()
             val nudge = synchronized(entryWrites) {
                 if (!isCurrentPrefill(exerciseId, generation)) return@synchronized false
-                if (keepDraft || draftDirty.value || saves.pending) {
+                if (keepDraft || draftDirty.value || saves.pending || editingSetId.value != null) {
                     liftReadiness.value = LiftEntryReadiness.READY
                     suggestionUnavailable.value = false
                     val wrote = writeDraftLocked()
@@ -1167,7 +1167,9 @@ class ActiveWorkoutViewModel internal constructor(
                 ?: planned
             val nudge = synchronized(entryWrites) {
                 if (!isCurrentPrefill(exerciseId, generation)) return@synchronized false
-                if (!saves.pending && !draftDirty.value && (!keepDraft || draft.value.weightKg <= 0.0)) {
+                if (!saves.pending && !draftDirty.value && editingSetId.value == null &&
+                    (!keepDraft || draft.value.weightKg <= 0.0)
+                ) {
                     draft.value = ActiveExerciseDraft(
                         weightKg = livePlanned?.targetWeightKg ?: 0.0,
                         reps = if (hold) 0 else targetReps.coerceAtLeast(1),
@@ -2805,6 +2807,16 @@ class ActiveWorkoutViewModel internal constructor(
             numbers = numberEntries.value,
             undo = undo.checkpoint(), undoDwellMs = undo.dwellMs.value,
         )
+    }
+
+    /**
+     * A keypad, set clock, or undo offer checkpoints without going through [editEntry].
+     * Remembering the snapshot has to wake the writer too. Bumping the authorship number
+     * and leaving the file behind makes the next open ignore that file.
+     */
+    private fun publishPrivateEntry() {
+        val nudge = synchronized(entryWrites) { stagePrivateEntry() }
+        if (nudge) privateDrafts.nudge()
     }
 
     /** Caller holds [entryWrites]. Returns whether the writer should be kicked after the lock. */

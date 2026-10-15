@@ -293,7 +293,7 @@ class SyncOutboxWriter(
             SyncEntityType.BODYWEIGHT_ENTRY,
             syncBodyweightEntityId(entry.epochDay),
             SyncOutboxOperation.UPSERT,
-            encodeSync(entry.toRemote(userId)),
+            encodeSyncKeepingNulls(entry.toRemote(userId)),
         )
     }
 
@@ -306,7 +306,7 @@ class SyncOutboxWriter(
             SyncEntityType.BODYWEIGHT_ENTRY,
             syncBodyweightEntityId(entry.epochDay),
             SyncOutboxOperation.DELETE,
-            encodeSync(entry.toRemote(userId, deletedAtMs)),
+            encodeSyncKeepingNulls(entry.toRemote(userId, deletedAtMs)),
         )
     }
 
