@@ -205,13 +205,13 @@ class StagedPickerCallerRecoveryTest {
 
     @Test fun acceptedFenceCannotReconcileIntoAnEditableFormAfterGenerationChange() = runBlocking {
         val first = activity(); ready(first); first.addCardio(CardioType.RUN, 19, 3.25, true)
-        io.failCleanup = true; first.save(); first.savedId.awaitFirst { it != null }
+        io.failCleanup = true; first.save(); val id = checkNotNull(first.savedId.awaitFirst { it != null })
         first.clearAndJoinForTest(); activities.remove(first)
         deps.dbMaintenance.withMaintenanceLock { store.invalidateOnce("synthetic restored history") }
-        val reopened = activity()
-        val recovery = checkNotNull(reopened.formRecovery).status.awaitFirst { !it.loading }
-        assertTrue(recovery.pending); assertFalse(recovery.ready); assertFalse(recovery.accepted)
-        reopened.save(); assertEquals(1, deps.database.activityDao().getAllGraphs().size)
+        val reopened = activity(); ready(reopened)
+        assertEquals(null, reopened.savedId.value)
+        reopened.save()
+        assertEquals(listOf(id), deps.database.activityDao().getAllGraphs().map { it.session.id })
     }
 
     @Test fun refusalRetrySettlesLandedInspectionAndEditingWithUnavailableConfirmationReads() = runBlocking {
@@ -358,19 +358,24 @@ class StagedPickerCallerRecoveryTest {
         assertEquals("Exact unsaved title", reopened.uiState.awaitFirst { it.title.isNotEmpty() }.title)
     }
 
-    @Test fun acceptedActivityWithFailedPrivateCleanupCannotSubmitAgainAfterReopening() = runBlocking {
+    @Test fun aLandedSaveWithFailedCleanupDoesNotReopenOnTheNextPastWorkout() = runBlocking {
         val vm = activity(); ready(vm); vm.addCardio(CardioType.RUN, 19, 3.25, true)
         vm.setTitle("Exact accepted activity"); io.failCleanup = true
-        vm.save(); val id = vm.savedId.awaitFirst { it != null }
+        vm.save(); val id = checkNotNull(vm.savedId.awaitFirst { it != null })
         assertEquals(1, deps.database.activityDao().getAllGraphs().size)
         vm.clearAndJoinForTest(); activities.remove(vm)
-        val reopened = activity()
-        val recovered = checkNotNull(reopened.formRecovery).status.awaitFirst { !it.loading }
-        assertTrue(recovered.accepted); assertTrue(recovered.pending); assertFalse(recovered.ready)
-        reopened.save(); reopened.setTitle("An unintended replacement")
-        assertEquals("Exact accepted activity", reopened.uiState.awaitFirst { it.title.isNotEmpty() }.title)
-        assertEquals(id, deps.database.activityDao().getAllGraphs().single().session.id)
+        val reopened = activity(); ready(reopened)
         assertEquals(null, reopened.savedId.value)
+        assertEquals("", reopened.uiState.awaitFirst { it.title.isEmpty() }.title)
+        reopened.setTitle("A different day")
+        reopened.addCardio(CardioType.RIDE, 10, 2.0, false)
+        reopened.save()
+        val saved = checkNotNull(reopened.savedId.awaitFirst { it != null })
+        val ids = deps.database.activityDao().getAllGraphs().map { it.session.id }
+        assertEquals(2, ids.size)
+        assertTrue(ids.contains(id))
+        assertTrue(ids.contains(saved))
+        assertEquals("Exact accepted activity", deps.activityRepository.get(id)!!.title)
     }
 
     @Test fun recoveredReadNeverOverwritesNewFieldsAuthoredWhileTheReadWasUnavailable() = runBlocking {
@@ -440,8 +445,9 @@ class StagedPickerCallerRecoveryTest {
         assertEquals("Newer typed title", reopened.uiState.awaitFirst { it.title == "Newer typed title" }.title)
     }
 
-    @Test fun anUncertainSaveThatLandedOpensThatSessionAndDoesNotInsertAnother() = runBlocking {
-        val vm = activity(); ready(vm)
+    @Test fun theSameVisitAfterALandedSaveOpensThatSession() = runBlocking {
+        val handle = SavedStateHandle(mapOf("mode" to "mixed"))
+        val vm = activity(handle = handle); ready(vm)
         vm.setTitle("Already on the phone")
         vm.addCardio(CardioType.RUN, 19, 3.25, true)
         assertTrue(checkNotNull(vm.formRecovery).beginSubmission())
@@ -450,12 +456,25 @@ class StagedPickerCallerRecoveryTest {
         val identity = stagedActivityIdentity()
         assertEquals(identity, written.id)
         vm.clearAndJoinForTest(); activities.remove(vm)
-        val reopened = activity()
+        val reopened = activity(handle = handle)
         val saved = reopened.savedId.awaitFirst { it != null }
         assertEquals(identity, saved)
-        assertEquals(1, deps.database.activityDao().getAllGraphs().size)
-        reopened.save()
         assertEquals(listOf(identity), deps.database.activityDao().getAllGraphs().map { it.session.id })
+    }
+
+    @Test fun aLaterPastWorkoutDoesNotReopenALandedSession() = runBlocking {
+        val vm = activity(); ready(vm)
+        vm.setTitle("Already on the phone")
+        vm.addCardio(CardioType.RUN, 19, 3.25, true)
+        assertTrue(checkNotNull(vm.formRecovery).beginSubmission())
+        val written = vm.confirmDraft()
+        check(written is CompleteTrainingOutcome.Written)
+        vm.clearAndJoinForTest(); activities.remove(vm)
+        val reopened = activity(); ready(reopened)
+        assertEquals(null, reopened.savedId.value)
+        assertEquals("", reopened.uiState.value.title)
+        reopened.save()
+        assertEquals(listOf(written.id), deps.database.activityDao().getAllGraphs().map { it.session.id })
     }
 
     @Test fun anUncertainSaveThatDidNotLandStaysEditableAndThenSavesOnce() = runBlocking {
