@@ -5469,7 +5469,16 @@
       "notAcceptanceProgress": true,
       "packet": "codex/test-stability",
       "problem": "A full unit run on JDK 21 aborted when the C2 compiler crashed while compiling Room, so Gradle counted only the tests that had finished (4512 of about 4709) and exited 134. Separate from that, some tests saw a result while the operation was still marked busy, or read a screen value before the cached screen state had published the new day or the restored draft.",
-      "fix": "Unit tests exclude C2 compilation of Room's prepare method so a JDK 21 compiler crash cannot abort the process and drop the unfinished tests. History repeat, history delete, and session-detail Resume publish their result only after the busy flag is clear. Notes stay locked during the repeat database call. Home Skip waits until the blocked start has finished. The week test waits for the new day. The swap-recovery test waits for the restored draft. Undo's set clock is read after that clock flow publishes the restored seconds. Clearing notes holds the write across focus release. Artwork sampling waits until two frames agree, then keeps the 91 percent identity check."
-    }
+      "fix": "Unit tests exclude C2 compilation of Room's prepare method so a JDK 21 compiler crash cannot abort the process and drop the unfinished tests. History repeat, history delete, and session-detail Resume publish their result only after the busy flag is clear. Notes stay locked during the repeat database call. Home Skip waits until the blocked start has finished. The week test waits for the new day. Undo's set clock is read after that clock flow publishes the restored seconds. Clearing notes holds the write across focus release. Artwork sampling waits until two frames agree, then keeps the 91 percent identity check. Session detail keeps an open Add when a read fails and opens a fresh sheet when the session comes back, instead of treating the missing snapshot as the lift being gone."
+    },
+    "productFixes": [
+      {
+        "id": "swap-checkpoint-weight",
+        "kind": "product fix",
+        "packet": "codex/test-stability",
+        "problem": "Swapping a lift and typing a weight, then reps and effort, could save the reps and the effort and store the weight as 0. The fill for the new lift decides the entry is untouched on a background read, and that decision used to be applied after the weight was typed. The checkpoint then kept the typed reps and effort and lost the typed weight.",
+        "fix": "The decision and the write now happen together, and the decision is checked again at the moment of the write. A weight typed in that gap is kept. Reps and effort already shared that save; they were not on a separate path."
+      }
+    ]
   }
 }
