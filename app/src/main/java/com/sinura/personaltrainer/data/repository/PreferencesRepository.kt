@@ -407,6 +407,9 @@ class PreferencesRepository(
             if (log.isNotEmpty()) {
                 dao.upsertAll(log.map { it.toEntity(nowMs()) })
             }
+            // The wipe above can run after a snapshot of the pre-restore days was queued.
+            // Queue again from the days now stored, or that snapshot is what gets uploaded.
+            onBodyweightChanged()
         }
         trainingBlockDao?.let { dao ->
             dao.deleteAll()

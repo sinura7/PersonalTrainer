@@ -208,22 +208,50 @@ class SyncEngine(
     /**
      * A routine upload of a live weigh-in omits the delete column. PostgREST then
      * rewrites the row clock and leaves a cloud delete in place, and the next pull
-     * can erase the newer local day. Read the cloud day first: a newer delete is
-     * not uploaded over, and an older delete is cleared explicitly.
+     * can erase the newer local day. The queued JSON can also be older than the
+     * day now stored (a restore queues the pre-restore snapshot). Read the cloud
+     * day, then send the day actually stored. A newer delete is applied here,
+     * because the pull cursor may already be past it. An older delete is cleared
+     * explicitly.
      */
     private suspend fun bodyweightUpsertPayload(payload: String): String? {
-        val local = decodeSync<RemoteBodyweightEntryRow>(payload)
-        val server = remote.fetchEq(SyncEntityType.BODYWEIGHT_ENTRY, "epoch_day", local.epochDay.toString())
+        val queued = decodeSync<RemoteBodyweightEntryRow>(payload)
+        val stored = bodyweightDao.getAll().firstOrNull { it.epochDay == queued.epochDay }
+            ?: return null
+        val server = remote.fetchEq(SyncEntityType.BODYWEIGHT_ENTRY, "epoch_day", queued.epochDay.toString())
             .map { decodeSync<RemoteBodyweightEntryRow>(it) }
             .maxByOrNull { it.updatedAtMs }
-            ?: return payload
-        val deletedAtMs = server.deletedAtMs
-        if (deletedAtMs != null) {
-            if (!SyncRevision.recordedWeighInBeatsDelete(local.recordedAtMs, deletedAtMs)) return null
-            return encodeSyncKeepingNulls(local.copy(deletedAtMs = null))
+        val deletedAtMs = server?.deletedAtMs
+        if (deletedAtMs != null &&
+            !SyncRevision.recordedWeighInBeatsDelete(stored.recordedAtMs, deletedAtMs)
+        ) {
+            applyBodyweightDeleteNow(queued.epochDay, deletedAtMs)
+            return null
         }
-        if (server.updatedAtMs > local.recordedAtMs) return null
-        return payload
+        if (server != null && deletedAtMs == null && server.updatedAtMs > stored.recordedAtMs) {
+            return null
+        }
+        return encodeSyncKeepingNulls(stored.toRemote(queued.userId))
+    }
+
+    private suspend fun applyBodyweightDeleteNow(epochDay: Long, deletedAtMs: Long) {
+        onDownloadedBodyweightDelete?.let { handler ->
+            handler(epochDay, deletedAtMs)
+            return
+        }
+        val local = bodyweightDao.getAll().firstOrNull { it.epochDay == epochDay }
+        if (local != null && SyncRevision.recordedWeighInBeatsDelete(local.recordedAtMs, deletedAtMs)) return
+        bodyweightDao.deleteDay(epochDay)
+        val remaining = bodyweightDao.getAll().map { row ->
+            BodyweightEntry(row.epochDay, row.kg, row.recordedAtMs, row.zoneId, row.offsetSeconds)
+        }
+        settingsStore.data.edit { prefs ->
+            prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(remaining)
+            if (prefs.contains(BODYWEIGHT_KG)) {
+                val current = BodyweightLog.latest(remaining)?.kg
+                if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
+            }
+        }
     }
 
     private suspend fun hasPendingChild(type: SyncEntityType, entityId: String): Boolean =
@@ -537,26 +565,7 @@ class SyncEngine(
             return remote.updatedAtMs
         }
         if (remote.deletedAtMs != null) {
-            val deletedAtMs = remote.deletedAtMs
-            onDownloadedBodyweightDelete?.let { handler ->
-                handler(remote.epochDay, deletedAtMs)
-                return remote.updatedAtMs
-            }
-            val local = bodyweightDao.getAll().firstOrNull { it.epochDay == remote.epochDay }
-            if (local != null && SyncRevision.recordedWeighInBeatsDelete(local.recordedAtMs, deletedAtMs)) {
-                return remote.updatedAtMs
-            }
-            bodyweightDao.deleteDay(remote.epochDay)
-            val remaining = bodyweightDao.getAll().map { row ->
-                BodyweightEntry(row.epochDay, row.kg, row.recordedAtMs, row.zoneId, row.offsetSeconds)
-            }
-            settingsStore.data.edit { prefs ->
-                prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(remaining)
-                if (prefs.contains(BODYWEIGHT_KG)) {
-                    val current = BodyweightLog.latest(remaining)?.kg
-                    if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
-                }
-            }
+            applyBodyweightDeleteNow(remote.epochDay, remote.deletedAtMs)
             return remote.updatedAtMs
         }
         val local = bodyweightDao.getAll().firstOrNull { it.epochDay == remote.epochDay }

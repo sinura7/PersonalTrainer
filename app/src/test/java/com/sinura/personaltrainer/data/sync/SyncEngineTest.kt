@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.data.local.entity.SyncOutboxEntity
 import com.sinura.personaltrainer.domain.SyncEntityType
 import com.sinura.personaltrainer.domain.SyncOutboxOperation
 import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
+import com.sinura.personaltrainer.data.local.entity.SyncTableCursorEntity
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import kotlinx.coroutines.test.runTest
@@ -647,6 +648,91 @@ class SyncEngineTest {
         }
         SyncOutboxWriter(syncDao = database.syncDao(), nowMillis = { 1L })
             .enqueueAllBodyweightEntries("user-1", listOf(entry))
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 70.0,
+                    recordedAtMs = 100L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 900L,
+                    deletedAtMs = 900L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+        val prefs = settingsStore.safePreferences.first()
+        assertEquals(
+            "",
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG].orEmpty(),
+        )
+        assertNull(prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG])
+    }
+
+    @Test
+    fun aStaleQueuedWeighInUploadsTheDayNowStored() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 500L),
+        )
+        val stale = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 70.0,
+            recordedAtMs = 100L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 100L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "stale-monday",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.UPSERT.name,
+                payloadJson = encodeSync(stale),
+                createdAtMs = 1L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                stale.copy(updatedAtMs = 200L, deletedAtMs = 200L),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"recorded_at_ms\":500"))
+        assertTrue(sent.contains("\"deleted_at_ms\":null"))
+        assertFalse(sent.contains("\"kg\":70"))
+        assertEquals(81.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun aCloudDeleteStillLandsWhenTheCursorIsAlreadyPastIt() = runTest {
+        val entry = BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 500L)
+        database.bodyweightDao().upsert(entry)
+        settingsStore.data.edit { prefs ->
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG] =
+                com.sinura.personaltrainer.domain.BodyweightLog.encode(
+                    listOf(com.sinura.personaltrainer.domain.BodyweightEntry(20_000L, 81.0, 500L)),
+                )
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG] = 81.0
+        }
+        SyncOutboxWriter(syncDao = database.syncDao(), nowMillis = { 1L })
+            .enqueueAllBodyweightEntries("user-1", listOf(entry))
+        database.syncDao().upsertCursor(
+            SyncTableCursorEntity(
+                tableName = SyncEntityType.BODYWEIGHT_ENTRY.remoteTable,
+                lastPulledUpdatedAtMs = 900L,
+            ),
+        )
         remote.seed(
             SyncEntityType.BODYWEIGHT_ENTRY,
             encodeSync(
