@@ -4958,7 +4958,7 @@
       {
         "id": "P13",
         "title": "Live cardio",
-        "state": "Open"
+        "state": "A finished session says it is in History. A missing session says it is not on this phone. Finish, leave running, discard, and the clock that keeps running were already in place."
       },
       {
         "id": "P14",
@@ -5509,6 +5509,13 @@
         "note": "Clean-context review after the follow-up fixes. Heads 816bfcfb, 0d46be16, and c94315a6 were blocked and fixed before this head. Gate on this head: testDebugUnitTest 4731 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, JDK 17, default parallelism, BUILD SUCCESSFUL.",
         "independent": "APPROVE. Zero Critical or High. Medium: a day trimmed past 200 can be written back or deleted on the other phone; a restore while signed out does not queue the omission; a sync that starts during the restore can upload the pre-restore days.",
         "adversarial": "APPROVE. Zero Critical or High. Medium: a live cloud day is compared to a queued delete by updated_at; the read-then-upload gap; an omitted day with no waiting upload stays in the cloud; an older delete can overwrite a tombstone whose clock was already moved."
+      },
+      "6448187c": {
+        "when": "2026-10-15",
+        "packet": "P13 live cardio",
+        "gate": "testDebugUnitTest 4732 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, JDK 17, default parallelism, on 1b2acce7. BUILD SUCCESSFUL.",
+        "independent": "APPROVE. Zero Critical or High. Medium: the phone Back gesture on a finished session still opens the leave-running dialog. The Back button on the screen leaves. Confirming discard from that dialog does not delete the finished workout.",
+        "adversarial": "APPROVE. Zero Critical or High. Same Medium on the phone Back gesture. A failed read, a real discard, and a failed discard keep their own messages, and Finish is not offered on a finished or missing session."
       }
     }
   }

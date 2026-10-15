@@ -38,6 +38,14 @@ object CardioCopy {
     const val DISCARD_BODY = "This deletes the session. This cannot be undone."
     const val DISCARD_CONFIRM = "Discard"
 
+    /** The row is gone. A finished session uses [FINISHED_TITLE] instead. */
+    const val NOT_FOUND_TITLE = "Session not found"
+    const val NOT_FOUND_BODY = "That live session is no longer on this phone."
+
+    /** The row is still here and the clock has already stopped. */
+    const val FINISHED_TITLE = "Session finished"
+    const val FINISHED_BODY = "This cardio is already in History. Its clock has stopped."
+
     /** Live-screen stack, top to bottom. [FINISH] is the only filled Volt. */
     val LIVE_ACTIONS = listOf(FINISH, LEAVE_RUNNING, DISCARD)
 

@@ -55,8 +55,8 @@ private fun LiveCardioMissingPreview() {
         CardioPreviewColumn {
             EmptyState(
                 scene = EmptyScene.GONE,
-                title = "No live cardio",
-                body = "That session is gone. Start a new one from Home.",
+                title = CardioCopy.NOT_FOUND_TITLE,
+                body = CardioCopy.NOT_FOUND_BODY,
                 actionLabel = "Back",
                 onAction = {},
             )

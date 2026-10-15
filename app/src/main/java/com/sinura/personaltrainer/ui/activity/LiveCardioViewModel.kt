@@ -37,14 +37,15 @@ private const val ERR_FINISH = "finish"
 private const val ERR_DISCARD = "discard"
 
 /**
- * [missing] is a successful read that found no live row: the session is gone. [failed] is a
- * read that threw: the session is most likely still live and the read is what broke. They
- * used to be one flag, and a Room fault on the first read was worse than either — it was an
- * uncaught coroutine failure that took the process down.
+ * [missing] is a successful read that found no row. [finished] is a successful read of a
+ * session whose clock has already stopped. [failed] is a read that threw: the session is
+ * most likely still live and the read is what broke. Missing and finished used to be one
+ * flag, so opening a finished session from History said the session was gone.
  */
 data class LiveCardioUiState(
     val session: ActivitySession? = null,
     val missing: Boolean = false,
+    val finished: Boolean = false,
     val failed: Boolean = false,
     val elapsedSeconds: Long = 0L,
     val type: CardioType = CardioType.RUN,
@@ -68,6 +69,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val session = MutableStateFlow<ActivitySession?>(null)
     private val missing = MutableStateFlow(false)
+    private val finished = MutableStateFlow(false)
     private val failed = MutableStateFlow(false)
     private val elapsedSeconds = MutableStateFlow(0L)
 
@@ -90,8 +92,8 @@ class LiveCardioViewModel @JvmOverloads constructor(
     private val finishing = MutableStateFlow(false)
 
     val uiState: StateFlow<LiveCardioUiState> = combine(
-        combine(session, missing, failed, elapsedSeconds) { current, gone, broken, elapsed ->
-            Loaded(current, gone, broken, elapsed)
+        combine(session, missing, finished, failed, elapsedSeconds) { current, gone, done, broken, elapsed ->
+            Loaded(current, gone, done, broken, elapsed)
         },
         combine(type, indoor, distanceKm) { cardioType, isIndoor, distance ->
             Triple(cardioType, isIndoor, distance)
@@ -103,6 +105,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
         LiveCardioUiState(
             session = loaded.session,
             missing = loaded.missing,
+            finished = loaded.finished,
             failed = loaded.failed,
             elapsedSeconds = loaded.elapsedSeconds,
             type = cardioTriple.first,
@@ -228,6 +231,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
                     clearTimerRow()
                     forgetInputs()
                     error.clearFrom(source = ERR_DISCARD, before = started)
+                    finished.value = false
                     missing.value = true
                     session.value = null
                 }
@@ -259,10 +263,19 @@ class LiveCardioViewModel @JvmOverloads constructor(
                 failed.value = true
                 return
             }
-        if (live == null || !live.isLive) {
+        if (live == null) {
+            finished.value = false
             missing.value = true
             return
         }
+        if (!live.isLive) {
+            missing.value = false
+            finished.value = true
+            session.value = live
+            return
+        }
+        finished.value = false
+        missing.value = false
         session.value = live
         // The row's block is the starting point only. Inputs already mirrored into saved
         // state are the owner's later choices, and win over it after a recreation — each
@@ -350,6 +363,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
     private data class Loaded(
         val session: ActivitySession?,
         val missing: Boolean,
+        val finished: Boolean,
         val failed: Boolean,
         val elapsedSeconds: Long,
     )
