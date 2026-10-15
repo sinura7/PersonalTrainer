@@ -5465,6 +5465,13 @@
         "reviews": "Independent and adversarial Drop A reviews: zero Critical/High/Medium; approve version-only packet."
       }
     },
+    "milestoneB": {
+      "state": "Version packet only. Not published. The owner pushes and verifies.",
+      "plannedDebugVersionCode": 127,
+      "previousPublishedCode": 126,
+      "previousPublishedTag": "debug-live-2026-10-15",
+      "publicationRule": "Rerun the planner after this merge. Do not publish from this packet. Gym-floor versionCode stays 1."
+    },
     "testInfrastructure": {
       "kind": "test infrastructure",
       "notAcceptanceProgress": true,
