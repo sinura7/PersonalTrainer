@@ -22,6 +22,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -140,6 +142,62 @@ class StartOptionsSheetMixedRowTest {
             1,
             compose.onAllNodesWithText("Mixed session").fetchSemanticsNodes().size,
         )
+    }
+
+    @Test
+    fun manualLoggingDoesNotStartATimerAndDismissWritesNothing() {
+        var past = 0
+        var cardio = 0
+        var mixed = 0
+        var visible by mutableStateOf(true)
+        compose.setContent {
+            PersonalTrainerTheme {
+                if (visible) {
+                    StartOptionsSheet(
+                        onDismiss = { visible = false },
+                        onWorkoutStarted = {},
+                        onLogPast = { past += 1 },
+                        onLogCardio = { cardio += 1 },
+                        onLogMixed = { mixed += 1 },
+                        viewModel = newViewModel(),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+        visible = false
+        compose.waitForIdle()
+        assertEquals(0, past + cardio + mixed)
+        assertNothingWritten()
+
+        visible = true
+        compose.waitForIdle()
+        compose.onNodeWithText("Past workout").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(1, past)
+        assertNothingWritten()
+
+        visible = true
+        compose.waitForIdle()
+        compose.onNodeWithText("Cardio").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(1, cardio)
+        assertNothingWritten()
+
+        visible = true
+        compose.waitForIdle()
+        compose.onNodeWithText("Mixed session").performScrollTo().performClick()
+        compose.waitForIdle()
+        assertEquals(1, mixed)
+        assertNothingWritten()
+    }
+
+    private fun assertNothingWritten() {
+        runBlocking {
+            assertTrue(deps.activityRepository.all().isEmpty())
+            assertNull(deps.activityRepository.getLive())
+            assertNull(deps.cardioTimerPersistence.load())
+        }
     }
 
     private fun newViewModel(): StartOptionsViewModel =

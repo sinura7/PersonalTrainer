@@ -2096,10 +2096,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX02",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "StartOptionsSheetMixedRowTest.manualLoggingDoesNotStartATimerAndDismissWritesNothing: closing the sheet and tapping Past workout, Cardio, and Mixed session write no session and start no timer.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P05",
           "P14"
@@ -2664,10 +2664,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "ActivityComposerViewModelTest.backdatedMixedKeepsTheChosenDayAndTheRowOrder: two lifts and two cardio rows survive recreation in order, and the saved day is the chosen day.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P02",
           "P14"
@@ -4963,7 +4963,7 @@
       {
         "id": "P14",
         "title": "Backdated and mixed activities",
-        "state": "Open"
+        "state": "A backdated mixed entry keeps the chosen day and the row order. Past workout, typed cardio, and mixed on the start sheet do not start a timer or write a session. Closing the sheet writes nothing. P19 and P20 remain."
       },
       {
         "id": "P15",
