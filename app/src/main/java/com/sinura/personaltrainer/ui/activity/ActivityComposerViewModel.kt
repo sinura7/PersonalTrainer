@@ -207,7 +207,7 @@ class ActivityComposerViewModel internal constructor(
      * activity with no plan link after the store had already been cleared.
      */
     private val armTransfer: Job
-    private var formIdentity = savedStateHandle.get<String>("composer.private.identity") ?: UUID.randomUUID().toString()
+    private var formIdentity = savedStateHandle.get<String>(KEY_IDENTITY) ?: UUID.randomUUID().toString()
     private val adder = MutableStateFlow(StrengthAdderFields())
     internal val adderFields: StateFlow<StrengthAdderFields> = adder
     private val pickerOpen = MutableStateFlow(false)
@@ -220,6 +220,9 @@ class ActivityComposerViewModel internal constructor(
     init {
         viewModelScope.launch {
             container.exerciseRepository.observeAll().collect { catalog.value = it }
+        }
+        if (savedStateHandle.get<String>(KEY_IDENTITY) == null) {
+            savedStateHandle[KEY_IDENTITY] = formIdentity
         }
         armTransfer = viewModelScope.launch {
             if (!savedStateHandle.contains(KEY_HELD_OCCURRENCE)) {
@@ -236,12 +239,19 @@ class ActivityComposerViewModel internal constructor(
                         .digest(key.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) })
                 }, codec = ActivityFormCodec, snapshot = ::privateFields, restore = { fields ->
                     check(fields.mode == mode.value.name && fields.occurrenceId == heldOccurrenceId)
-                    formIdentity = fields.identity; title.value = fields.title; epochDay.value = fields.epochDay
-                    strength.value = fields.strength.map { ComposerStrengthLine(it.exercise, it.weightKg, it.reps) }
-                    cardio.value = fields.cardio.map { ComposerCardioLine(it.type, it.minutes, it.distanceKm, it.indoor) }
-                    adder.value = StrengthAdderFields(fields.pickedId, fields.weightText, fields.repsText, fields.weightUnit)
-                    savedStateHandle["composer.private.identity"] = formIdentity
-                    rememberSavedDraft()
+                    // Saved state is written on each change. The private file follows up to
+                    // 150ms later, so a death in that gap must keep the newer saved state.
+                    // A handle with no typed draft yet is a fresh visit: the file's id wins.
+                    if (!draft.exists()) {
+                        formIdentity = fields.identity
+                        title.value = fields.title
+                        epochDay.value = fields.epochDay
+                        strength.value = fields.strength.map { ComposerStrengthLine(it.exercise, it.weightKg, it.reps) }
+                        cardio.value = fields.cardio.map { ComposerCardioLine(it.type, it.minutes, it.distanceKm, it.indoor) }
+                        adder.value = StrengthAdderFields(fields.pickedId, fields.weightText, fields.repsText, fields.weightUnit)
+                        rememberSavedDraft()
+                    }
+                    savedStateHandle[KEY_IDENTITY] = formIdentity
                 }, available = { !container.backupService.restoreInProgress() }, stillOwned = { fields ->
                     val occurrence = fields.occurrenceId?.let { container.plannerRepository.getOccurrence(it) }
                     fields.mode == mode.value.name && fields.occurrenceId == heldOccurrenceId &&
@@ -249,7 +259,20 @@ class ActivityComposerViewModel internal constructor(
                             occurrence.status != com.sinura.personaltrainer.domain.OccurrenceStatus.DONE) &&
                         fields.strength.all { container.exerciseRepository.getById(it.exercise.id) == it.exercise } &&
                         (fields.pickedId.isEmpty() || container.exerciseRepository.getById(fields.pickedId) != null)
+                }, inspectLanded = { fields ->
+                    container.activityRepository.get(fields.identity) != null
+                }, onLanded = { fields ->
+                    container.activityRepository.reconcileSaved(fields.identity)
+                    _savedId.value = fields.identity
+                    draft.clear()
                 })
+        }
+        if (formRecovery == null) {
+            viewModelScope.launch {
+                val existing = container.activityRepository.reconcileSaved(sessionId()) ?: return@launch
+                _savedId.value = existing.id
+                draft.clear()
+            }
         }
         pickerRecovery = if (contexts != null && customDrafts != null && formRecovery != null) {
             OwnedPickerRecovery(scope = viewModelScope, contextDrafts = contexts, customDrafts = customDrafts,
@@ -496,6 +519,7 @@ class ActivityComposerViewModel internal constructor(
         )
         val blocks = buildBlocks()
         val draft = ActivityDraft(
+            id = sessionId(),
             origin = ActivityOrigin.BACKDATED,
             title = resolvedTitle(),
             performedStart = performed,
@@ -593,8 +617,16 @@ class ActivityComposerViewModel internal constructor(
         val createError: String?,
     )
 
+    /** One id for this composer, including after the process is recreated. */
+    private fun sessionId(): String {
+        val id = formIdentity
+        savedStateHandle[KEY_IDENTITY] = id
+        return id
+    }
+
     private companion object {
         const val TAG = "PT/ActivityComposer"
         const val KEY_HELD_OCCURRENCE = "composer-held-occurrence"
+        const val KEY_IDENTITY = "composer.private.identity"
     }
 }

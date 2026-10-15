@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -194,6 +195,33 @@ class ActivityRepositoryTest {
         )
         assertTrue(write is ActivityWrite.Rejected)
         assertEquals(0, repository.all().size)
+    }
+
+    @Test
+    fun confirmingTheSameIdAgainKeepsTheSavedSessionAndItsNotes() = runBlocking {
+        val original = draft(
+            ActivityOrigin.BACKDATED,
+            ActivityStatus.COMPLETED,
+            morning,
+            listOf(squat()),
+            "Morning",
+        ).copy(id = "session-once", notes = "")
+        val first = repository.confirm(original, now, ids(), JvmTime) as ActivityWrite.Accepted
+        val noted = repository.updateCompletedNotes(first.session.id, "Easy on the knees", now.instantMillis)
+        assertTrue(noted is ActivityWrite.Accepted)
+        val replay = repository.confirm(
+            original.copy(title = "Replacement", notes = "wiped"),
+            now,
+            ids(),
+            JvmTime,
+        ) as ActivityWrite.Accepted
+        assertEquals(first.session.id, replay.session.id)
+        assertEquals(1, repository.all().size)
+        val stored = repository.get(first.session.id)!!
+        assertEquals("Morning", stored.title)
+        assertEquals("Easy on the knees", stored.notes)
+        assertEquals(morning.localEpochDay, stored.localEpochDay)
+        assertFalse(stored.isCardioOnly)
     }
 
     // ---------------------------------------------------------------------------------------

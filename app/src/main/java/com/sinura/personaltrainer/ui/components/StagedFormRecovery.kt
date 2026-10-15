@@ -28,6 +28,8 @@ internal class StagedFormRecovery<T>(
     private val snapshot: () -> T, private val restore: (T) -> Unit,
     private val available: () -> Boolean,
     private val stillOwned: suspend (T) -> Boolean,
+    private val inspectLanded: (suspend (T) -> Boolean)? = null,
+    private val onLanded: suspend (T) -> Unit = {},
 ) {
     private val serial = Mutex()
     private var handle: StagedFormHandle<T>? = null
@@ -60,6 +62,50 @@ internal class StagedFormRecovery<T>(
                 drafts.rejected(opened)
                 checkpoint = checkNotNull(opened.checkpoint)
                 knownRefusal = false
+            }
+            val pendingNow = checkpoint.pending
+            val fields = opened.fields
+            if (pendingNow != null && pendingNow.phase == DraftCommandPhase.PENDING &&
+                inspectLanded != null && fields != null
+            ) {
+                val landed = try {
+                    inspectLanded.invoke(fields)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    null
+                }
+                if (landed == true) {
+                    var privatelyAccepted = false
+                    if (!checkpoint.needsReconciliation) {
+                        try {
+                            drafts.accept(opened)
+                            privatelyAccepted = true
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                        }
+                    }
+                    mutableStatus.value = StagedFormStatus(
+                        loading = false,
+                        resumed = resumed,
+                        pending = true,
+                        accepted = privatelyAccepted,
+                        error = if (privatelyAccepted) null
+                        else "Saved. Private confirmation is still pending; the submission will not be repeated.",
+                    )
+                    try {
+                        onLanded(fields)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                    }
+                    return@withLock
+                }
+                if (landed == false && !checkpoint.needsReconciliation) {
+                    drafts.rejected(opened)
+                    checkpoint = checkNotNull(opened.checkpoint)
+                }
             }
             checkpoint.pending?.let {
                 mutableStatus.value = StagedFormStatus(loading = false, resumed = resumed, pending = true,

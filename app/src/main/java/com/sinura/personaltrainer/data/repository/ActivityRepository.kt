@@ -114,6 +114,26 @@ class ActivityRepository(
     suspend fun get(id: String): ActivitySession? =
         dao.getSessionGraph(id)?.toDomain()
 
+    /**
+     * The session this id already names, if the write landed.
+     *
+     * A second confirm, a repeated tap, or a process that died after the row
+     * committed must see this session and must not insert another. Sync is
+     * asked again so a death between the commit and the outbox still publishes
+     * the one row.
+     */
+    suspend fun reconcileSaved(id: String): ActivitySession? {
+        val existing = get(id) ?: return null
+        try {
+            syncAuthoring?.onActivitySessionCommitted(existing.id, existing.status)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Sync after a reconciled activity save failed; the row is saved", thrown)
+        }
+        return existing
+    }
+
     suspend fun all(): List<ActivitySession> =
         dao.getAllGraphs().map { it.toDomain() }
 
@@ -182,25 +202,35 @@ class ActivityRepository(
             when (val write = ActivityRules.confirm(draft, existing, now, ids, clock)) {
                 is ActivityWrite.Rejected -> write
                 is ActivityWrite.Accepted -> {
-                    try {
-                        ActivityBackupIo.insertSession(dao, write.session)
-                        if (write.session.status == ActivityStatus.COMPLETED) {
-                            write.session.occurrenceId?.let { occId ->
-                                completedOccurrenceId = occId
-                                database.plannerDao().getOccurrence(occId)?.let { row ->
-                                    database.plannerDao().upsertOccurrence(
-                                        row.copy(
-                                            status = OccurrenceStatus.DONE.name,
-                                            completedActivityId = write.session.id,
-                                            updatedAtMs = clock.nowMillis(),
-                                        ),
-                                    )
+                    val already = draft.id?.let { get(it) }
+                    if (already != null) {
+                        ActivityWrite.Accepted(already)
+                    } else {
+                        try {
+                            ActivityBackupIo.insertSession(dao, write.session)
+                            if (write.session.status == ActivityStatus.COMPLETED) {
+                                write.session.occurrenceId?.let { occId ->
+                                    completedOccurrenceId = occId
+                                    database.plannerDao().getOccurrence(occId)?.let { row ->
+                                        database.plannerDao().upsertOccurrence(
+                                            row.copy(
+                                                status = OccurrenceStatus.DONE.name,
+                                                completedActivityId = write.session.id,
+                                                updatedAtMs = clock.nowMillis(),
+                                            ),
+                                        )
+                                    }
                                 }
                             }
+                            write
+                        } catch (_: SQLiteConstraintException) {
+                            val raced = draft.id?.let { get(it) }
+                            if (raced != null) {
+                                ActivityWrite.Accepted(raced)
+                            } else {
+                                ActivityWrite.Rejected("One live activity at a time.")
+                            }
                         }
-                        write
-                    } catch (_: SQLiteConstraintException) {
-                        ActivityWrite.Rejected("One live activity at a time.")
                     }
                 }
             }

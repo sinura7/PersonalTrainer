@@ -2059,7 +2059,7 @@
         "F06"
       ],
       "requirement": "With 0, 3 and 50 routines, participants can find past strength, manual cardio, mixed entry and live cardio.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone finding is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P05",
@@ -2067,10 +2067,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX02",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "StartOptionsSheetMixedRowTest.theFourEntriesStayReachableWithZeroThreeAndFiftyRoutines: with 0, 3, and 50 routines, Past workout, Cardio, Mixed session, and Start cardio can be scrolled into view. The sheet opens fully so the last row is not clipped.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P05",
           "P13",
@@ -2664,7 +2664,7 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "ActivityComposerViewModelTest.backdatedMixedKeepsTheChosenDayAndTheRowOrder: two lifts and two cardio rows survive recreation in order, and the saved day is the chosen day.",
+        "automated": "ActivityComposerViewModelTest.backdatedMixedKeepsTheChosenDayAndTheRowOrder keeps the chosen day and row order across a recreated composer. StagedPickerCallerRecoveryTest.reopeningActivityRestoresItsFormAndPickerWithoutSavingAnActivity restores the private file without writing a session. aNewerSavedStateDraftIsNotReplacedByTheOlderPrivateFile keeps a title typed after the file was saved.",
         "physical": "Unobserved",
         "required": true,
         "state": "Bounded automated evidence",
@@ -2684,7 +2684,7 @@
         "F08"
       ],
       "requirement": "Cancel/Back during delayed accepted save neither creates a duplicate nor tells the user committed work was discarded.",
-      "status": "Written, not executed (Robolectric: cancelWhileSavingIsRefusedAndTheSaveStillLandsOnce)",
+      "status": "Bounded automated evidence for the activity composer. Other areas in this criterion stay with P16.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
@@ -2694,10 +2694,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "ActivityComposerViewModelTest.cancelWhileSavingIsRefusedAndTheSaveStillLandsOnce: Cancel during the write does not discard it and does not insert a second session. aSecondSaveDoesNotCreateAnotherSession: a repeated Save tap inserts one session. aSaveThatAlreadyLandedIsNotWrittenAgainAfterRecreation: process recreation after the row landed does not insert another.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P02",
           "P03",
@@ -2708,7 +2708,8 @@
         ],
         "closurePacket": "P16",
         "packetEvidence": {
-          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json.",
+          "P14": "Repeated Save, Cancel during the write, and recreation after the row landed each leave one session."
         }
       }
     },
@@ -2721,7 +2722,7 @@
         "F08"
       ],
       "requirement": "Failed save preserves the draft; successful save clears only that draft.",
-      "status": "Written, not executed (Robolectric: anAcceptedSaveClearsTheDraft, save() keeps draft on Rejected/thrown)",
+      "status": "Bounded automated evidence for the activity composer. Other areas in this criterion stay with P16.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
@@ -2731,10 +2732,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "ActivityComposerViewModelTest.anAcceptedSaveClearsTheDraft clears the saved draft only. A refused empty save keeps the title. StagedPickerCallerRecoveryTest.refusedEmptySaveRetainsEditableFieldsAcrossReopeningAndThenSavesOnce keeps the refused fields, then saves once.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P02",
           "P03",
@@ -4701,7 +4702,7 @@
         "F10"
       ],
       "requirement": "Each supported type has an accurate receipt and correct units with clear action capabilities.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence for stored units and the receipt line. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P07",
@@ -4709,10 +4710,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX29",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "ComposerCopyTest: 100 lb stores 45.4 kg and reads back as 100 lb; five of those sets read as 500 lb; 1 mile stores 1.609344 km and the receipt line reads 30 min · 1.0 mi. Bad weights, fractional reps, and bad minutes or distance are refused.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P07",
           "P13",
@@ -4762,7 +4763,7 @@
         "F10"
       ],
       "requirement": "Repeat/edit where supported preserves correct IDs, chronology and plan linkage and cannot silently convert one type to another.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Repeat of an activity is refused. A notes edit keeps the id, day, and mixed type.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P07",
@@ -4770,10 +4771,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX29",
         "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "ActivityRepositoryTest.setRepairAndRepeatAreRefusedOnActivities refuses repeat. confirmingTheSameIdAgainKeepsTheSavedSessionAndItsNotes and ActivityComposerViewModelTest.confirmingTheSameDraftAgainDoesNotInsertOrWipeNotes keep the id, the day, the notes, and the mixed type.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P07",
           "P13",
@@ -4963,7 +4964,7 @@
       {
         "id": "P14",
         "title": "Backdated and mixed activities",
-        "state": "A backdated mixed entry keeps the chosen day and the row order. Past workout, typed cardio, and mixed on the start sheet do not start a timer or write a session. Closing the sheet writes nothing. P19 and P20 remain."
+        "state": "A backdated mixed entry keeps the chosen day, the row order, the units, and the notes. Save uses one id: a repeated tap, a recreated process, or an uncertain private draft does not insert a second session. If that save never landed, the same id can be saved once. The start sheet opens fully so past strength, typed cardio, mixed, and live cardio stay reachable with 0, 3, or 50 routines. P19 and P20 remain."
       },
       {
         "id": "P15",
@@ -5530,6 +5531,13 @@
         "gate": "JDK 17 daemon. testDebugUnitTest 4736 tests, 0 failures, 0 ignored, duration 9m59s, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 11m48s.",
         "independent": "APPROVE. Zero Critical or High. The mixed draft keeps the chosen day, order, and values, and the save stores that day. Past workout, Cardio, and Mixed session write no session and start no timer. Medium: the sheet check does not also look at the strength-workout store.",
         "adversarial": "APPROVE. Zero Critical or High. The chosen day is what is saved, row order matches the two lists on the screen, and the manual rows do not start the live clock. Medium: a private staged draft can replace a newer saved-state draft if the process dies inside the short keep delay; these tests do not hit that path."
+      },
+      "cd916b2f": {
+        "when": "2026-10-15",
+        "packet": "P14b save once",
+        "gate": "JDK 17 daemon. testDebugUnitTest 4745 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 13m 21s. The test task ran; it was not up to date.",
+        "independent": "APPROVE. Zero Critical or High. One composer id is stored with the draft. A second confirm returns that session. A private draft whose save already landed opens that session; one that never landed can be saved once under the same id. 100 lb stores 45.4 kg and reads back as 100 lb. One mile reads 1.0 mi on the receipt line. A chosen day stays that day in Pacific/Kiritimati and America/Chicago. A notes edit keeps the id, the day, and the mixed type. Past workout, Cardio, Mixed session, and Start cardio stay reachable with 0, 3, and 50 routines. Medium: the start sheet now opens fully so the last row is not clipped. Low: the 50-routine check uses empty routines, so each card is shorter than a filled one.",
+        "adversarial": "APPROVE. Zero Critical or High. A second confirm with a different title does not replace the saved session or its notes and does not insert another row. Death after the private submit was tested with the row present and with the row absent. A title typed after the private file was saved is not replaced by the older file. Medium: if private cleanup fails after the row has landed, the next Past workout opens that same session again until cleanup succeeds, and it does not insert a second session. Low: Save after the draft has been cleared says nothing was saved."
       }
     }
   }

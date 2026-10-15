@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -122,7 +123,10 @@ fun StartOptionsSheet(
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3) {
+    // Opened all the way. A half sheet clips Past workout and live cardio under the
+    // routine list, and the clipped rows do not scroll into view.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
