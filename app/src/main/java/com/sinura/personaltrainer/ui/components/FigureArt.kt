@@ -115,9 +115,39 @@ internal data class FigureBox(val width: Float, val height: Float) {
             kotlin.math.abs(rect.width / width - (plate.right - plate.left)) < eps &&
             kotlin.math.abs(rect.height / height - (plate.bottom - plate.top)) < eps
     }
+
+    /**
+     * Hit test in the same pixel box the canvas draws. Later plates win, matching paint order.
+     * Fractions outside the box miss, so a tap on the panel chrome cannot select a muscle.
+     */
+    fun muscleAt(view: BodyView, xPx: Float, yPx: Float): CanonicalMuscle? {
+        if (xPx < 0f || yPx < 0f || xPx > width || yPx > height) return null
+        val x = xPx / width
+        val y = yPx / height
+        return platesFor(view).lastOrNull { plate ->
+            plate.muscle != null && pointInPolygon(x, y, plate.points)
+        }?.muscle
+    }
 }
 
 internal data class HotspotRect(val left: Float, val top: Float, val width: Float, val height: Float)
+
+/** Even-odd ray cast on the plate corners the figure is drawn from. */
+internal fun pointInPolygon(x: Float, y: Float, points: List<Pair<Float, Float>>): Boolean {
+    var inside = false
+    var j = points.lastIndex
+    for (i in points.indices) {
+        val (xi, yi) = points[i]
+        val (xj, yj) = points[j]
+        val crosses = (yi > y) != (yj > y)
+        if (crosses) {
+            val denom = (yj - yi).let { if (it == 0f) 1e-6f else it }
+            if (x < (xj - xi) * (y - yi) / denom + xi) inside = !inside
+        }
+        j = i
+    }
+    return inside
+}
 
 /**
  * Draw [view]. When the unlit still is bound, that picture is the person and

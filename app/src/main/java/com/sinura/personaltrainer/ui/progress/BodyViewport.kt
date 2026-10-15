@@ -19,8 +19,12 @@ object BodyViewport {
     const val SHORT_HEIGHT_DP = 640
     const val TAB_BAR_DP = 64
 
-    const val FIGURE_FRACTION = 0.44f
-    const val FIGURE_MIN_DP = 280
+    /**
+     * 0.40 leaves room under the figure for the no-colour caption on a 360×640 phone
+     * without pushing the first muscle row under the tab bar.
+     */
+    const val FIGURE_FRACTION = 0.40f
+    const val FIGURE_MIN_DP = 256
     const val FIGURE_MAX_DP = 440
 
     /** [InstrumentType.kicker] line height at font 1.0. */
@@ -40,7 +44,8 @@ object BodyViewport {
             dp(Metrics.space2)
 
     fun legendHeightDp(): Int =
-        KICKER_LINE_DP + dp(Metrics.space1) + (CAPTION_LINE_DP * 2)
+        KICKER_LINE_DP + dp(Metrics.space1) + (CAPTION_LINE_DP * 2) +
+            dp(Metrics.space1) + (CAPTION_LINE_DP * 2)
 
     fun mapHeightDp(screenHeightDp: Int): Int =
         legendHeightDp() + dp(Metrics.space2) + figureHeightDp(screenHeightDp)

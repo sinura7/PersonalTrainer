@@ -3,7 +3,7 @@ package com.sinura.personaltrainer.ui.progress
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,20 +14,23 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -52,7 +55,6 @@ import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.MuscleStill
 import com.sinura.personaltrainer.ui.components.FigureBox
 import com.sinura.personaltrainer.ui.components.drawTemperFigure
-import com.sinura.personaltrainer.ui.components.hotspotsFor
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -113,40 +115,34 @@ fun BodyMapCard(
                     .padding(vertical = Metrics.space4)
                     .aspectRatio(FIGURE_ASPECT, matchHeightConstraintsFirst = true),
             ) {
-                val measure = FigureBox(
-                    width = maxWidth.value,
-                    height = maxHeight.value,
-                )
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawTemperFigure(
-                        view = view,
-                        fill = { plate ->
-                            plate.muscle?.let { heatColor(snapshot.load(it).heat) } ?: SteelDim
+                // One box, in pixels, for the still, the heat wash, the selection stroke and the tap.
+                var measure by remember { mutableStateOf(FigureBox(width = 1f, height = 1f)) }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .onSizeChanged { size ->
+                            if (size.width > 0 && size.height > 0) {
+                                measure = FigureBox(
+                                    width = size.width.toFloat(),
+                                    height = size.height.toFloat(),
+                                )
+                            }
+                        }
+                        .pointerInput(view, measure) {
+                            detectTapGestures { offset ->
+                                measure.muscleAt(view, offset.x, offset.y)?.let(onSelect)
+                            }
                         },
-                        selected = selected,
-                        selectedStroke = Volt,
-                        edge = HairlineStrong,
-                    )
-                }
-                hotspotsFor(view).forEach { spot ->
-                    // Invisible tap targets. The plate fill lives on the canvas so the
-                    // geometry can stay polygonal; these boxes only have to be hittable.
-                    val rect = measure.hotspotLeftTopSize(spot)
-                    key(spot.muscle, spot.left) {
-                        Box(
-                            modifier = Modifier
-                                .offset(
-                                    x = rect.left.dp,
-                                    y = rect.top.dp,
-                                )
-                                .size(
-                                    width = rect.width.dp,
-                                    height = rect.height.dp,
-                                )
-                                // Sighted shortcut only. Anatomy plates sit under 48 dp
-                                // (FND-023). TalkBack uses the muscle rows under the map.
-                                .clickable { onSelect(spot.muscle) }
-                                .clearAndSetSemantics { },
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawTemperFigure(
+                            view = view,
+                            fill = { plate ->
+                                plate.muscle?.let { heatColor(snapshot.load(it).heat) } ?: SteelDim
+                            },
+                            selected = selected,
+                            selectedStroke = Volt,
+                            edge = HairlineStrong,
                         )
                     }
                 }
@@ -215,6 +211,14 @@ fun HeatLegend(modifier: Modifier = Modifier) {
             style = InstrumentType.caption,
             color = TextTertiary,
             maxLines = 2,
+        )
+        Text(
+            BodyHeatCopy.WINDOW_CAPTION,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(BodyTags.WINDOW_CAPTION),
+            style = InstrumentType.caption,
+            color = TextSecondary,
         )
     }
 }
@@ -328,6 +332,7 @@ object BodyTags {
     const val EMPTY = "body-empty-window"
     const val START_SHEET = "body-start-sheet"
     const val FACTS = "body-facts"
+    const val WINDOW_CAPTION = "body-window-caption"
     const val SHOW_MONTH = "body-show-month"
     const val FIRST_LIFTS = "body-first-lifts"
 

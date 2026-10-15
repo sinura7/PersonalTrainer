@@ -9,10 +9,10 @@ import org.junit.Test
 class BodyViewportTest {
     @Test
     fun firstMuscleRowIsInsideTheFirstViewportAt360x640() {
-        assertEquals(281, BodyViewport.figureHeightDp(640))
-        assertEquals(280, BodyViewport.figureHeightDp(500))
-        assertEquals(440, BodyViewport.figureHeightDp(1_000))
-        assertEquals(352, (800 * BodyViewport.FIGURE_FRACTION).toInt())
+        assertEquals(256, BodyViewport.figureHeightDp(640))
+        assertEquals(256, BodyViewport.figureHeightDp(500))
+        assertEquals(400, BodyViewport.figureHeightDp(1_000))
+        assertEquals(320, (800 * BodyViewport.FIGURE_FRACTION).toInt())
         assertTrue(
             "first muscle row must land in 360×640 above the tab bar",
             BodyViewport.firstMuscleRowFits(

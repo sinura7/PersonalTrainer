@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.components
 
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -124,5 +125,37 @@ class FigureArtTest {
                 assertTrue("$view ${spot.muscle} tap drift", measure.matchesPlateBounds(spot, plate))
             }
         }
+    }
+
+    @Test
+    fun plateCentersSelectTheDrawnMuscleAndMissOutsideTheBox() {
+        val box = FigureBox(width = 520f, height = 1000f)
+        BodyView.entries.forEach { view ->
+            platesFor(view).filter { it.muscle != null }.forEach { plate ->
+                val (x, y) = centroid(plate)
+                assertEquals(
+                    "$view ${plate.muscle}",
+                    plate.muscle,
+                    box.muscleAt(view, x * box.width, y * box.height),
+                )
+            }
+        }
+        assertNull(box.muscleAt(BodyView.FRONT, xPx = -1f, yPx = 10f))
+        assertNull(box.muscleAt(BodyView.FRONT, xPx = box.width + 1f, yPx = 10f))
+    }
+
+    @Test
+    fun theSameArmPointIsBicepsInFrontAndTricepsInBack() {
+        val box = FigureBox(width = 520f, height = 1000f)
+        val biceps = platesFor(BodyView.FRONT).first { it.muscle == CanonicalMuscle.BICEPS }
+        val (x, y) = centroid(biceps)
+        assertEquals(CanonicalMuscle.BICEPS, box.muscleAt(BodyView.FRONT, x * box.width, y * box.height))
+        assertEquals(CanonicalMuscle.TRICEPS, box.muscleAt(BodyView.BACK, x * box.width, y * box.height))
+    }
+
+    private fun centroid(plate: BodyPlate): Pair<Float, Float> {
+        val x = plate.points.map { it.first }.average().toFloat()
+        val y = plate.points.map { it.second }.average().toFloat()
+        return x to y
     }
 }
