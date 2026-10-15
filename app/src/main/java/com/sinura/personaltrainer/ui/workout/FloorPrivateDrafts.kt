@@ -51,14 +51,19 @@ internal class FloorPrivateDrafts(
     init {
         if (persistence != null) scope.launch {
             for (ignored in requests) {
-                serial.withLock {
-                    val entry = synchronized(latestLock) { latest } ?: return@withLock
-                    try {
-                        persistence.checkpoint(entry)
+                // Read the snapshot, then release the lock before the disk write. An exit
+                // flush uses the same lock; holding it across the write left that exit waiting
+                // until the background write finished, and under load it never did.
+                val entry = serial.withLock { synchronized(latestLock) { latest } } ?: continue
+                try {
+                    persistence.checkpoint(entry)
+                    serial.withLock {
                         if (_state.value.canEnter) _state.value = _state.value.copy(phase = WorkoutPrivatePhase.READY)
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (_: Exception) {
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    serial.withLock {
                         if (_state.value.canEnter) _state.value = _state.value.copy(phase = WorkoutPrivatePhase.PRESERVATION_FAILED)
                     }
                 }
