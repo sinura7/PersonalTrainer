@@ -24,14 +24,9 @@ import kotlinx.coroutines.withTimeout
  * stops a loaded runner from being reported as a broken test. Raising a
  * ceiling can only let a slow-but-correct test finish; it cannot make a
  * passing test fail.
- *
- * On 15 October 2026 a full `testDebugUnitTest` on a busy cloud JVM still
- * exceeded 30 seconds on Room-backed waits (the predicate was false only
- * because the transaction thread had not run yet). Sixty seconds is the
- * same kind of ceiling, not a weaker check.
  */
 object TestWaits {
-    const val FLOW_MS = 60_000L
+    const val FLOW_MS = 30_000L
 }
 
 /**

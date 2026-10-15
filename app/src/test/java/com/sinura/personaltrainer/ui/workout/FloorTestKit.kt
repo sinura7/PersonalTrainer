@@ -261,7 +261,7 @@ internal fun ComposeContentTestRule.showFloor(fontScale: State<Float>, content: 
 }
 
 /** How long a rendered test waits for the screen or its ViewModel to reach a state. */
-internal const val FLOOR_WAIT_MS = 45_000L
+internal const val FLOOR_WAIT_MS = 20_000L
 
 /** The lift the rendered floor tests open on. */
 internal const val FLOOR_LIFT_ID = "leg-extension"

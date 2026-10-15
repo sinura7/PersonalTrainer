@@ -558,23 +558,14 @@ class HomeViewModel @JvmOverloads constructor(
         // Home must not diagnose an insertion failure as a failed live-workout read.
         val startError = if (message == DataHealthCopy.START_UNAVAILABLE) ReminderCopy.START_FAILED else message
         actionError.value = startError
-        // Pending drops with the error. A later line in the start coroutine used to clear it,
-        // so a slow database left Skip refused after the failure was already on screen.
-        _startState.value = _startState.value.copy(error = startError, canRetry = canRetry, pending = false)
+        _startState.value = _startState.value.copy(error = startError, canRetry = canRetry)
     }
 
     private fun markStartBlocked(blocked: BlockedStart) {
         val requested = (startCommand as? StartCommand.Discard)?.requested ?: startCommand
         blockedStartCommand = requested
         startCommand = requested
-        // The blocked sheet is the result. Pending must already be false when it appears,
-        // or Skip/Discard on that sheet is refused until the start coroutine's tail runs.
-        _startState.value = _startState.value.copy(
-            error = null,
-            canRetry = false,
-            discardedOriginal = false,
-            pending = false,
-        )
+        _startState.value = _startState.value.copy(error = null, canRetry = false, discardedOriginal = false)
         _blockedByInProgress.value = blocked
     }
 
