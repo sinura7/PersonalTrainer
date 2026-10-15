@@ -151,6 +151,7 @@ class PreferencesRepository(
     private val bodyweightDao: BodyweightDao? = null,
     private val trainingBlockDao: TrainingBlockDao? = null,
     private val onBodyweightChanged: suspend () -> Unit = {},
+    private val onBodyweightDeleted: suspend (BodyweightEntryEntity) -> Unit = {},
     private val onAccountPrefsChanged: suspend () -> Unit = {},
     private val nowMs: () -> Long = { System.currentTimeMillis() },
     private val store: SettingsStore = SettingsStore(dataStore),
@@ -561,10 +562,13 @@ class PreferencesRepository(
                 null
             }
             if (log != null) prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(log)
-            val current = bodyweightDao?.getAll()?.maxByOrNull { it.epochDay }?.kg
+            val latest = bodyweightDao?.getAll()?.maxByOrNull { it.epochDay }?.kg
                 ?: log?.let { BodyweightLog.latest(it)?.kg }
                 ?: clean
-            prefs[BODYWEIGHT_KG] = current
+            val pointerCleared = !prefs.contains(BODYWEIGHT_KG)
+            val wroteLatestDay = bodyweightDao?.getAll()?.maxByOrNull { it.epochDay }?.epochDay == epochDay ||
+                log?.let { BodyweightLog.latest(it)?.epochDay == epochDay } == true
+            if (!pointerCleared || wroteLatestDay) prefs[BODYWEIGHT_KG] = latest
         }
     }
 
@@ -573,6 +577,7 @@ class PreferencesRepository(
      * or clears when the history is empty.
      */
     suspend fun deleteBodyweightDay(epochDay: Long) {
+        val removed = bodyweightDao?.getAll()?.firstOrNull { it.epochDay == epochDay }
         bodyweightDao?.deleteDay(epochDay)
         val remaining = bodyweightDao?.getAll()?.map { it.toDomain() }
         dataStore.edit { prefs ->
@@ -581,9 +586,12 @@ class PreferencesRepository(
                 epochDay,
             )
             if (bodyweightDao == null) prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(log)
-            val current = BodyweightLog.latest(log)?.kg
-            if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
+            if (prefs.contains(BODYWEIGHT_KG)) {
+                val current = BodyweightLog.latest(log)?.kg
+                if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
+            }
         }
+        if (removed != null) onBodyweightDeleted(removed)
         onBodyweightChanged()
     }
 

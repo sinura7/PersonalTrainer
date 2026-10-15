@@ -71,6 +71,11 @@ class PreferencesRoomHistoryTest {
         deps.preferencesRepository.deleteBodyweightDay(20_000L)
         assertTrue(deps.preferencesRepository.bodyweightLog.first().isEmpty())
         assertNull(deps.preferencesRepository.bodyweightKg.first())
+        deps.preferencesRepository.recordBodyweight(78.0, 20_000L)
+        deps.preferencesRepository.recordBodyweight(82.0, 20_010L)
+        deps.preferencesRepository.setBodyweightKg(null)
+        deps.preferencesRepository.recordBodyweight(79.0, 20_000L)
+        assertNull("clearing the current figure survives correcting an older day", deps.preferencesRepository.bodyweightKg.first())
     }
 
     @Test

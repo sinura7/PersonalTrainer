@@ -44,6 +44,7 @@ import com.sinura.personaltrainer.activity.DiscardActivity
 import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
 import com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.timer.SharedPrefsCardioTimerPersistence
@@ -202,6 +203,7 @@ class AppContainer(context: Context) : AppDependencies {
         bodyweightDao = database.bodyweightDao(),
         trainingBlockDao = database.trainingBlockDao(),
         onBodyweightChanged = syncAuthoringBridge::notifyBodyweightChanged,
+        onBodyweightDeleted = syncAuthoringBridge::notifyBodyweightDeleted,
         onAccountPrefsChanged = syncAuthoringBridge::notifyAccountPrefsChanged,
     )
 
@@ -248,6 +250,10 @@ class AppContainer(context: Context) : AppDependencies {
 
         suspend fun notifyBodyweightChanged() {
             authoring?.onBodyweightChanged()
+        }
+
+        suspend fun notifyBodyweightDeleted(entry: BodyweightEntryEntity) {
+            authoring?.onBodyweightDeleted(entry)
         }
 
         suspend fun notifyAccountPrefsChanged() {
