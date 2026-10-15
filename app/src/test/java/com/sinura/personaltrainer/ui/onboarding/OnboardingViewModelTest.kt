@@ -5,9 +5,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.TrainingAge
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingFocus
+import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestWaits
@@ -234,5 +238,142 @@ class OnboardingViewModelTest {
         viewModel!!.setBodyweight(80.0)
         viewModel!!.setBodyweight(null)
         assertNull(viewModel!!.uiState.value.answers.bodyweightKg)
+    }
+
+    @Test
+    fun changingDaysAndEquipmentUpdatesThePreviewAndKeepsTheOtherAnswers() = runBlocking {
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
+        deps.dbMaintenance.seedCatalog()
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
+        viewModel!!.setFocus(TrainingFocus.STRENGTH)
+        viewModel!!.setExperience(TrainingAge.RETURNING)
+        viewModel!!.setDaysPerWeek(3)
+        viewModel!!.next()
+        viewModel!!.next()
+        viewModel!!.next()
+        viewModel!!.setGoal(TrainingGoal.STRENGTH)
+        viewModel!!.setEmphasis(TrainingEmphasis.UPPER)
+        viewModel!!.setBodyweight(80.0)
+        viewModel!!.next()
+        val first = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.step == OnboardingStep.PREVIEW && it.preview?.trainingDayCount == 3 }
+        }
+        val gymLifts = first.preview!!.routines.flatMap { it.lifts }
+        assertTrue(gymLifts.any { it.equipment == EquipmentType.BARBELL })
+
+        repeat(4) { assertTrue(viewModel!!.back()) }
+        val onPlace = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.step == OnboardingStep.PLACE }
+        }
+        assertEquals(OnboardingStep.PLACE, onPlace.step)
+        viewModel!!.togglePlace(TrainingPlace.BODYWEIGHT_ONLY)
+        repeat(2) { assertTrue(viewModel!!.back()) }
+        val onDays = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.step == OnboardingStep.DAYS_PER_WEEK }
+        }
+        assertEquals(OnboardingStep.DAYS_PER_WEEK, onDays.step)
+        viewModel!!.setDaysPerWeek(5)
+        repeat(6) { viewModel!!.next() }
+
+        val updated = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.step == OnboardingStep.PREVIEW && it.preview?.trainingDayCount == 5 }
+        }
+        assertEquals(TrainingFocus.STRENGTH, updated.answers.focus)
+        assertEquals(TrainingGoal.STRENGTH, updated.answers.goal)
+        assertEquals(TrainingEmphasis.UPPER, updated.answers.emphasis)
+        assertEquals(80.0, updated.answers.bodyweightKg!!, 0.0)
+        assertEquals(TrainingPlace.BODYWEIGHT_ONLY, updated.answers.place)
+        val homeLifts = updated.preview!!.routines.flatMap { it.lifts }
+        assertTrue(homeLifts.none { it.equipment == EquipmentType.BARBELL })
+        assertFalse(first.preview.sameProgramAs(updated.preview))
+        assertEquals(0, deps.routineRepository.count())
+    }
+
+    @Test
+    fun theSameVisitAcceptsThePlanOnce() = runBlocking {
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
+        deps.dbMaintenance.seedCatalog()
+        val handle = SavedStateHandle()
+        val first = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), handle, deps)
+        withTimeout(TestWaits.FLOW_MS) { first.uiState.first { it.preview != null } }
+        first.applyPlan()
+        withTimeout(TestWaits.FLOW_MS) { first.finished.first { it } }
+        withTimeout(TestWaits.FLOW_MS) { first.uiState.first { !it.applying } }
+        val routines = deps.routineRepository.count()
+        val slots = deps.scheduleRepository.slots().size
+        assertTrue(routines > 0)
+        assertTrue(slots > 0)
+
+        first.applyPlan()
+        withTimeout(TestWaits.FLOW_MS) { first.uiState.first { !it.applying } }
+        assertEquals(routines, deps.routineRepository.count())
+        assertEquals(slots, deps.scheduleRepository.slots().size)
+        first.clearAndJoinForTest()
+
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), handle, deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.preview != null } }
+        viewModel!!.applyPlan()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.finished.first { it } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { !it.applying } }
+        assertEquals(routines, deps.routineRepository.count())
+        assertEquals(slots, deps.scheduleRepository.slots().size)
+    }
+
+    @Test
+    fun aNewSetupVisitCanAddAnotherWeek() = runBlocking {
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
+        deps.dbMaintenance.seedCatalog()
+        val first = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
+        withTimeout(TestWaits.FLOW_MS) { first.uiState.first { it.preview != null } }
+        first.applyPlan()
+        withTimeout(TestWaits.FLOW_MS) { first.finished.first { it } }
+        val afterFirst = deps.routineRepository.count()
+        first.clearAndJoinForTest()
+
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.preview != null } }
+        viewModel!!.applyPlan()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.finished.first { it } }
+        assertTrue(deps.routineRepository.count() > afterFirst)
+    }
+
+    @Test
+    fun leavingThePreviewWithoutAcceptingWritesNothing() = runBlocking {
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
+        deps.dbMaintenance.seedCatalog()
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
+        viewModel!!.setFocus(TrainingFocus.STRENGTH)
+        viewModel!!.setExperience(TrainingAge.NEW)
+        repeat(6) { viewModel!!.next() }
+        withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.step == OnboardingStep.PREVIEW && it.preview != null }
+        }
+        while (viewModel!!.back()) Unit
+        assertFalse(deps.preferencesRepository.onboardingComplete.first())
+        assertEquals(0, deps.routineRepository.count())
+        assertEquals(0, deps.scheduleRepository.slots().size)
+    }
+
+    @Test
+    fun acceptingCardioTwiceDoesNotStartASecondBlock() = runBlocking {
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
+        val handle = SavedStateHandle()
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), handle, deps)
+        viewModel!!.setFocus(TrainingFocus.CARDIO)
+        withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.answers.focus == TrainingFocus.CARDIO && it.preview != null }
+        }
+        viewModel!!.setBodyweight(70.0)
+        viewModel!!.applyPlan()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.finished.first { it } }
+        val block = deps.preferencesRepository.trainingBlock.first()
+        assertEquals(1, deps.preferencesRepository.bodyweightLog.first().size)
+        assertEquals(0, deps.routineRepository.count())
+
+        viewModel!!.applyPlan()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { !it.applying } }
+        assertEquals(block, deps.preferencesRepository.trainingBlock.first())
+        assertEquals(1, deps.preferencesRepository.bodyweightLog.first().size)
+        assertEquals(0, deps.scheduleRepository.slots().size)
     }
 }

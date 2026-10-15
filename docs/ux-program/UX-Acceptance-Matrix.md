@@ -147,7 +147,7 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 | UX07-AC01 | P0 | F04, F08 | Build a multi-row mixed draft, background, recreate the process and restore: date, rows, order and values survive. | Already covered at HEAD by R09 (SavedStateComposerDraft); Robolectric processRecreationRestoresTheTypedDraft written, not executed |
 | UX07-AC02 | P0 | F04, F08 | Cancel/Back during delayed accepted save neither creates a duplicate nor tells the user committed work was discarded. | Written, not executed (Robolectric: cancelWhileSavingIsRefusedAndTheSaveStillLandsOnce) |
 | UX07-AC03 | P0 | F04, F08 | Failed save preserves the draft; successful save clears only that draft. | Written, not executed (Robolectric: anAcceptedSaveClearsTheDraft, save() keeps draft on Rejected/thrown) |
-| UX07-AC04 | P0 | F04, F08 | Onboarding draft restoration does not overwrite the saved current plan or create a new one without acceptance. | Written, not executed (Robolectric: processRecreationRestoresTheStepAndAnswersWithoutWritingAPlan) |
+| UX07-AC04 | P0 | F04, F08 | Onboarding draft restoration does not overwrite the saved current plan or create a new one without acceptance. | Bounded automated evidence. Phone reading is still unobserved. |
 
 ### UX08 — Make every onboarding step fit and remain editable
 
@@ -156,7 +156,7 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 | UX08-AC01 | P1 | F07, F11 | Every question and Continue/Skip action is reachable at 360×640 dp, font 2.0, and the smaller supported window configuration. | Not executed |
 | UX08-AC02 | P1 | F07, F11 | Typed bodyweight, wheel, unit switch and Skip produce consistent optional values. | Not executed |
 | UX08-AC03 | P1 | F07, F11 | Screen-reader focus lands on the new question and Back keeps the selected answer. | Not executed |
-| UX08-AC04 | P1 | F07, F11 | Accepting a plan once creates the intended program; reopening setup does not silently apply a draft. | Not executed |
+| UX08-AC04 | P1 | F07, F11 | Accepting a plan once creates the intended program; reopening setup does not silently apply a draft. | Bounded automated evidence. Phone reading is still unobserved. |
 
 ### UX09 — Carry an exercise through Create routine
 
@@ -974,9 +974,9 @@ open.
 
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
-| UX28-AC01 | P2 | F07 | A user can inspect the proposed week, change equipment/days and return to an updated preview with other answers preserved. | Not executed |
-| UX28-AC02 | P2 | F07 | An existing user can explain the acceptance impact before tapping Use this plan. | Not executed |
-| UX28-AC03 | P2 | F07 | Dismissed/failed setup does not create a partial unexpected program. | Not executed |
+| UX28-AC01 | P2 | F07 | A user can inspect the proposed week, change equipment/days and return to an updated preview with other answers preserved. | Bounded automated evidence. Phone reading is still unobserved. |
+| UX28-AC02 | P2 | F07 | An existing user can explain the acceptance impact before tapping Use this plan. | Bounded automated evidence. Phone reading is still unobserved. |
+| UX28-AC03 | P2 | F07 | Dismissed/failed setup does not create a partial unexpected program. | Bounded automated evidence. Phone reading is still unobserved. |
 
 ### UX29 — Make activity-type differences explicit in details and receipts
 

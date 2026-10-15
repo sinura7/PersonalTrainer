@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.data.local.dao.TrainingBlockDao
 import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
 import com.sinura.personaltrainer.data.local.entity.TrainingBlockEntity
+import com.sinura.personaltrainer.data.repository.prefs.ACCEPTED_PLAN_ID
 import com.sinura.personaltrainer.data.repository.prefs.AVAILABLE_EQUIPMENT
 import com.sinura.personaltrainer.data.repository.prefs.BLOCK_START
 import com.sinura.personaltrainer.data.repository.prefs.BLOCK_WEEKS
@@ -499,6 +500,13 @@ class PreferencesRepository(
 
     suspend fun setOnboardingComplete(complete: Boolean) {
         dataStore.edit { prefs -> prefs[ONBOARDING_COMPLETE] = complete }
+    }
+
+    /** The visit id stored when Use this plan finished. Null until that tap succeeds. */
+    suspend fun acceptedPlanId(): String? = dataStore.data.first()[ACCEPTED_PLAN_ID]
+
+    suspend fun setAcceptedPlanId(id: String) {
+        dataStore.edit { prefs -> prefs[ACCEPTED_PLAN_ID] = id }
     }
 
     /**

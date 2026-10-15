@@ -6,6 +6,14 @@ import org.junit.Test
 
 class OnboardingPreviewCopyTest {
     @Test
+    fun anExistingProgramSaysWhatAcceptingWillDo() {
+        val line = OnboardingPreviewCopy.EXISTING_PROGRAM
+        assertTrue(line.contains("added alongside"))
+        assertTrue(line.contains("History stays"))
+        assertTrue(line.contains("twelve-week block"))
+    }
+
+    @Test
     fun fullWeekWarningNamesTheChoice() {
         assertEquals("No rest day this week.", OnboardingPreviewCopy.FULL_WEEK_TITLE)
         assertEquals("Use this plan", OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN)

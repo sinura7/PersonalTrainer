@@ -2760,7 +2760,7 @@
         "F08"
       ],
       "requirement": "Onboarding draft restoration does not overwrite the saved current plan or create a new one without acceptance.",
-      "status": "Written, not executed (Robolectric: processRecreationRestoresTheStepAndAnswersWithoutWritingAPlan)",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
@@ -2769,11 +2769,11 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
-        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Restoring a setup visit writes nothing until Use this plan. Accepting that same visit again does not add another program.",
+        "automated": "OnboardingViewModelTest.processRecreationRestoresTheStepAndAnswersWithoutWritingAPlan and theSameVisitAcceptsThePlanOnce.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P02",
           "P15",
@@ -2872,18 +2872,18 @@
         "F11"
       ],
       "requirement": "Accepting a plan once creates the intended program; reopening setup does not silently apply a draft.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P16",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX08",
-        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "One setup visit stores an acceptance id. A second tap of that visit does not add routines, days, or a second block. A cardio week is remembered the same way. A later visit, and Settings Generate a week, can still add routines.",
+        "automated": "OnboardingViewModelTest.theSameVisitAcceptsThePlanOnce, aNewSetupVisitCanAddAnotherWeek, and acceptingCardioTwiceDoesNotStartASecondBlock. OnboardingApplierTest.theSameAcceptanceDoesNotAddASecondProgram, aLaterVisitCanAddAnotherProgram, generateAWeekStillAddsRoutinesAfterAPlanWasAccepted, aFailedAcceptanceCanBeRetriedOnce, and acceptingCardioTwiceDoesNotStartASecondBlock.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P02",
           "P15",
@@ -4622,18 +4622,18 @@
         "F07"
       ],
       "requirement": "A user can inspect the proposed week, change equipment/days and return to an updated preview with other answers preserved.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P16",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX28",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Going back, changing the days and the place, and returning shows the new week. Focus, goal, emphasis, and the stored weight stay.",
+        "automated": "OnboardingViewModelTest.changingDaysAndEquipmentUpdatesThePreviewAndKeepsTheOtherAnswers. Nothing is written by looking.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P16"
         ],
@@ -4648,18 +4648,18 @@
         "F07"
       ],
       "requirement": "An existing user can explain the acceptance impact before tapping Use this plan.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P16",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX28",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "When routines already exist, the preview says they will be added alongside, history stays, and accepting starts a new twelve-week block. That line sits above Use this plan.",
+        "automated": "OnboardingAcceptanceRenderTest.anExistingProgramExplainsTheImpactBeforeUseThisPlan. A first plan does not show that line.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P16"
         ],
@@ -4674,18 +4674,18 @@
         "F07"
       ],
       "requirement": "Dismissed/failed setup does not create a partial unexpected program.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P16",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX28",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Leaving the preview writes nothing. I'll build my own writes no routines. A failed attempt drops the routines it started and the same visit can be accepted once after that.",
+        "automated": "OnboardingViewModelTest.leavingThePreviewWithoutAcceptingWritesNothing. OnboardingAcceptanceRenderTest.anExistingProgramExplainsTheImpactBeforeUseThisPlan. OnboardingApplierTest.aFailedApplyLeavesNoRoutinesForTheRetryToDuplicate and aFailedAcceptanceCanBeRetriedOnce.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P16"
         ],
@@ -4974,7 +4974,7 @@
       {
         "id": "P16",
         "title": "Plan preview and acceptance",
-        "state": "Open"
+        "state": "Use this plan writes one program for that visit. A second tap, or the same visit after the process is recreated, does not add routines, days, or a second block. Changing days or equipment updates the preview and keeps the other answers. An existing program is told, before the tap, that routines are added alongside, history stays, and a new twelve-week block starts. Generate a week still adds routines inside the current block. Leaving without the tap, or a failed attempt, does not leave the new routines. The phone check stays open."
       },
       {
         "id": "P17",
@@ -5275,8 +5275,8 @@
         "test": "app/src/test/java/com/sinura/personaltrainer/ui/onboarding/OnboardingFocusTest.kt",
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.onboarding.OnboardingFocusTest.xml",
         "baselineExecutedTests": 5,
-        "scope": "Existing plan preview/application; durable acceptance, equipment/day changes and existing-user impact remain.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "scope": "The preview updates when days or equipment change. One visit accepts once, including a cardio week with no routines. An existing program is explained before Use this plan. A failed or dismissed setup does not leave the new routines. Generate a week remains a separate door.",
+        "limitation": "Phone reading is unobserved. P19 integration and P20 physical acceptance remain."
       },
       "UX29": {
         "primaryPacket": "P07",
@@ -5339,7 +5339,7 @@
           "P16"
         ],
         "existing": "Full Library names/facets/route state and required-read Retry integrated through #491. P02/P03 private drafts and uncertain custom-editor Save are integrated; P10 Library-context core#503 retains last-used browse context.",
-        "remaining": "P15/P16 onboarding and plan acceptance; P19 full integration/native65 follow-up and P20 physical acceptance."
+        "remaining": "P19 full integration/native65 follow-up and P20 physical acceptance. P15 and P16 have bounded automated evidence; the phone check stays open."
       },
       "F9": {
         "owners": [
