@@ -19,8 +19,12 @@ object BodyViewport {
     const val SHORT_HEIGHT_DP = 640
     const val TAB_BAR_DP = 64
 
-    const val FIGURE_FRACTION = 0.44f
-    const val FIGURE_MIN_DP = 280
+    /**
+     * 0.36 keeps the first muscle row above the tab bar on a 360×640 phone once the
+     * legend, Front/Back chips and facts line are all counted. Font scale 1.0 only.
+     */
+    const val FIGURE_FRACTION = 0.36f
+    const val FIGURE_MIN_DP = 230
     const val FIGURE_MAX_DP = 440
 
     /** [InstrumentType.kicker] line height at font 1.0. */
@@ -40,10 +44,20 @@ object BodyViewport {
             dp(Metrics.space2)
 
     fun legendHeightDp(): Int =
-        KICKER_LINE_DP + dp(Metrics.space1) + (CAPTION_LINE_DP * 2)
+        KICKER_LINE_DP + dp(Metrics.space1) + CAPTION_LINE_DP
+
+    /** Front/Back chips and the one-line facts caption under the figure. */
+    fun underFigureDp(): Int =
+        dp(Metrics.space2) +
+            dp(Metrics.touchMin) +
+            dp(Metrics.space2) +
+            CAPTION_LINE_DP
 
     fun mapHeightDp(screenHeightDp: Int): Int =
-        legendHeightDp() + dp(Metrics.space2) + figureHeightDp(screenHeightDp)
+        legendHeightDp() +
+            dp(Metrics.space2) +
+            figureHeightDp(screenHeightDp) +
+            underFigureDp()
 
     fun firstMuscleRowTopDp(screenHeightDp: Int): Int =
         pickerHeightDp() +

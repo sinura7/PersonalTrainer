@@ -86,6 +86,70 @@ internal fun hotspotsFor(view: BodyView): List<BodyHotspot> =
     }
 
 /**
+ * One measured transform for anatomy art, heat washes, selection strokes and hit testing.
+ * [BodyMapCard] and [drawTemperFigure] both size the figure box to [FIGURE_ASPECT]; this
+ * type is the only place fractions become pixel/Dp rects so taps cannot drift off plates.
+ */
+internal data class FigureBox(val width: Float, val height: Float) {
+    init {
+        require(width > 0f && height > 0f) { "Figure box needs positive size" }
+    }
+
+    fun leftPx(fraction: Float): Float = fraction * width
+    fun topPx(fraction: Float): Float = fraction * height
+
+    fun hotspotLeftTopSize(spot: BodyHotspot): HotspotRect =
+        HotspotRect(
+            left = leftPx(spot.left),
+            top = topPx(spot.top),
+            width = width * spot.width,
+            height = height * spot.height,
+        )
+
+    /** Tap targets must cover the same axis-aligned bounds as the plate table. */
+    fun matchesPlateBounds(spot: BodyHotspot, plate: BodyPlate): Boolean {
+        val rect = hotspotLeftTopSize(spot)
+        val eps = 0.0001f
+        return kotlin.math.abs(rect.left / width - plate.left) < eps &&
+            kotlin.math.abs(rect.top / height - plate.top) < eps &&
+            kotlin.math.abs(rect.width / width - (plate.right - plate.left)) < eps &&
+            kotlin.math.abs(rect.height / height - (plate.bottom - plate.top)) < eps
+    }
+
+    /**
+     * Hit test in the same pixel box the canvas draws. Later plates win, matching paint order.
+     * Fractions outside the box miss, so a tap on the panel chrome cannot select a muscle.
+     */
+    fun muscleAt(view: BodyView, xPx: Float, yPx: Float): CanonicalMuscle? {
+        if (xPx < 0f || yPx < 0f || xPx > width || yPx > height) return null
+        val x = xPx / width
+        val y = yPx / height
+        return platesFor(view).lastOrNull { plate ->
+            plate.muscle != null && pointInPolygon(x, y, plate.points)
+        }?.muscle
+    }
+}
+
+internal data class HotspotRect(val left: Float, val top: Float, val width: Float, val height: Float)
+
+/** Even-odd ray cast on the plate corners the figure is drawn from. */
+internal fun pointInPolygon(x: Float, y: Float, points: List<Pair<Float, Float>>): Boolean {
+    var inside = false
+    var j = points.lastIndex
+    for (i in points.indices) {
+        val (xi, yi) = points[i]
+        val (xj, yj) = points[j]
+        val crosses = (yi > y) != (yj > y)
+        if (crosses) {
+            val denom = (yj - yi).let { if (it == 0f) 1e-6f else it }
+            if (x < (xj - xi) * (y - yi) / denom + xi) inside = !inside
+        }
+        j = i
+    }
+    return inside
+}
+
+/**
  * Draw [view]. When the unlit still is bound, that picture is the person and
  * [fill] is a heat wash on trained plates only. Rest stays the still.
  */

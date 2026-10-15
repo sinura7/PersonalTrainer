@@ -3660,11 +3660,11 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX17",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "WINDOW_CAPTION is on the Body legend. FigureBox.muscleAt uses the same plate corners as the drawing.",
+        "automated": "BodyGeometryRenderTest: short WINDOW_CAPTION visible at 360dp font 1.0 and 2.0. The longer calendar sentence is the same caption's spoken description. Not participant proof.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P11"
         ],
@@ -3687,11 +3687,11 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX17",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "muscleRows lists every CanonicalMuscle.bodyMapOrder entry; Other only when it has work. Map taps and rows share one selected muscle.",
+        "automated": "BodyListEquivalenceTest. Font 2.0 row subtitle still ellipsizes (seen on body-front-360-font2.0.png) and stays open for P19.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P11"
         ],
@@ -3714,11 +3714,11 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX17",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Muscle detail uses the snapshot window. Facts and WINDOW_CAPTION sit with the figure.",
+        "automated": "BodyGeometryRenderTest font 2.0 shows the full no-colour sentence. Legend swatches still clip HIGH at font 2.0; retained for P19.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P11"
         ],
@@ -4945,7 +4945,7 @@
       {
         "id": "P11",
         "title": "Body geometry and interaction",
-        "state": "Open"
+        "state": "Bounded geometry, list equivalence and no-colour caption; P19 large-text leftovers and P20 physical remain"
       },
       {
         "id": "P12",
@@ -5165,8 +5165,9 @@
         "test": "app/src/test/java/com/sinura/personaltrainer/ui/progress/BodyViewportTest.kt",
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.progress.BodyViewportTest.xml",
         "baselineExecutedTests": 3,
-        "scope": "Existing map/list; registered geometry, measured full-page heat/tap and workload interpretation remain.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "scope": "FigureBox hit testing, full mapped-muscle rows, a one-line no-colour caption, and a measured 360x640 first-row check. Font 2.0 swatches and row subtitles can still clip.",
+        "limitation": "JVM renders and unit tests are not participant understanding or a phone tap. P19/P20 remain.",
+        "p11Evidence": "Tracked frames: docs/ux-context/studies/q01/assets/p11-body-front-360-font1.png, p11-body-front-360-font2.png, p11-body-back-360-font1.png, p11-body-360x640-font1.png. firstMuscleRowSitsAboveTheTabBarAt360x640 measures the row bottom at or above 576dp."
       },
       "UX18": {
         "primaryPacket": "P17",
@@ -5437,6 +5438,8 @@
       "plannerObservation": "Fresh planner fetched tags on14Oct2026:125 not above shipped125; recommends126; debug-live/2026-10-14 free.",
       "publicationRule": "Rerun the planner after version integration. The observed suffix is not a reservation. Publish exact merge SHA and independently verify downloaded APK identity/signature.",
       "phoneAcceptance": "Unobserved; owner testing begins after planned development.",
+      "mergeSha": "4cb84ab3c0c69997d4aee9890b4d387ed16720fc",
+      "plannerAfterMerge2026-10-15": "126 above 125; debug-live/2026-10-15 free; push origin 4cb84ab3:refs/heads/debug-live/2026-10-15",
       "dropAGate2026-10-15": {
         "fresh": true,
         "host": "Cursor cloud Linux; JDK 17 (Temurin-equivalent OpenJDK 17; matches CI)",

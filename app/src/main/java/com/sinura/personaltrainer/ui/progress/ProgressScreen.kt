@@ -256,7 +256,7 @@ fun ProgressScreen(
         MuscleDetailSheet(
             load = snap.load(muscle),
             unit = unit,
-            windowLabel = state.window.label,
+            windowLabel = snap.window.label,
             hasAnyWorkingSets = snap.hasAnyWorkingSets,
             explorerLifts = explorerLifts,
             onDismiss = { selectedName = null },
@@ -478,7 +478,7 @@ internal fun BodyExplorerLifts(
 }
 
 /** The body map draws the ten mapped muscles; "Other" only earns a row when it has work in it. */
-private fun muscleRows(snapshot: BodyHeatSnapshot): List<MuscleLoadSummary> =
+internal fun muscleRows(snapshot: BodyHeatSnapshot): List<MuscleLoadSummary> =
     snapshot.mapLoads + listOfNotNull(
         snapshot.load(CanonicalMuscle.OTHER).takeIf { it.workingSets > 0 },
     )

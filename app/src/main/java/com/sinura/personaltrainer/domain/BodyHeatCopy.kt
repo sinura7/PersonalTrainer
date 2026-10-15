@@ -11,7 +11,7 @@ object BodyHeatCopy {
         "Completed-set muscle load in this period — not calendar activity or recovery."
 
     const val WINDOW_CAPTION =
-        "The figure is this period. No colour means no mapped work here, not recovered."
+        "No colour: no mapped work here, not recovered."
 
     /** Why adding the muscle rows together can exceed the workout's unique set count. */
     const val ATTRIBUTION_NOTE =

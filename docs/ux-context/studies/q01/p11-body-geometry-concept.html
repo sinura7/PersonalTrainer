@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>P11 concept — Body figure geometry (not a product render)</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; background: #0b0d10; color: #e8eaed; }
+    body { max-width: 42rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    h1 { font-size: 1.25rem; font-weight: 600; }
+    .banner { background: #1a2332; border: 1px solid #3d5a80; padding: 0.75rem 1rem; border-radius: 8px; margin: 1rem 0; }
+    .figure { margin: 1.5rem auto; width: 156px; height: 300px; border: 1px solid #333; position: relative; background: #141820; }
+    .plate { position: absolute; border: 1px dashed #6b8; opacity: 0.7; box-sizing: border-box; }
+    .tap { position: absolute; border: 2px solid #c9f; opacity: 0.5; box-sizing: border-box; }
+    code { background: #1e2430; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <p class="banner"><strong>Concept only.</strong> Browser sketch for P11 direction. Native Temper uses Compose <code>BodyMapCard</code> and shipped still art — not this page.</p>
+  <h1>One measured box for art, heat, selection, and taps</h1>
+  <p>Problem: heat washes, selection strokes, and invisible tap targets must share the same width/height mapping as the standing figure. If the map panel stretches with device width, anatomy skews and plates drift off muscles.</p>
+  <p>Direction: lock a tall <code>FIGURE_ASPECT</code> box inside the panel; every fraction (plates, hotspots, still crop) maps through one <code>FigureBox</code> measure. Front/back share structure plates; muscle rows remain full-size equivalent actions when plates sit under 48&nbsp;dp.</p>
+  <div class="figure" aria-hidden="true">
+    <div class="plate" style="left:31%;top:22%;width:38%;height:18%;" title="Chest plate (fractions)"></div>
+    <div class="tap" style="left:31%;top:22%;width:38%;height:18%;" title="Same fractions for tap target"></div>
+  </div>
+  <p>Journey: Body tab → Day/Week/Month → tap muscle on map or row → same selection on both → Front/Back switch keeps alignment.</p>
+  <p>States: loading readout, empty period (“no mapped work”), stale/retry (rows stay reachable), large text 2.0 (caption + first row above fold per FND-023).</p>
+</body>
+</html>
