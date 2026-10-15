@@ -219,7 +219,7 @@ private fun DrawScope.drawStillWithHeat(
             drawPath(
                 path = path,
                 color = color.copy(alpha = STILL_HEAT_ALPHA),
-                blendMode = BlendMode.SrcAtop,
+                blendMode = STILL_CLIP_BLEND,
             )
         }
         if (selected != null && plate.muscle == selected) {
@@ -227,6 +227,7 @@ private fun DrawScope.drawStillWithHeat(
                 path = path,
                 color = selectedStroke,
                 style = Stroke(width = Metrics.emphasisBorder.toPx()),
+                blendMode = STILL_CLIP_BLEND,
             )
         }
     }
@@ -238,6 +239,12 @@ internal fun isRestFill(color: Color): Boolean =
 
 /** High enough to read as a recolor, low enough that the still's seams survive. */
 internal const val STILL_HEAT_ALPHA = 0.72f
+
+/**
+ * Heat and the selection stroke both clip to pixels already painted by the still.
+ * A stroke centred on a plate edge must not light the empty pit around the person.
+ */
+internal val STILL_CLIP_BLEND = BlendMode.SrcAtop
 
 /** The launcher pose: front torso, one Heat3 plate — the viewer's-right pec. */
 internal fun BodyPlate.isTemperAccent(): Boolean =

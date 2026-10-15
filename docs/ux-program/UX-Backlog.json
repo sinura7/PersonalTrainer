@@ -4945,7 +4945,10 @@
       {
         "id": "P11",
         "title": "Body geometry and interaction",
-        "state": "Bounded geometry, list equivalence and no-colour caption; P19 large-text leftovers and P20 physical remain"
+        "state": "Merged 9072b6cd; tree matches verified 1e887026 (2bdd68eb). Heat and selection clip inside an offscreen figure canvas. P19 large-text leftovers and P20 physical remain",
+        "mergeSha": "9072b6cddedfa02d51893d9445af38807455a939",
+        "verifiedInput": "1e887026ce5716df70fa15d43037e0d6bd85e1b6",
+        "tree": "2bdd68eba0bc3f4ac0e957e1829725fd1cb66de8"
       },
       {
         "id": "P12",
@@ -5430,9 +5433,16 @@
       }
     ],
     "milestoneA": {
-      "state": "Verified version packet; publication pending owner-signed route",
+      "state": "Published and independently verified",
       "plannedDebugVersionCode": 126,
-      "latestVerifiedPublishedCode": 125,
+      "latestVerifiedPublishedCode": 126,
+      "publishedTag": "debug-live-2026-10-15",
+      "publishedCommit": "4cb84ab3c0c69997d4aee9890b4d387ed16720fc",
+      "publishedVersionCode": 126,
+      "publishedVersionName": "1.0.0+debug.126",
+      "publishedApkSha256": "645d59fe1e9ad77950b3d8ec962af91f3d1db9179619c1e226d8ceb70da6399b",
+      "publishedSignerCertSha256": "b26ea64c9e3e2cc44063dee3d1892e8557cea2d25e71de05abcd754de912c336",
+      "signerMatchesDebug125": true,
       "integratedBase": "eea668ce5105a5f4c4058b2d4aad35991416a174",
       "versionPacketHead": "158f492b552e839c7f5ee1cd27e1ef464980d7ff",
       "plannerObservation": "Fresh planner fetched tags on14Oct2026:125 not above shipped125; recommends126; debug-live/2026-10-14 free.",
