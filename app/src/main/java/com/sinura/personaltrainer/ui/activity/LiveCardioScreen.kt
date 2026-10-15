@@ -73,7 +73,11 @@ fun LiveCardioScreen(
         onFinished(id)
     }
 
-    BackHandler(enabled = !state.missing && !state.failed) { confirmLeave = true }
+    BackHandler(enabled = !state.missing && !state.failed) {
+        // A finished session has the same Back as the button on this screen: leave.
+        // The leave-running dialog is only for a clock that is still going.
+        if (state.finished) onExit() else confirmLeave = true
+    }
 
     if (confirmLeave) {
         LeaveCardioDialog(
