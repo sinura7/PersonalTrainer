@@ -299,7 +299,7 @@ class SyncOutboxWriter(
 
     suspend fun enqueueAllBodyweightEntries(userId: String, entries: List<BodyweightEntryEntity>) {
         entries.forEach { entry ->
-            enqueue(
+            enqueueIfAbsent(
                 SyncEntityType.BODYWEIGHT_ENTRY,
                 syncBodyweightEntityId(entry.epochDay),
                 SyncOutboxOperation.UPSERT,
@@ -392,6 +392,16 @@ class SyncOutboxWriter(
             SyncOutboxOperation.DELETE,
             encodeSync(tombstone),
         )
+    }
+
+    private suspend fun enqueueIfAbsent(
+        type: SyncEntityType,
+        entityId: String,
+        operation: SyncOutboxOperation,
+        payloadJson: String,
+    ) {
+        if (syncDao.hasPendingForEntity(type.name, entityId)) return
+        enqueue(type, entityId, operation, payloadJson)
     }
 
     private suspend fun enqueue(
