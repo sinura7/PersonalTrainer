@@ -38,7 +38,7 @@ class SyncEngine(
     private val settingsStore: SettingsStore,
     private val remote: SyncRemotePort,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
-    private val onDownloadedBodyweightDelete: (suspend (epochDay: Long, updatedAtMs: Long) -> Unit)? = null,
+    private val onDownloadedBodyweightDelete: (suspend (epochDay: Long, deletedAtMs: Long) -> Unit)? = null,
 ) {
     suspend fun run(userId: String): Result<Unit> {
         var pushError: Exception? = null
@@ -106,7 +106,18 @@ class SyncEngine(
                 val payload = row.payloadJson ?: error("Outbox row ${row.id} missing payload")
                 try {
                     when (SyncOutboxOperation.valueOf(row.operation)) {
-                        SyncOutboxOperation.UPSERT -> remote.upsert(type, payload)
+                        SyncOutboxOperation.UPSERT -> {
+                            val sending = if (type == SyncEntityType.BODYWEIGHT_ENTRY) {
+                                bodyweightUpsertPayload(payload)
+                            } else {
+                                payload
+                            }
+                            if (sending == null) {
+                                syncDao.deleteOutbox(row.id)
+                                continue
+                            }
+                            remote.upsert(type, sending)
+                        }
                         SyncOutboxOperation.DELETE -> remote.tombstone(type, payload)
                     }
                     syncDao.deleteOutbox(row.id)
@@ -192,6 +203,27 @@ class SyncEngine(
                 SyncTableCursorEntity(tableName = type.remoteTable, lastPulledUpdatedAtMs = watermark),
             )
         }
+    }
+
+    /**
+     * A routine upload of a live weigh-in omits the delete column. PostgREST then
+     * rewrites the row clock and leaves a cloud delete in place, and the next pull
+     * can erase the newer local day. Read the cloud day first: a newer delete is
+     * not uploaded over, and an older delete is cleared explicitly.
+     */
+    private suspend fun bodyweightUpsertPayload(payload: String): String? {
+        val local = decodeSync<RemoteBodyweightEntryRow>(payload)
+        val server = remote.fetchEq(SyncEntityType.BODYWEIGHT_ENTRY, "epoch_day", local.epochDay.toString())
+            .map { decodeSync<RemoteBodyweightEntryRow>(it) }
+            .maxByOrNull { it.updatedAtMs }
+            ?: return payload
+        val deletedAtMs = server.deletedAtMs
+        if (deletedAtMs != null) {
+            if (!SyncRevision.recordedWeighInBeatsDelete(local.recordedAtMs, deletedAtMs)) return null
+            return encodeSyncKeepingNulls(local.copy(deletedAtMs = null))
+        }
+        if (server.updatedAtMs > local.recordedAtMs) return null
+        return payload
     }
 
     private suspend fun hasPendingChild(type: SyncEntityType, entityId: String): Boolean =
@@ -505,12 +537,15 @@ class SyncEngine(
             return remote.updatedAtMs
         }
         if (remote.deletedAtMs != null) {
+            val deletedAtMs = remote.deletedAtMs
             onDownloadedBodyweightDelete?.let { handler ->
-                handler(remote.epochDay, remote.updatedAtMs)
+                handler(remote.epochDay, deletedAtMs)
                 return remote.updatedAtMs
             }
             val local = bodyweightDao.getAll().firstOrNull { it.epochDay == remote.epochDay }
-            if (local != null && local.recordedAtMs > remote.updatedAtMs) return remote.updatedAtMs
+            if (local != null && SyncRevision.recordedWeighInBeatsDelete(local.recordedAtMs, deletedAtMs)) {
+                return remote.updatedAtMs
+            }
             bodyweightDao.deleteDay(remote.epochDay)
             val remaining = bodyweightDao.getAll().map { row ->
                 BodyweightEntry(row.epochDay, row.kg, row.recordedAtMs, row.zoneId, row.offsetSeconds)

@@ -9,4 +9,11 @@ object SyncRevision {
 
     fun localWins(local: SyncEntityVersion, remote: SyncEntityVersion): Boolean =
         !remoteWins(local, remote) && (local.revision != remote.revision || local.updatedAtMs != remote.updatedAtMs)
+
+    /**
+     * A weigh-in stays when it was recorded after the delete itself.
+     * The row clock can move forward while the delete time stays put, and that must not win.
+     */
+    fun recordedWeighInBeatsDelete(recordedAtMs: Long, deletedAtMs: Long): Boolean =
+        recordedAtMs > deletedAtMs
 }

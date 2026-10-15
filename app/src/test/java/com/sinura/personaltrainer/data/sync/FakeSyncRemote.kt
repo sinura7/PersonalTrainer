@@ -27,6 +27,10 @@ class FakeSyncRemote : SyncRemotePort {
         upsert(type, payloadJson)
     }
 
+    override suspend fun fetchEq(type: SyncEntityType, column: String, value: String): List<String> {
+        return store[type].orEmpty().filter { json -> matchesEq(type, json, column, value) }
+    }
+
     override suspend fun pullUpdatedSince(type: SyncEntityType, sinceUpdatedAtMs: Long): List<String> {
         return store[type].orEmpty()
             .filter { json ->
@@ -39,6 +43,13 @@ class FakeSyncRemote : SyncRemotePort {
 
     fun seed(type: SyncEntityType, json: String) {
         store.getOrPut(type) { mutableListOf() }.add(json)
+    }
+
+    private fun matchesEq(type: SyncEntityType, json: String, column: String, value: String): Boolean {
+        if (type == SyncEntityType.BODYWEIGHT_ENTRY && column == "epoch_day") {
+            return decodeSync<RemoteBodyweightEntryRow>(json).epochDay.toString() == value
+        }
+        return false
     }
 
     private fun decodeUpdatedAt(type: SyncEntityType, json: String): Long = when (type) {

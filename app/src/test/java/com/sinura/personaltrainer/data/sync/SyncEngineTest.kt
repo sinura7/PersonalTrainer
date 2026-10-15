@@ -17,6 +17,8 @@ import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 import com.sinura.personaltrainer.data.local.entity.SyncOutboxEntity
 import com.sinura.personaltrainer.domain.SyncEntityType
 import com.sinura.personaltrainer.domain.SyncOutboxOperation
+import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -577,5 +579,97 @@ class SyncEngineTest {
         val prefs = settingsStore.snapshot()
         assertEquals("STRENGTH", prefs[com.sinura.personaltrainer.data.repository.prefs.TRAINING_GOAL])
         assertEquals(900L, SyncAccountPrefs.coachUpdatedAtMs(prefs))
+    }
+
+    @Test
+    fun pullKeepsAWeighInWhenTheCloudDeleteClockWasMovedForward() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 80.0, recordedAtMs = 500L),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 80.0,
+                    recordedAtMs = 500L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 500L,
+                    deletedAtMs = 100L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertEquals(80.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun bulkUploadClearsAnOlderCloudDeleteInsteadOfMovingItsClock() = runTest {
+        val entry = BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 500L)
+        database.bodyweightDao().upsert(entry)
+        val writer = SyncOutboxWriter(syncDao = database.syncDao(), nowMillis = { 1L })
+        writer.enqueueAllBodyweightEntries("user-1", listOf(entry))
+        val queued = database.syncDao().peekOutbox(10).single().payloadJson!!
+        assertFalse(queued.contains("deleted_at_ms"))
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 70.0,
+                    recordedAtMs = 100L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 100L,
+                    deletedAtMs = 100L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"deleted_at_ms\":null"))
+        assertEquals(81.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun bulkUploadLeavesANewerCloudDeleteUntouched() = runTest {
+        val entry = BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 500L)
+        database.bodyweightDao().upsert(entry)
+        settingsStore.data.edit { prefs ->
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG] =
+                com.sinura.personaltrainer.domain.BodyweightLog.encode(
+                    listOf(com.sinura.personaltrainer.domain.BodyweightEntry(20_000L, 81.0, 500L)),
+                )
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG] = 81.0
+        }
+        SyncOutboxWriter(syncDao = database.syncDao(), nowMillis = { 1L })
+            .enqueueAllBodyweightEntries("user-1", listOf(entry))
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 70.0,
+                    recordedAtMs = 100L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 900L,
+                    deletedAtMs = 900L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+        val prefs = settingsStore.safePreferences.first()
+        assertEquals(
+            "",
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG].orEmpty(),
+        )
+        assertNull(prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG])
     }
 }

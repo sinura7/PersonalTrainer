@@ -68,6 +68,7 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SyncRevision
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -611,13 +612,16 @@ class PreferencesRepository(
     }
 
     /**
-     * A delete downloaded from another phone. Same lock as a delete on this phone,
-     * and a newer weigh-in already stored for that day is left alone.
+     * A delete downloaded from another phone. Same lock as a delete on this phone.
+     * The delete's own time is the clock: a later upload can move the row clock
+     * without making the delete newer than the weigh-in stored here.
      */
-    suspend fun applyDownloadedBodyweightDelete(epochDay: Long, updatedAtMs: Long) {
+    suspend fun applyDownloadedBodyweightDelete(epochDay: Long, deletedAtMs: Long) {
         bodyweightWrites.withLock {
             val local = bodyweightDao?.getAll()?.firstOrNull { it.epochDay == epochDay }
-            if (local != null && local.recordedAtMs > updatedAtMs) return@withLock
+            if (local != null && SyncRevision.recordedWeighInBeatsDelete(local.recordedAtMs, deletedAtMs)) {
+                return@withLock
+            }
             bodyweightDao?.deleteDay(epochDay)
             val remaining = bodyweightDao?.getAll()?.map { it.toDomain() } ?: emptyList()
             dataStore.edit { prefs ->

@@ -29,6 +29,24 @@ class SupabaseRestClient(
         }
     }
 
+    fun getEq(table: String, column: String, value: String, accessToken: String): String {
+        val url = URL("${projectUrl.trimEnd('/')}/rest/v1/$table?$column=eq.$value")
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            setRequestProperty("apikey", anonKey)
+            setRequestProperty("Authorization", "Bearer $accessToken")
+            setRequestProperty("Accept", "application/json")
+        }
+        val code = connection.responseCode
+        val body = if (code in 200..299) {
+            connection.inputStream.bufferedReader().use(BufferedReader::readText)
+        } else {
+            val error = connection.errorStream?.bufferedReader()?.use(BufferedReader::readText).orEmpty()
+            throw IllegalStateException("Supabase fetch failed ($code): $error")
+        }
+        return body
+    }
+
     fun getUpdatedSince(table: String, updatedColumn: String, sinceMs: Long, accessToken: String): String {
         val query =
             "$updatedColumn=gt.$sinceMs&order=$updatedColumn.asc&limit=$SYNC_PULL_PAGE_SIZE"
