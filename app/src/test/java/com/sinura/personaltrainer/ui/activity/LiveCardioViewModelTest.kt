@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.ActivityReadGate
@@ -177,6 +178,28 @@ class LiveCardioViewModelTest {
         assertFalse(state.missing)
         assertFalse(state.failed)
         assertEquals(live.id, state.session?.id)
+    }
+
+    @Test
+    fun aTypedMileStaysAMileWhenThePreferenceChangesToKilometres() = runBlocking {
+        deps.preferencesRepository.setWeightUnit(WeightUnit.LBS)
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        val vm = createViewModel(
+            sessionId = live.id,
+            elapsedRealtime = { 60_000L },
+            wallClock = { now.instantMillis + 60_000L },
+        )
+        vm.uiState.awaitFirst { it.session != null }
+        vm.setDistanceKm("1.5", DistanceUnit.MI)
+        deps.preferencesRepository.setDistanceUnit(DistanceUnit.KM)
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+        vm.finish()
+        vm.finishedId.first { it != null }
+        val completed = deps.activityRepository.get(live.id)
+        assertEquals(2_414.016, completed?.cardioBlocks?.single()?.distanceMeters!!, 0.001)
+        assertEquals(WeightUnit.KG, deps.preferencesRepository.weightUnit.first())
     }
 
     @Test

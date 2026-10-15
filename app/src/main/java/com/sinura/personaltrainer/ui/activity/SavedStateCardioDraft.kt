@@ -2,12 +2,15 @@ package com.sinura.personaltrainer.ui.activity
 
 import androidx.lifecycle.SavedStateHandle
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.DraftStore
 
 data class CardioInputDraft(
     val type: CardioType,
     val indoor: Boolean,
     val distanceKm: String,
+    /** The unit the distance box was typed in. Null on a draft from before that was stored. */
+    val distanceUnit: DistanceUnit? = null,
 )
 
 /**
@@ -30,6 +33,7 @@ class SavedStateCardioDraft(private val handle: SavedStateHandle) : DraftStore<C
             type = type,
             indoor = handle.get<Boolean>(KEY_INDOOR) ?: false,
             distanceKm = handle.get<String>(KEY_DISTANCE).orEmpty(),
+            distanceUnit = DistanceUnit.fromStorage(handle.get<String>(KEY_DISTANCE_UNIT)),
         )
     }
 
@@ -37,12 +41,15 @@ class SavedStateCardioDraft(private val handle: SavedStateHandle) : DraftStore<C
         handle[KEY_TYPE] = value.type.name
         handle[KEY_INDOOR] = value.indoor
         handle[KEY_DISTANCE] = value.distanceKm
+        val unit = value.distanceUnit
+        if (unit == null) handle.remove<String>(KEY_DISTANCE_UNIT) else handle[KEY_DISTANCE_UNIT] = unit.storageKey
     }
 
     override fun clear() {
         handle.remove<String>(KEY_TYPE)
         handle.remove<Boolean>(KEY_INDOOR)
         handle.remove<String>(KEY_DISTANCE)
+        handle.remove<String>(KEY_DISTANCE_UNIT)
     }
 
     fun containsType(): Boolean = handle.contains(KEY_TYPE)
@@ -53,5 +60,6 @@ class SavedStateCardioDraft(private val handle: SavedStateHandle) : DraftStore<C
         const val KEY_TYPE = "liveCardio.type"
         const val KEY_INDOOR = "liveCardio.indoor"
         const val KEY_DISTANCE = "liveCardio.distance"
+        const val KEY_DISTANCE_UNIT = "liveCardio.distanceUnit"
     }
 }

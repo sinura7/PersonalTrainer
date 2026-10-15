@@ -43,8 +43,11 @@ object SettingsHomeCopy {
         else -> ACCOUNT_SIGNED_IN
     }
 
-    fun displaySummary(unit: WeightUnit, clock: ClockFormat): String =
-        "${unit.suffix} · ${clock.displayName}"
+    fun displaySummary(
+        unit: WeightUnit,
+        clock: ClockFormat,
+        distance: DistanceUnit = DistanceUnit.resolve(stored = null, weight = unit),
+    ): String = "${unit.suffix} · ${distance.suffix} · ${clock.displayName}"
 
     fun remindersSummary(
         preferences: ReminderPreferences,

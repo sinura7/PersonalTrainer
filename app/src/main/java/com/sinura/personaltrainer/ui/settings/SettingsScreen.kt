@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -42,6 +43,7 @@ import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.reminders.ReminderPrefsSection
@@ -62,6 +64,7 @@ fun SettingsScreen(
     val account by viewModel.account.uiState.collectAsStateWithLifecycle()
     val savePosture by viewModel.savePostureState.collectAsStateWithLifecycle()
     val pendingSubpage by viewModel.pendingSettingsSubpage.collectAsStateWithLifecycle()
+    val settingsError by viewModel.settingsError.collectAsStateWithLifecycle()
     val selectedUnit = prefs.weightUnit
     val clockFormat = prefs.clockFormat
     val schedulePrefs = prefs.schedule
@@ -84,7 +87,7 @@ fun SettingsScreen(
     val activity = context.findActivity()
     val debugUpdate = rememberDebugUpdatePort()
     val notice by debugUpdate.ui.collectAsStateWithLifecycle()
-    var page by rememberSaveable { mutableStateOf(SettingsPage.HOME) }
+    var page by rememberSaveable { mutableStateOf(viewModel.openPage.value) }
     var pendingAccountDelete by rememberSaveable { mutableStateOf(false) }
     var pendingSignOut by rememberSaveable { mutableStateOf(false) }
 
@@ -95,6 +98,10 @@ fun SettingsScreen(
     LaunchedEffect(Unit) {
         viewModel.refreshAlarmCapability()
         debugUpdate.onSettingsOpened()
+    }
+
+    LaunchedEffect(page) {
+        viewModel.rememberPage(page)
     }
 
     LaunchedEffect(pendingSubpage) {
@@ -182,6 +189,14 @@ fun SettingsScreen(
     }
 
     val goHome = { page = SettingsPage.HOME }
+    Column(modifier = Modifier.fillMaxSize()) {
+        settingsError?.let { message ->
+            GymErrorBanner(
+                message = message,
+                onRetry = viewModel::retrySettingsSave,
+            )
+        }
+        Box(modifier = Modifier.weight(1f)) {
     when (page) {
             SettingsPage.HOME -> {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -198,7 +213,11 @@ fun SettingsScreen(
                         )
                     }
                     SettingsHome(
-                        displaySummary = SettingsHomeCopy.displaySummary(selectedUnit, clockFormat),
+                        displaySummary = SettingsHomeCopy.displaySummary(
+                            unit = selectedUnit,
+                            clock = clockFormat,
+                            distance = prefs.distanceUnit,
+                        ),
                         remindersSummary = SettingsHomeCopy.remindersSummary(
                             reminderPrefs,
                             clockFormat,
@@ -238,8 +257,10 @@ fun SettingsScreen(
             ) {
                 DisplayPrefsSection(
                     selectedUnit = selectedUnit,
+                    distanceUnit = prefs.distanceUnit,
                     clockFormat = clockFormat,
                     onSelectUnit = viewModel::setWeightUnit,
+                    onSelectDistance = viewModel::setDistanceUnit,
                     onSelectClock = viewModel::setClockFormat,
                 )
             }
@@ -426,6 +447,8 @@ fun SettingsScreen(
                 )
             }
         }
+        }
+    }
 
     backup.pendingPreview?.let { preview ->
         ConfirmActionDialog(

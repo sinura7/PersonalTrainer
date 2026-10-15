@@ -51,6 +51,8 @@ data class LiveCardioUiState(
     val type: CardioType = CardioType.RUN,
     val indoor: Boolean = false,
     val distanceKm: String = "",
+    /** The unit the distance box was typed in. Null until a number is entered. */
+    val distanceEntryUnit: DistanceUnit? = null,
     /** Finish read [distanceKm] and could not: the rule it broke, shown under the box. */
     val distanceError: String? = null,
     val error: String? = null,
@@ -81,6 +83,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
     private val type = MutableStateFlow(inputs.read()?.type ?: CardioType.RUN)
     private val indoor = MutableStateFlow(inputs.read()?.indoor ?: false)
     private val distanceKm = MutableStateFlow(inputs.read()?.distanceKm.orEmpty())
+    private val distanceEntryUnit = MutableStateFlow(inputs.read()?.distanceUnit)
     /**
      * The distance box's own complaint, kept separate from [error] on purpose (UX06).
      * [ErrorSlot] holds ONE action failure at a time; a field rule is not an action failure —
@@ -95,8 +98,8 @@ class LiveCardioViewModel @JvmOverloads constructor(
         combine(session, missing, finished, failed, elapsedSeconds) { current, gone, done, broken, elapsed ->
             Loaded(current, gone, done, broken, elapsed)
         },
-        combine(type, indoor, distanceKm) { cardioType, isIndoor, distance ->
-            Triple(cardioType, isIndoor, distance)
+        combine(type, indoor, distanceKm, distanceEntryUnit) { cardioType, isIndoor, distance, unit ->
+            CardioInputs(cardioType, isIndoor, distance, unit)
         },
         combine(error.messages, finishing, distanceError) { err, busy, distanceProblem ->
             Flags(err, busy, distanceProblem)
@@ -108,9 +111,10 @@ class LiveCardioViewModel @JvmOverloads constructor(
             finished = loaded.finished,
             failed = loaded.failed,
             elapsedSeconds = loaded.elapsedSeconds,
-            type = cardioTriple.first,
-            indoor = cardioTriple.second,
-            distanceKm = cardioTriple.third,
+            type = cardioTriple.type,
+            indoor = cardioTriple.indoor,
+            distanceKm = cardioTriple.distance,
+            distanceEntryUnit = cardioTriple.unit,
             distanceError = flags.distanceError,
             error = flags.error,
             finishing = flags.finishing,
@@ -136,8 +140,9 @@ class LiveCardioViewModel @JvmOverloads constructor(
         persistInputs()
     }
 
-    fun setDistanceKm(value: String) {
+    fun setDistanceKm(value: String, unit: DistanceUnit? = null) {
         distanceKm.value = value
+        distanceEntryUnit.value = if (value.isBlank()) null else unit ?: distanceEntryUnit.value
         distanceError.value = null
         persistInputs()
     }
@@ -159,8 +164,15 @@ class LiveCardioViewModel @JvmOverloads constructor(
             // The distance box is read here, at the commit, as typed. A value that is not a
             // distance stops the finish with the rule under the box; it is never dropped so
             // that the run saves with no distance the owner can see went missing.
-            val weightUnit = runCatchingCancellable { container.preferencesRepository.weightUnit.first() }
-                .getOrElse { thrown ->
+            val typedUnit = distanceEntryUnit.value
+            val distanceUnit = if (typedUnit != null) {
+                typedUnit
+            } else {
+                val resolved = runCatchingCancellable {
+                    val weight = container.preferencesRepository.weightUnit.first()
+                    val stored = container.preferencesRepository.storedDistanceUnit.first()
+                    DistanceUnit.resolve(stored, weight)
+                }.getOrElse { thrown ->
                     // Guessing a unit here would read "5" as miles or kilometres on a coin
                     // toss; refusing keeps the clock running and the typed text in place.
                     AppLog.w(TAG, "Reading the distance unit failed", thrown)
@@ -171,7 +183,9 @@ class LiveCardioViewModel @JvmOverloads constructor(
                     finishing.value = false
                     return@launch
                 }
-            val distance = NumericEntry.typedDistanceKm(distanceKm.value, DistanceUnit.fromWeight(weightUnit))
+                resolved
+            }
+            val distance = NumericEntry.typedDistanceKm(distanceKm.value, distanceUnit)
             if (distance is NumericEntry.Typed.Invalid) {
                 distanceError.value = distance.message
                 finishing.value = false
@@ -345,6 +359,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
                 type = type.value,
                 indoor = indoor.value,
                 distanceKm = distanceKm.value,
+                distanceUnit = distanceEntryUnit.value,
             ),
         )
     }
@@ -353,6 +368,13 @@ class LiveCardioViewModel @JvmOverloads constructor(
     private fun forgetInputs() {
         inputs.clear()
     }
+
+    private data class CardioInputs(
+        val type: CardioType,
+        val indoor: Boolean,
+        val distance: String,
+        val unit: DistanceUnit?,
+    )
 
     private data class Flags(
         val error: String?,

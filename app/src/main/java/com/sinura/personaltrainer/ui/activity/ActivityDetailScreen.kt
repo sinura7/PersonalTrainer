@@ -39,7 +39,6 @@ import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
-import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -68,6 +67,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.units.LocalDistanceUnit
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.units.DateCopy
 
@@ -212,7 +212,7 @@ fun ActivityDetailScreen(
                         if (session.cardioBlocks.isNotEmpty()) {
                             item { GymSectionHeader(title = ActivityDetailCopy.CARDIO) }
                             items(session.cardioBlocks, key = { it.id }) { block ->
-                                CardioRows(block, unit)
+                                CardioRows(block)
                             }
                         }
                     }
@@ -479,13 +479,13 @@ private fun StrengthRows(block: StrengthBlock, unit: WeightUnit) {
 }
 
 @Composable
-private fun CardioRows(block: CardioBlock, unit: WeightUnit) {
+private fun CardioRows(block: CardioBlock) {
     GroupedList {
         InstrumentRow(
             title = CardioCopy.name(block.type),
             subtitle = ActivityDetailCopy.recordedCardioSubtitle(
                 block,
-                DistanceUnit.fromWeight(unit),
+                LocalDistanceUnit.current,
             ),
         )
     }

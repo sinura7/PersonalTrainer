@@ -645,9 +645,9 @@ integration; prior failures and the wider UX15/phone limits above remain.
 
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
-| UX18-AC01 | P2 | F10, F12 | All four kg/lb × km/mi combinations render consistent input, summary, history and export behavior. | Not executed |
-| UX18-AC02 | P2 | F10, F12 | Changing preference does not change stored distance or weight. | Not executed |
-| UX18-AC03 | P2 | F10, F12 | Old backups lacking distance preference restore to the documented default and drafts do not reinterpret numbers. | Not executed |
+| UX18-AC01 | P2 | F10, F12 | All four kg/lb × km/mi combinations render consistent input, summary, history and export behavior. | Bounded automated evidence. Phone reading is still unobserved. |
+| UX18-AC02 | P2 | F10, F12 | Changing preference does not change stored distance or weight. | Bounded automated evidence. Phone reading is still unobserved. |
+| UX18-AC03 | P2 | F10, F12 | Old backups lacking distance preference restore to the documented default and drafts do not reinterpret numbers. | Bounded automated evidence. Phone reading is still unobserved. |
 
 ### UX19 — Make bodyweight history correctable and clearing explicit
 
@@ -661,9 +661,9 @@ integration; prior failures and the wider UX15/phone limits above remain.
 
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
-| UX20-AC01 | P2 | F07, F11 | A participant can change units/rest preferences and find export/restore with no worse success than the baseline. | Not executed |
-| UX20-AC02 | P2 | F07, F11 | Reopening Settings restores useful context without hiding an unresolved save error. | Not executed |
-| UX20-AC03 | P2 | F07, F11 | Production and debug build screenshots are evaluated separately. | Not executed |
+| UX20-AC01 | P2 | F07, F11 | A participant can change units/rest preferences and find export/restore with no worse success than the baseline. | Bounded automated evidence. Phone reading is still unobserved. |
+| UX20-AC02 | P2 | F07, F11 | Reopening Settings restores useful context without hiding an unresolved save error. | Bounded automated evidence. Phone reading is still unobserved. |
+| UX20-AC03 | P2 | F07, F11 | Production and debug build screenshots are evaluated separately. | Bounded automated evidence. Phone reading is still unobserved. |
 
 ### UX21 — Specify backup/recovery as a truthful multi-stage task
 

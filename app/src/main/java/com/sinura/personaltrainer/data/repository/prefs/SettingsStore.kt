@@ -104,6 +104,9 @@ class SettingsStore(
 // top-level declaration.
 
 internal val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
+
+/** Absent means distance follows the weight unit. "km" or "mi" is an explicit choice. */
+internal val DISTANCE_UNIT = stringPreferencesKey("distance_unit")
 internal val CLOCK_FORMAT = stringPreferencesKey("clock_format")
 internal val BODYWEIGHT_CHECK_IN_WEEKDAY = stringPreferencesKey("bodyweight_check_in_weekday")
 
