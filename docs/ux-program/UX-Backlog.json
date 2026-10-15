@@ -3661,7 +3661,7 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX17",
         "implementation": "WINDOW_CAPTION is on the Body legend. FigureBox.muscleAt uses the same plate corners as the drawing.",
-        "automated": "BodyGeometryRenderTest: full WINDOW_CAPTION visible at 360dp font 1.0 and 2.0, frames in app/build/screen-renders/p11. Not participant proof.",
+        "automated": "BodyGeometryRenderTest: short WINDOW_CAPTION visible at 360dp font 1.0 and 2.0. The longer calendar sentence is the same caption's spoken description. Not participant proof.",
         "physical": "Unobserved",
         "required": true,
         "state": "Bounded automated evidence",
@@ -5165,9 +5165,9 @@
         "test": "app/src/test/java/com/sinura/personaltrainer/ui/progress/BodyViewportTest.kt",
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.progress.BodyViewportTest.xml",
         "baselineExecutedTests": 3,
-        "scope": "FigureBox hit testing, full mapped-muscle rows, and the no-colour caption. Font 2.0 legend swatches and row subtitles still clip.",
+        "scope": "FigureBox hit testing, full mapped-muscle rows, a one-line no-colour caption, and a measured 360x640 first-row check. Font 2.0 swatches and row subtitles can still clip.",
         "limitation": "JVM renders and unit tests are not participant understanding or a phone tap. P19/P20 remain.",
-        "p11Evidence": "Tracked frames: docs/ux-context/studies/q01/assets/p11-body-front-360-font1.png, p11-body-front-360-font2.png, p11-body-back-360-font1.png."
+        "p11Evidence": "Tracked frames: docs/ux-context/studies/q01/assets/p11-body-front-360-font1.png, p11-body-front-360-font2.png, p11-body-back-360-font1.png, p11-body-360x640-font1.png. firstMuscleRowSitsAboveTheTabBarAt360x640 measures the row bottom at or above 576dp."
       },
       "UX18": {
         "primaryPacket": "P17",

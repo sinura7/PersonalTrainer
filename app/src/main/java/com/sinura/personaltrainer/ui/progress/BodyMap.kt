@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -117,6 +118,7 @@ fun BodyMapCard(
             ) {
                 // One box, in pixels, for the still, the heat wash, the selection stroke and the tap.
                 var measure by remember { mutableStateOf(FigureBox(width = 1f, height = 1f)) }
+                val selectMuscle = rememberUpdatedState(onSelect)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -130,7 +132,9 @@ fun BodyMapCard(
                         }
                         .pointerInput(view, measure) {
                             detectTapGestures { offset ->
-                                measure.muscleAt(view, offset.x, offset.y)?.let(onSelect)
+                                measure.muscleAt(view, offset.x, offset.y)?.let { muscle ->
+                                    selectMuscle.value(muscle)
+                                }
                             }
                         },
                 ) {
@@ -207,18 +211,17 @@ fun HeatLegend(modifier: Modifier = Modifier) {
             LegendSwatch("High", heatColor(MuscleLoadCalculator.FRACTION_HIGH))
         }
         Text(
-            BodyHeatCopy.LEGEND_CAPTION,
-            style = InstrumentType.caption,
-            color = TextTertiary,
-            maxLines = 2,
-        )
-        Text(
             BodyHeatCopy.WINDOW_CAPTION,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag(BodyTags.WINDOW_CAPTION),
+                .testTag(BodyTags.WINDOW_CAPTION)
+                .semantics {
+                    contentDescription =
+                        "${BodyHeatCopy.WINDOW_CAPTION} ${BodyHeatCopy.LEGEND_CAPTION}"
+                },
             style = InstrumentType.caption,
             color = TextSecondary,
+            maxLines = 2,
         )
     }
 }
