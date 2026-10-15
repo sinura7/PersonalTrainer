@@ -5545,6 +5545,13 @@
         "gate": "JDK 17 daemon. testDebugUnitTest 4745 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 13m 21s. The test task ran; it was not up to date.",
         "independent": "APPROVE. Zero Critical or High. One composer id is stored with the draft. A second confirm returns that session. A private draft whose save already landed opens that session; one that never landed can be saved once under the same id. 100 lb stores 45.4 kg and reads back as 100 lb. One mile reads 1.0 mi on the receipt line. A chosen day stays that day in Pacific/Kiritimati and America/Chicago. A notes edit keeps the id, the day, and the mixed type. Past workout, Cardio, Mixed session, and Start cardio stay reachable with 0, 3, and 50 routines. Medium: the start sheet now opens fully so the last row is not clipped. Low: the 50-routine check uses empty routines, so each card is shorter than a filled one.",
         "adversarial": "APPROVE. Zero Critical or High. A second confirm with a different title does not replace the saved session or its notes and does not insert another row. Death after the private submit was tested with the row present and with the row absent. A title typed after the private file was saved is not replaced by the older file. Medium: if private cleanup fails after the row has landed, the next Past workout opens that same session again until cleanup succeeds, and it does not insert a second session. Low: Save after the draft has been cleared says nothing was saved."
+      },
+      "7a41ce5f": {
+        "when": "2026-10-15",
+        "packet": "Drop B version 127",
+        "gate": "JDK 17 daemon. testDebugUnitTest 4745 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 12m 52s. The test task ran. Debug APK com.sinura.personaltrainer.debug versionCode 127 versionName 1.0.0+debug.127. Release APK com.sinura.personaltrainer versionCode 1 versionName 1.0.0.",
+        "independent": "APPROVE. Zero Critical, High, or Medium. debugLiveCode moves from 126 to 127. The gym-floor version code stays 1. The ledger says this packet is not published.",
+        "adversarial": "APPROVE. Zero Critical, High, or Medium. The change is the debug counter and the ledger. No tag, no debug-live branch, and no APK upload are in this commit. The release package name and version code are unchanged."
       }
     }
   }
