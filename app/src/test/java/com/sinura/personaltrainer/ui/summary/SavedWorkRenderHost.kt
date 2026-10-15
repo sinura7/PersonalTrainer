@@ -258,13 +258,13 @@ internal class SavedWorkRenderHost(
         val node = image.fetchSemanticsNode()
         assertTrue("art has no second spoken name", node.config.getOrNull(SemanticsProperties.ContentDescription).isNullOrEmpty())
         assertTrue("art has no separate click", node.config.getOrNull(SemanticsActions.OnClick) == null)
-        val bounds = full(node)
         val sample: () -> List<Int> = {
+            val placed = full(image.fetchSemanticsNode())
             val frame = draw()
             try {
                 (0 until 32).flatMap { y -> (0 until 32).map { x ->
-                    val px = (bounds.left + bounds.width * (.12f + x * .022f)).toInt()
-                    val py = (bounds.top + bounds.height * (.12f + y * .022f)).toInt()
+                    val px = (placed.left + placed.width * (.12f + x * .022f)).toInt()
+                    val py = (placed.top + placed.height * (.12f + y * .022f)).toInt()
                     frame.getPixel(px.coerceIn(0, frame.width - 1), py.coerceIn(0, frame.height - 1))
                 } }
             } finally { frame.recycle() }

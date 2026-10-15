@@ -521,8 +521,11 @@ class HomeViewModel @JvmOverloads constructor(
         command: StartCommand,
         allowBlocked: Boolean = false,
         explicitRetry: Boolean = false,
+        acceptWhileBlockingStartFinishes: Boolean = false,
     ): Boolean {
-        if (!canMutate() || hasQueuedStartNavigation()) return false
+        val homeCanChange = authoritativeReadState == HomeReadState.CURRENT && !authoritativeRetryPending
+        val gateOpen = if (acceptWhileBlockingStartFinishes) homeCanChange else canMutate()
+        if (!gateOpen || hasQueuedStartNavigation()) return false
         val blocked = _blockedByInProgress.value
         if (blocked != null && !allowBlocked) return false
         if (allowBlocked && (command !is StartCommand.Discard || blocked != command.blocked)) return false
@@ -541,14 +544,19 @@ class HomeViewModel @JvmOverloads constructor(
             discardedOriginal = (command as? StartCommand.Discard)?.discarded == true,
             attemptId = ++startAttemptSerial,
         )
+        val attempt = _startState.value.attemptId
         viewModelScope.launch {
             runCatchingCancellable { executeStart(command = command) }
                 .onFailure { thrown ->
                     AppLog.w(TAG, "Starting from Home failed", thrown)
-                    failStart(message = ReminderCopy.START_FAILED)
+                    if (_startState.value.attemptId == attempt) failStart(message = ReminderCopy.START_FAILED)
                 }
-            _startState.value = _startState.value.copy(pending = false)
-            releaseStartAfterNavigation()
+            // A Discard tapped while this start is still finishing owns a newer attempt.
+            // Clearing pending here would throw that tap away.
+            if (_startState.value.attemptId == attempt) {
+                _startState.value = _startState.value.copy(pending = false)
+                releaseStartAfterNavigation()
+            }
         }
         return true
     }
@@ -956,6 +964,9 @@ class HomeViewModel @JvmOverloads constructor(
         return admitStart(
             command = StartCommand.Discard(blocked = blocked, requested = requested),
             allowBlocked = true,
+            // The dialog is already on screen while the start that found the live
+            // session is still marked pending. Discard has to be taken then.
+            acceptWhileBlockingStartFinishes = true,
         )
     }
 
