@@ -135,6 +135,11 @@ class OnboardingAnswersRestoreTest {
     }
 
     @Test
+    fun setupDoesNotRequireABodyweight() {
+        assertNull(OnboardingAnswers(bodyweightKg = null).sanitized().bodyweightKg)
+    }
+
+    @Test
     fun bodyweightStepsStayInsideTheStoredRange() {
         BodyweightSteps.displayValues(WeightUnit.KG).forEach { display ->
             val kg = BodyweightSteps.toKg(display, WeightUnit.KG)

@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -54,6 +55,27 @@ class PreferencesRoomHistoryTest {
         assertEquals(82.5, log.single().kg, 0.0)
         assertTrue(log.single().zoneId.isNotBlank())
         assertEquals(1, deps.database.bodyweightDao().count())
+    }
+
+    @Test
+    fun correctingAnOlderDayKeepsTheNewestAsCurrentAndDeleteRemovesOnlyThatDay() = runBlocking {
+        deps.preferencesRepository.recordBodyweight(78.0, 20_000L)
+        deps.preferencesRepository.recordBodyweight(82.0, 20_010L)
+        deps.preferencesRepository.recordBodyweight(79.0, 20_000L)
+        val log = deps.preferencesRepository.bodyweightLog.first()
+        assertEquals(79.0, log.first { it.epochDay == 20_000L }.kg, 0.0)
+        assertEquals(82.0, deps.preferencesRepository.bodyweightKg.first()!!, 0.0)
+        deps.preferencesRepository.deleteBodyweightDay(20_010L)
+        assertEquals(listOf(20_000L), deps.preferencesRepository.bodyweightLog.first().map { it.epochDay })
+        assertEquals(79.0, deps.preferencesRepository.bodyweightKg.first()!!, 0.0)
+        deps.preferencesRepository.deleteBodyweightDay(20_000L)
+        assertTrue(deps.preferencesRepository.bodyweightLog.first().isEmpty())
+        assertNull(deps.preferencesRepository.bodyweightKg.first())
+        deps.preferencesRepository.recordBodyweight(78.0, 20_000L)
+        deps.preferencesRepository.recordBodyweight(82.0, 20_010L)
+        deps.preferencesRepository.setBodyweightKg(null)
+        deps.preferencesRepository.recordBodyweight(79.0, 20_000L)
+        assertNull("clearing the current figure survives correcting an older day", deps.preferencesRepository.bodyweightKg.first())
     }
 
     @Test

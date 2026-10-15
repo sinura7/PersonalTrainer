@@ -151,6 +151,7 @@ class PreferencesRepository(
     private val bodyweightDao: BodyweightDao? = null,
     private val trainingBlockDao: TrainingBlockDao? = null,
     private val onBodyweightChanged: suspend () -> Unit = {},
+    private val onBodyweightDeleted: suspend (BodyweightEntryEntity) -> Unit = {},
     private val onAccountPrefsChanged: suspend () -> Unit = {},
     private val nowMs: () -> Long = { System.currentTimeMillis() },
     private val store: SettingsStore = SettingsStore(dataStore),
@@ -552,16 +553,46 @@ class PreferencesRepository(
             onBodyweightChanged()
         }
         dataStore.edit { prefs ->
-            prefs[BODYWEIGHT_KG] = clean
-            if (bodyweightDao == null) {
-                prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(
-                    BodyweightLog.record(
-                        BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
-                        BodyweightEntry(epochDay = epochDay, kg = clean),
-                    ),
+            val log = if (bodyweightDao == null) {
+                BodyweightLog.record(
+                    BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
+                    BodyweightEntry(epochDay = epochDay, kg = clean),
                 )
+            } else {
+                null
+            }
+            if (log != null) prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(log)
+            val latest = bodyweightDao?.getAll()?.maxByOrNull { it.epochDay }?.kg
+                ?: log?.let { BodyweightLog.latest(it)?.kg }
+                ?: clean
+            val pointerCleared = !prefs.contains(BODYWEIGHT_KG)
+            val wroteLatestDay = bodyweightDao?.getAll()?.maxByOrNull { it.epochDay }?.epochDay == epochDay ||
+                log?.let { BodyweightLog.latest(it)?.epochDay == epochDay } == true
+            if (!pointerCleared || wroteLatestDay) prefs[BODYWEIGHT_KG] = latest
+        }
+    }
+
+    /**
+     * Remove one weigh-in day. The current figure becomes the newest day still stored,
+     * or clears when the history is empty.
+     */
+    suspend fun deleteBodyweightDay(epochDay: Long) {
+        val removed = bodyweightDao?.getAll()?.firstOrNull { it.epochDay == epochDay }
+        bodyweightDao?.deleteDay(epochDay)
+        val remaining = bodyweightDao?.getAll()?.map { it.toDomain() }
+        dataStore.edit { prefs ->
+            val log = remaining ?: BodyweightLog.remove(
+                BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
+                epochDay,
+            )
+            if (bodyweightDao == null) prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(log)
+            if (prefs.contains(BODYWEIGHT_KG)) {
+                val current = BodyweightLog.latest(log)?.kg
+                if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
             }
         }
+        if (removed != null) onBodyweightDeleted(removed)
+        onBodyweightChanged()
     }
 
     suspend fun setBodyweightKg(kg: Double?) {

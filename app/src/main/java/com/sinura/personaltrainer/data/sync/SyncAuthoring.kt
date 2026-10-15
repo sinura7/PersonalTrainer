@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.local.dao.ExerciseDao
 import com.sinura.personaltrainer.data.local.dao.GoalDao
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
+import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
 import com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity
 import com.sinura.personaltrainer.data.repository.prefs.SettingsStore
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
@@ -135,6 +136,12 @@ class SyncAuthoring(
     suspend fun onBodyweightChanged() {
         val userId = auth.session.first()?.userId ?: return
         outbox.enqueueAllBodyweightEntries(userId, bodyweightDao.getAll())
+        requestSync()
+    }
+
+    suspend fun onBodyweightDeleted(entry: BodyweightEntryEntity) {
+        val userId = auth.session.first()?.userId ?: return
+        outbox.enqueueBodyweightDelete(userId, entry, deletedAtMs = nowMillis())
         requestSync()
     }
 
