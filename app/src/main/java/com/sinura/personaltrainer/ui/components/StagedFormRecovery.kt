@@ -30,6 +30,12 @@ internal class StagedFormRecovery<T>(
     private val stillOwned: suspend (T) -> Boolean,
     private val inspectLanded: (suspend (T) -> Boolean)? = null,
     private val onLanded: suspend (T) -> Unit = {},
+    /**
+     * A later visit found a private command whose session is already stored.
+     * Return true after the caller has moved to a fresh draft owner. Open then
+     * reads that empty draft instead of replaying the saved session.
+     */
+    private val retireLandedVisit: (suspend (T) -> Boolean)? = null,
 ) {
     private val serial = Mutex()
     private var handle: StagedFormHandle<T>? = null
@@ -45,9 +51,16 @@ internal class StagedFormRecovery<T>(
         ++revision
         try {
             check(available())
-            val opened = drafts.open(owner(), codec)
+            var opened = drafts.open(owner(), codec)
             handle = opened
             var checkpoint = checkNotNull(opened.checkpoint)
+            val parked = checkpoint.pending
+            val parkedFields = opened.fields
+            if (parked != null && parkedFields != null && retireLandedVisit?.invoke(parkedFields) == true) {
+                opened = drafts.open(owner(), codec)
+                handle = opened
+                checkpoint = checkNotNull(opened.checkpoint)
+            }
             val resumed = opened.fields != null
             if (authoredSinceFailedRead && resumed) {
                 failedReadConflict = true

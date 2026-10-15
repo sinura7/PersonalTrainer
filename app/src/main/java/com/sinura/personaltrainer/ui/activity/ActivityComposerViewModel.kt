@@ -234,7 +234,9 @@ class ActivityComposerViewModel internal constructor(
                 owner = {
                     armTransfer.join()
                     val occurrence = heldOccurrenceId
-                    val key = mode.value.name + ":" + if (occurrence == null) "N" else "S${occurrence.length}:$occurrence"
+                    val base = mode.value.name + ":" + if (occurrence == null) "N" else "S${occurrence.length}:$occurrence"
+                    val visit = savedStateHandle.get<String>(KEY_FRESH_VISIT)
+                    val key = if (visit == null) base else "$base:V:$visit"
                     DraftOwner(DraftForm.ACTIVITY, "composer:" + java.security.MessageDigest.getInstance("SHA-256")
                         .digest(key.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) })
                 }, codec = ActivityFormCodec, snapshot = ::privateFields, restore = { fields ->
@@ -265,6 +267,17 @@ class ActivityComposerViewModel internal constructor(
                     container.activityRepository.reconcileSaved(fields.identity)
                     _savedId.value = fields.identity
                     draft.clear()
+                }, retireLandedVisit = { fields ->
+                    // This screen's own id still belongs to the save that just landed.
+                    // A later Past workout has a new id and must start empty.
+                    if (savedStateHandle.get<String>(KEY_IDENTITY) == fields.identity) {
+                        false
+                    } else if (container.activityRepository.get(fields.identity) == null) {
+                        false
+                    } else {
+                        savedStateHandle[KEY_FRESH_VISIT] = UUID.randomUUID().toString()
+                        true
+                    }
                 })
         }
         if (formRecovery == null) {
@@ -628,5 +641,6 @@ class ActivityComposerViewModel internal constructor(
         const val TAG = "PT/ActivityComposer"
         const val KEY_HELD_OCCURRENCE = "composer-held-occurrence"
         const val KEY_IDENTITY = "composer.private.identity"
+        const val KEY_FRESH_VISIT = "composer.freshVisit"
     }
 }

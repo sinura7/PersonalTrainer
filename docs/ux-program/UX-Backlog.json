@@ -5466,11 +5466,18 @@
       }
     },
     "milestoneB": {
-      "state": "Version packet only. Not published. The owner pushes and verifies.",
+      "state": "Published and verified by the owner",
       "plannedDebugVersionCode": 127,
       "previousPublishedCode": 126,
       "previousPublishedTag": "debug-live-2026-10-15",
-      "publicationRule": "Rerun the planner after this merge. Do not publish from this packet. Gym-floor versionCode stays 1."
+      "publishedTag": "debug-live-2026-10-15-2",
+      "publishedCommit": "303e3cbcfc0c1aaaf978a7f4063c9528d6a49322",
+      "publishedVersionCode": 127,
+      "publishedVersionName": "1.0.0+debug.127",
+      "publishedApkSha256": "96e5d365af6511035e311eb9884dd3acd70ee114700cc353cdea92c3d4a5d084",
+      "publishedSignerCertSha256": "b26ea64c9e3e2cc44063dee3d1892e8557cea2d25e71de05abcd754de912c336",
+      "signerMatchesDebug126": true,
+      "publicationRule": "Owner pushed and verified the downloaded APK. Gym-floor versionCode stays 1."
     },
     "testInfrastructure": {
       "kind": "test infrastructure",
