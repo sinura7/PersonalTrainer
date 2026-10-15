@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +23,10 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -113,6 +119,7 @@ fun OnboardingScreen(
                 )
             }
 
+            val body = Modifier.weight(1f)
             when (state.step) {
                 OnboardingStep.FOCUS -> ChoiceStep(
                     title = "What do you want to record?",
@@ -122,25 +129,30 @@ fun OnboardingScreen(
                             viewModel.setFocus(focus)
                         }
                     },
+                    modifier = body,
                 )
                 OnboardingStep.EXPERIENCE -> ExperienceStep(
                     selected = state.answers.trainingAge,
                     onSelect = viewModel::setExperience,
+                    modifier = body,
                 )
                 OnboardingStep.DAYS_PER_WEEK -> DaysPerWeekStep(
                     selected = state.answers.daysPerWeek,
                     onSelect = viewModel::setDaysPerWeek,
                     onNext = viewModel::next,
+                    modifier = body,
                 )
                 OnboardingStep.WHICH_DAYS -> WhichDaysStep(
                     answers = state.answers,
                     onToggle = viewModel::toggleDay,
                     onNext = viewModel::next,
+                    modifier = body,
                 )
                 OnboardingStep.PLACE -> PlaceStep(
                     selected = state.answers.resolvedPlaces(),
                     onToggle = viewModel::togglePlace,
                     onNext = viewModel::next,
+                    modifier = body,
                 )
                 OnboardingStep.GOAL -> ChoiceStep(
                     title = "What are you training for?",
@@ -150,6 +162,7 @@ fun OnboardingScreen(
                             viewModel.setGoal(goal)
                         }
                     },
+                    modifier = body,
                 )
                 OnboardingStep.EMPHASIS -> ChoiceStep(
                     title = "Where do you want the work?",
@@ -159,6 +172,7 @@ fun OnboardingScreen(
                             viewModel.setEmphasis(emphasis)
                         }
                     },
+                    modifier = body,
                 )
                 OnboardingStep.BODYWEIGHT -> BodyweightStep(
                     answers = state.answers,
@@ -166,11 +180,13 @@ fun OnboardingScreen(
                     onSet = viewModel::setBodyweight,
                     onUnitChange = viewModel::setWeightUnit,
                     onNext = viewModel::next,
+                    modifier = body,
                 )
                 OnboardingStep.PREVIEW -> PreviewStep(
                     state = state,
                     onApply = viewModel::applyPlan,
                     onOwn = { onBuildMyOwn(state.answers, state.weightUnit) },
+                    modifier = body,
                 )
             }
     }
@@ -199,8 +215,9 @@ private data class Choice(
 )
 
 @Composable
-private fun ChoiceStep(title: String, blurb: String, options: List<Choice>) {
+private fun ChoiceStep(title: String, blurb: String, options: List<Choice>, modifier: Modifier = Modifier) {
     LazyColumn(
+        modifier = modifier,
         contentPadding = PaddingValues(bottom = Metrics.space8),
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
@@ -224,9 +241,10 @@ private fun ChoiceStep(title: String, blurb: String, options: List<Choice>) {
 }
 
 @Composable
-private fun ExperienceStep(selected: TrainingAge, onSelect: (TrainingAge) -> Unit) {
+private fun ExperienceStep(selected: TrainingAge, onSelect: (TrainingAge) -> Unit, modifier: Modifier = Modifier) {
     val view = LocalView.current
     LazyColumn(
+        modifier = modifier,
         contentPadding = PaddingValues(bottom = Metrics.space8),
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
@@ -286,9 +304,13 @@ private fun PlaceStep(
     selected: Set<TrainingPlace>,
     onToggle: (TrainingPlace) -> Unit,
     onNext: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+    ) {
         QuestionTitle(
             "Where will you train?",
             TrainingPlace.STEP_BLURB,
@@ -337,8 +359,11 @@ private fun PlaceStep(
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun DaysPerWeekStep(selected: Int, onSelect: (Int) -> Unit, onNext: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
+private fun DaysPerWeekStep(selected: Int, onSelect: (Int) -> Unit, onNext: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+    ) {
         QuestionTitle(
             "How many days a week can you train?",
             "Be honest about the bad weeks, not hopeful about the good ones — this decides the whole shape of the plan.",
@@ -379,9 +404,13 @@ private fun WhichDaysStep(
     answers: OnboardingAnswers,
     onToggle: (Weekday) -> Unit,
     onNext: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val remaining = answers.daysPerWeek - answers.preferredDays.size
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+    ) {
         QuestionTitle(
             "Which days suit you?",
             when {
@@ -416,8 +445,12 @@ private fun BodyweightStep(
     onSet: (Double?) -> Unit,
     onUnitChange: (WeightUnit) -> Unit,
     onNext: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+    ) {
         QuestionTitle(
             "Roughly what do you weigh?",
             "Recorded so the end of your block can say what your weight did over twelve weeks. " +
@@ -450,10 +483,12 @@ private fun PreviewStep(
     state: OnboardingUiState,
     onApply: () -> Unit,
     onOwn: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val plan = state.preview
     var pendingFullWeek by rememberSaveable { mutableStateOf(false) }
     LazyColumn(
+        modifier = modifier,
         contentPadding = PaddingValues(bottom = Metrics.space8),
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
@@ -572,10 +607,17 @@ private fun RoutineCard(routine: BlueprintRoutine) {
 
 @Composable
 private fun QuestionTitle(title: String, blurb: String) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(title) {
+        runCatching { focus.requestFocus() }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         Text(
             title,
-            modifier = Modifier.semantics { heading() },
+            modifier = Modifier
+                .focusRequester(focus)
+                .focusable()
+                .semantics { heading() },
             style = InstrumentType.title,
             color = TextPrimary,
         )
