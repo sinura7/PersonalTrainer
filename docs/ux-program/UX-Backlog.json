@@ -5566,6 +5566,13 @@
         "gate": "JDK 17 daemon. testDebugUnitTest 4746 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 11m 58s. Two earlier full runs failed one unrelated test each under load; those tests passed alone, and this run is the recorded gate.",
         "independent": "APPROVE. Zero Critical or High. A new Past workout after a landed save starts empty, even when private cleanup failed. The saved session stays one row. The same visit still opens that session. Medium: the old private file is left in place; a new visit simply uses a fresh file.",
         "adversarial": "APPROVE. Zero Critical or High. A second Past workout can save a different session without changing the first id, title, or count of the original row. An unsaved draft still comes back on the same visit. A save that never landed can still be saved once under the original id."
+      },
+      "04f72ac5": {
+        "when": "2026-10-15",
+        "packet": "P15 onboarding",
+        "gate": "JDK 17 daemon. testDebugUnitTest 4749 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 12m 57s.",
+        "independent": "APPROVE. Zero Critical or High. The concept names the question, Skip, Back, units, focus, and the small window. Continue, Space them out for me, and Skip this are reachable at 360 by 640 dp with large text. Back keeps the chosen answer. Changing the unit keeps 80 kg. Medium: a physical screen reader was not used. Accepting the plan once remains P16.",
+        "adversarial": "APPROVE. Zero Critical or High. Back from the first question does not write a plan. Skip clears an optional weigh-in. The stored kilograms stay 80 when the label changes to pounds and back. Medium: the focus request is not asserted as the focused node, so the screen-reader landing is the focusable heading only."
       }
     }
   }
