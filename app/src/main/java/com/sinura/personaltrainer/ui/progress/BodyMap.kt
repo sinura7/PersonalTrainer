@@ -50,6 +50,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.MuscleStill
+import com.sinura.personaltrainer.ui.components.FigureBox
 import com.sinura.personaltrainer.ui.components.drawTemperFigure
 import com.sinura.personaltrainer.ui.components.hotspotsFor
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -112,8 +113,10 @@ fun BodyMapCard(
                     .padding(vertical = Metrics.space4)
                     .aspectRatio(FIGURE_ASPECT, matchHeightConstraintsFirst = true),
             ) {
-                val figureWidth = maxWidth
-                val figureHeight = maxHeight
+                val measure = FigureBox(
+                    width = maxWidth.value,
+                    height = maxHeight.value,
+                )
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     drawTemperFigure(
                         view = view,
@@ -128,16 +131,17 @@ fun BodyMapCard(
                 hotspotsFor(view).forEach { spot ->
                     // Invisible tap targets. The plate fill lives on the canvas so the
                     // geometry can stay polygonal; these boxes only have to be hittable.
+                    val rect = measure.hotspotLeftTopSize(spot)
                     key(spot.muscle, spot.left) {
                         Box(
                             modifier = Modifier
                                 .offset(
-                                    x = figureWidth * spot.left,
-                                    y = figureHeight * spot.top,
+                                    x = rect.left.dp,
+                                    y = rect.top.dp,
                                 )
                                 .size(
-                                    width = figureWidth * spot.width,
-                                    height = figureHeight * spot.height,
+                                    width = rect.width.dp,
+                                    height = rect.height.dp,
                                 )
                                 // Sighted shortcut only. Anatomy plates sit under 48 dp
                                 // (FND-023). TalkBack uses the muscle rows under the map.

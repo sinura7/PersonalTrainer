@@ -105,4 +105,24 @@ class FigureArtTest {
         assertTrue(platesFor(BodyView.FRONT).count { it.muscle == CanonicalMuscle.QUADRICEPS } >= 6)
         assertTrue(platesFor(BodyView.FRONT).count { it.muscle == CanonicalMuscle.CALVES } >= 4)
     }
+
+    @Test
+    fun figureBoxMapsHotspotsToTheSameBoundsAsTheirPlates() {
+        val measure = FigureBox(width = 260f, height = 500f)
+        BodyView.entries.forEach { view ->
+            val workingPlates = platesFor(view).filter { it.muscle != null }
+            assertEquals(
+                "$view hotspot count",
+                workingPlates.size,
+                hotspotsFor(view).size,
+            )
+            hotspotsFor(view).forEach { spot ->
+                val plate = workingPlates.single {
+                    it.muscle == spot.muscle &&
+                        kotlin.math.abs(it.left - spot.left) < 0.0001f
+                }
+                assertTrue("$view ${spot.muscle} tap drift", measure.matchesPlateBounds(spot, plate))
+            }
+        }
+    }
 }

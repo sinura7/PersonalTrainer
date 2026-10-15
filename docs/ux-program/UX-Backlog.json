@@ -4945,7 +4945,7 @@
       {
         "id": "P11",
         "title": "Body geometry and interaction",
-        "state": "Open"
+        "state": "In progress — FigureBox unified measure; concept p11-body-geometry-concept.html"
       },
       {
         "id": "P12",
@@ -5437,6 +5437,8 @@
       "plannerObservation": "Fresh planner fetched tags on14Oct2026:125 not above shipped125; recommends126; debug-live/2026-10-14 free.",
       "publicationRule": "Rerun the planner after version integration. The observed suffix is not a reservation. Publish exact merge SHA and independently verify downloaded APK identity/signature.",
       "phoneAcceptance": "Unobserved; owner testing begins after planned development.",
+      "mergeSha": "4cb84ab3c0c69997d4aee9890b4d387ed16720fc",
+      "plannerAfterMerge2026-10-15": "126 above 125; debug-live/2026-10-15 free; push origin 4cb84ab3:refs/heads/debug-live/2026-10-15",
       "dropAGate2026-10-15": {
         "fresh": true,
         "host": "Cursor cloud Linux; JDK 17 (Temurin-equivalent OpenJDK 17; matches CI)",
