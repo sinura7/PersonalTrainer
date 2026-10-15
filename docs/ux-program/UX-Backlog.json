@@ -5573,6 +5573,13 @@
         "gate": "JDK 17 daemon. testDebugUnitTest 4749 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug. BUILD SUCCESSFUL in 12m 57s.",
         "independent": "APPROVE. Zero Critical or High. The concept names the question, Skip, Back, units, focus, and the small window. Continue, Space them out for me, and Skip this are reachable at 360 by 640 dp with large text. Back keeps the chosen answer. Changing the unit keeps 80 kg. Medium: a physical screen reader was not used. Accepting the plan once remains P16.",
         "adversarial": "APPROVE. Zero Critical or High. Back from the first question does not write a plan. Skip clears an optional weigh-in. The stored kilograms stay 80 when the label changes to pounds and back. Medium: the focus request is not asserted as the focused node, so the screen-reader landing is the focusable heading only."
+      },
+      "ec0d0b17": {
+        "when": "2026-10-15",
+        "packet": "Test stability after the runs before pull request 517",
+        "gate": "Two real JDK 17 runs, back to back, no failure between them. First: testDebugUnitTest 4749 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 12m 42s, test task executed. Second: the same tasks with --rerun-tasks, 4749 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 13m 12s, 107 tasks executed. An up-to-date replay between them was not counted.",
+        "independent": "APPROVE. Zero Critical or High. The Room dump accepts a transaction thread renamed with a coroutine number and still requires its state. Plan scrolling waits for the merged list. The restored set clock is read after the session publish. Artwork is sampled from the current image bounds. Discard is taken while the blocking start is still pending, and that start cannot clear the newer attempt.",
+        "adversarial": "APPROVE. Zero Critical or High. A newer Discard attempt is not marked idle by the start that found the live session. A busy Room thread still has to show RUNNABLE or another state word. The plan list is the merged node, so a tag that exists only before the merge is not scrolled. The set clock assertion waits for the restore instead of reading the empty initial value."
       }
     }
   }
