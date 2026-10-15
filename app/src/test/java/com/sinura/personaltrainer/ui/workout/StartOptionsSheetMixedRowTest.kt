@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -190,6 +191,43 @@ class StartOptionsSheetMixedRowTest {
         compose.waitForIdle()
         assertEquals(1, mixed)
         assertNothingWritten()
+    }
+
+    @Test
+    fun theFourEntriesStayReachableWithZeroThreeAndFiftyRoutines() {
+        var model by mutableStateOf(newViewModel())
+        compose.setContent {
+            PersonalTrainerTheme {
+                StartOptionsSheet(
+                    onDismiss = {},
+                    onWorkoutStarted = {},
+                    viewModel = model,
+                )
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText("From routine").assertDoesNotExist()
+        assertLogEntries()
+        runBlocking { repeat(3) { index -> deps.routineRepository.create("Routine ${index + 1}") } }
+        model = newViewModel()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("Routine 3").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Routine 3").performScrollTo().assertIsDisplayed()
+        assertLogEntries()
+        runBlocking { repeat(47) { index -> deps.routineRepository.create("Routine ${index + 4}") } }
+        model = newViewModel()
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("Routine 50").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Routine 50").performScrollTo().assertIsDisplayed()
+        assertLogEntries()
+    }
+
+    private fun assertLogEntries() {
+        listOf("Past workout", "Mixed session", "Cardio", "Start cardio").forEach { label ->
+            compose.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+        }
     }
 
     private fun assertNothingWritten() {

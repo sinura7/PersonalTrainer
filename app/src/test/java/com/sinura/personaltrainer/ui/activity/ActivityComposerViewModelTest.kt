@@ -9,9 +9,13 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.domain.ActivityOrigin
+import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.TimePort
+import com.sinura.personaltrainer.testutil.FrozenTime
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.testutil.GatedPickerCreation
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
@@ -361,12 +365,109 @@ class ActivityComposerViewModelTest {
         assertEquals(null, viewModel!!.uiState.value.error)
     }
 
+    @Test
+    fun confirmingTheSameDraftAgainDoesNotInsertOrWipeNotes() = runBlocking {
+        val exercise = seedLift()
+        val vm = composer("mixed")
+        viewModel = vm
+        vm.setEpochDay(20_000L)
+        vm.addStrength(exercise, 80.0, 5)
+        vm.addCardio(CardioType.RIDE, 15, 3.0, false)
+        val first = vm.confirmDraft()
+        check(first is CompleteTrainingOutcome.Written)
+        val noted = deps.activityRepository.updateCompletedNotes(first.id, "Easy on the knees", 1_700_000_000_000L)
+        assertTrue(noted is ActivityWrite.Accepted)
+        val second = vm.confirmDraft()
+        check(second is CompleteTrainingOutcome.Written)
+        assertEquals(first.id, second.id)
+        assertEquals(1, deps.activityRepository.all().size)
+        val stored = deps.activityRepository.get(first.id)!!
+        assertEquals("Easy on the knees", stored.notes)
+        assertEquals(20_000L, stored.localEpochDay)
+        assertTrue(stored.isMixed)
+        assertFalse(stored.isCardioOnly)
+    }
+
+    @Test
+    fun aSecondSaveDoesNotCreateAnotherSession() = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            activityDaoDecorator = { dao -> GatedInsertDao(dao, gate) },
+        )
+        val exercise = seedLift()
+        viewModel = composer("strength")
+        viewModel!!.addStrength(exercise, 80.0, 5)
+        viewModel!!.save()
+        viewModel!!.save()
+        gate.complete(Unit)
+        val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
+        assertEquals(listOf(id), deps.activityRepository.all().map { it.id })
+        viewModel!!.save()
+        assertEquals(listOf(id), deps.activityRepository.all().map { it.id })
+    }
+
+    @Test
+    fun aSaveThatAlreadyLandedIsNotWrittenAgainAfterRecreation() = runBlocking {
+        val exercise = seedLift()
+        val handle = SavedStateHandle(mapOf("mode" to "mixed"))
+        val first = composer(handle)
+        first.setEpochDay(20_000L)
+        first.addStrength(exercise, 80.0, 5)
+        first.addCardio(CardioType.RIDE, 15, 3.0, false)
+        val written = first.confirmDraft()
+        check(written is CompleteTrainingOutcome.Written)
+        viewModel = composer(handle)
+        val saved = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
+        assertEquals(written.id, saved)
+        assertEquals(1, deps.activityRepository.all().size)
+        val noted = deps.activityRepository.updateCompletedNotes(saved, "Easy on the knees", 1_700_000_000_000L)
+        assertTrue(noted is ActivityWrite.Accepted)
+        val again = deps.activityRepository.get(saved)!!
+        assertEquals(saved, again.id)
+        assertEquals(20_000L, again.localEpochDay)
+        assertTrue(again.isMixed)
+        assertEquals("Easy on the knees", again.notes)
+        viewModel!!.save()
+        assertEquals(1, deps.activityRepository.all().size)
+    }
+
+    @Test
+    fun theChosenDayStaysThatDayWhenThePhoneIsFarAheadOrBehindUtc() = runBlocking {
+        val exercise = seedLift()
+        val clocks = listOf("Pacific/Kiritimati", "America/Chicago").map { zone ->
+            FrozenTime(nowMs = 1_767_225_600_000L, zoneId = zone)
+        }
+        assertTrue(clocks[0].captureNow().localEpochDay != clocks[1].captureNow().localEpochDay)
+        for (clock in clocks) {
+            val vm = composer(SavedStateHandle(mapOf("mode" to "strength")), clock = clock)
+            val today = clock.captureNow().localEpochDay
+            vm.setEpochDay(today + 5L)
+            assertEquals(today, vm.uiState.awaitFirst { it.epochDay == today }.epochDay)
+            vm.addStrength(exercise, 40.0, 5)
+            vm.setEpochDay(20_000L)
+            assertEquals(20_000L, vm.uiState.awaitFirst { it.epochDay == 20_000L }.epochDay)
+            vm.save()
+            val id = withTimeout(TestWaits.FLOW_MS) { vm.savedId.first { it != null } }!!
+            val session = deps.activityRepository.get(id)!!
+            assertEquals(clock.defaultZoneId(), session.performedStart.zoneId)
+            assertEquals(20_000L, session.localEpochDay)
+            vm.clearAndJoinForTest()
+        }
+    }
+
     private fun composer(mode: String) = composer(SavedStateHandle(mapOf("mode" to mode)))
 
-    private fun composer(handle: SavedStateHandle, container: AppDependencies = deps) = ActivityComposerViewModel(
-        ApplicationProvider.getApplicationContext<Application>(),
-        handle,
-        container,
+    private fun composer(
+        handle: SavedStateHandle,
+        container: AppDependencies = deps,
+        clock: TimePort = JvmTime,
+    ) = ActivityComposerViewModel(
+        application = ApplicationProvider.getApplicationContext(),
+        savedStateHandle = handle,
+        container = container,
+        clock = clock,
     )
 
     /** The activity DAO with its session insert held at a gate, so a save can be caught mid-write. */

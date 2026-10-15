@@ -77,6 +77,16 @@ class ComposerCopyTest {
         val bodyweight = readyStrength("", "12", WeightUnit.LBS)
         assertEquals(0.0, bodyweight.weightKg, 0.0)
         assertEquals(12, bodyweight.reps)
+
+        val pounds = readyStrength("100", "5", WeightUnit.LBS)
+        assertEquals(45.4, pounds.weightKg, 0.001)
+        // Pounds display on a half-pound step, so the stored 45.4 kg reads back as 100 lb.
+        assertEquals("100 lb", pounds.weightKg.toWeightLabel(WeightUnit.LBS))
+        assertEquals(500L, WeightConverter.volumeDisplayWhole(pounds.weightKg * 5, WeightUnit.LBS))
+        assertEquals(
+            "100 lb × 5",
+            SetCopy.setLine(weightKg = 45.4, reps = 5, loadClass = LoadClass.LOADED, unit = WeightUnit.LBS),
+        )
     }
 
     @Test
@@ -95,6 +105,30 @@ class ComposerCopyTest {
         val noDistance = readyCardio("30", "", DistanceUnit.MI)
         assertEquals(30, noDistance.minutes)
         assertEquals(null, noDistance.distanceKm)
+
+        val oneMile = readyCardio("30", "1", DistanceUnit.MI)
+        assertEquals(1.609344, oneMile.distanceKm!!, 0.0001)
+        assertEquals("1.0 mi", ComposerCopy.formatDistanceKm(oneMile.distanceKm!!, DistanceUnit.MI))
+        assertEquals(
+            "30 min · 1.0 mi",
+            ActivityDetailCopy.cardioSubtitle(
+                block = CardioBlock(
+                    id = "mile",
+                    sortOrder = 0,
+                    type = CardioType.RUN,
+                    indoor = false,
+                    elapsedSeconds = 30L * 60L,
+                    movingSeconds = 30L * 60L,
+                    distanceMeters = oneMile.distanceKm!! * 1_000.0,
+                    elevationMeters = null,
+                    heartRateBpm = null,
+                    energyKj = null,
+                    rpe = null,
+                    routeRef = null,
+                ),
+                distance = DistanceUnit.MI,
+            ),
+        )
     }
 
     private fun readyStrength(weight: String, reps: String, unit: WeightUnit): StrengthEntry.ReadySet =

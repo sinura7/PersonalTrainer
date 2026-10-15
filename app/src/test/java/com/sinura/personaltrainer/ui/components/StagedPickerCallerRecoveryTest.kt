@@ -15,8 +15,10 @@ import com.sinura.personaltrainer.data.draft.StagedPickerForms
 import com.sinura.personaltrainer.data.draft.WeekFormCodec
 import com.sinura.personaltrainer.data.draft.WeekFormFields
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
+import com.google.gson.JsonParser
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -106,8 +108,12 @@ class StagedPickerCallerRecoveryTest {
         runBlocking { activities.forEach { it.clearAndJoinForTest() }; weeks.forEach { it.clearAndJoinForTest() } }
         deps.close(); Dispatchers.resetMain()
     }
-    private fun activity(mode: String = "mixed", occurrence: String? = null) = ActivityComposerViewModel(
-        application = ApplicationProvider.getApplicationContext(), savedStateHandle = SavedStateHandle(buildMap {
+    private fun activity(
+        mode: String = "mixed",
+        occurrence: String? = null,
+        handle: SavedStateHandle? = null,
+    ) = ActivityComposerViewModel(
+        application = ApplicationProvider.getApplicationContext(), savedStateHandle = handle ?: SavedStateHandle(buildMap {
             put("mode", mode); if (occurrence != null) put("composer-held-occurrence", occurrence)
         }),
         container = deps, ids = IdFactory.Uuid, clock = JvmTime, forms = forms, contexts = contexts, customDrafts = custom,
@@ -421,5 +427,57 @@ class StagedPickerCallerRecoveryTest {
         val reopened = week(); ready(reopened)
         assertEquals(row.id, reopened.uiState.awaitFirst { it.selectedLifts.isNotEmpty() }.selectedLifts.single().id)
         assertEquals(lift.id, reopened.uiState.value.selectedLifts.single().exercise.id)
+    }
+
+    @Test fun aNewerSavedStateDraftIsNotReplacedByTheOlderPrivateFile() = runBlocking {
+        val handle = SavedStateHandle(mapOf("mode" to "mixed"))
+        val first = activity(handle = handle); ready(first)
+        first.setTitle("Older kept title")
+        assertTrue(checkNotNull(first.formRecovery).flush())
+        first.setTitle("Newer typed title")
+        first.clearAndJoinForTest(); activities.remove(first)
+        val reopened = activity(handle = handle); ready(reopened)
+        assertEquals("Newer typed title", reopened.uiState.awaitFirst { it.title == "Newer typed title" }.title)
+    }
+
+    @Test fun anUncertainSaveThatLandedOpensThatSessionAndDoesNotInsertAnother() = runBlocking {
+        val vm = activity(); ready(vm)
+        vm.setTitle("Already on the phone")
+        vm.addCardio(CardioType.RUN, 19, 3.25, true)
+        assertTrue(checkNotNull(vm.formRecovery).beginSubmission())
+        val written = vm.confirmDraft()
+        check(written is CompleteTrainingOutcome.Written)
+        val identity = stagedActivityIdentity()
+        assertEquals(identity, written.id)
+        vm.clearAndJoinForTest(); activities.remove(vm)
+        val reopened = activity()
+        val saved = reopened.savedId.awaitFirst { it != null }
+        assertEquals(identity, saved)
+        assertEquals(1, deps.database.activityDao().getAllGraphs().size)
+        reopened.save()
+        assertEquals(listOf(identity), deps.database.activityDao().getAllGraphs().map { it.session.id })
+    }
+
+    @Test fun anUncertainSaveThatDidNotLandStaysEditableAndThenSavesOnce() = runBlocking {
+        val vm = activity(); ready(vm)
+        vm.setTitle("Not written yet")
+        vm.addCardio(CardioType.RIDE, 12, 4.0, false)
+        assertTrue(checkNotNull(vm.formRecovery).beginSubmission())
+        val identity = stagedActivityIdentity()
+        assertTrue(deps.database.activityDao().getAllGraphs().isEmpty())
+        vm.clearAndJoinForTest(); activities.remove(vm)
+        val reopened = activity(); ready(reopened)
+        assertEquals("Not written yet", reopened.uiState.awaitFirst { it.title.isNotEmpty() }.title)
+        assertEquals(12, reopened.uiState.value.cardio.single().minutes)
+        reopened.save(); reopened.save()
+        val saved = reopened.savedId.awaitFirst { it != null }
+        assertEquals(identity, saved)
+        assertEquals(listOf(identity), deps.database.activityDao().getAllGraphs().map { it.session.id })
+    }
+
+    private fun stagedActivityIdentity(): String {
+        val text = temporary.root.walkTopDown().filter { it.isFile && it.extension == "json" }
+            .map { it.readText() }.single { it.contains("\"payloadFormat\":\"activity-picker-parent\"") }
+        return JsonParser.parseString(text).asJsonObject.getAsJsonObject("draft").get("identity").asString
     }
 }
