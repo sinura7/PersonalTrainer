@@ -5463,6 +5463,13 @@
         "intermittentNote": "Two earlier full-suite attempts on this host reported 1–2 JVM failures under default Gradle parallelism; trunk reproduces the same HomeReadRecoveryTest failure in isolation on first attempt; third low-parallelism run is the recorded pass.",
         "reviews": "Independent and adversarial Drop A reviews: zero Critical/High/Medium; approve version-only packet."
       }
+    },
+    "testInfrastructure": {
+      "kind": "test infrastructure",
+      "notAcceptanceProgress": true,
+      "packet": "codex/test-stability",
+      "problem": "Full unit runs failed one or two tests that passed alone. Home skip, history delete, and session-detail Resume observed a result while the operation was still marked busy. Artwork sampling returned the first inky frame before the still had settled.",
+      "fix": "Publish blocked starts, saved-set exits, and repeat results only after the busy flag is clear. Artwork sampling waits until two frames agree, then keeps the 91 percent identity check."
     }
   }
 }
