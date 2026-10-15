@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.components
 
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import com.sinura.personaltrainer.ui.theme.Heat1
 import com.sinura.personaltrainer.ui.theme.Heat3
@@ -18,6 +19,11 @@ import org.junit.Test
  * tall figure box so tap targets and the person stay the same aspect.
  */
 class StillHeatTest {
+    @Test
+    fun heatAndSelectionClipToTheStill() {
+        assertEquals(BlendMode.SrcAtop, STILL_CLIP_BLEND)
+    }
+
     @Test
     fun restAndStructureAreNotAWash() {
         assertTrue(isRestFill(HeatEmpty))
