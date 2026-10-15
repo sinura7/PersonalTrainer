@@ -2791,18 +2791,18 @@
         "F11"
       ],
       "requirement": "Every question and Continue/Skip action is reachable at 360×640 dp, font 2.0, and the smaller supported window configuration.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P15",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX08",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Question steps scroll inside the setup page. Continue and Skip stay on that scroll.",
+        "automated": "OnboardingReachabilityTest.continueAndSkipStayReachableAtASmallWindowAndLargeText at 360×640 dp and font scale 2. Continue, Space them out for me, and Skip this are on screen.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P15"
         ],
@@ -2818,18 +2818,18 @@
         "F11"
       ],
       "requirement": "Typed bodyweight, wheel, unit switch and Skip produce consistent optional values.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P15",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX08",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "A stored kilogram stays the stored kilogram when the display unit changes. Skip clears the optional weigh-in.",
+        "automated": "OnboardingViewModelTest.changingTheUnitDoesNotRewriteTheStoredKilograms and skippingBodyweightLeavesTheWeighInUnset.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P15"
         ],
@@ -2845,18 +2845,18 @@
         "F11"
       ],
       "requirement": "Screen-reader focus lands on the new question and Back keeps the selected answer.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. A physical screen reader is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P15",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX08",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "The question title takes focus when the question changes. Back keeps the answer that was chosen.",
+        "automated": "OnboardingViewModelTest.backKeepsTheAnswerThatWasChosen. The question title is a focusable heading.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P15"
         ],
@@ -4969,7 +4969,7 @@
       {
         "id": "P15",
         "title": "Onboarding questions and recovery",
-        "state": "Open"
+        "state": "Questions scroll at a small size and large text. Back keeps the chosen answer. Changing pounds or kilograms does not rewrite a stored weight. Skip leaves bodyweight empty. Accepting the plan once stays with P16. The phone check stays open."
       },
       {
         "id": "P16",

@@ -193,6 +193,37 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun backKeepsTheAnswerThatWasChosen() = runBlocking {
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
+        viewModel!!.setFocus(TrainingFocus.BOTH)
+        assertTrue(viewModel!!.back())
+        val returned = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS && it.answers.focus == TrainingFocus.BOTH }
+        }
+        assertEquals(OnboardingStep.FOCUS, returned.step)
+        assertEquals(TrainingFocus.BOTH, returned.answers.focus)
+        assertFalse(deps.onboardingApplier.hasExistingProgram())
+    }
+
+    @Test
+    fun changingTheUnitDoesNotRewriteTheStoredKilograms() = runBlocking {
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
+        viewModel!!.setBodyweight(80.0)
+        viewModel!!.setWeightUnit(WeightUnit.LBS)
+        val pounds = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.answers.bodyweightKg == 80.0 && it.weightUnit == WeightUnit.LBS }
+        }
+        assertEquals(80.0, pounds.answers.bodyweightKg!!, 0.0)
+        viewModel!!.setWeightUnit(WeightUnit.KG)
+        val kilograms = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.weightUnit == WeightUnit.KG && it.answers.bodyweightKg == 80.0 }
+        }
+        assertEquals(80.0, kilograms.answers.bodyweightKg!!, 0.0)
+    }
+
+    @Test
     fun skippingBodyweightLeavesTheWeighInUnset() {
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),
