@@ -758,4 +758,102 @@ class SyncEngineTest {
         )
         assertNull(prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG])
     }
+
+    @Test
+    fun aQueuedDeleteDoesNotEraseADayThatIsStoredAgain() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 80.0, recordedAtMs = 1_000L),
+        )
+        val delete = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 80.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 2_000L,
+            deletedAtMs = 2_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "queued-delete",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.DELETE.name,
+                payloadJson = encodeSyncKeepingNulls(delete),
+                createdAtMs = 1L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.tombstones.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"deleted_at_ms\":null"))
+        assertEquals(80.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun aRemovedDayIsDeletedOnTheCloudInsteadOfComingBack() = runTest {
+        val queued = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 80.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 1_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "stale-upsert",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.UPSERT.name,
+                payloadJson = encodeSync(queued),
+                createdAtMs = 1L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(SyncEntityType.BODYWEIGHT_ENTRY, encodeSync(queued))
+        assertTrue(engine.run("user-1").isSuccess)
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"deleted_at_ms\":"))
+        assertFalse(sent.contains("\"deleted_at_ms\":null"))
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+    }
+
+    @Test
+    fun aNewerCloudWeighInReplacesTheLocalDayWhenTheCursorAlreadyPassedIt() = runTest {
+        val entry = BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 150L)
+        database.bodyweightDao().upsert(entry)
+        SyncOutboxWriter(syncDao = database.syncDao(), nowMillis = { 1L })
+            .enqueueAllBodyweightEntries("user-1", listOf(entry))
+        database.syncDao().upsertCursor(
+            SyncTableCursorEntity(
+                tableName = SyncEntityType.BODYWEIGHT_ENTRY.remoteTable,
+                lastPulledUpdatedAtMs = 200L,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 82.0,
+                    recordedAtMs = 200L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 200L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        val kept = database.bodyweightDao().getAll().single()
+        assertEquals(82.0, kept.kg, 0.001)
+        assertEquals(200L, kept.recordedAtMs)
+    }
 }

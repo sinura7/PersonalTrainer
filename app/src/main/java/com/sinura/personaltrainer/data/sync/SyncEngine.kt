@@ -118,7 +118,18 @@ class SyncEngine(
                             }
                             remote.upsert(type, sending)
                         }
-                        SyncOutboxOperation.DELETE -> remote.tombstone(type, payload)
+                        SyncOutboxOperation.DELETE -> {
+                            if (type == SyncEntityType.BODYWEIGHT_ENTRY) {
+                                val restored = bodyweightDeleteReplacedByStoredDay(payload)
+                                if (restored != null) {
+                                    remote.upsert(type, restored)
+                                } else {
+                                    remote.tombstone(type, payload)
+                                }
+                            } else {
+                                remote.tombstone(type, payload)
+                            }
+                        }
                     }
                     syncDao.deleteOutbox(row.id)
                 } catch (cancelled: CancellationException) {
@@ -217,10 +228,20 @@ class SyncEngine(
     private suspend fun bodyweightUpsertPayload(payload: String): String? {
         val queued = decodeSync<RemoteBodyweightEntryRow>(payload)
         val stored = bodyweightDao.getAll().firstOrNull { it.epochDay == queued.epochDay }
-            ?: return null
-        val server = remote.fetchEq(SyncEntityType.BODYWEIGHT_ENTRY, "epoch_day", queued.epochDay.toString())
-            .map { decodeSync<RemoteBodyweightEntryRow>(it) }
-            .maxByOrNull { it.updatedAtMs }
+        val server = currentBodyweightRemote(queued.epochDay)
+        if (stored == null) {
+            // The day was removed after this upload was queued. Dropping it lets the
+            // next pull put the cloud day back. A newer cloud day is kept instead.
+            if (server == null || server.deletedAtMs != null) return null
+            if (server.updatedAtMs > queued.updatedAtMs) {
+                adoptRemoteBodyweight(server)
+                return null
+            }
+            val deletedAtMs = nowMillis().coerceAtLeast(server.updatedAtMs + 1L)
+            return encodeSyncKeepingNulls(
+                queued.copy(updatedAtMs = deletedAtMs, deletedAtMs = deletedAtMs),
+            )
+        }
         val deletedAtMs = server?.deletedAtMs
         if (deletedAtMs != null &&
             !SyncRevision.recordedWeighInBeatsDelete(stored.recordedAtMs, deletedAtMs)
@@ -229,9 +250,36 @@ class SyncEngine(
             return null
         }
         if (server != null && deletedAtMs == null && server.updatedAtMs > stored.recordedAtMs) {
+            adoptRemoteBodyweight(server)
             return null
         }
         return encodeSyncKeepingNulls(stored.toRemote(queued.userId))
+    }
+
+    /** A delete queued before a restore must not erase the day that restore put back. */
+    private suspend fun bodyweightDeleteReplacedByStoredDay(payload: String): String? {
+        val queued = decodeSync<RemoteBodyweightEntryRow>(payload)
+        val stored = bodyweightDao.getAll().firstOrNull { it.epochDay == queued.epochDay } ?: return null
+        return encodeSyncKeepingNulls(stored.toRemote(queued.userId))
+    }
+
+    private suspend fun currentBodyweightRemote(epochDay: Long): RemoteBodyweightEntryRow? =
+        remote.fetchEq(SyncEntityType.BODYWEIGHT_ENTRY, "epoch_day", epochDay.toString())
+            .map { decodeSync<RemoteBodyweightEntryRow>(it) }
+            .maxByOrNull { it.updatedAtMs }
+
+    private suspend fun adoptRemoteBodyweight(remote: RemoteBodyweightEntryRow) {
+        bodyweightDao.upsert(remote.toEntity())
+        val remaining = bodyweightDao.getAll().map { row ->
+            BodyweightEntry(row.epochDay, row.kg, row.recordedAtMs, row.zoneId, row.offsetSeconds)
+        }
+        settingsStore.data.edit { prefs ->
+            prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(remaining)
+            if (prefs.contains(BODYWEIGHT_KG)) {
+                val current = BodyweightLog.latest(remaining)?.kg
+                if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
+            }
+        }
     }
 
     private suspend fun applyBodyweightDeleteNow(epochDay: Long, deletedAtMs: Long) {
