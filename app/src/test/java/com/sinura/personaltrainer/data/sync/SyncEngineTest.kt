@@ -2,6 +2,8 @@ package com.sinura.personaltrainer.data.sync
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.flow.first
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.repository.prefs.SettingsStore
@@ -15,6 +17,9 @@ import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 import com.sinura.personaltrainer.data.local.entity.SyncOutboxEntity
 import com.sinura.personaltrainer.domain.SyncEntityType
 import com.sinura.personaltrainer.domain.SyncOutboxOperation
+import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
+import com.sinura.personaltrainer.data.local.entity.SyncTableCursorEntity
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -482,6 +487,41 @@ class SyncEngineTest {
     }
 
     @Test
+    fun pullDeleteDropsTheDayAndTheEncodedEchoButNotANewerLocalWeighIn() = runTest {
+        database.bodyweightDao().upsert(
+            com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity(
+                epochDay = 20_000L,
+                kg = 80.0,
+                recordedAtMs = 500L,
+            ),
+        )
+        settingsStore.data.edit { prefs ->
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG] =
+                com.sinura.personaltrainer.domain.BodyweightLog.encode(
+                    listOf(com.sinura.personaltrainer.domain.BodyweightEntry(20_000L, 80.0, 500L)),
+                )
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG] = 80.0
+        }
+        val stale = RemoteBodyweightEntryRow(
+            epochDay = 20_000L, userId = "user-1", kg = 80.0, recordedAtMs = 100L,
+            zoneId = "UTC", offsetSeconds = 0, updatedAtMs = 100L, deletedAtMs = 100L,
+        )
+        remote.seed(SyncEntityType.BODYWEIGHT_ENTRY, encodeSync(stale))
+        assertTrue(engine.run("user-1").isSuccess)
+        assertEquals(80.0, database.bodyweightDao().getAll().single().kg, 0.001)
+        val tombstone = stale.copy(updatedAtMs = 900L, deletedAtMs = 900L)
+        remote.seed(SyncEntityType.BODYWEIGHT_ENTRY, encodeSync(tombstone))
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+        val prefs = settingsStore.safePreferences.first()
+        assertEquals(
+            "",
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG].orEmpty(),
+        )
+        assertNull(prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG])
+    }
+
+    @Test
     fun pullAppliesRemoteMeasurableGoalWhenNewer() = runTest {
         val local = com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity(
             id = "goal-1",
@@ -540,5 +580,422 @@ class SyncEngineTest {
         val prefs = settingsStore.snapshot()
         assertEquals("STRENGTH", prefs[com.sinura.personaltrainer.data.repository.prefs.TRAINING_GOAL])
         assertEquals(900L, SyncAccountPrefs.coachUpdatedAtMs(prefs))
+    }
+
+    @Test
+    fun pullKeepsAWeighInWhenTheCloudDeleteClockWasMovedForward() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 80.0, recordedAtMs = 500L),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 80.0,
+                    recordedAtMs = 500L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 500L,
+                    deletedAtMs = 100L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertEquals(80.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun bulkUploadClearsAnOlderCloudDeleteInsteadOfMovingItsClock() = runTest {
+        val entry = BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 500L)
+        database.bodyweightDao().upsert(entry)
+        val writer = SyncOutboxWriter(syncDao = database.syncDao(), nowMillis = { 1L })
+        writer.enqueueAllBodyweightEntries("user-1", listOf(entry))
+        val queued = database.syncDao().peekOutbox(10).single().payloadJson!!
+        assertFalse(queued.contains("deleted_at_ms"))
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 70.0,
+                    recordedAtMs = 100L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 100L,
+                    deletedAtMs = 100L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"deleted_at_ms\":null"))
+        assertEquals(81.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun bulkUploadLeavesANewerCloudDeleteUntouched() = runTest {
+        val entry = BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 500L)
+        database.bodyweightDao().upsert(entry)
+        settingsStore.data.edit { prefs ->
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG] =
+                com.sinura.personaltrainer.domain.BodyweightLog.encode(
+                    listOf(com.sinura.personaltrainer.domain.BodyweightEntry(20_000L, 81.0, 500L)),
+                )
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG] = 81.0
+        }
+        SyncOutboxWriter(syncDao = database.syncDao(), nowMillis = { 1L })
+            .enqueueAllBodyweightEntries("user-1", listOf(entry))
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 70.0,
+                    recordedAtMs = 100L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 900L,
+                    deletedAtMs = 900L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+        val prefs = settingsStore.safePreferences.first()
+        assertEquals(
+            "",
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG].orEmpty(),
+        )
+        assertNull(prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG])
+    }
+
+    @Test
+    fun aStaleQueuedWeighInUploadsTheDayNowStored() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 500L),
+        )
+        val stale = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 70.0,
+            recordedAtMs = 100L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 100L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "stale-monday",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.UPSERT.name,
+                payloadJson = encodeSync(stale),
+                createdAtMs = 1L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                stale.copy(updatedAtMs = 200L, deletedAtMs = 200L),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"recorded_at_ms\":500"))
+        assertTrue(sent.contains("\"deleted_at_ms\":null"))
+        assertFalse(sent.contains("\"kg\":70"))
+        assertEquals(81.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun aCloudDeleteStillLandsWhenTheCursorIsAlreadyPastIt() = runTest {
+        val entry = BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 500L)
+        database.bodyweightDao().upsert(entry)
+        settingsStore.data.edit { prefs ->
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG] =
+                com.sinura.personaltrainer.domain.BodyweightLog.encode(
+                    listOf(com.sinura.personaltrainer.domain.BodyweightEntry(20_000L, 81.0, 500L)),
+                )
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG] = 81.0
+        }
+        SyncOutboxWriter(syncDao = database.syncDao(), nowMillis = { 1L })
+            .enqueueAllBodyweightEntries("user-1", listOf(entry))
+        database.syncDao().upsertCursor(
+            SyncTableCursorEntity(
+                tableName = SyncEntityType.BODYWEIGHT_ENTRY.remoteTable,
+                lastPulledUpdatedAtMs = 900L,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 70.0,
+                    recordedAtMs = 100L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 900L,
+                    deletedAtMs = 900L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+        val prefs = settingsStore.safePreferences.first()
+        assertEquals(
+            "",
+            prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG].orEmpty(),
+        )
+        assertNull(prefs[com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG])
+    }
+
+    @Test
+    fun aQueuedDeleteDoesNotEraseADayThatIsStoredAgain() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 80.0, recordedAtMs = 1_000L),
+        )
+        val delete = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 80.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 2_000L,
+            deletedAtMs = 2_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "queued-delete",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.DELETE.name,
+                payloadJson = encodeSyncKeepingNulls(delete),
+                createdAtMs = 1L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.tombstones.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"deleted_at_ms\":null"))
+        assertEquals(80.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun aRemovedDayIsDeletedOnTheCloudInsteadOfComingBack() = runTest {
+        val queued = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 80.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 1_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "stale-upsert",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.UPSERT.name,
+                payloadJson = encodeSync(queued),
+                createdAtMs = 1L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(SyncEntityType.BODYWEIGHT_ENTRY, encodeSync(queued))
+        assertTrue(engine.run("user-1").isSuccess)
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"deleted_at_ms\":"))
+        assertFalse(sent.contains("\"deleted_at_ms\":null"))
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+    }
+
+    @Test
+    fun aNewerCloudWeighInReplacesTheLocalDayWhenTheCursorAlreadyPassedIt() = runTest {
+        val entry = BodyweightEntryEntity(epochDay = 20_000L, kg = 81.0, recordedAtMs = 150L)
+        database.bodyweightDao().upsert(entry)
+        SyncOutboxWriter(syncDao = database.syncDao(), nowMillis = { 1L })
+            .enqueueAllBodyweightEntries("user-1", listOf(entry))
+        database.syncDao().upsertCursor(
+            SyncTableCursorEntity(
+                tableName = SyncEntityType.BODYWEIGHT_ENTRY.remoteTable,
+                lastPulledUpdatedAtMs = 200L,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(
+                RemoteBodyweightEntryRow(
+                    epochDay = 20_000L,
+                    userId = "user-1",
+                    kg = 82.0,
+                    recordedAtMs = 200L,
+                    zoneId = "UTC",
+                    offsetSeconds = 0,
+                    updatedAtMs = 200L,
+                ),
+            ),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        val kept = database.bodyweightDao().getAll().single()
+        assertEquals(82.0, kept.kg, 0.001)
+        assertEquals(200L, kept.recordedAtMs)
+    }
+
+    @Test
+    fun aRestoredDayBeatsADeleteThatAlreadySynced() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 80.0, recordedAtMs = 1_000L),
+        )
+        val restored = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 80.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 4_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "restored-monday",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.UPSERT.name,
+                payloadJson = encodeSyncKeepingNulls(restored),
+                createdAtMs = 4_000L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(restored.copy(updatedAtMs = 2_000L, deletedAtMs = 2_000L)),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        val sent = remote.upserts.single { it.first == SyncEntityType.BODYWEIGHT_ENTRY }.second
+        assertTrue(sent.contains("\"updated_at_ms\":4000"))
+        assertTrue(sent.contains("\"deleted_at_ms\":null"))
+        assertEquals(80.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun anOlderPublishDoesNotResurrectANewerCloudDelete() = runTest {
+        database.bodyweightDao().upsert(
+            BodyweightEntryEntity(epochDay = 20_000L, kg = 80.0, recordedAtMs = 1_000L),
+        )
+        val queued = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 80.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 1_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "old-monday",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.UPSERT.name,
+                payloadJson = encodeSync(queued),
+                createdAtMs = 1_000L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(queued.copy(updatedAtMs = 3_000L, deletedAtMs = 3_000L)),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
+    }
+
+    @Test
+    fun anOlderQueuedDeleteKeepsANewerCloudWeighIn() = runTest {
+        val delete = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 80.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 2_000L,
+            deletedAtMs = 2_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "old-delete",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.DELETE.name,
+                payloadJson = encodeSyncKeepingNulls(delete),
+                createdAtMs = 2_000L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(delete.copy(kg = 90.0, recordedAtMs = 4_000L, updatedAtMs = 4_000L, deletedAtMs = null)),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.tombstones.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        val kept = database.bodyweightDao().getAll().single()
+        assertEquals(90.0, kept.kg, 0.001)
+        assertEquals(4_000L, kept.recordedAtMs)
+    }
+
+    @Test
+    fun anOlderQueuedDeleteDoesNotRewindANewerCloudDelete() = runTest {
+        val delete = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 70.0,
+            recordedAtMs = 1_000L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 2_000L,
+            deletedAtMs = 2_000L,
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "older-delete",
+                entityType = SyncEntityType.BODYWEIGHT_ENTRY.name,
+                entityId = "20000",
+                operation = SyncOutboxOperation.DELETE.name,
+                payloadJson = encodeSyncKeepingNulls(delete),
+                createdAtMs = 2_000L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        remote.seed(
+            SyncEntityType.BODYWEIGHT_ENTRY,
+            encodeSync(delete.copy(updatedAtMs = 5_000L, deletedAtMs = 5_000L)),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertTrue(remote.tombstones.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        assertTrue(remote.upserts.none { it.first == SyncEntityType.BODYWEIGHT_ENTRY })
+        assertTrue(database.bodyweightDao().getAll().isEmpty())
     }
 }

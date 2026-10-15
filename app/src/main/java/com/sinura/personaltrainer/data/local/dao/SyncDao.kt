@@ -31,6 +31,9 @@ interface SyncDao {
     )
     suspend fun peekOutbox(limit: Int): List<SyncOutboxEntity>
 
+    @Query("SELECT * FROM sync_outbox WHERE entityType = :entityType")
+    suspend fun pendingOfType(entityType: String): List<SyncOutboxEntity>
+
     @Query("DELETE FROM sync_outbox WHERE id = :id")
     suspend fun deleteOutbox(id: String)
 

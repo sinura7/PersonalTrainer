@@ -5478,7 +5478,38 @@
         "packet": "codex/test-stability",
         "problem": "Swapping a lift and typing a weight, then reps and effort, could save the reps and the effort and store the weight as 0. The fill for the new lift decides the entry is untouched on a background read, and that decision used to be applied after the weight was typed. The checkpoint then kept the typed reps and effort and lost the typed weight.",
         "fix": "The decision and the write now happen together, and the decision is checked again at the moment of the write. A weight typed in that gap is kept. Reps and effort already shared that save; they were not on a separate path."
+      },
+      {
+        "id": "weigh-in-sync-after-review",
+        "kind": "product fix",
+        "packet": "cursor/post-merge-blockers-40b8",
+        "problem": "Reviews after the typed-weight save and the weigh-in delete found that a routine upload could move a cloud delete's clock and the next download could erase a newer local weigh-in. A restore could also queue the days from before the restore, and an older delete waiting to upload could erase a newer weigh-in already in the cloud.",
+        "fix": "An upload sends the day stored on the phone and reads the cloud day first. A newer delete is applied here. An older delete is cleared. A restore publishes the restored days at the time of the restore and deletes a day the backup left out when that day was waiting to upload. An older queued delete does not rewind a newer cloud day."
       }
-    ]
+    ],
+    "postMergeReviews": {
+      "16c7b033": {
+        "when": "2026-10-15",
+        "independent": "BLOCK. High: a keypad, set clock, or undo checkpoint raised the authorship number without waking the file writer, so a killed process could ignore the last saved entry. Low: the Add-sheet keep is a helper test; a failed fill can mark the next lift's suggestion unavailable.",
+        "adversarial": "BLOCK. High: a fill already in progress can replace a set opened for correction with the plan seed, including 0 kg. Medium: two checkpoints can share one authorship number and the later disk write can put the older entry back."
+      },
+      "c7dd370a": {
+        "when": "2026-10-15",
+        "independent": "BLOCK. High: a weigh-in delete tombstone kept the old recorded time as updated_at, so another signed-in phone that already had that day never downloaded the delete. Medium: applying that tombstone did not move the current figure. Low: days past 200 and days older than the eight newest are not deleted or listed from Settings.",
+        "adversarial": "BLOCK. High: deleting every day left the old encoded history, and the next launch copied it back. High: two overlapping deletes could store a deleted day's weight as the current figure. High: the same stale tombstone timestamp, and a later weigh-in on that day did not clear deleted_at. Medium: Correct and Delete dialogs can both be open. Low: saving the prefilled pound display can drift the stored kilogram by a tenth."
+      },
+      "0de5f139": {
+        "when": "2026-10-15",
+        "note": "Clean-context review of the first follow-up head, before the equal-clock fix.",
+        "independent": "APPROVE. Zero Critical, High, or Medium on the four named failures from 16c7b033 and c7dd370a. Low: Correct and Delete can both be open; Settings lists eight days.",
+        "adversarial": "BLOCK. High: a routine bulk upload omits deleted_at, PostgREST merge-duplicates moves updated_at to the local recorded time and leaves deleted_at set, and the keep check was recorded time greater than updated_at, so an equal clock deleted the newer local weigh-in."
+      },
+      "4f7a13e5": {
+        "when": "2026-10-15",
+        "note": "Clean-context review after the follow-up fixes. Heads 816bfcfb, 0d46be16, and c94315a6 were blocked and fixed before this head. Gate on this head: testDebugUnitTest 4731 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, JDK 17, default parallelism, BUILD SUCCESSFUL.",
+        "independent": "APPROVE. Zero Critical or High. Medium: a day trimmed past 200 can be written back or deleted on the other phone; a restore while signed out does not queue the omission; a sync that starts during the restore can upload the pre-restore days.",
+        "adversarial": "APPROVE. Zero Critical or High. Medium: a live cloud day is compared to a queued delete by updated_at; the read-then-upload gap; an omitted day with no waiting upload stays in the cloud; an older delete can overwrite a tombstone whose clock was already moved."
+      }
+    }
   }
 }

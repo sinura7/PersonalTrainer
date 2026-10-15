@@ -19,4 +19,11 @@ class SyncRevisionTest {
         assertTrue(SyncRevision.remoteWins(local, remote))
         assertFalse(SyncRevision.remoteWins(remote, local))
     }
+
+    @Test
+    fun aWeighInBeatsADeleteOnlyWhenTheWeighInIsNewerThanTheDelete() {
+        assertTrue(SyncRevision.recordedWeighInBeatsDelete(recordedAtMs = 500L, deletedAtMs = 100L))
+        assertFalse(SyncRevision.recordedWeighInBeatsDelete(recordedAtMs = 500L, deletedAtMs = 500L))
+        assertFalse(SyncRevision.recordedWeighInBeatsDelete(recordedAtMs = 500L, deletedAtMs = 900L))
+    }
 }

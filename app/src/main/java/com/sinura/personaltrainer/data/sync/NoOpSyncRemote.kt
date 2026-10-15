@@ -12,4 +12,7 @@ object NoOpSyncRemote : SyncRemotePort {
 
     override suspend fun pullUpdatedSince(type: SyncEntityType, sinceUpdatedAtMs: Long): List<String> =
         emptyList()
+
+    override suspend fun fetchEq(type: SyncEntityType, column: String, value: String): List<String> =
+        emptyList()
 }

@@ -293,12 +293,65 @@ class SyncOutboxWriter(
             SyncEntityType.BODYWEIGHT_ENTRY,
             syncBodyweightEntityId(entry.epochDay),
             SyncOutboxOperation.UPSERT,
-            encodeSync(entry.toRemote(userId)),
+            encodeSyncKeepingNulls(entry.toRemote(userId)),
         )
     }
 
     suspend fun enqueueAllBodyweightEntries(userId: String, entries: List<BodyweightEntryEntity>) {
-        entries.forEach { enqueueBodyweightUpsert(userId, it) }
+        entries.forEach { entry ->
+            enqueueIfAbsent(
+                SyncEntityType.BODYWEIGHT_ENTRY,
+                syncBodyweightEntityId(entry.epochDay),
+                SyncOutboxOperation.UPSERT,
+                encodeSync(entry.toRemote(userId)),
+            )
+        }
+    }
+
+    /**
+     * A restore is a new decision to keep these days, even when the weigh-in itself
+     * is older than a delete that already synced. The publish time is that decision.
+     * Pending deletes for those days are replaced.
+     */
+    suspend fun enqueueRestoredBodyweight(
+        userId: String,
+        entries: List<BodyweightEntryEntity>,
+        publishedAtMs: Long,
+    ) {
+        val keep = entries.map { it.epochDay }.toSet()
+        syncDao.pendingOfType(SyncEntityType.BODYWEIGHT_ENTRY.name).forEach { pending ->
+            val day = pending.entityId.toLongOrNull() ?: return@forEach
+            if (day in keep) return@forEach
+            val queued = pending.payloadJson?.let { decodeSync<RemoteBodyweightEntryRow>(it) }
+            val deletedAtMs = maxOf(queued?.deletedAtMs ?: 0L, queued?.updatedAtMs ?: 0L, publishedAtMs)
+            val tombstone = (queued ?: RemoteBodyweightEntryRow(
+                epochDay = day,
+                userId = userId,
+                kg = 0.0,
+                recordedAtMs = publishedAtMs,
+                zoneId = "UTC",
+                offsetSeconds = 0,
+                updatedAtMs = publishedAtMs,
+            )).copy(updatedAtMs = deletedAtMs, deletedAtMs = deletedAtMs)
+            enqueue(
+                SyncEntityType.BODYWEIGHT_ENTRY,
+                pending.entityId,
+                SyncOutboxOperation.DELETE,
+                encodeSyncKeepingNulls(tombstone),
+            )
+        }
+        entries.forEach { entry ->
+            val row = entry.toRemote(userId).copy(
+                updatedAtMs = maxOf(entry.recordedAtMs, publishedAtMs),
+                deletedAtMs = null,
+            )
+            enqueue(
+                SyncEntityType.BODYWEIGHT_ENTRY,
+                syncBodyweightEntityId(entry.epochDay),
+                SyncOutboxOperation.UPSERT,
+                encodeSyncKeepingNulls(row),
+            )
+        }
     }
 
     suspend fun enqueueBodyweightDelete(userId: String, entry: BodyweightEntryEntity, deletedAtMs: Long) {
@@ -306,7 +359,7 @@ class SyncOutboxWriter(
             SyncEntityType.BODYWEIGHT_ENTRY,
             syncBodyweightEntityId(entry.epochDay),
             SyncOutboxOperation.DELETE,
-            encodeSync(entry.toRemote(userId, deletedAtMs)),
+            encodeSyncKeepingNulls(entry.toRemote(userId, deletedAtMs)),
         )
     }
 
@@ -385,6 +438,16 @@ class SyncOutboxWriter(
             SyncOutboxOperation.DELETE,
             encodeSync(tombstone),
         )
+    }
+
+    private suspend fun enqueueIfAbsent(
+        type: SyncEntityType,
+        entityId: String,
+        operation: SyncOutboxOperation,
+        payloadJson: String,
+    ) {
+        if (syncDao.hasPendingForEntity(type.name, entityId)) return
+        enqueue(type, entityId, operation, payloadJson)
     }
 
     private suspend fun enqueue(

@@ -25,6 +25,15 @@ class SupabaseSyncRemote(
             sinceMs = sinceUpdatedAtMs,
             accessToken = token,
         )
+        return decodeRows(body)
+    }
+
+    override suspend fun fetchEq(type: SyncEntityType, column: String, value: String): List<String> {
+        val token = accessToken() ?: error("Not signed in")
+        return decodeRows(rest.getEq(type.remoteTable, column, value, token))
+    }
+
+    private fun decodeRows(body: String): List<String> {
         if (body.isBlank()) return emptyList()
         val array = JsonParser.parseString(body)
         if (!array.isJsonArray) return emptyList()

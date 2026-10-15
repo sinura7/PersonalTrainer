@@ -68,6 +68,7 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SyncRevision
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -83,6 +84,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private val Context.userSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "user_settings",
@@ -152,6 +155,8 @@ class PreferencesRepository(
     private val trainingBlockDao: TrainingBlockDao? = null,
     private val onBodyweightChanged: suspend () -> Unit = {},
     private val onBodyweightDeleted: suspend (BodyweightEntryEntity) -> Unit = {},
+    private val onBodyweightRecorded: suspend (BodyweightEntryEntity) -> Unit = {},
+    private val onBodyweightRestored: suspend (Long) -> Unit = {},
     private val onAccountPrefsChanged: suspend () -> Unit = {},
     private val nowMs: () -> Long = { System.currentTimeMillis() },
     private val store: SettingsStore = SettingsStore(dataStore),
@@ -169,6 +174,7 @@ class PreferencesRepository(
     RestPrefs by RestPrefsStore(store = store),
     BackupPrefs by BackupPrefsStore(store = store) {
     private val dataStore = dataStore
+    private val bodyweightWrites = Mutex()
     internal val accountSyncSettingsStore: SettingsStore get() = store
     private val reminders: ReminderPrefs = ReminderPrefsStore(
         store = store,
@@ -402,6 +408,9 @@ class PreferencesRepository(
             if (log.isNotEmpty()) {
                 dao.upsertAll(log.map { it.toEntity(nowMs()) })
             }
+            // A restore is a new decision. The publish time has to replace a delete that
+            // already synced, and a snapshot queued before these rows were written.
+            onBodyweightRestored(nowMs())
         }
         trainingBlockDao?.let { dao ->
             dao.deleteAll()
@@ -533,6 +542,10 @@ class PreferencesRepository(
                 it >= OnboardingAnswers.MIN_BODYWEIGHT_KG &&
                 it <= OnboardingAnswers.MAX_BODYWEIGHT_KG
         } ?: return
+        bodyweightWrites.withLock { recordBodyweightLocked(clean, epochDay) }
+    }
+
+    private suspend fun recordBodyweightLocked(clean: Double, epochDay: Long) {
         bodyweightDao?.let { dao ->
             val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
             dao.upsert(
@@ -552,6 +565,8 @@ class PreferencesRepository(
             }
             onBodyweightChanged()
         }
+        val recorded = bodyweightDao?.getAll()?.firstOrNull { it.epochDay == epochDay }
+        if (recorded != null) onBodyweightRecorded(recorded)
         dataStore.edit { prefs ->
             val log = if (bodyweightDao == null) {
                 BodyweightLog.record(
@@ -561,7 +576,8 @@ class PreferencesRepository(
             } else {
                 null
             }
-            if (log != null) prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(log)
+            val echo = log ?: bodyweightDao?.getAll()?.map { it.toDomain() }
+            if (echo != null) prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(echo)
             val latest = bodyweightDao?.getAll()?.maxByOrNull { it.epochDay }?.kg
                 ?: log?.let { BodyweightLog.latest(it)?.kg }
                 ?: clean
@@ -577,22 +593,49 @@ class PreferencesRepository(
      * or clears when the history is empty.
      */
     suspend fun deleteBodyweightDay(epochDay: Long) {
-        val removed = bodyweightDao?.getAll()?.firstOrNull { it.epochDay == epochDay }
-        bodyweightDao?.deleteDay(epochDay)
-        val remaining = bodyweightDao?.getAll()?.map { it.toDomain() }
-        dataStore.edit { prefs ->
-            val log = remaining ?: BodyweightLog.remove(
-                BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
-                epochDay,
-            )
-            if (bodyweightDao == null) prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(log)
-            if (prefs.contains(BODYWEIGHT_KG)) {
-                val current = BodyweightLog.latest(log)?.kg
-                if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
+        bodyweightWrites.withLock {
+            val removed = bodyweightDao?.getAll()?.firstOrNull { it.epochDay == epochDay }
+            bodyweightDao?.deleteDay(epochDay)
+            val remaining = bodyweightDao?.getAll()?.map { it.toDomain() }
+            dataStore.edit { prefs ->
+                val log = remaining ?: BodyweightLog.remove(
+                    BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
+                    epochDay,
+                )
+                // Room is the source of truth after import. The encoded echo has to match it,
+                // or the next launch sees an empty table and copies the old days back.
+                prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(log)
+                if (prefs.contains(BODYWEIGHT_KG)) {
+                    val current = BodyweightLog.latest(log)?.kg
+                    if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
+                }
             }
-        }
         if (removed != null) onBodyweightDeleted(removed)
         onBodyweightChanged()
+        }
+    }
+
+    /**
+     * A delete downloaded from another phone. Same lock as a delete on this phone.
+     * The delete's own time is the clock: a later upload can move the row clock
+     * without making the delete newer than the weigh-in stored here.
+     */
+    suspend fun applyDownloadedBodyweightDelete(epochDay: Long, deletedAtMs: Long) {
+        bodyweightWrites.withLock {
+            val local = bodyweightDao?.getAll()?.firstOrNull { it.epochDay == epochDay }
+            if (local != null && SyncRevision.recordedWeighInBeatsDelete(local.recordedAtMs, deletedAtMs)) {
+                return@withLock
+            }
+            bodyweightDao?.deleteDay(epochDay)
+            val remaining = bodyweightDao?.getAll()?.map { it.toDomain() } ?: emptyList()
+            dataStore.edit { prefs ->
+                prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(remaining)
+                if (prefs.contains(BODYWEIGHT_KG)) {
+                    val current = BodyweightLog.latest(remaining)?.kg
+                    if (current == null) prefs.remove(BODYWEIGHT_KG) else prefs[BODYWEIGHT_KG] = current
+                }
+            }
+        }
     }
 
     suspend fun setBodyweightKg(kg: Double?) {
