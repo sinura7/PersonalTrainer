@@ -154,8 +154,29 @@ class LiveCardioViewModelTest {
         vm.discard()
         val gone = vm.uiState.awaitFirst { it.missing }
         assertTrue(gone.missing)
+        assertFalse(gone.finished)
         assertNull(deps.activityRepository.getLive())
         assertNull(deps.cardioTimerPersistence.load())
+    }
+
+    @Test
+    fun aFinishedSessionIsNotReportedAsGone() = runBlocking {
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        val vm = createViewModel(live.id)
+        vm.uiState.awaitFirst { it.session != null }
+        vm.finish()
+        vm.finishedId.first { it != null }
+        vm.clearAndJoinForTest()
+
+        val again = createViewModel(live.id)
+        val state = again.uiState.awaitFirst { it.finished || it.missing }
+        assertTrue(state.finished)
+        assertFalse(state.missing)
+        assertFalse(state.failed)
+        assertEquals(live.id, state.session?.id)
     }
 
     @Test

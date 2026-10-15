@@ -106,7 +106,7 @@ fun LiveCardioScreen(
 
     Scaffold(
         bottomBar = {
-            if (!state.missing && !state.failed) {
+            if (!state.missing && !state.failed && !state.finished) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     HairlineDivider(startIndent = 0.dp)
                     CardioActionDock(
@@ -119,11 +119,25 @@ fun LiveCardioScreen(
             }
         },
     ) { padding ->
+        if (state.finished) {
+            EmptyState(
+                scene = EmptyScene.GONE,
+                title = CardioCopy.FINISHED_TITLE,
+                body = CardioCopy.FINISHED_BODY,
+                actionLabel = "Back",
+                onAction = onExit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(Metrics.gutter),
+            )
+            return@Scaffold
+        }
         if (state.missing) {
             EmptyState(
                 scene = EmptyScene.GONE,
-                title = "No live cardio",
-                body = "That session is gone. Start a new one from Home.",
+                title = CardioCopy.NOT_FOUND_TITLE,
+                body = CardioCopy.NOT_FOUND_BODY,
                 actionLabel = "Back",
                 onAction = onExit,
                 modifier = Modifier
