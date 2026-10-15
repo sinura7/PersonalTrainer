@@ -6,7 +6,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -110,7 +109,7 @@ fun BodyMapCard(
             // Anatomy sizes the plates, so an arm or a calf lands under the 48dp touch floor
             // and cannot be padded out without covering its neighbour. The muscle rows under
             // the map select the same muscles at full row height, and are the reliable target.
-            BoxWithConstraints(
+            Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .padding(vertical = Metrics.space4)
