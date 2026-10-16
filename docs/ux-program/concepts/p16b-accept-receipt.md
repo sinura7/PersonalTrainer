@@ -8,7 +8,7 @@ Use this plan writes the visit, the day, the opening weight, the block start, an
 
 ## Same rows
 
-A second attempt replaces the weigh-in on the frozen day. It leaves the block when that block already starts on the frozen week. It reuses the routine and the day slot from the first attempt.
+A second attempt replaces the weigh-in on the frozen day. It leaves the block when that block already starts on the frozen week. It reuses the routine and the day slot from the first attempt, including the lifts frozen with that visit. It does not replace the saved days-per-week with a preview that changed later. If a write fails after those days are stored, the days stay. The next try is not told the visit finished while the week is gone.
 
 ## Building
 

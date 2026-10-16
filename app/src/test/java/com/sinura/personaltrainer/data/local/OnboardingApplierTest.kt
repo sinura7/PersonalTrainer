@@ -560,6 +560,7 @@ class OnboardingApplierTest {
         assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
         val block = preferences.trainingBlock.first()
         assertEquals(0, schedule.slots().size)
+        val daysPerWeek = preferences.schedulePreferences.first().trainingDaysPerWeek
 
         applier.crashPoint = AcceptCrashPoint.NONE
         val later = answers(days = 6, bodyweight = 81.0)
@@ -573,8 +574,11 @@ class OnboardingApplierTest {
             acceptanceId = "visit-crash",
         )
         assertTrue(retry is ApplyPlanResult.Applied)
+        val expectedSlots = preferences.planAcceptReceipt()?.pins?.size ?: 0
         val slots = schedule.slots().size
+        assertEquals(expectedSlots, slots)
         assertTrue(slots > 0)
+        assertEquals(daysPerWeek, preferences.schedulePreferences.first().trainingDaysPerWeek)
         assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
         assertEquals(80.0, preferences.bodyweightLog.first().single().kg, 0.001)
         assertEquals(block, preferences.trainingBlock.first())
@@ -625,6 +629,43 @@ class OnboardingApplierTest {
         assertEquals(routineCount, routines.count())
         assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
         assertEquals(70.0, preferences.bodyweightLog.first().single().kg, 0.001)
+    }
+
+    @Test
+    fun aThrowAfterTheWeekIsStoredKeepsTheDaysAndTheRetryDoesNotAddMore() = runBlocking {
+        val input = answers(days = 3, bodyweight = 75.0)
+        val blueprint = RoutineGenerator.generate(input, catalog)
+        applier.throwAfterCommit = true
+        val failed = applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-after-commit",
+        )
+        assertTrue(failed is ApplyPlanResult.Failed)
+        val slots = schedule.slots().size
+        val routineCount = routines.count()
+        assertTrue(slots > 0)
+        assertTrue(routineCount > 0)
+        assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
+
+        applier.throwAfterCommit = false
+        val later = answers(days = 6, bodyweight = 76.0)
+        val retry = applier.apply(
+            answers = later,
+            blueprint = RoutineGenerator.generate(later, catalog),
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY.plusDays(3),
+            acceptanceId = "visit-after-commit",
+        )
+        assertTrue(retry is ApplyPlanResult.Applied)
+        assertEquals(slots, schedule.slots().size)
+        assertEquals(routineCount, routines.count())
+        assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
+        assertEquals(75.0, preferences.bodyweightLog.first().single().kg, 0.001)
     }
 
     private companion object {

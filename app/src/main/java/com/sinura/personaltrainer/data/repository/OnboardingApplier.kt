@@ -46,9 +46,11 @@ sealed interface ApplyPlanResult {
  * the one their last month of sessions points at is not recoverable from inside
  * the app.
  *
- * **A failed attempt is.** Routine creates and pins run in one Room transaction.
- * If that write — or the onboarding-complete flag after it — fails, the routines
- * this attempt just created are dropped so "try again" cannot mint a second copy.
+ * **A failed attempt is, until the week is stored.** Routine creates and pins run in
+ * one Room transaction. If that write fails, the routines this attempt just created
+ * are dropped so "try again" cannot mint a second copy. Once a setup visit's week
+ * is stored, a later failure leaves it in place. The receipt already names those
+ * rows, and deleting them would make the next try believe the visit was finished.
  */
 class OnboardingApplier(
     private val database: AppRoomDatabase,
@@ -62,6 +64,13 @@ class OnboardingApplier(
 
     /** Test hook. Thrown before any catch so the screen has to clear its own busy flag. */
     var throwBeforeCatch: Boolean = false
+
+    /**
+     * Test hook. Thrown after the week is stored and the visit is marked, the way a
+     * later preference write can fail. The stored week must stay, and the retry must
+     * not be told the visit is finished while the days are gone.
+     */
+    var throwAfterCommit: Boolean = false
     /**
      * @param weekStart the lifter's stored first day of the week. Required, and deliberately
      * not defaulted: it used to default to Monday and the one caller never passed it, so every
@@ -94,9 +103,18 @@ class OnboardingApplier(
         // even after setup has already accepted a plan.
         val visitId = acceptanceId?.takeUnless { keepCurrentBlock }
         val createdIds = LinkedHashMap<String, String>()
+        var programCommitted = false
+        var savedReceipt: PlanAcceptReceipt? = null
         return runCatchingCancellable {
+            val prior = visitId?.let { id ->
+                preferencesRepository.planAcceptReceipt()?.takeIf { it.id == id }
+            }
             val receipt = visitId?.let { freezeReceipt(it, clean, blueprint, weekStart, today) }
-            if (visitId != null && preferencesRepository.acceptedPlanId() == visitId || receipt?.complete == true) {
+            savedReceipt = receipt
+            val visitDone = (visitId != null && preferencesRepository.acceptedPlanId() == visitId) ||
+                receipt?.complete == true
+            val pinsLanded = if (receipt == null) true else frozenPinsLanded(receipt)
+            if (visitDone && pinsLanded) {
                 preferencesRepository.setOnboardingComplete(true)
                 return@runCatchingCancellable ApplyPlanResult.Applied(
                     routineCount = receipt?.pins?.map { it.second }?.distinct()?.size
@@ -105,14 +123,17 @@ class OnboardingApplier(
                         ?: blueprint.days.count { it.routineKey != null },
                 )
             }
-            // Preferences first. If anything below fails the lifter still gets an app that
-            // knows their days, their goal and their equipment — a worse outcome than the
-            // whole plan, but a much better one than a questionnaire they filled in for
-            // nothing.
+            // Preferences first, and only on the attempt that freezes the command.
+            // A retry keeps the days, goal and equipment from that attempt. Writing the
+            // changed preview here would make Home offer days the frozen week does not have.
+            // If anything below fails the lifter still gets an app that knows their days,
+            // their goal and their equipment — a worse outcome than the whole plan, but a
+            // much better one than a questionnaire they filled in for nothing.
             val schedule = clean.schedulePreferences(weekStart)
-            // Days per week and split style are answers the questionnaire actually asked for,
-            // so a re-run overwriting them is the point. Week start is not asked, and is not
-            // written — see the note on [weekStart] above.
+            if (prior == null) {
+            // Days per week and split style are answers the questionnaire asked for.
+            // A new visit may overwrite them. A retry of this visit does not enter this
+            // block. Week start is not asked, and is not written — see the note on [weekStart].
             preferencesRepository.setTrainingDaysPerWeek(schedule.trainingDaysPerWeek)
             preferencesRepository.setSplitStyle(schedule.splitStyle)
             val coach = clean.coachPreferences()
@@ -126,6 +147,7 @@ class OnboardingApplier(
             preferencesRepository.setPreferredDays(clean.preferredDays)
             preferencesRepository.setTrainingPlaces(clean.resolvedPlaces())
             preferencesRepository.setTrainingFocus(clean.focus)
+            }
             val epochDay = receipt?.epochDay ?: today.toEpochDay()
             val block = receipt?.let {
                 TrainingBlock(startEpochDay = it.blockStartEpochDay, weeks = TrainingBlock.DEFAULT_WEEKS)
@@ -157,15 +179,17 @@ class OnboardingApplier(
             } else {
                 writeGeneratedProgram(blueprint, byId, createdIds, visitId)
             }
+            programCommitted = true
             if (crashPoint == AcceptCrashPoint.AFTER_PINS) throw AcceptCrash()
-            preferencesRepository.setOnboardingComplete(true)
-            if (visitId != null) preferencesRepository.setAcceptedPlanId(visitId)
             if (receipt != null) {
                 preferencesRepository.savePlanAcceptReceipt(receipt.copy(complete = true))
             }
+            preferencesRepository.setOnboardingComplete(true)
+            if (visitId != null) preferencesRepository.setAcceptedPlanId(visitId)
+            if (throwAfterCommit) error("test: throw after the week committed")
             ApplyPlanResult.Applied(routineCount = createdIds.size, pinnedDays = pinned)
         }.getOrElse { thrown ->
-            if (thrown is AcceptCrash) {
+            if (thrown is AcceptCrash || (programCommitted && savedReceipt != null)) {
                 return@getOrElse ApplyPlanResult.Failed("Couldn’t build that plan. Your answers are saved — try again.")
             }
             AppLog.e(TAG, "Applying the generated plan failed", thrown)
@@ -260,6 +284,13 @@ class OnboardingApplier(
     private fun stablePinId(acceptanceId: String, routineKey: String, day: Weekday): String =
         UUID.nameUUIDFromBytes("$acceptanceId:pin:$day:$routineKey".toByteArray(Charsets.UTF_8)).toString()
 
+    /** Empty pins (a cardio week) count as landed. A missing stable slot does not. */
+    private suspend fun frozenPinsLanded(receipt: PlanAcceptReceipt): Boolean {
+        if (receipt.pins.isEmpty()) return true
+        val ids = scheduleRepository.slots().map { it.id }.toSet()
+        return receipt.pins.all { (day, key) -> stablePinId(receipt.id, key, day) in ids }
+    }
+
     /** Pins only the days frozen on the receipt, and reuses a slot that already has that id. */
     private suspend fun writeFrozenProgram(
         receipt: PlanAcceptReceipt,
@@ -272,7 +303,7 @@ class OnboardingApplier(
         val frozen = receipt.routines.associateBy { it.key }
         var pinned = 0
         receipt.pins.forEach { (day, key) ->
-            val routine = live[key] ?: frozen[key]?.toBlueprint() ?: return@forEach
+            val routine = frozen[key]?.toBlueprint() ?: live[key] ?: return@forEach
             val routineId = createRoutine(routine, byId, stableRoutineId(receipt.id, key))
             createdIds[key] = routineId
             scheduleRepository.pin(
