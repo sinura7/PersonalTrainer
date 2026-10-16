@@ -3201,7 +3201,7 @@
         "F11"
       ],
       "requirement": "At 320/360/412 dp, date targets are measurable and usable without overlapping ambiguous activation regions, or an equivalent accessible selector is supplied.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence in WeekStripGeometryRenderTest",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P06",
@@ -3212,7 +3212,7 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
+        "state": "Bounded automated evidence in WeekStripGeometryRenderTest; physical acceptance remains P20",
         "implementationPackets": [
           "P05",
           "P06",
@@ -3232,7 +3232,7 @@
         "F11"
       ],
       "requirement": "A week containing done, skipped, missed, future and rest days has unambiguous spoken and visible detail.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence in WeekStripGeometryRenderTest",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P06",
@@ -3243,7 +3243,7 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
+        "state": "Bounded automated evidence in WeekStripGeometryRenderTest; physical acceptance remains P20",
         "implementationPackets": [
           "P05",
           "P06",
@@ -3263,7 +3263,7 @@
         "F11"
       ],
       "requirement": "Selecting a neighboring-month date opens the correct civil date; today remains distinguishable from selection.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence in WeekStripGeometryRenderTest",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P06",
@@ -3274,7 +3274,7 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded P05/P06 contributions; full calendar/AppNav integration open",
+        "state": "Bounded automated evidence in WeekStripGeometryRenderTest; physical acceptance remains P20",
         "implementationPackets": [
           "P05",
           "P06",
@@ -5370,6 +5370,27 @@
     "progressPolicy": "Report reconciled criteria, bounded automated evidence and required acceptance closure separately. The historical 55% is an estimate, not derived from test counts.",
     "reconciledCriteria": 97,
     "requiredCriteria": 96,
+    "p19HonestStatus": {
+      "when": "2026-10-16",
+      "closedBounded": [
+        "UX25-AC02 search and routine name, e543e78e. Physical TalkBack unobserved.",
+        "UX24-AC01 long similar names wrap, 792314b4. Physical reading unobserved.",
+        "UX12-AC01, UX12-AC02, UX12-AC03: WeekStripGeometryRenderTest already measures 320, 360 and 412 dp, separates neighbors, speaks done, skipped, missed, planned and rest, and selects a civil day including the week edges. Physical calendar use remains P20."
+      ],
+      "stillOpen": [
+        "UX25-AC01 physical TalkBack journeys. This machine cannot run a screen reader on a phone.",
+        "UX25-AC03 and the P09 landscape note: a numeric Set can be activated in semantics while the keyboard covers the lower actions. Touch reachability with the keyboard showing was not measured here.",
+        "UX26 reduced motion, accessibility timeout, and save-failure dwell are not closed for the whole app.",
+        "UX23 shared failure language is not closed for every screen.",
+        "UX06-AC04 shared filter callers are not all covered in one integration pass.",
+        "UX10-AC01, UX10-AC02, UX10-AC03 stay with custom-lift create. Searching bench, in-sheet duplicate errors, and cancel-after-create are not re-closed here.",
+        "UX30-AC01 and UX30-AC02 stay open. UX30-AC03 is the rule that device gaps stay visible until tested; this list is that visibility.",
+        "P10R-native65: the combined Swap run still timed out before the picker showed. The isolated run later passed. The original failure stays unexplained. It is not relabeled as a pass.",
+        "P05 and P04 hosted Close and Another set visibility gaps stay open.",
+        "P07 hosted history readiness: one hosted run failed before the editor. No host-only cause was established. It stays open.",
+        "Distance sync upload stays deferred with cloud sync. It is not a P19 item."
+      ]
+    },
     "p19EvidenceFollowUps": [
       {
         "id": "P07-hosted-history-readiness",
