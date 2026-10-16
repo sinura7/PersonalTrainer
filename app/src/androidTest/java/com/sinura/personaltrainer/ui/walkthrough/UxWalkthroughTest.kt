@@ -231,11 +231,8 @@ class UxWalkthroughTest {
         shot("onboarding-start")
         clickLabel(TrainingFocus.STRENGTH.displayName)
         clickLabel(TrainingAge.NEW.displayName)
-        clickLabel("3")
         clickLabel("Continue")
         clickLabel("Space them out for me")
-        clickLabel("Continue")
-        clickLabel(TrainingPlace.FULL_GYM.displayName)
         clickLabel("Continue")
         clickLabel(TrainingGoal.GENERAL.displayName)
         clickLabel(TrainingEmphasis.BALANCED.displayName)
@@ -324,7 +321,8 @@ class UxWalkthroughTest {
             compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
         }
         shot("cardio-live")
-        compose.onNodeWithTag(CardioTags.FINISH).performClick()
+        SystemClock.sleep(2_000)
+        compose.onNodeWithTag(CardioTags.FINISH).assertIsEnabled().performClick()
         compose.waitUntil(60_000) {
             compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
@@ -361,6 +359,10 @@ class UxWalkthroughTest {
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
         }
+        scrollToTag(ComposerTags.ADD_SET)
+        compose.onAllNodes(hasSetTextAction())[0].performTextReplacement("60")
+        compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("5")
+        compose.onNodeWithTag(ComposerTags.ADD_SET).performClick()
         shot("mixed-composer-filled")
         scrollToTag(ComposerTags.SAVE)
         compose.waitUntil(30_000) {
