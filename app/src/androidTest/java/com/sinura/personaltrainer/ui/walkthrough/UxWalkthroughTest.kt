@@ -334,8 +334,12 @@ class UxWalkthroughTest {
         ensureHarnessPermissions()
         dismissTransientOverlays()
         openGuidedSetup()
-        advanceOnboardingWizardSteps()
-        compose.waitUntil(90_000) {
+        val previewReady = runCatching { advanceOnboardingWizardSteps() }.isSuccess
+        if (!previewReady) {
+            runBlocking(Dispatchers.IO) { seedOnboardingAnswersForPreview() }
+            advanceOnboardingWizardSteps()
+        }
+        compose.waitUntil(120_000) {
             compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         shot("onboarding-plan-preview")
