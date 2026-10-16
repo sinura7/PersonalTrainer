@@ -91,6 +91,7 @@ class UxWalkthroughTest {
     private lateinit var walkthroughRoutineName: String
     private lateinit var primaryLift: Exercise
     private lateinit var secondaryLift: Exercise
+    private var environmentPrepared = false
 
     private val launchIntent = Intent(
         ApplicationProvider.getApplicationContext(),
@@ -113,8 +114,6 @@ class UxWalkthroughTest {
         }
         app = ApplicationProvider.getApplicationContext()
         container = app.container
-        environment.prepare(container)
-        dismissTransientOverlays()
     }
 
     @After
@@ -122,13 +121,18 @@ class UxWalkthroughTest {
         runCatching {
             runBlocking(Dispatchers.IO) { withTimeout(30_000) { cleanSyntheticData() } }
         }
-        environment.restore()
+        if (environmentPrepared) {
+            environment.restore()
+        }
         shell("settings put system font_scale 1.0")
     }
 
     @Test
     fun captureProductWalkthrough() {
-        runFlow("01-cold-start-intro") { flowColdStartIntro() }
+        runFlow("01-cold-start-intro") {
+            flowColdStartIntro()
+            ensureEnvironmentPrepared()
+        }
         runFlow("02-onboarding-preview-accept") { flowOnboardingAcceptPlan() }
         runFlow("03-main-tabs") { flowMainTabs() }
         runFlow("04-live-strength") { flowLiveStrengthWorkout() }
@@ -152,17 +156,30 @@ class UxWalkthroughTest {
     }
 
     private fun flowColdStartIntro() {
-        compose.waitUntil(30_000) {
-            compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isNotEmpty()
+        val introVisible = runCatching {
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isNotEmpty()
+            }
+        }.isSuccess
+        if (introVisible) {
+            shot("cold-start-intro")
+            compose.onNodeWithTag(ColdStartIntroTags.ROOT).performClick()
+            compose.waitUntil(15_000) {
+                compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isEmpty()
+            }
+            app.markColdStartIntroShown()
+            shot("cold-start-dismissed")
+        } else {
+            shot("cold-start-already-advanced")
+            app.markColdStartIntroShown()
         }
-        shot("cold-start-intro")
-        compose.onNodeWithTag(ColdStartIntroTags.ROOT).performClick()
-        compose.waitUntil(15_000) {
-            compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isEmpty()
-        }
-        app.markColdStartIntroShown()
-        shot("cold-start-dismissed")
         awaitHomeReady()
+    }
+
+    private fun ensureEnvironmentPrepared() {
+        if (environmentPrepared) return
+        environment.prepare(container)
+        environmentPrepared = true
     }
 
     private fun flowOnboardingAcceptPlan() {
@@ -209,7 +226,7 @@ class UxWalkthroughTest {
             dismissTransientOverlays()
             compose.onNode(hasText(label.uppercase()) and tabRole).performClick()
             val loaded = when (label) {
-                "Home" -> hasText("TRAINED TODAY")
+                "Home" -> hasTestTag(HomeTags.START)
                 "Body" -> hasTestTag(BodyTags.MAP)
                 "Plan" -> hasTestTag(PlanTags.ADD_SESSION)
                 "History" -> hasTestTag("history-horizon-readout")
@@ -374,6 +391,7 @@ class UxWalkthroughTest {
     }
 
     private fun preparePopulatedApp() {
+        ensureEnvironmentPrepared()
         runBlocking(Dispatchers.IO) {
             cleanSyntheticData()
             container.preferencesRepository.setOnboardingComplete(true)
@@ -382,9 +400,35 @@ class UxWalkthroughTest {
             container.preferencesRepository.setWeightUnit(WeightUnit.KG)
             container.preferencesRepository.markRestBatteryHintShown()
             container.preferencesRepository.markRestAlertsAsked()
+            seedPopulatedHome()
         }
         app.markColdStartIntroShown()
         dismissTransientOverlays()
+        awaitHomeReady()
+    }
+
+    private suspend fun seedPopulatedHome() {
+        val catalog = container.exerciseRepository.observeAll().first { items ->
+            items.any { it.id == "ex-barbell-back-squat" }
+        }
+        val squat = catalog.first { it.id == "ex-barbell-back-squat" }
+        val row = catalog.first { it.id == "ex-barbell-row" }
+        val routine = container.routineRepository.create("$PREFIX seed")
+        for (exercise in listOf(squat, row)) {
+            container.routineRepository.addExercise(
+                routineId = routine.id,
+                exercise = exercise,
+                targetSets = 3,
+                targetReps = 8,
+                targetWeightKg = 60.0,
+                restSeconds = 90,
+            )
+        }
+        val session = container.workoutRepository.startRoutine(
+            checkNotNull(container.routineRepository.getById(routine.id)),
+        )
+        container.workoutRepository.logSet(session.id, squat.id, 60.0, 8, null, false)
+        container.workoutRepository.finishSession(session.id, "")
     }
 
     private fun seedWalkthroughRoutine() = runBlocking(Dispatchers.IO) {

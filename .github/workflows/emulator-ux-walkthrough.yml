@@ -59,7 +59,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          emulator-options: -memory 4096 -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: ./tools/emulator-ux-walkthrough.sh
 
       - name: Upload UX walkthrough screenshots
