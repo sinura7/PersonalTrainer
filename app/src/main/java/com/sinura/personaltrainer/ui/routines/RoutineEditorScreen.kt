@@ -28,8 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -491,6 +489,7 @@ internal fun RoutineEditorHeader(onBack: () -> Unit) {
 
 object RoutineEditorTags {
     const val NAME = "routine-name"
+    const val NAME_PURPOSE = "routine-name-purpose"
     const val BACK = "routine-editor-back"
     const val SCOPE = "routine-editor-scope"
     const val ADD_LIFTS = "routine-editor-add-lifts"
@@ -624,13 +623,18 @@ internal fun RoutineTitleField(
     onNameChange: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        Text(
+            "Routine name",
+            style = InstrumentType.caption,
+            color = TextTertiary,
+            modifier = Modifier.testTag(RoutineEditorTags.NAME_PURPOSE),
+        )
         BasicTextField(
             value = name,
             onValueChange = onNameChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag(RoutineEditorTags.NAME)
-                .semantics { stateDescription = "Routine name" },
+                .testTag(RoutineEditorTags.NAME),
             textStyle = InstrumentType.display.copy(color = TextPrimary),
             singleLine = true,
             cursorBrush = SolidColor(Volt),

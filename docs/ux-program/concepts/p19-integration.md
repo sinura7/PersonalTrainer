@@ -4,7 +4,7 @@ Not the whole-app integration. Reviews blocked calling this P19. A physical scre
 
 ## What a field says
 
-Search carries "Search exercises" as its state, and the routine title carries "Routine name" the same way, empty and after text is typed. The words in the box stay the words that are read. A label pasted over the box would hide "Back squat" and "Upper A".
+The search mark says "Search exercises". The routine title has the words "Routine name" beside the box. Both stay after something is typed. The box itself keeps the typed words, and it does not carry a description that would replace them.
 
 ## What this packet does not close
 

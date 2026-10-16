@@ -733,7 +733,7 @@ internal fun ExerciseSearchField(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
-        Icon(Icons.Outlined.Search, contentDescription = null, tint = TextTertiary)
+        Icon(Icons.Outlined.Search, contentDescription = "Search exercises", tint = TextTertiary)
         Box(modifier = Modifier.weight(1f)) {
             if (value.isEmpty()) {
                 Text(
@@ -750,8 +750,7 @@ internal fun ExerciseSearchField(
                 enabled = enabled,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("exercise-search")
-                    .semantics { stateDescription = "Search exercises" },
+                    .testTag("exercise-search"),
                 textStyle = InstrumentType.body.copy(color = TextPrimary),
                 singleLine = true,
                 cursorBrush = SolidColor(Volt),
