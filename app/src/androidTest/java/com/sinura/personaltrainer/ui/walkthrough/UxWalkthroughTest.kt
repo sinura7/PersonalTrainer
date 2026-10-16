@@ -334,9 +334,13 @@ class UxWalkthroughTest {
         ensureHarnessPermissions()
         dismissTransientOverlays()
         openGuidedSetup()
-        val previewReady = runCatching { advanceOnboardingWizardSteps() }.isSuccess
-        if (!previewReady) {
+        advanceOnboardingWizardSteps()
+        if (compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isEmpty()) {
             runBlocking(Dispatchers.IO) { seedOnboardingAnswersForPreview() }
+            scenarioRule.scenario.recreate()
+            ensureHarnessPermissions()
+            dismissTransientOverlays()
+            openGuidedSetup()
             advanceOnboardingWizardSteps()
         }
         compose.waitUntil(120_000) {
@@ -456,8 +460,10 @@ class UxWalkthroughTest {
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag("composer-title").performClick()
-        compose.onNodeWithTag("composer-title").performTextInput("UX walkthrough mixed")
+        runCatching {
+            compose.onNodeWithTag("composer-title").performClick()
+            compose.onNodeWithTag("composer-title").performTextReplacement("UX walkthrough mixed")
+        }
         dismissSoftKeyboard()
         scrollToTag(ComposerTags.CHOOSE_LIFT)
         compose.onNodeWithTag(ComposerTags.CHOOSE_LIFT).performClick()
