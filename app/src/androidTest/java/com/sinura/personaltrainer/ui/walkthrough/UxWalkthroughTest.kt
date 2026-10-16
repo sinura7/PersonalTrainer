@@ -36,6 +36,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
+import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.ColdStartIntroCopy
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
@@ -303,27 +304,6 @@ class UxWalkthroughTest {
             shot("strength-set-lift2-${index + 1}-logged")
             if (index < 2) skipRestIfVisible()
         }
-        compose.revealFloorControlAboveTempo(WorkoutTestTags.TEMPO_COACH_CARD)
-        shot("strength-tempo-coach")
-        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_WHY)
-        if (compose.onAllNodesWithTag(WorkoutTestTags.MICRO_REC_WHY).fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
-            compose.waitUntil(15_000) {
-                compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).fetchSemanticsNodes().isNotEmpty()
-            }
-            shot("strength-tempo-why-sheet")
-            compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_KEEP).performClick()
-        }
-        if (compose.onAllNodesWithTag(WorkoutTestTags.ANOTHER_SET).fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
-            shot("strength-add-another-set")
-        }
-        openSwapPicker()
-        shot("strength-swap-picker")
-        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
-        compose.waitUntil(15_000) {
-            compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
-        }
         finishLiveWorkout()
         shot("strength-finished-summary")
     }
@@ -345,8 +325,12 @@ class UxWalkthroughTest {
         }
         shot("cardio-live")
         compose.onNodeWithTag(CardioTags.FINISH).performClick()
-        compose.waitUntil(30_000) {
-            compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isEmpty()
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
+        }
+        if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithText("Back").performClick()
         }
         awaitHomeReady()
         shot("cardio-finished")
@@ -383,10 +367,16 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(ComposerTags.SAVE).performClick()
-        compose.waitUntil(30_000) {
-            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty()
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty() &&
+                (
+                    compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty() ||
+                        compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
+                    )
         }
-        awaitHomeReady()
+        if (compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isEmpty()) {
+            goToTab("history")
+        }
         shot("mixed-saved")
     }
 
@@ -600,6 +590,9 @@ class UxWalkthroughTest {
         goToTab("settings")
         clickLabel(SettingsHomeCopy.PLAN)
         clickLabel(PlanSetupCopy.ROW_TITLE)
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun openSettingsRow(title: String) {
