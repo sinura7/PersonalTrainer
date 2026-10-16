@@ -5655,6 +5655,13 @@
         "gate": "Two real JDK 17 runs on 792314b4, back to back, no failure between them. First: testDebugUnitTest 4784 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 13m 57s, test task executed. Second: the same tasks with --rerun-tasks, 4784 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 13m 11s, 107 tasks executed. connectedDebugAndroidTest was not run.",
         "independent": "APPROVE. Zero Critical, High, Medium, or Low. The name wraps inside the row. The swap list and the body explorer use the new default. The row floor stays 56 dp. The test checks both full names for no ellipsis at font 2 on a 360 dp width.",
         "adversarial": "APPROVE. Zero Critical or High. Wrapping only makes the row taller. The lists scroll. The test reads the name's own text node. Low: a custom name with no length cap can be taller than the phone until you scroll; it is not cut off."
+      },
+      "2cdbdb1f": {
+        "when": "2026-10-16",
+        "packet": "P19 residuals",
+        "gate": "An up-to-date invocation was not counted. Two real JDK 17 runs with --rerun-tasks on 2cdbdb1f, back to back, no failure between them. Each: testDebugUnitTest 4784 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, 107 tasks executed. First BUILD SUCCESSFUL in 13m 18s. Second BUILD SUCCESSFUL in 13m 13s. connectedDebugAndroidTest was not run.",
+        "independent": "APPROVE. Zero Critical or High. The three calendar rows are bounded automated evidence from WeekStripGeometryRenderTest, and physical use stays unobserved. The still-open list keeps TalkBack, landscape keyboard touch, native65, Close and Another set, readiness, and the custom-lift checks open.",
+        "adversarial": "APPROVE. Zero Critical or High. Nothing still open was marked passed. Native65 stays unexplained. Landscape keyboard touch and physical TalkBack stay open."
       }
     }
   }
