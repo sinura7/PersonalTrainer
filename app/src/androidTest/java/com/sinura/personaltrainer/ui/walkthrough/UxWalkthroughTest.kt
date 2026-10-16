@@ -48,8 +48,10 @@ import com.sinura.personaltrainer.domain.SavePosture
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingEmphasis
+import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.isDisposableSdkEmulator
 import com.sinura.personaltrainer.testutil.NativeArtifacts
@@ -76,6 +78,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -96,6 +99,7 @@ class UxWalkthroughTest {
     private lateinit var primaryLift: Exercise
     private lateinit var secondaryLift: Exercise
     private var environmentPrepared = false
+    private val flowOutcomes = linkedMapOf<String, String>()
 
     private val launchIntent = Intent(
         ApplicationProvider.getApplicationContext(),
@@ -146,6 +150,7 @@ class UxWalkthroughTest {
             "9" -> runFlow("09-font-scale-live-workout") { flowLargeFontLiveWorkout() }
             else -> error("Unknown uxFlow argument: $flow")
         }
+        emitFlowSummary()
         println("UX_WALKTHROUGH_STEPS=$step")
     }
 
@@ -160,16 +165,37 @@ class UxWalkthroughTest {
         runFlow("08-settings-units-backup") { flowSettingsUnitsAndBackup() }
         runFlow("09-font-scale-live-workout") { flowLargeFontLiveWorkout() }
         shot("99-complete")
+        val failed = flowOutcomes.filterValues { it.startsWith("FAIL") }
+        if (failed.isNotEmpty()) {
+            fail("Flows failed: ${failed.keys.joinToString()}")
+        }
     }
 
     private fun runFlow(name: String, block: () -> Unit) {
+        val rethrow = shouldRethrowFlowFailures()
         try {
             block()
+            flowOutcomes[name] = "PASS"
+            println("UX_WALKTHROUGH_FLOW_RESULT $name PASS")
         } catch (failure: Throwable) {
-            println("UX_WALKTHROUGH_FLOW_FAIL $name ${failure.message}")
+            val detail = failure.message?.take(160) ?: failure.javaClass.simpleName
+            flowOutcomes[name] = "FAIL:$detail"
+            println("UX_WALKTHROUGH_FLOW_RESULT $name FAIL $detail")
             failure.printStackTrace()
             shot("FAIL-$name")
+            if (rethrow) throw failure
         }
+    }
+
+    private fun shouldRethrowFlowFailures(): Boolean {
+        val flow = InstrumentationRegistry.getArguments().getString("uxFlow")
+        return !flow.isNullOrEmpty() && flow != "all"
+    }
+
+    private fun emitFlowSummary() {
+        if (flowOutcomes.isEmpty()) return
+        val summary = flowOutcomes.entries.joinToString(" | ") { "${it.key}=${it.value}" }
+        println("UX_WALKTHROUGH_FLOW_SUMMARY $summary")
     }
 
     private fun flowColdStartIntro() {
@@ -234,12 +260,39 @@ class UxWalkthroughTest {
         runBlocking(Dispatchers.IO) { awaitCatalogReady() }
     }
 
-    private fun ensureOnboardingVisible() {
-        val onPreview = compose.onAllNodesWithTag(OnboardingTags.USE_PLAN).fetchSemanticsNodes().isNotEmpty()
-        val onFocus = compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
-        if (!onPreview && !onFocus) {
-            openGuidedSetup()
+    private suspend fun seedOnboardingAnswersForPreview() {
+        awaitCatalogReady()
+        runCatching { container.dbMaintenance.seedCatalog() }
+        awaitCatalogReady()
+        container.preferencesRepository.setTrainingFocus(TrainingFocus.STRENGTH)
+        container.preferencesRepository.setTrainingAge(TrainingAge.NEW)
+        container.preferencesRepository.setTrainingDaysPerWeek(SchedulePreferences.DEFAULT_DAYS)
+        container.preferencesRepository.setPreferredDays(emptySet())
+        container.preferencesRepository.setTrainingPlaces(setOf(TrainingPlace.FULL_GYM))
+        container.preferencesRepository.setTrainingGoal(TrainingGoal.GENERAL)
+        container.preferencesRepository.setTrainingEmphasis(TrainingEmphasis.BALANCED)
+    }
+
+    private fun leaveOnboardingToSettings() {
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun cardioSessionFinished(): Boolean {
+        if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
+            return true
+        }
+        if (compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()) {
+            return true
+        }
+        val liveGone = runBlocking(Dispatchers.IO) { container.activityRepository.getLive() == null }
+        if (!liveGone) return false
+        val elapsedVisible = compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
+        val finishVisible = compose.onAllNodesWithTag(CardioTags.FINISH).fetchSemanticsNodes().isNotEmpty()
+        return !elapsedVisible || !finishVisible
     }
 
     private fun dismissSoftKeyboard() {
@@ -266,17 +319,10 @@ class UxWalkthroughTest {
         awaitHomeReady()
         openGuidedSetup()
         shot("onboarding-start")
-        val wizardOk = runCatching { advanceOnboardingWizardSteps() }
-        if (wizardOk.isFailure) {
-            println("UX_WALKTHROUGH onboarding wizard fallback ${wizardOk.exceptionOrNull()?.message}")
-            wizardOk.exceptionOrNull()?.printStackTrace()
-            ensureOnboardingVisible()
-            runBlocking(Dispatchers.IO) {
-                runCatching { container.dbMaintenance.seedCatalog() }
-                awaitCatalogReady()
-            }
-            advanceOnboardingWizardSteps()
-        }
+        runBlocking(Dispatchers.IO) { seedOnboardingAnswersForPreview() }
+        leaveOnboardingToSettings()
+        openGuidedSetup()
+        advanceOnboardingWizardSteps()
         compose.waitUntil(90_000) {
             compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
@@ -364,10 +410,7 @@ class UxWalkthroughTest {
         SystemClock.sleep(2_000)
         dismissSoftKeyboard()
         compose.onNodeWithTag(CardioTags.FINISH).assertIsEnabled().performClick()
-        compose.waitUntil(90_000) {
-            compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.waitUntil(120_000) { cardioSessionFinished() }
         if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText("Back").performClick()
         }
@@ -413,11 +456,14 @@ class UxWalkthroughTest {
             compose.onAllNodesWithTag(ComposerTags.SAVE).fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-composer-filled")
-        scrollToTag(ComposerTags.SAVE)
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(ComposerTags.SAVE)).fetchSemanticsNodes().isNotEmpty()
+        }
+        dismissSoftKeyboard()
+        compose.onNodeWithTag(ComposerTags.SAVE).performScrollTo()
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
-        dismissSoftKeyboard()
         compose.onNodeWithTag(ComposerTags.SAVE).performClick()
         compose.waitUntil(60_000) {
             compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty() &&

@@ -7,6 +7,12 @@ set -eu
 PACKAGE=com.sinura.personaltrainer.debug
 FILTER_PATTERN="AndroidRuntime|FATAL EXCEPTION|FATAL EXCEPTION:|${PACKAGE}|com.sinura.personaltrainer"
 
+grant_permissions() {
+  adb shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS 2>/dev/null || true
+  adb shell cmd appops set "$PACKAGE" SCHEDULE_EXACT_ALARM allow 2>/dev/null || true
+  adb shell dumpsys deviceidle whitelist +"$PACKAGE" 2>/dev/null || true
+}
+
 capture_flow_logcat() {
   flow="$1"
   mkdir -p ux-walkthrough
@@ -22,15 +28,14 @@ capture_flow_logcat() {
   echo "::endgroup::"
 }
 
-adb shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS 2>/dev/null || true
-adb shell cmd appops set "$PACKAGE" SCHEDULE_EXACT_ALARM allow 2>/dev/null || true
-adb shell dumpsys deviceidle whitelist +"$PACKAGE" 2>/dev/null || true
+grant_permissions
 
 mkdir -p ux-walkthrough
 gradle_status=0
 for flow in 1 2 3 4 5 6 7 8 9; do
   adb logcat -c 2>/dev/null || true
   adb shell pm clear "$PACKAGE" >/dev/null 2>&1 || true
+  grant_permissions
   flow_log="/tmp/ux-walkthrough-f${flow}.gradle.log"
   if ! ./gradlew connectedDebugAndroidTest \
     -Pandroid.testInstrumentationRunnerArguments.class=com.sinura.personaltrainer.ui.walkthrough.UxWalkthroughTest \
