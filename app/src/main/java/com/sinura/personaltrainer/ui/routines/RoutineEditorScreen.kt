@@ -28,8 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -630,7 +630,7 @@ internal fun RoutineTitleField(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(RoutineEditorTags.NAME)
-                .semantics { contentDescription = "Routine name" },
+                .semantics { stateDescription = "Routine name" },
             textStyle = InstrumentType.display.copy(color = TextPrimary),
             singleLine = true,
             cursorBrush = SolidColor(Volt),

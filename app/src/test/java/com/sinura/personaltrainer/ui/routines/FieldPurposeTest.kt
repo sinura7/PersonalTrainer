@@ -10,6 +10,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextReplacement
 import com.sinura.personaltrainer.ui.components.ExerciseSearchField
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -40,18 +42,21 @@ class FieldPurposeTest {
                 RoutineTitleField(name = name.value, onNameChange = { name.value = it })
             }
         }
-        assertPurpose(tag = "exercise-search", purpose = "Search exercises")
-        assertPurpose(tag = RoutineEditorTags.NAME, purpose = "Routine name")
+        assertPurpose(tag = "exercise-search", purpose = "Search exercises", typed = "")
+        assertPurpose(tag = RoutineEditorTags.NAME, purpose = "Routine name", typed = "")
         compose.onNodeWithTag(testTag = "exercise-search").performTextReplacement("Back squat")
         compose.onNodeWithTag(testTag = RoutineEditorTags.NAME).performTextReplacement("Upper A")
-        assertPurpose(tag = "exercise-search", purpose = "Search exercises")
-        assertPurpose(tag = RoutineEditorTags.NAME, purpose = "Routine name")
+        assertPurpose(tag = "exercise-search", purpose = "Search exercises", typed = "Back squat")
+        assertPurpose(tag = RoutineEditorTags.NAME, purpose = "Routine name", typed = "Upper A")
     }
 
-    private fun assertPurpose(tag: String, purpose: String) {
-        val spoken = compose.onNodeWithTag(testTag = tag).fetchSemanticsNode().config
-            .getOrNull(SemanticsProperties.ContentDescription)
-            .orEmpty()
-        assertTrue("$tag spoke $spoken", spoken.any { it.contains(purpose) })
+    private fun assertPurpose(tag: String, purpose: String, typed: String) {
+        val config = compose.onNodeWithTag(testTag = tag).fetchSemanticsNode().config
+        val description = config.getOrNull(SemanticsProperties.ContentDescription)
+        val state = config.getOrNull(SemanticsProperties.StateDescription)
+        val editable = config.getOrNull(SemanticsProperties.EditableText)?.text.orEmpty()
+        assertNull("$tag must not replace its text with a description", description)
+        assertEquals(typed, editable)
+        assertTrue("$tag state was $state", state?.contains(purpose) == true)
     }
 }

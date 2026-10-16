@@ -49,10 +49,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -752,7 +751,7 @@ internal fun ExerciseSearchField(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("exercise-search")
-                    .semantics { contentDescription = "Search exercises" },
+                    .semantics { stateDescription = "Search exercises" },
                 textStyle = InstrumentType.body.copy(color = TextPrimary),
                 singleLine = true,
                 cursorBrush = SolidColor(Volt),
