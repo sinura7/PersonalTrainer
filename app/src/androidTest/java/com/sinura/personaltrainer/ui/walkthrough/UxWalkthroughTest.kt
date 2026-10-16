@@ -129,6 +129,23 @@ class UxWalkthroughTest {
 
     @Test
     fun captureProductWalkthrough() {
+        when (val flow = InstrumentationRegistry.getArguments().getString("uxFlow")) {
+            null, "", "all" -> runAllFlows()
+            "1" -> runFlow("01-cold-start-intro") { flowColdStartIntro() }
+            "2" -> runFlow("02-onboarding-preview-accept") { flowOnboardingAcceptPlan() }
+            "3" -> runFlow("03-main-tabs") { flowMainTabs() }
+            "4" -> runFlow("04-live-strength") { flowLiveStrengthWorkout() }
+            "5" -> runFlow("05-live-cardio") { flowLiveCardio() }
+            "6" -> runFlow("06-past-mixed-save") { flowPastMixedSave() }
+            "7" -> runFlow("07-body-map-measurements") { flowBodyMapAndMeasurements() }
+            "8" -> runFlow("08-settings-units-backup") { flowSettingsUnitsAndBackup() }
+            "9" -> runFlow("09-font-scale-live-workout") { flowLargeFontLiveWorkout() }
+            else -> error("Unknown uxFlow argument: $flow")
+        }
+        println("UX_WALKTHROUGH_STEPS=$step")
+    }
+
+    private fun runAllFlows() {
         runFlow("01-cold-start-intro") { flowColdStartIntro() }
         runFlow("02-onboarding-preview-accept") { flowOnboardingAcceptPlan() }
         runFlow("03-main-tabs") { flowMainTabs() }
@@ -139,7 +156,6 @@ class UxWalkthroughTest {
         runFlow("08-settings-units-backup") { flowSettingsUnitsAndBackup() }
         runFlow("09-font-scale-live-workout") { flowLargeFontLiveWorkout() }
         shot("99-complete")
-        println("UX_WALKTHROUGH_STEPS=$step")
     }
 
     private fun runFlow(name: String, block: () -> Unit) {
