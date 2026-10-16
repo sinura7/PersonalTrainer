@@ -234,6 +234,7 @@ class BackupV2RoundTripTest {
             preferredDays = emptySet(),
             trainingPlace = TrainingPlace.FULL_GYM,
             lighterWeekStartEpochDay = null,
+            distanceUnit = null,
         )
         assertTrue(preferences.pastBlocks.first().isEmpty())
 

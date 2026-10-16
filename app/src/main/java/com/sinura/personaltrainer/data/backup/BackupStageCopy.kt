@@ -30,6 +30,25 @@ object BackupStageCopy {
 
     /** A success line is the one written after the restore commit returns. */
     fun isCompletedRestore(status: String): Boolean = status.startsWith("Restored ")
+
+    /**
+     * The sentence after a restore commit. Only a full settings write starts with
+     * "Restored ". A week that still owes settings must not, or it is headed as finished.
+     */
+    fun restoreStatus(
+        sourceName: String,
+        summary: String,
+        preferencesRestored: Boolean,
+        settingsPending: Boolean,
+    ): String {
+        val safety = "A verified copy of the previous data is under Safety copies on this phone."
+        val done = "Restored $sourceName — $summary. $safety"
+        return when {
+            preferencesRestored -> done
+            settingsPending -> "$PARTIAL_SETTINGS ${RestoreJournal.SETTINGS_PENDING} $safety"
+            else -> "Your training data is in; settings couldn't be applied, so check units and rest defaults. $safety"
+        }
+    }
 }
 
 /**

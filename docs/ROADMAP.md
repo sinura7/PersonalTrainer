@@ -19,6 +19,11 @@
 > days before it writes them. A retry does not add a second weigh-in or a
 > second week. If the accept throws, Building clears.
 >
+> 16 Oct 2026 — A kilometres or miles choice now travels in a backup. An
+> older file clears a choice already on the phone. A restore that still
+> owes settings is not announced as finished, and a wrong password closes
+> the password box so that heading can show.
+>
 > 2 Oct 2026 — Packet P4a (eight-asks plan): Settings → Permissions — one
 > page listing notifications, precise rest alarms, lock-screen alert, battery,
 > and vibration with fix buttons; first-open walk and page share one probe.

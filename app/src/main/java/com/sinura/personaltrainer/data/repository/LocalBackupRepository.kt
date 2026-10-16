@@ -143,6 +143,7 @@ class LocalBackupRepository(
         val sessionExercises = snapshot.sessionExercises
         val sets = snapshot.sets
         val unit = preferencesRepository.weightUnit.first()
+        val distanceUnit = preferencesRepository.storedDistanceUnit.first()
         val schedule = preferencesRepository.schedulePreferences.first()
         val rest = preferencesRepository.restTimerPreferences.first()
         val coach = preferencesRepository.coachPreferences.first()
@@ -159,6 +160,7 @@ class LocalBackupRepository(
             exportedAt = BackupJson.nowIso(),
             preferences = BackupPreferences(
                 weightUnit = unit.storageKey,
+                distanceUnit = distanceUnit?.storageKey,
                 trainingDaysPerWeek = schedule.trainingDaysPerWeek,
                 splitStyle = schedule.splitStyle.storageKey,
                 weekStart = schedule.weekStart.name,
@@ -633,6 +635,7 @@ class LocalBackupRepository(
                 bodyweightCheckInWeekday = Weekday.fromStorage(
                     document.preferences.bodyweightCheckInWeekday.takeIf { it.isNotBlank() },
                 ),
+                distanceUnit = document.preferences.distanceUnit,
             )
             true
         } catch (thrown: kotlinx.coroutines.CancellationException) {

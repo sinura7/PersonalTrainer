@@ -132,6 +132,12 @@ data class BackupPreferences(
     val clockFormat: String = "12h",
     /** Empty means Auto (first training day). */
     val bodyweightCheckInWeekday: String = "",
+    /**
+     * Null means this file has no distance choice. An older backup is that case.
+     * Restore then clears any choice already on the phone, so distance follows the
+     * weight that file carried. "km" or "mi" is a choice the lifter made, and it travels.
+     */
+    val distanceUnit: String? = null,
 )
 
 /**

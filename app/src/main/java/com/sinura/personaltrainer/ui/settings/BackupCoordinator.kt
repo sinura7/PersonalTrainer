@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupScaleBudget
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.DriveBackupListing
+import com.sinura.personaltrainer.data.backup.BackupStageCopy
 import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.backup.RestoreRecovery
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
@@ -835,15 +836,12 @@ class BackupCoordinator(
             ""
         }
 
-    private fun describeRestore(result: RestoreResult): String {
-        val base = "Restored ${result.sourceName} — ${result.summary.describe()}. " +
-            "A verified copy of the previous data is under Safety copies on this phone."
-        return when {
-            result.preferencesRestored -> base
-            result.settingsPending -> "$base ${RestoreJournal.SETTINGS_PENDING}"
-            else -> "$base Your training data is in; settings couldn't be applied, so check units and rest defaults."
-        }
-    }
+    private fun describeRestore(result: RestoreResult): String = BackupStageCopy.restoreStatus(
+        sourceName = result.sourceName,
+        summary = result.summary.describe(),
+        preferencesRestored = result.preferencesRestored,
+        settingsPending = result.settingsPending,
+    )
 
     private fun describeRecovery(recovery: RestoreRecovery): String = when (recovery) {
         RestoreRecovery.None -> "Nothing was left to finish."
@@ -908,6 +906,11 @@ class BackupCoordinator(
                         ?: "Something went wrong. Try again.",
                 )
                 status.value = null
+                if (dialogs.value.unlock) {
+                    pendingCiphertext = null
+                    pendingCipherName = null
+                    dialogs.value = DialogGates()
+                }
             } finally {
                 isBusy.value = false
                 busyLabel.value = null

@@ -261,6 +261,7 @@ object BackupJson {
             reminderQuietEndHour = prefs.int("reminderQuietEndHour", 7),
             clockFormat = prefs.string("clockFormat", "12h"),
             bodyweightCheckInWeekday = prefs.string("bodyweightCheckInWeekday", ""),
+            distanceUnit = prefs.stringOrNull("distanceUnit"),
         )
     }
 
@@ -279,6 +280,14 @@ object BackupJson {
             primitive(key)?.asString ?: fallback
         } catch (_: Exception) {
             fallback
+        }
+
+    /** Missing, null, blank, or a value that will not read as text. */
+    private fun JsonObject?.stringOrNull(key: String): String? =
+        try {
+            primitive(key)?.asString?.takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            null
         }
 
     private fun JsonObject?.int(key: String, fallback: Int): Int =
