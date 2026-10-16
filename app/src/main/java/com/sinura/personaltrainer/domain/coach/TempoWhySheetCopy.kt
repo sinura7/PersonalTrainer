@@ -5,6 +5,7 @@ import com.sinura.personaltrainer.domain.ProgressionKickerCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RuleTrace
 import com.sinura.personaltrainer.domain.SetMicroRec
+import com.sinura.personaltrainer.domain.RpeLoadModel
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -25,6 +26,7 @@ object TempoWhySheetCopy {
     const val LABEL_PLAN_TARGET_HINT = "Progression band on the lift card, not a cap on this set"
     const val LABEL_ALTERNATIVES = "Also considered"
     const val LABEL_REST = "Suggested rest"
+    const val LABEL_LOAD_MATH = "Load math"
     const val LABEL_ADD_EFFORT = "Effort"
     const val LABEL_ADD_COMPLETION = "Today's sets"
     const val LABEL_ADD_COMPARISON = "Last session"
@@ -70,7 +72,7 @@ object TempoWhySheetCopy {
             title = TITLE_NEXT,
             callout = callout,
             summary = summaryFor(rec.reasonCode, lastSet, targetReps, rec.nextReps, ruleLine),
-            decisionRows = decisionRows(trace, ruleLine, targetReps),
+            decisionRows = decisionRows(trace, ruleLine, targetReps, rec, loadClass, unit),
             evidenceIds = suggestion.evidenceIds,
         )
     }
@@ -196,11 +198,39 @@ object TempoWhySheetCopy {
         trace: RuleTrace,
         ruleLine: String,
         targetReps: String?,
+        rec: SetMicroRec? = null,
+        loadClass: LoadClass? = null,
+        unit: WeightUnit? = null,
     ): List<DecisionRow> = buildList {
         trace.facts.firstOrNull { it.name == "lastSet" }?.value?.let { value ->
             add(DecisionRow(LABEL_LAST_SET, value))
         }
         add(DecisionRow(LABEL_RULE, ruleLine))
+        if (
+            rec != null &&
+            loadClass != null &&
+            unit != null &&
+            rec.reasonCode == SetMicroRecCalculator.IN_TANK &&
+            loadClass != LoadClass.BODYWEIGHT &&
+            loadClass != LoadClass.BODYWEIGHT_ADDED
+        ) {
+            val lastRpe = trace.facts.firstOrNull { it.name == "lastRpe" }?.value?.toIntOrNull()
+            val lastWeight = trace.facts.firstOrNull { it.name == "lastWeightKg" }?.value?.toDoubleOrNull()
+            val lastReps = trace.facts.firstOrNull { it.name == "lastReps" }?.value?.toIntOrNull()
+            if (lastRpe != null && lastWeight != null && lastReps != null && rec.nextWeightKg > lastWeight) {
+                val line = RpeLoadModel.oneLineMath(
+                    lastWeightKg = lastWeight,
+                    lastReps = lastReps,
+                    lastRpe = lastRpe,
+                    nextWeightKg = rec.nextWeightKg,
+                    nextReps = rec.nextReps,
+                    unit = unit,
+                )
+                if (line.isNotBlank()) {
+                    add(DecisionRow(LABEL_LOAD_MATH, line))
+                }
+            }
+        }
         targetReps?.let { value ->
             add(DecisionRow(LABEL_PLAN_TARGET, value, hint = LABEL_PLAN_TARGET_HINT))
         }

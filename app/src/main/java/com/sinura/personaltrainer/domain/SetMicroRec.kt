@@ -49,6 +49,8 @@ data class SetMicroRecInputs(
      */
     val historyWorking: List<LoggedSetView> = emptyList(),
     val equipment: EquipmentType? = null,
+    /** Reps to hold in reserve at the next set (from goal thresholds, ADR-025). */
+    val targetRir: Int = 1,
 )
 
 data class SetMicroRec(
@@ -287,12 +289,14 @@ object SetMicroRecCalculator {
         val (weight, reps) = nextLoad(
             lastWeightKg = basis.weightKg,
             lastReps = basis.reps,
+            lastRpe = basis.rpe,
             targetReps = targetReps,
             displayStep = displayStep,
             meaning = meaning,
             bodyweight = bodyweight,
             reason = reason,
             unit = inputs.unit,
+            targetRir = inputs.targetRir,
         )
         val showApply = !previewOnly && reason != LIFT_DONE
         return rec(
@@ -303,6 +307,7 @@ object SetMicroRecCalculator {
             previewOnly = previewOnly,
             showApply = showApply,
             reason = reason,
+            traceBasis = basis,
             extraCodes = buildList {
                 if (afterLight.rpeHold) add(RPE_HOLD)
                 if (afterLight.lighterHold) add(LIGHTER_HOLD)
@@ -336,12 +341,14 @@ object SetMicroRecCalculator {
     private fun nextLoad(
         lastWeightKg: Double,
         lastReps: Int,
+        lastRpe: Int?,
         targetReps: Int,
         displayStep: Double?,
         meaning: WeightMeaning,
         bodyweight: Boolean,
         reason: String,
         unit: WeightUnit,
+        targetRir: Int,
     ): Pair<Double, Int> {
         val climb = reason == IN_TANK || reason == BW_ADD_REP
         val drop = reason == FAILED_DROP || reason == SKIP_RPE_DROP || reason == BW_DROP_REP
@@ -365,7 +372,24 @@ object SetMicroRecCalculator {
                 weightMeaning = meaning,
                 unit = unit,
             )
-            return nextWeight to lastReps
+            val nextReps = if (
+                climb &&
+                !bodyweight &&
+                meaning != WeightMeaning.ADDED &&
+                nextWeight > lastWeightKg &&
+                lastRpe != null
+            ) {
+                RpeLoadModel.repsAfterWeightIncrease(
+                    lastWeightKg = lastWeightKg,
+                    lastReps = lastReps,
+                    lastRpe = lastRpe,
+                    nextWeightKg = nextWeight,
+                    targetRir = targetRir,
+                )
+            } else {
+                lastReps
+            }
+            return nextWeight to nextReps
         }
         return lastWeightKg to lastReps
     }
@@ -403,6 +427,7 @@ object SetMicroRecCalculator {
         previewOnly: Boolean,
         showApply: Boolean,
         reason: String,
+        traceBasis: LoggedSetView? = null,
         extraCodes: List<String> = emptyList(),
     ): SetMicroRec {
         val codes = listOf(reason) + extraCodes.filter { it != reason }
@@ -412,7 +437,7 @@ object SetMicroRecCalculator {
             reps = reps,
         )
         val loadClass = LoadClass.of(inputs.loadType)
-        val last = inputs.thisSessionWorking.lastOrNull()
+        val last = traceBasis ?: inputs.thisSessionWorking.lastOrNull()
         val lastLine = last?.let { set ->
             buildString {
                 append(SetCopy.setLine(set.weightKg, set.reps, loadClass, inputs.unit))
@@ -492,6 +517,7 @@ fun setMicroRecInputs(
     rpeIntent: Boolean = false,
     historyWorking: List<LoggedSetView> = emptyList(),
     equipment: EquipmentType? = null,
+    targetRir: Int = 1,
 ): SetMicroRecInputs = SetMicroRecInputs(
     editing = editing,
     loadType = loadType,
@@ -513,6 +539,7 @@ fun setMicroRecInputs(
     rpeIntent = rpeIntent,
     historyWorking = historyWorking,
     equipment = equipment,
+    targetRir = targetRir,
 )
 
 object SetMicroRecCopy {

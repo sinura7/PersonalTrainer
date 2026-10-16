@@ -512,7 +512,9 @@ class FloorRestAndCoachWiringRenderTest {
         // Ten of ten at RPE 7: reps in the tank, add weight.
         val vm = openLegExtension(deps, viewModels, loggedSets = listOf(set(reps = 10, rpe = 7)))
         show(vm)
-        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value?.explanation?.contains("strength bias") == true }
+        compose.waitUntil(timeoutMillis = WAIT_MS) {
+            vm.microRec.value?.explanation?.contains("strength goal holds two reps in reserve") == true
+        }
         vm.setWeight(FLOOR_KG70)
         compose.waitForIdle()
         assertTempoCoachCardOnScreen(vm)
@@ -522,7 +524,7 @@ class FloorRestAndCoachWiringRenderTest {
         // the strength reason on the Why sheet, not the goal-free one it used to get.
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
         compose.onNode(
-            hasText("Had more in you — add weight · strength bias keeps reps before big jumps", substring = true) and
+            hasText("Had more in you — add weight · strength goal holds two reps in reserve", substring = true) and
                 hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)),
         ).assertIsDisplayed()
     }
@@ -545,7 +547,7 @@ class FloorRestAndCoachWiringRenderTest {
             hasText("Had more in you — add weight", substring = true) and
                 hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)),
         ).assertIsDisplayed()
-        compose.onAllNodesWithText("strength bias", substring = true, useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithText("strength goal holds two reps in reserve", substring = true, useUnmergedTree = true).assertCountEquals(0)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_KEEP).performClick()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertDoesNotExist()
         assertEquals(draft, vm.uiState.value.draft)

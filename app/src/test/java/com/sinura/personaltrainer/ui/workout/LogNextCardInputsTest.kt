@@ -126,12 +126,12 @@ class LogNextCardInputsTest {
         deps.preferencesRepository.setTrainingGoal(TrainingGoal.STRENGTH)
         val strength = checkNotNull(
             log.awaitCall("the Log's call in the strength goal's words") {
-                it?.ruleLine()?.contains("strength bias") == true
+                it?.ruleLine()?.contains("strength goal holds two reps in reserve") == true
             },
         )
         assertEquals(
             "a strength goal reaches the Why sheet's Rule line of the Log's Next card",
-            "Rule: Had more in you — add weight · strength bias keeps reps before big jumps",
+            "Rule: Had more in you — add weight · strength goal holds two reps in reserve",
             strength.ruleLine(),
         )
     }
@@ -146,7 +146,7 @@ class LogNextCardInputsTest {
         }
         assertEquals(
             "before the week is marked",
-            "Next: 102.5 kg × 5 · RPE 7",
+            "Next: 102.5 kg × 4 · RPE 7",
             log.shownNextLine(log.awaitState { !it.entryLocked }),
         )
 
@@ -206,15 +206,15 @@ class LogNextCardInputsTest {
             it?.reasonCode == SetMicroRecCalculator.IN_TANK
         }
         val entry = log.awaitState { !it.entryLocked }
-        assertEquals("in kilograms the call adds the kilogram step", "Next: 102.5 kg × 5 · RPE 7", log.shownNextLine(entry))
+        assertEquals("in kilograms the call adds the kilogram step", "Next: 102.5 kg × 4 · RPE 7", log.shownNextLine(entry))
 
         deps.preferencesRepository.setWeightUnit(WeightUnit.LBS)
         log.awaitCall("the Log's call asked in pounds: 225.5 lb") {
-            it != null && SetMicroRecCopy.line(it, LoadClass.LOADED, WeightUnit.LBS) == "Next: 225.5 lb × 5 · RPE 7"
+            it != null && SetMicroRecCopy.line(it, LoadClass.LOADED, WeightUnit.LBS) == "Next: 225.5 lb × 4 · RPE 7"
         }
         assertEquals(
             "in pounds the Log's Next card adds the pound step",
-            "Next: 225.5 lb × 5 · RPE 7",
+            "Next: 225.5 lb × 4 · RPE 7",
             log.shownNextLine(log.awaitState { !it.entryLocked }, WeightUnit.LBS),
         )
     }

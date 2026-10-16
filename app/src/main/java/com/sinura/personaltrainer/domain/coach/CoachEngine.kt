@@ -58,7 +58,7 @@ data class CoachSuggestion(
 }
 
 object CoachEngine {
-    const val VERSION = 1
+    const val VERSION = 2
 
     fun suggest(
         inputs: SetMicroRecInputs,
@@ -120,7 +120,7 @@ object CoachEngine {
         val base = SetMicroRecCopy.ruleLine(reasonCode)
         return when {
             reasonCode == SetMicroRecCalculator.IN_TANK && goal == TrainingGoal.STRENGTH ->
-                "$base · strength bias keeps reps before big jumps"
+                "$base · strength goal holds two reps in reserve"
             reasonCode == SetMicroRecCalculator.CLIMB_REPS && goal == TrainingGoal.HYPERTROPHY ->
                 "$base · volume-first for muscle goal"
             else -> base

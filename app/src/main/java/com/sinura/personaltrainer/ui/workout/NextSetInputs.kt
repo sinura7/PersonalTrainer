@@ -59,6 +59,7 @@ internal data class NextSetInputs(
             todayEpochDay = 0L,
             wantAnotherSet = wantAnotherSet,
             historySets = historySets,
+            coachPrefs = coachPrefs,
         ),
         prefs = coachPrefs,
     )

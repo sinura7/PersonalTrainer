@@ -462,7 +462,7 @@ class RestTimerViewModelTest {
         workout.startSelectedRest()
         awaitRestRunning()
         val logLine = workout.shownNextLine(workout.awaitState { !it.entryLocked })
-        assertEquals("the Log shows the extra set's call", "Next: 102.5 kg × 5 · RPE 7", logLine)
+        assertEquals("the Log shows the extra set's call", "Next: 102.5 kg × 4 · RPE 7", logLine)
 
         val floor = createViewModel(fixture.session.id)
         assertEquals(

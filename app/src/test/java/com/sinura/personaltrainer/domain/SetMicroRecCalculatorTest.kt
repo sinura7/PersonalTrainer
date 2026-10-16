@@ -6,6 +6,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+import com.sinura.personaltrainer.domain.WeightConverter
+
 class SetMicroRecCalculatorTest {
     @Test
     fun v1Rows() {
@@ -62,7 +64,7 @@ class SetMicroRecCalculatorTest {
         )
         assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
         assertEquals(102.5, rec.nextWeightKg, 0.0001)
-        assertEquals(5, rec.nextReps)
+        assertEquals(4, rec.nextReps)
         assertTrue(rec.trace.alternatives.contains(SetMicroRecCopy.ALT_ADD_REP))
         assertTrue(rec.trace.alternatives.contains(SetMicroRecCopy.ALT_BACK_OFF))
         assertTrue(rec.trace.facts.any { it.name == "lastSet" })
@@ -88,9 +90,61 @@ class SetMicroRecCalculatorTest {
         assertTrue(rec.showApply)
         assertFalse(rec.previewOnly)
         assertEquals(102.5, rec.nextWeightKg, 0.0001)
-        assertEquals(5, rec.nextReps)
+        assertEquals(4, rec.nextReps)
         assertEquals(6, rec.nextRpe)
         assertNull(SetMicroRecCopy.caption(rec))
+    }
+
+    @Test
+    fun inTankOnAddedWeightKeepsRepOnlyProgression() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    loadType = LoadType.BODYWEIGHT_PLUS,
+                    targetReps = 10,
+                    workingLogged = 1,
+                    working = listOf(set(10.0, 10, rpe = 6)),
+                    hint = hint(suggested = 10.0, lastReps = 10, targetReps = 10),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
+        assertEquals(12.5, rec.nextWeightKg, 0.0001)
+        assertEquals(10, rec.nextReps)
+    }
+
+    @Test
+    fun inTankAt135x10Rpe7Suggests140x9() {
+        val lastKg = WeightConverter.toKg(135.0, WeightUnit.LBS)
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                SetMicroRecInputs(
+                    editing = false,
+                    loadType = LoadType.EXTERNAL,
+                    unit = WeightUnit.LBS,
+                    targetSets = 3,
+                    targetReps = 10,
+                    targetWeightKg = lastKg,
+                    workingLogged = 1,
+                    thisSessionWorking = listOf(set(lastKg, 10, rpe = 7)),
+                    lastAnySetWasWarmup = false,
+                    hint = hint(suggested = lastKg, lastReps = 10, targetReps = 10),
+                    lighterWeek = false,
+                    draftWeightKg = lastKg,
+                    draftReps = 10,
+                    draftRpe = null,
+                    nowMs = 1L,
+                    todayEpochDay = 10L,
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
+        assertEquals(
+            140.0,
+            WeightConverter.toDisplayValue(rec.nextWeightKg, WeightUnit.LBS),
+            0.01,
+        )
+        assertEquals(9, rec.nextReps)
     }
 
     @Test
@@ -161,7 +215,7 @@ class SetMicroRecCalculatorTest {
         )
         assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
         assertEquals(102.5, rec.nextWeightKg, 0.0001)
-        assertEquals(5, rec.nextReps)
+        assertEquals(4, rec.nextReps)
         assertTrue(rec.showApply)
     }
 
@@ -399,7 +453,7 @@ class SetMicroRecCalculatorTest {
                 inputs(workingLogged = 1, working = listOf(set(100.0, 5, rpe = 6))),
                 reason = SetMicroRecCalculator.IN_TANK,
                 nextWeightKg = 102.5,
-                nextReps = 5,
+                nextReps = 4,
             ),
             V1Case(
                 "RPE 8 quality",
@@ -500,7 +554,7 @@ class SetMicroRecCalculatorTest {
                 showApply = false,
                 previewOnly = true,
                 nextWeightKg = 102.5,
-                nextReps = 5,
+                nextReps = 4,
             ),
         )
 

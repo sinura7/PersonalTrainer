@@ -168,12 +168,12 @@ class RestFloorInputsTest {
             it.rest.running && it.floor.lastSetLine != null
         }
         assertEquals("the last set in kilograms", "Last set · 100 kg × 5", kilograms.floor.lastSetLine)
-        assertEquals("the Next line in kilograms", "Next: 102.5 kg × 5 · RPE 7", kilograms.floor.sessionTargetLine)
+        assertEquals("the Next line in kilograms", "Next: 102.5 kg × 4 · RPE 7", kilograms.floor.sessionTargetLine)
 
         deps.preferencesRepository.setWeightUnit(WeightUnit.LBS)
         val pounds = page.awaitPage("the page in pounds") { it.floor.lastSetLine?.contains(" lb") == true }
         assertEquals("the last set in pounds", "Last set · 220.5 lb × 5", pounds.floor.lastSetLine)
-        assertEquals("the Next line in pounds, by the pound step", "Next: 225.5 lb × 5 · RPE 7", pounds.floor.sessionTargetLine)
+        assertEquals("the Next line in pounds, by the pound step", "Next: 225.5 lb × 4 · RPE 7", pounds.floor.sessionTargetLine)
     }
 
     // --- Helpers --------------------------------------------------------------------------------
