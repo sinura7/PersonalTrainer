@@ -44,6 +44,9 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Make walkthrough script executable
+        run: chmod +x ./tools/emulator-ux-walkthrough.sh
+
       - name: Build debug and androidTest APKs
         run: |
           ./gradlew assembleDebug assembleDebugAndroidTest --stacktrace
@@ -57,23 +60,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: |
-            set -eu
-            gradle_status=0
-            ./gradlew connectedDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.sinura.personaltrainer.ui.walkthrough.UxWalkthroughTest \
-              -Pandroid.testInstrumentationRunnerArguments.syntheticFixture=true \
-              -Pandroid.testInstrumentationRunnerArguments.artifactRunId=ux-walkthrough \
-              --stacktrace || gradle_status=$?
-            mkdir -p ux-walkthrough
-            if adb shell 'ls /sdcard/Download/ux-walkthrough-*.png 2>/dev/null'; then
-              adb shell 'ls /sdcard/Download/ux-walkthrough-*.png 2>/dev/null' | tr -d '\r' | while read -r remote; do
-                [ -n "$remote" ] || continue
-                adb pull "$remote" "ux-walkthrough/$(basename "$remote")"
-              done
-            fi
-            echo "UX_WALKTHROUGH_PNG_COUNT=$(find ux-walkthrough -name '*.png' 2>/dev/null | wc -l | tr -d ' ')"
-            exit "$gradle_status"
+          script: ./tools/emulator-ux-walkthrough.sh
 
       - name: Upload UX walkthrough screenshots
         if: always()
