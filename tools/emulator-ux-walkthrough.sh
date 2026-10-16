@@ -11,7 +11,7 @@ capture_catalog_seed_logcat() {
   flow="$1"
   mkdir -p ux-walkthrough
   out="ux-walkthrough/logcat-f${flow}-catalog-seed.txt"
-  adb logcat -d -v time 2>/dev/null | grep -E "UX_WALKTHROUGH_CATALOG_|PT/DbMaintenance|PT/OnboardingVM|Seeding the default exercise catalog|Catalog name collisions" >"$out" || true
+  adb logcat -d -v time 2>/dev/null | grep -E "UX_WALKTHROUGH_CATALOG_|UX_WALKTHROUGH_PLAN_PREVIEW_|UX_WALKTHROUGH_POST_SAVE_ROUTE|UX_WALKTHROUGH_POST_CARDIO_ROUTE|PT/DbMaintenance|PT/OnboardingVM|Seeding the default exercise catalog|Catalog name collisions" >"$out" || true
   line_count=$(wc -l <"$out" 2>/dev/null | tr -d ' ')
   echo "UX_WALKTHROUGH_CATALOG_LOGCAT f${flow} ${line_count} lines -> $out"
   echo "::group::Catalog seed timestamps flow ${flow}"
