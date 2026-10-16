@@ -5,7 +5,19 @@ set -eu
 set -o pipefail
 
 PACKAGE=com.sinura.personaltrainer.debug
-FILTER_PATTERN="AndroidRuntime|FATAL EXCEPTION|FATAL EXCEPTION:|UXWalkthrough|UX_WALKTHROUGH|${PACKAGE}|com.sinura.personaltrainer"
+FILTER_PATTERN="AndroidRuntime|FATAL EXCEPTION|FATAL EXCEPTION:|UXWalkthrough|UX_WALKTHROUGH|PT/DbMaintenance|PT/OnboardingVM|Seeding the default exercise catalog|Catalog name collisions|${PACKAGE}|com.sinura.personaltrainer"
+
+capture_catalog_seed_logcat() {
+  flow="$1"
+  mkdir -p ux-walkthrough
+  out="ux-walkthrough/logcat-f${flow}-catalog-seed.txt"
+  adb logcat -d -v time 2>/dev/null | grep -E "UX_WALKTHROUGH_CATALOG_|PT/DbMaintenance|PT/OnboardingVM|Seeding the default exercise catalog|Catalog name collisions" >"$out" || true
+  line_count=$(wc -l <"$out" 2>/dev/null | tr -d ' ')
+  echo "UX_WALKTHROUGH_CATALOG_LOGCAT f${flow} ${line_count} lines -> $out"
+  echo "::group::Catalog seed timestamps flow ${flow}"
+  cat "$out" 2>/dev/null || true
+  echo "::endgroup::"
+}
 
 grant_permissions() {
   adb shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS 2>/dev/null || true
@@ -61,6 +73,7 @@ for flow in $(flows_from_spec "$FLOW_SPEC"); do
     gradle_status=1
     capture_flow_logcat "$flow"
   fi
+  capture_catalog_seed_logcat "$flow"
 done
 if adb shell 'ls /sdcard/Download/ux-walkthrough-*.png 2>/dev/null'; then
   adb shell 'ls /sdcard/Download/ux-walkthrough-*.png 2>/dev/null' | tr -d '\r' | while read -r remote; do

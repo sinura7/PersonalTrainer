@@ -256,12 +256,27 @@ class UxWalkthroughTest {
         environmentPrepared = true
     }
 
+    private suspend fun seedCatalogAndLog(label: String) {
+        val wallStartMs = System.currentTimeMillis()
+        val elapsedStart = SystemClock.elapsedRealtime()
+        logHarness("UX_WALKTHROUGH_CATALOG_SEED_START label=$label wallMs=$wallStartMs")
+        runCatching { container.dbMaintenance.seedCatalog() }
+        val durationMs = SystemClock.elapsedRealtime() - elapsedStart
+        logHarness("UX_WALKTHROUGH_CATALOG_SEED_END label=$label durationMs=$durationMs wallMs=${System.currentTimeMillis()}")
+    }
+
     private suspend fun awaitCatalogReady() {
-        withTimeout(90_000) {
-            container.exerciseRepository.observeAll().first { rows ->
-                rows.any { it.id == "ex-barbell-back-squat" }
+        val elapsedStart = SystemClock.elapsedRealtime()
+        logHarness("UX_WALKTHROUGH_CATALOG_AWAIT_START")
+        val rows = withTimeout(90_000) {
+            container.exerciseRepository.observeAll().first { items ->
+                items.any { it.id == "ex-barbell-back-squat" }
             }
         }
+        logHarness(
+            "UX_WALKTHROUGH_CATALOG_AWAIT_END durationMs=${SystemClock.elapsedRealtime() - elapsedStart} " +
+                "rowCount=${rows.size}",
+        )
     }
 
     private fun advanceOnboardingWizardSteps() {
@@ -292,7 +307,7 @@ class UxWalkthroughTest {
         runCatching { compose.onNodeWithText("Retry").performClick() }
         compose.waitForIdle()
         runBlocking(Dispatchers.IO) {
-            runCatching { container.dbMaintenance.seedCatalog() }
+            seedCatalogAndLog("retry-banner")
             awaitCatalogReady()
         }
     }
@@ -301,8 +316,19 @@ class UxWalkthroughTest {
      * Waits for [OnboardingTags.USE_PLAN] to become enabled, recovering from catalog banners and
      * logging how long the preview button stayed disabled after it first appeared.
      */
+    private fun logHarnessCatalogSnapshot(label: String) {
+        runBlocking(Dispatchers.IO) {
+            val rows = runCatching { container.exerciseRepository.observeAll().first() }.getOrDefault(emptyList())
+            logHarness(
+                "UX_WALKTHROUGH_CATALOG_SNAPSHOT label=$label rowCount=${rows.size} " +
+                    "hasSquat=${rows.any { it.id == "ex-barbell-back-squat" }}",
+            )
+        }
+    }
+
     private fun waitForUsePlanEnabledWithCatalogRecovery(timeoutMs: Long = 120_000) {
         var disabledSinceMs: Long? = null
+        var loggedDisabledSnapshot = false
         compose.waitUntil(timeoutMs) {
             tapCatalogRetryIfBannerVisible()
             val previewVisible =
@@ -310,7 +336,13 @@ class UxWalkthroughTest {
             if (previewVisible && disabledSinceMs == null) {
                 disabledSinceMs = SystemClock.elapsedRealtime()
             }
-            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+            val enabled =
+                compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+            if (previewVisible && !enabled && !loggedDisabledSnapshot) {
+                loggedDisabledSnapshot = true
+                logHarnessCatalogSnapshot("use-plan-disabled")
+            }
+            enabled
         }
         val disabledMs = disabledSinceMs?.let { SystemClock.elapsedRealtime() - it }
         if (disabledMs != null) {
@@ -347,7 +379,7 @@ class UxWalkthroughTest {
 
     private suspend fun seedOnboardingAnswersForPreview() {
         awaitCatalogReady()
-        runCatching { container.dbMaintenance.seedCatalog() }
+        seedCatalogAndLog("seed-onboarding-preview-prefs")
         awaitCatalogReady()
         container.preferencesRepository.setTrainingFocus(TrainingFocus.STRENGTH)
         container.preferencesRepository.setTrainingAge(TrainingAge.NEW)
@@ -387,7 +419,7 @@ class UxWalkthroughTest {
             container.preferencesRepository.markRestBatteryHintShown()
             container.preferencesRepository.markRestAlertsAsked()
             awaitCatalogReady()
-            runCatching { container.dbMaintenance.seedCatalog() }
+            seedCatalogAndLog("flow2-pm-clear")
             awaitCatalogReady()
         }
         scenarioRule.scenario.recreate()
@@ -500,11 +532,25 @@ class UxWalkthroughTest {
         }
         compose.onNodeWithTag(CardioTags.FINISH).performClick()
         compose.waitUntil(120_000) { cardioSessionFinished() }
-        when {
-            compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty() ->
-                compose.onNodeWithText("Back").performClick()
-            compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isEmpty() ->
-                pressBackToHome()
+        if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithText("Back").performClick()
+        }
+        compose.waitUntil(90_000) {
+            compose.onAllNodesWithTag(ActivityDetailTags.CONTENT).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty()
+        }
+        if (compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()) {
+            logHarness("UX_WALKTHROUGH_POST_CARDIO_ROUTE=activity-summary")
+            compose.onNodeWithTag(ActivityDetailTags.DONE).performClick()
+        } else {
+            logHarness("UX_WALKTHROUGH_POST_CARDIO_ROUTE=finished-or-home")
+        }
+        if (compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isEmpty() &&
+            compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isEmpty()
+        ) {
+            goToTab("home")
         }
         awaitHomeReady()
         shot("cardio-finished")
