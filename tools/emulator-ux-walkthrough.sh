@@ -3,6 +3,7 @@
 # android-emulator-runner executes each line of workflow `script:` as its own sh -c,
 # so the Gradle invocation must live in this file, not as continued shell lines.
 set -eu
+set -o pipefail
 
 PACKAGE=com.sinura.personaltrainer.debug
 FILTER_PATTERN="AndroidRuntime|FATAL EXCEPTION|FATAL EXCEPTION:|UXWalkthrough|UX_WALKTHROUGH|${PACKAGE}|com.sinura.personaltrainer"

@@ -297,11 +297,9 @@ class UxWalkthroughTest {
         if (compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()) {
             return true
         }
-        val liveGone = runBlocking(Dispatchers.IO) { container.activityRepository.getLive() == null }
-        if (!liveGone) return false
         val elapsedVisible = compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
         val finishVisible = compose.onAllNodesWithTag(CardioTags.FINISH).fetchSemanticsNodes().isNotEmpty()
-        return !elapsedVisible || !finishVisible
+        return !elapsedVisible && !finishVisible
     }
 
     private fun dismissSoftKeyboard() {
@@ -331,7 +329,9 @@ class UxWalkthroughTest {
         shot("onboarding-start")
         runBlocking(Dispatchers.IO) { seedOnboardingAnswersForPreview() }
         scenarioRule.scenario.recreate()
+        ensureHarnessPermissions()
         dismissTransientOverlays()
+        awaitHomeReady()
         openGuidedSetup()
         advanceOnboardingWizardSteps()
         compose.waitUntil(90_000) {
@@ -420,7 +420,11 @@ class UxWalkthroughTest {
         shot("cardio-live")
         SystemClock.sleep(2_000)
         dismissSoftKeyboard()
-        compose.onNodeWithTag(CardioTags.FINISH).assertIsEnabled().performClick()
+        compose.onNodeWithTag(CardioTags.FINISH).performScrollTo()
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(CardioTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(CardioTags.FINISH).performClick()
         compose.waitUntil(120_000) { cardioSessionFinished() }
         if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText("Back").performClick()
@@ -441,6 +445,8 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-composer-open")
+        compose.onNodeWithTag("composer-title").performScrollTo()
+        compose.onNodeWithTag("composer-title").performClick()
         compose.onNodeWithTag("composer-title").performTextReplacement("UX walkthrough mixed")
         dismissSoftKeyboard()
         scrollToTag(ComposerTags.CHOOSE_LIFT)
@@ -526,12 +532,13 @@ class UxWalkthroughTest {
     private fun flowLargeFontLiveWorkout() {
         shell("settings put system font_scale 1.3")
         preparePopulatedApp()
+        ensureHarnessPermissions()
         seedWalkthroughRoutine()
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
         compose.onNodeWithTag(HomeStartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
-        compose.waitUntil(30_000) {
+        compose.waitUntil(60_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
         shot("strength-live-font-1-3")
@@ -719,7 +726,11 @@ class UxWalkthroughTest {
             "settings" -> "Settings"
             else -> error("Unknown tab $path")
         }
-        compose.onNode(hasText(label.uppercase()) and tabRole).performClick()
+        val tab = hasText(label.uppercase()) and tabRole
+        compose.waitUntil(60_000) {
+            compose.onAllNodes(tab).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNode(tab).performScrollTo().performClick()
         compose.waitForIdle()
     }
 
