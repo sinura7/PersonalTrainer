@@ -19,6 +19,10 @@
 > days before it writes them. A retry does not add a second weigh-in or a
 > second week. If the accept throws, Building clears.
 >
+> 16 Oct 2026 — P20 phone checklist for Debug 128 is
+> `docs/ux-program/P20-PHONE-CHECKLIST.md`. Screen reader checks are
+> not on it. Made-up data only.
+>
 > 16 Oct 2026 — Drop C version: debugLiveCode 128. The gym-floor
 > version stays 1. This packet does not publish the phone build.
 >
