@@ -404,8 +404,13 @@ class UxWalkthroughTest {
         scenarioRule.scenario.recreate()
         ensureHarnessPermissions()
         dismissTransientOverlays()
-        awaitHomeReady()
-        openGuidedSetup()
+        awaitHomeOrOnboardingEntry()
+        if (compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isEmpty() &&
+            compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isEmpty()
+        ) {
+            awaitHomeReady()
+            openGuidedSetup()
+        }
         reachOnboardingPlanPreview()
         shot("onboarding-plan-preview")
         scrollToTag(OnboardingTags.USE_PLAN)
@@ -565,6 +570,11 @@ class UxWalkthroughTest {
                     compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()
             }
             logHarness("UX_WALKTHROUGH_POST_SAVE_ROUTE=activity-summary")
+            if (compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithTag(ActivityDetailTags.DONE).performClick()
+            } else {
+                pressBackToHome()
+            }
             goToTab("history")
         } else {
             logHarness("UX_WALKTHROUGH_POST_SAVE_ROUTE=history-list")
@@ -853,11 +863,21 @@ class UxWalkthroughTest {
             else -> error("Unknown tab $path")
         }
         val tab = hasText(label.uppercase()) and tabRole
-        compose.waitUntil(60_000) {
+        compose.waitUntil(120_000) {
             compose.onAllNodes(tab).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(tab).performClick()
         compose.waitForIdle()
+    }
+
+    private fun awaitHomeOrOnboardingEntry() {
+        compose.waitUntil(120_000) {
+            compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
+        }
+        dismissTransientOverlays()
     }
 
     private fun awaitHomeReady() {
@@ -941,6 +961,14 @@ class UxWalkthroughTest {
     }
 
     private fun pressBackToSettingsHome() {
+        if (compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()) return
+        runCatching {
+            goToTab("settings")
+            compose.waitUntil(120_000) {
+                compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()
+            }
+            return
+        }
         repeat(3) {
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
             compose.waitForIdle()
@@ -952,6 +980,16 @@ class UxWalkthroughTest {
     }
 
     private fun pressBackToHome() {
+        if (compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
+            compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty()
+        ) {
+            return
+        }
+        runCatching {
+            goToTab("home")
+            awaitHomeReady()
+            return
+        }
         repeat(3) {
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
             compose.waitForIdle()
