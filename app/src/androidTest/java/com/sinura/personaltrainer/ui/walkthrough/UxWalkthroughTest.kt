@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.walkthrough
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Build
+import android.util.Log
 import android.os.SystemClock
 import android.view.KeyEvent
 import androidx.compose.ui.semantics.Role
@@ -122,6 +123,7 @@ class UxWalkthroughTest {
         }
         app = ApplicationProvider.getApplicationContext()
         container = app.container
+        ensureHarnessPermissions()
     }
 
     @After
@@ -176,11 +178,11 @@ class UxWalkthroughTest {
         try {
             block()
             flowOutcomes[name] = "PASS"
-            println("UX_WALKTHROUGH_FLOW_RESULT $name PASS")
+            logHarness("UX_WALKTHROUGH_FLOW_RESULT $name PASS")
         } catch (failure: Throwable) {
             val detail = failure.message?.take(160) ?: failure.javaClass.simpleName
             flowOutcomes[name] = "FAIL:$detail"
-            println("UX_WALKTHROUGH_FLOW_RESULT $name FAIL $detail")
+            logHarness("UX_WALKTHROUGH_FLOW_RESULT $name FAIL $detail")
             failure.printStackTrace()
             shot("FAIL-$name")
             if (rethrow) throw failure
@@ -195,7 +197,21 @@ class UxWalkthroughTest {
     private fun emitFlowSummary() {
         if (flowOutcomes.isEmpty()) return
         val summary = flowOutcomes.entries.joinToString(" | ") { "${it.key}=${it.value}" }
-        println("UX_WALKTHROUGH_FLOW_SUMMARY $summary")
+        logHarness("UX_WALKTHROUGH_FLOW_SUMMARY $summary")
+    }
+
+    private fun ensureHarnessPermissions() {
+        val pkg = app.packageName
+        if (Build.VERSION.SDK_INT >= 33) {
+            shell("pm grant $pkg android.permission.POST_NOTIFICATIONS")
+        }
+        shell("cmd appops set $pkg SCHEDULE_EXACT_ALARM allow")
+        shell("dumpsys deviceidle whitelist +$pkg")
+    }
+
+    private fun logHarness(message: String) {
+        println(message)
+        Log.i(HARNESS_LOG_TAG, message)
     }
 
     private fun flowColdStartIntro() {
@@ -224,6 +240,7 @@ class UxWalkthroughTest {
             container.preferencesRepository.setSavePosture(SavePosture.LOCAL)
         }
         scenarioRule.scenario.recreate()
+        ensureHarnessPermissions()
         dismissBlockingUi()
         awaitHomeReady()
     }
@@ -273,14 +290,6 @@ class UxWalkthroughTest {
         container.preferencesRepository.setTrainingEmphasis(TrainingEmphasis.BALANCED)
     }
 
-    private fun leaveOnboardingToSettings() {
-        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
-        compose.waitUntil(30_000) {
-            compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
     private fun cardioSessionFinished(): Boolean {
         if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
             return true
@@ -315,12 +324,14 @@ class UxWalkthroughTest {
             awaitCatalogReady()
         }
         scenarioRule.scenario.recreate()
+        ensureHarnessPermissions()
         dismissTransientOverlays()
         awaitHomeReady()
         openGuidedSetup()
         shot("onboarding-start")
         runBlocking(Dispatchers.IO) { seedOnboardingAnswersForPreview() }
-        leaveOnboardingToSettings()
+        scenarioRule.scenario.recreate()
+        dismissTransientOverlays()
         openGuidedSetup()
         advanceOnboardingWizardSteps()
         compose.waitUntil(90_000) {
@@ -830,5 +841,6 @@ class UxWalkthroughTest {
 
     private companion object {
         const val PREFIX = "UX walkthrough"
+        const val HARNESS_LOG_TAG = "UXWalkthrough"
     }
 }

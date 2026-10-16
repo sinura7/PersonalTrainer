@@ -5,7 +5,7 @@
 set -eu
 
 PACKAGE=com.sinura.personaltrainer.debug
-FILTER_PATTERN="AndroidRuntime|FATAL EXCEPTION|FATAL EXCEPTION:|${PACKAGE}|com.sinura.personaltrainer"
+FILTER_PATTERN="AndroidRuntime|FATAL EXCEPTION|FATAL EXCEPTION:|UXWalkthrough|UX_WALKTHROUGH|${PACKAGE}|com.sinura.personaltrainer"
 
 grant_permissions() {
   adb shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS 2>/dev/null || true
