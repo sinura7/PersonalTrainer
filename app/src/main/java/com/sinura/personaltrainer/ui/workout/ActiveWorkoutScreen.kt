@@ -259,6 +259,11 @@ private fun ActiveWorkoutContent(
     }
     val restNotificationsEnabled = restNotificationsEnabledOverride
         ?: rememberRestNotificationsEnabled()
+    val rest = restState.value
+    val restExteriorActive = state.loadState == SessionLoadState.FOUND && (
+        state.showRest || rest.running || (rest.completedTimerId != null && !rest.running)
+        )
+    RestExteriorPermissionGate(active = restExteriorActive)
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
     val logged = remember(session, selected) {

@@ -5702,6 +5702,22 @@
         "adversarial": "APPROVE. Zero Critical/High. Ledger-only packet; independent review confirms no false-empty path found.",
         "cleanContext": "Branch cursor/history-readiness-ae41. Evidence paths are app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt, HistoryViewModel.kt, app/src/test/java/com/sinura/personaltrainer/ui/history/HistoryPeriodRenderTest.kt."
       },
+      "739e900d": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint P-4 merge head",
+        "gate": "Carried from 4310c93e / 146ef2cd two-green safe gates on ledger branch.",
+        "independent": "APPROVE (carried from P-4 ledger review).",
+        "adversarial": "APPROVE (carried from P-4 ledger review).",
+        "cleanContext": "Squash merge of cursor/history-readiness-ae41 to trunk as 739e900d5cbe18e5f23df7cad012e2f901635275."
+      },
+      "2acf726b": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint P-5 rest exterior at first rest",
+        "gate": "Two consecutive full --rerun-tasks safe JVM gates on 2acf726b (p5-gate-safe1.log, p5-gate-safe2.log) ~14m each BUILD SUCCESSFUL: testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest.",
+        "independent": "APPROVE. Zero Critical/High. RestExteriorPermissionsHost removed from AppNav.kt; RestExteriorPermissionGate.kt asks on ActiveWorkoutScreen when rest is relevant and RestTimerScreen with Later marking restExteriorAsked (RestPrefsStore). RestExteriorPermissionGateTest covers Later/asked-once.",
+        "adversarial": "APPROVE. Zero Critical/High. In-app rest clock still runs after Later; no global resume block.",
+        "cleanContext": "Branch cursor/rest-exterior-first-rest-ae41."
+      },
       "251dc30b": {
         "when": "2026-10-16",
         "packet": "P20 phone checklist",
