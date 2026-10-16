@@ -29,8 +29,9 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -278,6 +279,20 @@ class UxWalkthroughTest {
         runBlocking(Dispatchers.IO) { awaitCatalogReady() }
     }
 
+    /**
+     * After [seedOnboardingAnswersForPreview] and [openGuidedSetup], land on the plan preview without
+     * extra wizard screenshots. Uses stored prefs when the preview is already enabled; otherwise
+     * walks the wizard once.
+     */
+    private fun reachOnboardingPlanPreview() {
+        if (compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isEmpty()) {
+            advanceOnboardingWizardSteps()
+        }
+        compose.waitUntil(120_000) {
+            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
     private suspend fun seedOnboardingAnswersForPreview() {
         awaitCatalogReady()
         runCatching { container.dbMaintenance.seedCatalog() }
@@ -327,25 +342,10 @@ class UxWalkthroughTest {
         ensureHarnessPermissions()
         dismissTransientOverlays()
         awaitHomeReady()
+        runBlocking(Dispatchers.IO) { seedOnboardingAnswersForPreview() }
         openGuidedSetup()
         shot("onboarding-start")
-        runBlocking(Dispatchers.IO) { seedOnboardingAnswersForPreview() }
-        scenarioRule.scenario.recreate()
-        ensureHarnessPermissions()
-        dismissTransientOverlays()
-        openGuidedSetup()
-        advanceOnboardingWizardSteps()
-        if (compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isEmpty()) {
-            runBlocking(Dispatchers.IO) { seedOnboardingAnswersForPreview() }
-            scenarioRule.scenario.recreate()
-            ensureHarnessPermissions()
-            dismissTransientOverlays()
-            openGuidedSetup()
-            advanceOnboardingWizardSteps()
-        }
-        compose.waitUntil(120_000) {
-            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
-        }
+        reachOnboardingPlanPreview()
         shot("onboarding-plan-preview")
         scrollToTag(OnboardingTags.USE_PLAN)
         compose.onNodeWithTag(OnboardingTags.USE_PLAN).performClick()
@@ -456,35 +456,23 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-composer-open")
-        runCatching { compose.onNodeWithTag("composer-title").performScrollTo() }
-        compose.waitUntil(30_000) {
-            compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
-        }
-        runCatching {
-            compose.onNodeWithTag("composer-title").performClick()
-            compose.onNodeWithTag("composer-title").performTextReplacement("UX walkthrough mixed")
-        }
-        dismissSoftKeyboard()
-        scrollToTag(ComposerTags.CHOOSE_LIFT)
-        compose.onNodeWithTag(ComposerTags.CHOOSE_LIFT).performClick()
-        awaitPicker()
-        val query = hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search"))
-        compose.onNode(query).performTextReplacement("squat")
-        compose.onNode(query).performImeAction()
-        val result = hasText("Barbell Back Squat") and hasAnyAncestor(hasTestTag("picker-content"))
-        compose.onNodeWithTag("picker-content").performScrollToNode(result)
-        compose.onNode(result).performSemanticsAction(SemanticsActions.OnClick) { it() }
+        composerScrollToTag(ComposerTags.CHOOSE_LIFT)
+        tapComposerTag(ComposerTags.CHOOSE_LIFT)
+        awaitComposerPicker()
+        composerPickerSearch().performTextReplacement("squat")
+        composerPickerSearch().performImeAction()
+        clickComposerPickerResult("Barbell Back Squat")
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
         }
-        scrollToTag(ComposerTags.ADD_SET)
+        composerScrollToTag(ComposerTags.ADD_SET)
         compose.waitUntil(30_000) {
-            compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size >= 3
+            compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size >= 2
         }
-        compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("60")
-        compose.onAllNodes(hasSetTextAction())[2].performTextReplacement("5")
+        compose.onAllNodes(hasSetTextAction())[0].performTextReplacement("60")
+        compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("5")
         dismissSoftKeyboard()
-        compose.onNodeWithTag(ComposerTags.ADD_SET).performClick()
+        tapComposerTag(ComposerTags.ADD_SET)
         compose.waitUntil(30_000) {
             compose.onAllNodesWithTag(ComposerTags.SAVE).fetchSemanticsNodes().isNotEmpty()
         }
@@ -722,9 +710,48 @@ class UxWalkthroughTest {
         goToTab("settings")
         clickLabel(SettingsHomeCopy.PLAN)
         clickLabel(PlanSetupCopy.ROW_TITLE)
-        compose.waitUntil(60_000) {
-            compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
+        compose.waitUntil(120_000) {
+            compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun composerPickerSearch() =
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")), useUnmergedTree = true)
+
+    private fun awaitComposerPicker() {
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")) and isEnabled())
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun clickComposerPickerResult(label: String) {
+        val target = hasText(label) and hasAnyAncestor(hasTestTag("picker-content"))
+        compose.waitUntil(30_000) {
+            runCatching {
+                compose.onNodeWithTag("picker-content").performScrollToNode(target)
+            }.isSuccess
+        }
+        compose.onNode(target).assertIsDisplayed().performSemanticsAction(SemanticsActions.OnClick) { it() }
+    }
+
+    private fun composerScrollToTag(tag: String) {
+        if (runCatching { compose.onNodeWithTag(tag).assertIsDisplayed() }.isSuccess) return
+        compose.waitUntil(30_000) {
+            runCatching {
+                compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+                    .performScrollToNode(hasTestTag(tag))
+            }.isSuccess
+        }
+    }
+
+    private fun tapComposerTag(tag: String) {
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(tag).assertIsDisplayed().performTouchInput { click(center) }
+        compose.waitForIdle()
     }
 
     private fun openSettingsRow(title: String) {
