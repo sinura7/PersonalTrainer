@@ -15,7 +15,11 @@ capture_flow_logcat() {
   if [ ! -s "$out" ]; then
     adb logcat -d 2>/dev/null | tail -n 400 >"$out" || true
   fi
-  echo "UX_WALKTHROUGH_LOGCAT f${flow} $(wc -l <"$out" 2>/dev/null | tr -d ' ') lines -> $out"
+  line_count=$(wc -l <"$out" 2>/dev/null | tr -d ' ')
+  echo "UX_WALKTHROUGH_LOGCAT f${flow} ${line_count} lines -> $out"
+  echo "::group::UX walkthrough logcat flow ${flow} (filtered)"
+  cat "$out" 2>/dev/null || true
+  echo "::endgroup::"
 }
 
 adb shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS 2>/dev/null || true
