@@ -49,6 +49,7 @@ import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.isDisposableSdkEmulator
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.activity.ComposerTags
 import com.sinura.personaltrainer.ui.activity.CardioTags
@@ -107,8 +108,8 @@ class UxWalkthroughTest {
 
     @Before
     fun prepare() {
-        check(Build.HARDWARE in setOf("ranchu", "goldfish") && Build.FINGERPRINT.startsWith("Android/sdk_")) {
-            "UX walkthrough runs only on an SDK emulator."
+        check(isDisposableSdkEmulator()) {
+            "UX walkthrough runs only on an SDK emulator (hardware=${Build.HARDWARE}, fingerprint=${Build.FINGERPRINT})."
         }
         app = ApplicationProvider.getApplicationContext()
         container = app.container
