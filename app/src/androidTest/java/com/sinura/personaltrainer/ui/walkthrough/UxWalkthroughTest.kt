@@ -420,7 +420,6 @@ class UxWalkthroughTest {
         shot("cardio-live")
         SystemClock.sleep(2_000)
         dismissSoftKeyboard()
-        compose.onNodeWithTag(CardioTags.FINISH).performScrollTo()
         compose.waitUntil(15_000) {
             compose.onAllNodes(hasTestTag(CardioTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
@@ -730,7 +729,7 @@ class UxWalkthroughTest {
         compose.waitUntil(60_000) {
             compose.onAllNodes(tab).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNode(tab).performScrollTo().performClick()
+        compose.onNode(tab).performClick()
         compose.waitForIdle()
     }
 
