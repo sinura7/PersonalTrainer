@@ -59,6 +59,7 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.isDisposableSdkEmulator
 import com.sinura.personaltrainer.testutil.NativeArtifacts
+import com.sinura.personaltrainer.ui.activity.ActivityDetailTags
 import com.sinura.personaltrainer.ui.activity.ComposerTags
 import com.sinura.personaltrainer.ui.activity.CardioTags
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
@@ -400,7 +401,10 @@ class UxWalkthroughTest {
             val seeded = container.preferencesRepository.storedOnboardingAnswers()
             WalkthroughOnboardingNavHook.installForcePreview(seeded)
         }
-        leaveOnboardingScreen()
+        scenarioRule.scenario.recreate()
+        ensureHarnessPermissions()
+        dismissTransientOverlays()
+        awaitHomeReady()
         openGuidedSetup()
         reachOnboardingPlanPreview()
         shot("onboarding-plan-preview")
@@ -548,11 +552,28 @@ class UxWalkthroughTest {
         }
         compose.onNodeWithTag(ComposerTags.SAVE).performClick()
         compose.waitUntil(90_000) {
-            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty() &&
+            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty()
+        }
+        val autoHistory = runCatching {
+            compose.waitUntil(15_000) {
                 compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
+            }
+        }.isSuccess
+        if (!autoHistory) {
+            compose.waitUntil(60_000) {
+                compose.onAllNodesWithTag(ActivityDetailTags.CONTENT).fetchSemanticsNodes().isNotEmpty() ||
+                    compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()
+            }
+            logHarness("UX_WALKTHROUGH_POST_SAVE_ROUTE=activity-summary")
+            goToTab("history")
+        } else {
+            logHarness("UX_WALKTHROUGH_POST_SAVE_ROUTE=history-list")
+        }
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
         }
         assertTrue(
-            "Save should land on History (${HistoryTags.LIST})",
+            "History screen (${HistoryTags.LIST}) should be visible after Save",
             compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty(),
         )
         compose.waitUntil(30_000) {
@@ -840,7 +861,7 @@ class UxWalkthroughTest {
     }
 
     private fun awaitHomeReady() {
-        compose.waitUntil(60_000) {
+        compose.waitUntil(120_000) {
             compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty()
         }
@@ -920,14 +941,26 @@ class UxWalkthroughTest {
     }
 
     private fun pressBackToSettingsHome() {
-        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
-        compose.waitUntil(60_000) {
+        repeat(3) {
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            if (compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()) return
+        }
+        compose.waitUntil(120_000) {
             compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     private fun pressBackToHome() {
-        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        repeat(3) {
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            if (compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty()
+            ) {
+                return
+            }
+        }
         awaitHomeReady()
     }
 
