@@ -19,6 +19,9 @@
 > days before it writes them. A retry does not add a second weigh-in or a
 > second week. If the accept throws, Building clears.
 >
+> 16 Oct 2026 — Drop C version: debugLiveCode 128. The gym-floor
+> version stays 1. This packet does not publish the phone build.
+>
 > 16 Oct 2026 — P19 residuals: the week strip's three calendar checks
 > stay as automated evidence. Screen reader walks, landscape keyboard
 > touch, the old Swap opening, and Close / Another set stay open.
