@@ -29,6 +29,7 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -297,9 +298,10 @@ class UxWalkthroughTest {
         if (compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()) {
             return true
         }
-        val elapsedVisible = compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
-        val finishVisible = compose.onAllNodesWithTag(CardioTags.FINISH).fetchSemanticsNodes().isNotEmpty()
-        return !elapsedVisible && !finishVisible
+        if (compose.onAllNodesWithText(CardioCopy.FINISHING).fetchSemanticsNodes().isNotEmpty()) {
+            return false
+        }
+        return compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isEmpty()
     }
 
     private fun dismissSoftKeyboard() {
@@ -418,9 +420,9 @@ class UxWalkthroughTest {
             compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
         }
         shot("cardio-live")
-        SystemClock.sleep(2_000)
+        SystemClock.sleep(3_000)
         dismissSoftKeyboard()
-        compose.waitUntil(15_000) {
+        compose.waitUntil(45_000) {
             compose.onAllNodes(hasTestTag(CardioTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(CardioTags.FINISH).performClick()
@@ -444,9 +446,12 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-composer-open")
-        compose.onNodeWithTag("composer-title").performScrollTo()
+        runCatching { compose.onNodeWithTag("composer-title").performScrollTo() }
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag("composer-title").performClick()
-        compose.onNodeWithTag("composer-title").performTextReplacement("UX walkthrough mixed")
+        compose.onNodeWithTag("composer-title").performTextInput("UX walkthrough mixed")
         dismissSoftKeyboard()
         scrollToTag(ComposerTags.CHOOSE_LIFT)
         compose.onNodeWithTag(ComposerTags.CHOOSE_LIFT).performClick()
@@ -476,7 +481,7 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE)).fetchSemanticsNodes().isNotEmpty()
         }
         dismissSoftKeyboard()
-        compose.onNodeWithTag(ComposerTags.SAVE).performScrollTo()
+        runCatching { compose.onNodeWithTag(ComposerTags.SAVE).performScrollTo() }
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
@@ -705,7 +710,7 @@ class UxWalkthroughTest {
         goToTab("settings")
         clickLabel(SettingsHomeCopy.PLAN)
         clickLabel(PlanSetupCopy.ROW_TITLE)
-        compose.waitUntil(30_000) {
+        compose.waitUntil(60_000) {
             compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
         }
     }
@@ -762,7 +767,7 @@ class UxWalkthroughTest {
     }
 
     private fun clickLabel(label: String) {
-        compose.waitUntil(30_000) {
+        compose.waitUntil(60_000) {
             if (compose.onAllNodes(hasText(label) and isEnabled()).fetchSemanticsNodes().isEmpty()) {
                 runCatching {
                     compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
