@@ -96,6 +96,24 @@ class SetMicroRecCalculatorTest {
     }
 
     @Test
+    fun inTankOnAddedWeightKeepsRepOnlyProgression() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    loadType = LoadType.BODYWEIGHT_PLUS,
+                    targetReps = 10,
+                    workingLogged = 1,
+                    working = listOf(set(10.0, 10, rpe = 6)),
+                    hint = hint(suggested = 10.0, lastReps = 10, targetReps = 10),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
+        assertEquals(12.5, rec.nextWeightKg, 0.0001)
+        assertEquals(8, rec.nextReps)
+    }
+
+    @Test
     fun inTankAt135x10Rpe7Suggests140x9() {
         val lastKg = WeightConverter.toKg(135.0, WeightUnit.LBS)
         val rec = checkNotNull(

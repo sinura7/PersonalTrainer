@@ -307,6 +307,7 @@ object SetMicroRecCalculator {
             previewOnly = previewOnly,
             showApply = showApply,
             reason = reason,
+            traceBasis = basis,
             extraCodes = buildList {
                 if (afterLight.rpeHold) add(RPE_HOLD)
                 if (afterLight.lighterHold) add(LIGHTER_HOLD)
@@ -374,6 +375,7 @@ object SetMicroRecCalculator {
             val nextReps = if (
                 climb &&
                 !bodyweight &&
+                meaning != WeightMeaning.ADDED &&
                 nextWeight > lastWeightKg &&
                 lastRpe != null
             ) {
@@ -425,6 +427,7 @@ object SetMicroRecCalculator {
         previewOnly: Boolean,
         showApply: Boolean,
         reason: String,
+        traceBasis: LoggedSetView? = null,
         extraCodes: List<String> = emptyList(),
     ): SetMicroRec {
         val codes = listOf(reason) + extraCodes.filter { it != reason }
@@ -434,7 +437,7 @@ object SetMicroRecCalculator {
             reps = reps,
         )
         val loadClass = LoadClass.of(inputs.loadType)
-        val last = inputs.thisSessionWorking.lastOrNull()
+        val last = traceBasis ?: inputs.thisSessionWorking.lastOrNull()
         val lastLine = last?.let { set ->
             buildString {
                 append(SetCopy.setLine(set.weightKg, set.reps, loadClass, inputs.unit))

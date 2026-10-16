@@ -211,7 +211,8 @@ object TempoWhySheetCopy {
             loadClass != null &&
             unit != null &&
             rec.reasonCode == SetMicroRecCalculator.IN_TANK &&
-            loadClass != LoadClass.BODYWEIGHT
+            loadClass != LoadClass.BODYWEIGHT &&
+            loadClass != LoadClass.BODYWEIGHT_ADDED
         ) {
             val lastRpe = trace.facts.firstOrNull { it.name == "lastRpe" }?.value?.toIntOrNull()
             val lastWeight = trace.facts.firstOrNull { it.name == "lastWeightKg" }?.value?.toDoubleOrNull()

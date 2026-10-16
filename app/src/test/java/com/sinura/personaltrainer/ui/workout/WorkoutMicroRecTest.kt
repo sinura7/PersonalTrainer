@@ -152,7 +152,7 @@ class WorkoutMicroRecTest {
             ),
         )
         assertEquals("Had more in you — add weight", general.explanationShort)
-        assertEquals("Had more in you — add weight · strength bias keeps reps before big jumps", strength.explanationShort)
+        assertEquals("Had more in you — add weight · strength goal holds two reps in reserve", strength.explanationShort)
         assertNotEquals(general.explanationShort, strength.explanationShort)
         assertEquals(general.weightKg, strength.weightKg, 1e-9)
         assertTrue(strength.reps < general.reps)
