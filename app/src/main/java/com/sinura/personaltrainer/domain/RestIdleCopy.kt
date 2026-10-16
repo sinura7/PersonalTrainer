@@ -45,13 +45,14 @@ object RestIdleCopy {
 
     fun afterWarmupHint(): String = "Warm-ups do not start rest"
 
-    fun spoken(clock: String, afterWarmup: Boolean): String =
-        if (afterWarmup) {
-            "Rest is not running. Warm-ups do not start rest. ${plannedSpoken(clock)}. " +
-                "Start starts rest only."
+    fun spoken(clock: String, afterWarmup: Boolean, sourceTag: String = PLANNED_REST): String {
+        val plan = plannedWithSource(sourceTag, clock).replace(" · ", " ")
+        return if (afterWarmup) {
+            "Rest is not running. Warm-ups do not start rest. $plan. Start starts rest only."
         } else {
-            "Rest is not running. ${plannedSpoken(clock)}. Start starts rest only."
+            "Rest is not running. $plan. Start starts rest only."
         }
+    }
 
     fun dockSpoken(clock: String, afterWarmup: Boolean): String =
         dockSpokenWithSource(PLANNED_REST, clock, afterWarmup)

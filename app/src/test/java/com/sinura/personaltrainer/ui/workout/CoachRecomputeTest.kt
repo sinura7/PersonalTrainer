@@ -215,8 +215,11 @@ class CoachRecomputeTest {
             before.floor,
             after.floor,
         )
-        // Its second call, for a planned-rest line nothing draws, is gone with it.
-        assertNull("the page asked its coach for a line it never draws", after.floor.prescribedRestLine)
+        assertEquals(
+            "a +15 does not change the coach's prescribed rest caption",
+            before.floor.prescribedRestLine,
+            after.floor.prescribedRestLine,
+        )
 
         // A change the coach reads still reaches the page: the unit is one of its inputs.
         deps.preferencesRepository.setWeightUnit(WeightUnit.LBS)

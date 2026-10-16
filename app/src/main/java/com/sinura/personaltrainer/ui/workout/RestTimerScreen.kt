@@ -210,7 +210,9 @@ internal fun RestFloorBody(
                             remainingSeconds = if (rest.running) safeRemaining else 0,
                             totalSeconds = rest.totalSeconds, accent = accent, clock = clock,
                             kicker = label, running = rest.running || completed, finished = completed,
-                            afterWarmup = floor.afterWarmup, ringSize = ringSize,
+                            afterWarmup = floor.afterWarmup,
+                            restSourceTag = rest.restSourceTag,
+                            ringSize = ringSize,
                             modifier = Modifier.testTag(RestFloorTags.RING), clockTestTag = RestFloorTags.CLOCK,
                         )
                     } else Column(horizontalAlignment = Alignment.CenterHorizontally) {

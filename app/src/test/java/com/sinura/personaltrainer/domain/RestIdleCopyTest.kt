@@ -33,7 +33,7 @@ class RestIdleCopyTest {
         // ADR-027: the idle rest card in the dock speaks dockSpoken on its face and
         // startSpoken on its Start rest control; tapping the clock edits the duration.
         assertEquals(
-            "Rest is not running. Planned rest 1:30. Tap to change duration.",
+            "Rest is not running. Planned rest · 1:30. Tap to change duration.",
             RestIdleCopy.dockSpoken(clock = "1:30", afterWarmup = false),
         )
         assertEquals("Start rest, 2 minutes 30 seconds", RestIdleCopy.startSpoken(150))
@@ -53,7 +53,7 @@ class RestIdleCopyTest {
         val spoken = RestIdleCopy.spoken(clock = "1:00", afterWarmup = true)
         assertEquals("Rest is not running. Warm-ups do not start rest. Planned rest 1:00. Start starts rest only.", spoken)
         assertEquals(
-            "Rest is not running. Warm-ups do not start rest. Planned rest 1:00. Tap to change duration.",
+            "Rest is not running. Warm-ups do not start rest. Planned rest · 1:00. Tap to change duration.",
             RestIdleCopy.dockSpoken(clock = "1:00", afterWarmup = true),
         )
         assertTrue(spoken, spoken.contains("Warm-ups do not start rest"))
@@ -62,7 +62,7 @@ class RestIdleCopyTest {
         val dockSpoken = RestIdleCopy.dockSpoken(clock = "1:00", afterWarmup = true)
         assertTrue(dockSpoken, dockSpoken.startsWith("Rest is not running."))
         assertTrue(dockSpoken, dockSpoken.contains("Warm-ups do not start rest"))
-        assertTrue(dockSpoken, dockSpoken.contains("Planned rest 1:00"))
+        assertTrue(dockSpoken, dockSpoken.contains("Planned rest · 1:00"))
         assertTrue(dockSpoken, dockSpoken.contains("Tap to change duration"))
         assertFalse(dockSpoken, dockSpoken.contains("Start next"))
     }

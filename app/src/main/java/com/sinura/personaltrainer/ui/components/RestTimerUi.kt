@@ -530,6 +530,7 @@ fun RestSweepRing(
     clockTestTag: String? = null,
     ringSize: Dp = REST_RING_SIZE,
     afterWarmup: Boolean = false,
+    restSourceTag: String = RestIdleCopy.PLANNED_REST,
 ) {
     val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
     val progress by animateFloatAsState(
@@ -560,7 +561,7 @@ fun RestSweepRing(
     val spoken = if (running) {
         "Rest $clock remaining"
     } else {
-        RestIdleCopy.spoken(clock, afterWarmup)
+        RestIdleCopy.spoken(clock, afterWarmup, restSourceTag)
     }
     Box(
         modifier = modifier

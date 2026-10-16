@@ -65,20 +65,23 @@ object RpeLoadModel {
                 formulaReps = null,
             )
         val formulaReps = repsAtWeightKg(proposedNextWeightKg, e1rm, targetRir).coerceAtLeast(1)
-        var nextReps = formulaReps.coerceAtMost(lastReps)
-        var mathNote = MATH_NOTE_FORMULA
-        if (nextReps >= lastReps) {
-            nextReps = (lastReps - 1).coerceAtLeast(1)
-            mathNote = MATH_NOTE_CAP
-        }
-        val repDrop = lastReps - nextReps
-        if (repDrop > MAX_REP_DROP_FOR_WEIGHT_STEP) {
+        val stepRatio = proposedNextWeightKg / lastWeightKg
+        if (
+            stepRatio > 1.2 &&
+            lastReps - formulaReps > MAX_REP_DROP_FOR_WEIGHT_STEP
+        ) {
             return WeightIncreaseSuggestion(
                 nextWeightKg = lastWeightKg,
                 nextReps = lastReps.coerceAtLeast(1),
                 mathNote = MATH_NOTE_HOLD_LOAD,
                 formulaReps = formulaReps,
             )
+        }
+        var nextReps = formulaReps.coerceAtMost(lastReps)
+        var mathNote = MATH_NOTE_FORMULA
+        if (nextReps >= lastReps) {
+            nextReps = (lastReps - 1).coerceAtLeast(1)
+            mathNote = MATH_NOTE_CAP
         }
         return WeightIncreaseSuggestion(
             nextWeightKg = proposedNextWeightKg,
