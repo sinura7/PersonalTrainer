@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.ClockFormat
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -17,11 +18,14 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 @Composable
 internal fun DisplayPrefsSection(
     selectedUnit: WeightUnit,
+    distanceUnit: DistanceUnit,
     clockFormat: ClockFormat,
     onSelectUnit: (WeightUnit) -> Unit,
+    onSelectDistance: (DistanceUnit) -> Unit,
     onSelectClock: (ClockFormat) -> Unit,
 ) {
     val units = listOf(WeightUnit.LBS, WeightUnit.KG)
+    val distances = listOf(DistanceUnit.KM, DistanceUnit.MI)
     Column(
         modifier = Modifier.testTag(SettingsTags.DISPLAY),
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
@@ -35,6 +39,14 @@ internal fun DisplayPrefsSection(
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            GymSectionHeader(title = "Distance", compact = true)
+            SettingsRadioList(
+                items = distances.map { SettingsRadioOption(it.displayName) },
+                selectedIndex = distances.indexOf(distanceUnit),
+                onSelect = { onSelectDistance(distances[it]) },
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Hours", compact = true)
             SettingsRadioList(
                 items = ClockFormat.entries.map { SettingsRadioOption(it.displayName, it.shortLabel) },
@@ -43,9 +55,7 @@ internal fun DisplayPrefsSection(
             )
         }
         Text(
-            "Hours change History, session stamps, and backup times. " +
-                "Distance follows weight: pounds show miles, kilograms show kilometres. " +
-                "Stored weights stay kilograms. Stored distance stays metres.",
+            "Hours change History, session stamps, and backup times. ${DistanceUnit.CHOICE_CAPTION}",
             style = InstrumentType.caption,
             color = TextTertiary,
         )

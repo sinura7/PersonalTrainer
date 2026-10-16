@@ -3735,18 +3735,18 @@
         "F12"
       ],
       "requirement": "All four kg/lb × km/mi combinations render consistent input, summary, history and export behavior.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P17",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX18",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Distance is its own choice. The four pairings are pounds or kilograms with kilometres or miles. History and the composer show stored kilometres in the chosen distance unit.",
+        "automated": "DistancePreferenceTest.fourCombinationsStayIndependentOfTheStoredNumbers. SettingsUnitsRenderTest.displayRestAndBackupStayReachableAndDistanceCanDifferFromWeight.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P17"
         ],
@@ -3762,18 +3762,18 @@
         "F12"
       ],
       "requirement": "Changing preference does not change stored distance or weight.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P17",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX18",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Choosing miles or kilometres does not rewrite a stored kilogram weight. A distance typed as miles stays that distance when the preference later says kilometres.",
+        "automated": "DistancePreferenceTest keeps 80 kg. LiveCardioViewModelTest.aTypedMileStaysAMileWhenThePreferenceChangesToKilometres stores 2414.016 metres.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P17"
         ],
@@ -3789,18 +3789,18 @@
         "F12"
       ],
       "requirement": "Old backups lacking distance preference restore to the documented default and drafts do not reinterpret numbers.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P17",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX18",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "No stored distance choice means miles follow pounds and kilometres follow kilograms. A display sync that has no distance field leaves a local choice in place. A typed distance keeps the unit on its label.",
+        "automated": "DistancePreferenceTest.anOldFileWithoutADistanceChoiceFollowsWeight and fourCombinationsStayIndependentOfTheStoredNumbers. LiveCardioViewModelTest.aTypedMileStaysAMileWhenThePreferenceChangesToKilometres.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P17"
         ],
@@ -3897,18 +3897,18 @@
         "F11"
       ],
       "requirement": "A participant can change units/rest preferences and find export/restore with no worse success than the baseline.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P17",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX20",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Display, Rest timer, and Backup are rows on the settings list. Display holds weight, distance, and hours. Choosing miles stores that choice.",
+        "automated": "SettingsUnitsRenderTest.displayRestAndBackupStayReachableAndDistanceCanDifferFromWeight at 360 by 640 dp and large text.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P17"
         ],
@@ -3924,18 +3924,18 @@
         "F11"
       ],
       "requirement": "Reopening Settings restores useful context without hiding an unresolved save error.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P17",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX20",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "The open page is remembered on the settings screen. A display choice that failed to save stays on screen until a later display save succeeds.",
+        "automated": "SettingsUnitsRenderTest.aFailedSaveStaysVisibleWhenThePageIsOpenedAgain opens Rest timer with the save error still shown.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P17"
         ],
@@ -3951,18 +3951,18 @@
         "F11"
       ],
       "requirement": "Production and debug build screenshots are evaluated separately.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P17",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX20",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "The everyday settings list has no update row. The debug list shows Update Temper Debug. They are checked as two screens.",
+        "automated": "SettingsUnitsRenderTest.theDebugUpdateRowIsASeparateScreenFromTheEverydayList and theDebugUpdateRowIsShownOnlyOnTheDebugList.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P17"
         ],
@@ -4979,7 +4979,7 @@
       {
         "id": "P17",
         "title": "Settings organization and capability status",
-        "state": "Open"
+        "state": "Weight and distance are separate choices. The four pairings are allowed. Until a distance is chosen, miles follow pounds and kilometres follow kilograms, including an old file with no distance choice. A typed distance keeps its unit. Display, Rest timer, and Backup stay on the settings list. A failed display save stays on screen, and the open page comes back. The debug update row is not on the everyday list. The phone check stays open."
       },
       {
         "id": "P18",
@@ -5179,8 +5179,8 @@
         "test": "app/src/test/java/com/sinura/personaltrainer/domain/NumericEntryTest.kt",
         "baselineSuite": "TEST-com.sinura.personaltrainer.domain.NumericEntryTest.xml",
         "baselineExecutedTests": 21,
-        "scope": "Canonical unit conversion exists; four preference combinations, restored defaults and staged inputs require closure.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "scope": "The four weight and distance pairings are separate. A missing distance choice follows weight. A typed distance keeps its unit. Stored kilograms and stored kilometres are not rewritten.",
+        "limitation": "Phone reading is unobserved. P19 integration and P20 physical acceptance remain. Account sync does not yet carry the distance choice; a display download does not erase a local one."
       },
       "UX19": {
         "primaryPacket": "P12",
@@ -5197,8 +5197,8 @@
         "test": "app/src/test/java/com/sinura/personaltrainer/ui/onboarding/OnboardingGateViewModelTest.kt",
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModelTest.xml",
         "baselineExecutedTests": 5,
-        "scope": "Existing Settings functionality; groups, summaries, return state and recovery discovery remain.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "scope": "Display, Rest timer, and Backup are rows on the list. The open page and a failed display save stay. The debug update row is a separate screen from the everyday list.",
+        "limitation": "Phone reading is unobserved. P19 integration and P20 physical acceptance remain."
       },
       "UX21": {
         "primaryPacket": "P18",
@@ -5587,6 +5587,13 @@
         "gate": "Two real JDK 17 runs, back to back, no failure between them. First: testDebugUnitTest 4762 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 13m 43s, test task executed. Second: the same tasks with --rerun-tasks, 4762 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 13m 29s, 107 tasks executed.",
         "independent": "APPROVE. Zero Critical or High. One visit writes the program once. A second tap and a recreated process on the same visit do not add routines, days, or a second block. Changing days or equipment updates the preview and keeps the other answers. An existing program is told, above Use this plan, that routines are added alongside, history stays, and a new twelve-week block starts. Generate a week still adds routines inside the current block. Medium: if the process dies after a cardio accept has started the block and before the visit id is stored, that same visit can start the block again. Phone reading is unobserved.",
         "adversarial": "APPROVE. Zero Critical or High. A failed attempt does not store the visit id, so the retry creates the program once and the tap after that does not add another. Generate a week does not use the visit id. A routine id from this visit is reused instead of inserting a second copy. Medium: the cardio crash window above. A later visit still replaces an unfinished block, which the preview says before the tap."
+      },
+      "d784e8b8": {
+        "when": "2026-10-15",
+        "packet": "P17 settings units",
+        "gate": "Two earlier full runs failed SettingsUnitsRenderTest.displayRestAndBackupStayReachableAndDistanceCanDifferFromWeight while it waited on the preference file (five seconds, then thirty). That wait was removed. After that fix, two real JDK 17 runs, back to back, no failure between them. First: testDebugUnitTest 4769 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 11m 33s, test task executed. Second: the same tasks with --rerun-tasks, 4769 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 12m 44s, 107 tasks executed.",
+        "independent": "APPROVE. Zero Critical or High. The four pairings are separate. No stored distance choice follows the weight unit. A typed mile stays 2414.016 metres when the preference changes to kilometres and the weight changes to kilograms. Display, Rest timer, and Backup are on the list. A failed display save stays on the Rest timer page. The debug update row is absent on the everyday list and present on the debug list. Medium: account sync does not upload the distance choice. Phone reading is unobserved.",
+        "adversarial": "APPROVE. Zero Critical or High. Changing the weight unit does not clear a stored distance choice or an 80 kg weigh-in. A display download that has no distance field leaves the local choice in place. A blank typed distance drops the pinned unit so the next number uses the current choice. Medium: the activity composer pins the typed unit in the screen state, while live cardio also stores it with the draft."
       }
     }
   }

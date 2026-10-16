@@ -32,7 +32,6 @@ import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
-import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -53,7 +52,7 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.units.LocalDistanceUnit
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -64,7 +63,7 @@ fun LiveCardioScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val finishedId by viewModel.finishedId.collectAsStateWithLifecycle()
-    val distanceUnit = DistanceUnit.fromWeight(LocalWeightUnit.current)
+    val distanceUnit = state.distanceEntryUnit ?: LocalDistanceUnit.current
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(finishedId) {
@@ -223,7 +222,7 @@ fun LiveCardioScreen(
                 value = state.distanceKm,
                 // Kept exactly as typed. Finish reads it and refuses, under this box, anything
                 // that is not a distance — rather than a filter quietly turning "-5" into "5".
-                onValueChange = { viewModel.setDistanceKm(it) },
+                onValueChange = { viewModel.setDistanceKm(it, distanceUnit) },
                 label = { Text(CardioCopy.distanceLabel(distanceUnit)) },
                 singleLine = true,
                 isError = state.distanceError != null,

@@ -7,7 +7,7 @@ class SettingsHomeCopyTest {
     @Test
     fun indexSummariesNameTheCurrentChoice() {
         assertEquals(
-            "lb · Regular",
+            "lb · mi · Regular",
             SettingsHomeCopy.displaySummary(WeightUnit.LBS, ClockFormat.TWELVE),
         )
         assertEquals(SettingsHomeCopy.OFF, SettingsHomeCopy.remindersSummary(

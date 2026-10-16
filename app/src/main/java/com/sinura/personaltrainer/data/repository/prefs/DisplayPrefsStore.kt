@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.repository.prefs
 
 import androidx.datastore.preferences.core.edit
 import com.sinura.personaltrainer.domain.ClockFormat
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.data.sync.SyncAccountPrefs
@@ -10,12 +11,16 @@ import kotlinx.coroutines.flow.Flow
 /** How numbers and times are shown, and which day the bodyweight prompt lands on. */
 interface DisplayPrefs {
     val weightUnit: Flow<WeightUnit>
+
+    /** Null until the lifter picks kilometres or miles. */
+    val storedDistanceUnit: Flow<DistanceUnit?>
     val clockFormat: Flow<ClockFormat>
 
     /** Null is Auto: first training day of the week. */
     val bodyweightCheckInWeekday: Flow<Weekday?>
 
     suspend fun setWeightUnit(unit: WeightUnit)
+    suspend fun setDistanceUnit(unit: DistanceUnit)
     suspend fun setClockFormat(format: ClockFormat)
     suspend fun setBodyweightCheckInWeekday(day: Weekday?)
 }
@@ -28,6 +33,9 @@ internal class DisplayPrefsStore(
     override val weightUnit: Flow<WeightUnit> =
         store.pref { prefs -> WeightUnit.fromStorage(prefs[WEIGHT_UNIT]) }
 
+    override val storedDistanceUnit: Flow<DistanceUnit?> =
+        store.pref { prefs -> DistanceUnit.fromStorage(prefs[DISTANCE_UNIT]) }
+
     override val clockFormat: Flow<ClockFormat> =
         store.pref { prefs -> ClockFormat.fromStorage(prefs[CLOCK_FORMAT]) }
 
@@ -37,6 +45,14 @@ internal class DisplayPrefsStore(
     override suspend fun setWeightUnit(unit: WeightUnit) {
         store.data.edit { prefs ->
             prefs[WEIGHT_UNIT] = unit.storageKey
+            SyncAccountPrefs.touchDisplayUpdatedAt(prefs, nowMillis())
+        }
+        onChanged()
+    }
+
+    override suspend fun setDistanceUnit(unit: DistanceUnit) {
+        store.data.edit { prefs ->
+            prefs[DISTANCE_UNIT] = unit.storageKey
             SyncAccountPrefs.touchDisplayUpdatedAt(prefs, nowMillis())
         }
         onChanged()

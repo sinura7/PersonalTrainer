@@ -70,6 +70,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.units.LocalDistanceUnit
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @Composable
@@ -236,7 +237,7 @@ fun ActivityComposerScreen(
                             line.minutes,
                             line.distanceKm,
                             line.indoor,
-                            DistanceUnit.fromWeight(unit),
+                            LocalDistanceUnit.current,
                         ),
                         trailing = {
                             RemoveLineButton(
@@ -501,7 +502,9 @@ private typealias ExerciseOption = Exercise
 private fun CardioAdder(
     onAdd: (CardioType, Int, Double?, Boolean) -> Unit,
 ) {
-    val distanceUnit = DistanceUnit.fromWeight(LocalWeightUnit.current)
+    val liveDistance = LocalDistanceUnit.current
+    var typedDistanceUnit by rememberSaveable { mutableStateOf<String?>(null) }
+    val distanceUnit = DistanceUnit.fromStorage(typedDistanceUnit) ?: liveDistance
     var type by rememberSaveable { mutableStateOf(CardioType.RUN) }
     var indoor by rememberSaveable { mutableStateOf(false) }
     var minutes by rememberSaveable { mutableStateOf("30") }
@@ -567,6 +570,7 @@ private fun CardioAdder(
             value = distance,
             onValueChange = {
                 distance = it
+                typedDistanceUnit = if (it.isBlank()) null else distanceUnit.storageKey
                 distanceError = null
             },
             label = { Text(CardioCopy.distanceLabel(distanceUnit)) },

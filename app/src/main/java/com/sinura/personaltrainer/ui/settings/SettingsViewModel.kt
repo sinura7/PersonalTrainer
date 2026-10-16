@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.data.repository.ApplyPlanResult
 import com.sinura.personaltrainer.logging.AppLog
@@ -50,6 +51,9 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "PT/SettingsVM"
 
+internal const val SETTINGS_SAVE_FAILED =
+    "Could not save that choice. It is still the previous one."
+
 /**
  * Everything the Settings preference sections read, in one snapshot.
  *
@@ -60,6 +64,8 @@ private const val TAG = "PT/SettingsVM"
  */
 data class SettingsUiState(
     val weightUnit: WeightUnit = WeightUnit.LBS,
+    /** Null until kilometres or miles is chosen. Display then follows [weightUnit]. */
+    val storedDistanceUnit: DistanceUnit? = null,
     val clockFormat: ClockFormat = ClockFormat.TWELVE,
     val schedule: SchedulePreferences = SchedulePreferences.DEFAULT,
     val reminders: ReminderPreferences = ReminderPreferences.DEFAULT,
@@ -76,7 +82,10 @@ data class SettingsUiState(
      * while the policy would take the best-effort path. Never says the fallback is reliable.
      */
     val offerExactAlarmAccess: Boolean = false,
-)
+) {
+    val distanceUnit: DistanceUnit
+        get() = DistanceUnit.resolve(storedDistanceUnit, weightUnit)
+}
 
 private data class SettingsBodyExtras(
     val offerExactAlarm: Boolean,
@@ -113,14 +122,20 @@ class SettingsViewModel @JvmOverloads constructor(
     val uiState: StateFlow<SettingsUiState> = combine(
         // The typed `combine` overloads stop at five flows, so this is two groups of five.
         combine(
-            container.preferencesRepository.weightUnit,
+            combine(
+                container.preferencesRepository.weightUnit,
+                container.preferencesRepository.storedDistanceUnit,
+            ) { unit, distance ->
+                unit to distance
+            },
             container.preferencesRepository.clockFormat,
             container.preferencesRepository.schedulePreferences,
             container.preferencesRepository.reminderPreferences,
             container.preferencesRepository.restTimerPreferences,
-        ) { unit, clock, schedule, reminders, rest ->
+        ) { units, clock, schedule, reminders, rest ->
             SettingsUiState(
-                weightUnit = unit,
+                weightUnit = units.first,
+                storedDistanceUnit = units.second,
                 clockFormat = clock,
                 schedule = schedule,
                 reminders = reminders,
@@ -298,10 +313,43 @@ class SettingsViewModel @JvmOverloads constructor(
     fun exactAlarmSettingsIntent(): Intent? =
         buildExactAlarmSettingsIntent(getApplication<Application>().packageName)
 
+    private val _settingsError = MutableStateFlow<String?>(null)
+    val settingsError: StateFlow<String?> = _settingsError.asStateFlow()
+
+    private val _openPage = MutableStateFlow(SettingsPage.HOME)
+    val openPage: StateFlow<SettingsPage> = _openPage.asStateFlow()
+
+    private var pendingSave: (suspend () -> Unit)? = null
+
+    fun rememberPage(page: SettingsPage) {
+        _openPage.value = page
+    }
+
     fun setWeightUnit(unit: WeightUnit) {
-        viewModelScope.launch {
-            container.preferencesRepository.setWeightUnit(unit)
-        }
+        saveChoice { container.preferencesRepository.setWeightUnit(unit) }
+    }
+
+    fun setDistanceUnit(unit: DistanceUnit) {
+        saveChoice { container.preferencesRepository.setDistanceUnit(unit) }
+    }
+
+    fun retrySettingsSave() {
+        val write = pendingSave ?: return
+        viewModelScope.launch { runSave(write) }
+    }
+
+    private fun saveChoice(write: suspend () -> Unit) {
+        pendingSave = write
+        viewModelScope.launch { runSave(write) }
+    }
+
+    internal suspend fun runSave(write: suspend () -> Unit) {
+        runCatchingCancellable { write() }
+            .onSuccess { _settingsError.value = null }
+            .onFailure { thrown ->
+                AppLog.w(TAG, "Saving a display choice failed", thrown)
+                _settingsError.value = SETTINGS_SAVE_FAILED
+            }
     }
 
     fun setClockFormat(format: ClockFormat) {

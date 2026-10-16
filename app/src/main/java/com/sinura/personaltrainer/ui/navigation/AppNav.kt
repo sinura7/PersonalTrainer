@@ -79,6 +79,7 @@ import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.CustomWeekLaunch
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.LaunchPermissions
 import com.sinura.personaltrainer.domain.MuscleNormalizer
@@ -118,6 +119,7 @@ import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.instrumentTween
 import com.sinura.personaltrainer.ui.theme.Volt
+import com.sinura.personaltrainer.ui.units.LocalDistanceUnit
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
@@ -522,6 +524,7 @@ fun PersonalTrainerNav(
     }
     CompositionLocalProvider(
         LocalWeightUnit provides weightUnit,
+        LocalDistanceUnit provides DistanceUnit.resolve(settings.storedDistanceUnit, weightUnit),
         LocalClockFormat provides clockFormat,
         LocalTodayEpochDay provides todayEpochDay,
         LocalRestAlertsAsk provides restAlertsAsk,
