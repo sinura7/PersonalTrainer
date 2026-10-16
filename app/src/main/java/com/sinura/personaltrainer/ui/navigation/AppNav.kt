@@ -98,7 +98,6 @@ import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGate
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModel
 import com.sinura.personaltrainer.ui.permissions.LaunchPermissionsHost
-import com.sinura.personaltrainer.ui.permissions.RestExteriorPermissionsHost
 import com.sinura.personaltrainer.ui.update.DebugUpdateRequiredHost
 import com.sinura.personaltrainer.ui.onboarding.OnboardingScreen
 import com.sinura.personaltrainer.ui.plan.PlanDayScreen
@@ -129,7 +128,9 @@ import com.sinura.personaltrainer.ui.activity.ActivityDetailScreen
 import com.sinura.personaltrainer.ui.activity.LiveCardioScreen
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
 import com.sinura.personaltrainer.ui.workout.LocalRestAlertsAsk
+import com.sinura.personaltrainer.ui.workout.LocalRestExteriorAsk
 import com.sinura.personaltrainer.ui.workout.RestAlertsAsk
+import com.sinura.personaltrainer.ui.workout.RestExteriorAsk
 import com.sinura.personaltrainer.ui.workout.RestTimerScreen
 import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 
@@ -390,6 +391,10 @@ fun PersonalTrainerNav(
     val restAlertsAsk = remember(restAlertsAsked) {
         RestAlertsAsk(asked = restAlertsAsked, markAsked = settingsViewModel::markRestAlertsAsked)
     }
+    val restExteriorAsked by settingsViewModel.restExteriorAsked.collectAsStateWithLifecycle()
+    val restExteriorAsk = remember(restExteriorAsked) {
+        RestExteriorAsk(asked = restExteriorAsked, markAsked = settingsViewModel::markRestExteriorAsked)
+    }
     val pendingSettingsSubpage by settingsViewModel.pendingSettingsSubpage.collectAsStateWithLifecycle()
 
     val reduceMotion = LocalReducedMotion.current
@@ -435,7 +440,6 @@ fun PersonalTrainerNav(
             onAsked = settingsViewModel::markLaunchPermissionsAsked,
         )
     }
-    RestExteriorPermissionsHost()
     DebugUpdateRequiredHost()
     // Presence only. Elapsed ticks inside LiveSessionBarHost so a 1 Hz
     // label cannot rebuild this NavHost.
@@ -528,6 +532,7 @@ fun PersonalTrainerNav(
         LocalClockFormat provides clockFormat,
         LocalTodayEpochDay provides todayEpochDay,
         LocalRestAlertsAsk provides restAlertsAsk,
+        LocalRestExteriorAsk provides restExteriorAsk,
         LocalOpenPermissionsSettings provides openPermissionsSettings,
     ) {
         Scaffold(

@@ -29,4 +29,5 @@ object RestExteriorPermissionCopy {
             "(floating countdown, notifications, on-time rest end)."
     const val OPEN_SETTINGS = "Open settings"
     const val CHECK_AGAIN = "I turned it on — check again"
+    const val LATER = "Later"
 }

@@ -235,6 +235,9 @@ class SettingsViewModel @JvmOverloads constructor(
     /** The "Rest alerts" sentence was answered in this run, whether or not the answer is saved yet. */
     private val restAlertsAnswered = MutableStateFlow(false)
 
+    /** Rest-exterior prompt (overlay, exact alarm) answered in this run before prefs persist. */
+    private val restExteriorAnswered = MutableStateFlow(false)
+
     /**
      * Whether the "Rest alerts" sentence has been answered on this phone; null until the saved
      * answer has been read, and the sentence waits for it ([markRestAlertsAsked]). A settings
@@ -263,6 +266,25 @@ class SettingsViewModel @JvmOverloads constructor(
             withContext(NonCancellable) {
                 runCatchingCancellable { container.preferencesRepository.markRestAlertsAsked() }
                     .onFailure { AppLog.w(TAG, "Saving that rest alerts were asked about failed", it) }
+            }
+        }
+    }
+
+    val restExteriorAsked: StateFlow<Boolean?> =
+        combine(container.preferencesRepository.restExteriorAsked, restExteriorAnswered) { saved, answered ->
+            saved || answered
+        }.map<Boolean, Boolean?> { it }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    fun markRestExteriorAsked() {
+        restExteriorAnswered.value = true
+        viewModelScope.launch {
+            withContext(NonCancellable) {
+                runCatchingCancellable { container.preferencesRepository.markRestExteriorAsked() }
+                    .onFailure { AppLog.w(TAG, "Saving that rest exterior was asked about failed", it) }
             }
         }
     }

@@ -29,9 +29,13 @@ interface RestPrefs {
      */
     val restAlertsAsked: Flow<Boolean>
 
+    /** Rest-exterior prompt (overlay, exact alarm) answered on this phone; device-local. */
+    val restExteriorAsked: Flow<Boolean>
+
     suspend fun markRestAlarmEligible()
     suspend fun markRestBatteryHintShown()
     suspend fun markRestAlertsAsked()
+    suspend fun markRestExteriorAsked()
     suspend fun setRestSoundEnabled(enabled: Boolean)
     suspend fun setRestVibrationEnabled(enabled: Boolean)
 
@@ -73,6 +77,9 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
     override val restAlertsAsked: Flow<Boolean> =
         store.pref { prefs -> prefs[REST_ALERTS_ASKED] ?: false }
 
+    override val restExteriorAsked: Flow<Boolean> =
+        store.pref { prefs -> prefs[REST_EXTERIOR_ASKED] ?: false }
+
     override suspend fun markRestAlarmEligible() {
         store.data.edit { prefs -> prefs[REST_ALARM_ELIGIBLE] = true }
     }
@@ -83,6 +90,10 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
 
     override suspend fun markRestAlertsAsked() {
         store.data.edit { prefs -> prefs[REST_ALERTS_ASKED] = true }
+    }
+
+    override suspend fun markRestExteriorAsked() {
+        store.data.edit { prefs -> prefs[REST_EXTERIOR_ASKED] = true }
     }
 
     override suspend fun setRestSoundEnabled(enabled: Boolean) {

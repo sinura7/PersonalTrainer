@@ -82,6 +82,7 @@ fun RestTimerScreen(
     val view = LocalView.current
     val context = LocalContext.current
     val notificationsEnabled = rememberRestNotificationsEnabled()
+    RestExteriorPermissionGate(active = true)
     DisposableEffect(Unit) {
         view.keepScreenOn = true
         onDispose { view.keepScreenOn = false }
