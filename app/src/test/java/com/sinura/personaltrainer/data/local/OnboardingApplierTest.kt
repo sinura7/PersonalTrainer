@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.data.repository.AcceptCrashPoint
 import com.sinura.personaltrainer.data.repository.ApplyPlanResult
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
@@ -540,6 +541,90 @@ class OnboardingApplierTest {
         assertEquals(1, preferences.bodyweightLog.first().size)
         assertEquals(0, routines.count())
         assertEquals(0, schedule.slots().size)
+    }
+
+    @Test
+    fun aCrashAfterTheBlockDoesNotLogASecondWeighInOnALaterDay() = runBlocking {
+        val input = answers(days = 3, bodyweight = 80.0)
+        val blueprint = RoutineGenerator.generate(input, catalog)
+        applier.crashPoint = AcceptCrashPoint.AFTER_BLOCK
+        val failed = applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-crash",
+        )
+        assertTrue(failed is ApplyPlanResult.Failed)
+        assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
+        val block = preferences.trainingBlock.first()
+        assertEquals(0, schedule.slots().size)
+
+        applier.crashPoint = AcceptCrashPoint.NONE
+        val later = answers(days = 6, bodyweight = 81.0)
+        val laterPlan = RoutineGenerator.generate(later, catalog)
+        val retry = applier.apply(
+            answers = later,
+            blueprint = laterPlan,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY.plusDays(4),
+            acceptanceId = "visit-crash",
+        )
+        assertTrue(retry is ApplyPlanResult.Applied)
+        val slots = schedule.slots().size
+        assertTrue(slots > 0)
+        assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
+        assertEquals(80.0, preferences.bodyweightLog.first().single().kg, 0.001)
+        assertEquals(block, preferences.trainingBlock.first())
+
+        applier.apply(
+            answers = later,
+            blueprint = laterPlan,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY.plusDays(9),
+            acceptanceId = "visit-crash",
+        )
+        assertEquals(slots, schedule.slots().size)
+        assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
+    }
+
+    @Test
+    fun aCrashAfterTheDaysDoesNotAppendTheChangedPlan() = runBlocking {
+        val input = answers(days = 3, bodyweight = 70.0)
+        val blueprint = RoutineGenerator.generate(input, catalog)
+        applier.crashPoint = AcceptCrashPoint.AFTER_PINS
+        val failed = applier.apply(
+            answers = input,
+            blueprint = blueprint,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY,
+            acceptanceId = "visit-pins",
+        )
+        assertTrue(failed is ApplyPlanResult.Failed)
+        val slots = schedule.slots().size
+        val routineCount = routines.count()
+        assertTrue(slots > 0)
+        assertTrue(routineCount > 0)
+
+        applier.crashPoint = AcceptCrashPoint.NONE
+        val later = answers(days = 6, bodyweight = 72.0)
+        val laterPlan = RoutineGenerator.generate(later, catalog)
+        applier.apply(
+            answers = later,
+            blueprint = laterPlan,
+            catalog = catalog,
+            weekStart = WEEK_START,
+            today = TODAY.plusDays(2),
+            acceptanceId = "visit-pins",
+        )
+        assertEquals(slots, schedule.slots().size)
+        assertEquals(routineCount, routines.count())
+        assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
+        assertEquals(70.0, preferences.bodyweightLog.first().single().kg, 0.001)
     }
 
     private companion object {

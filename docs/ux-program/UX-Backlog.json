@@ -4974,7 +4974,7 @@
       {
         "id": "P16",
         "title": "Plan preview and acceptance",
-        "state": "Use this plan writes one program for that visit. A second tap, or the same visit after the process is recreated, does not add routines, days, or a second block. Changing days or equipment updates the preview and keeps the other answers. An existing program is told, before the tap, that routines are added alongside, history stays, and a new twelve-week block starts. Generate a week still adds routines inside the current block. Leaving without the tap, or a failed attempt, does not leave the new routines. The phone check stays open."
+        "state": "Use this plan writes one program for that visit. The visit, the day, the weight, and the days are stored before those rows change, so a retry after a crash does not add a second weigh-in or a second set of days. A thrown accept leaves Building and can be tried again. The phone check stays open."
       },
       {
         "id": "P17",
@@ -5591,6 +5591,7 @@
       "d784e8b8": {
         "when": "2026-10-15",
         "packet": "P17 settings units",
+        "reviewTiming": "Two greens finished before the squash of pull request 521. The paragraphs below were written by the same session that wrote the code and were committed before that squash. Clean-context reviews were not finished before merge.",
         "gate": "Two earlier full runs failed SettingsUnitsRenderTest.displayRestAndBackupStayReachableAndDistanceCanDifferFromWeight while it waited on the preference file (five seconds, then thirty). That wait was removed. After that fix, two real JDK 17 runs, back to back, no failure between them. First: testDebugUnitTest 4769 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 11m 33s, test task executed. Second: the same tasks with --rerun-tasks, 4769 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 12m 44s, 107 tasks executed.",
         "independent": "APPROVE. Zero Critical or High. The four pairings are separate. No stored distance choice follows the weight unit. A typed mile stays 2414.016 metres when the preference changes to kilometres and the weight changes to kilograms. Display, Rest timer, and Backup are on the list. A failed display save stays on the Rest timer page. The debug update row is absent on the everyday list and present on the debug list. Medium: account sync does not upload the distance choice. Phone reading is unobserved.",
         "adversarial": "APPROVE. Zero Critical or High. Changing the weight unit does not clear a stored distance choice or an 80 kg weigh-in. A display download that has no distance field leaves the local choice in place. A blank typed distance drops the pinned unit so the next number uses the current choice. Medium: the activity composer pins the typed unit in the screen state, while live cardio also stores it with the draft."
@@ -5598,6 +5599,7 @@
       "e437d921": {
         "when": "2026-10-15",
         "packet": "P18 backup stages",
+        "reviewTiming": "Two greens finished before the squash of pull request 522. The paragraphs below were written by the same session that wrote the code and were committed before that squash. Clean-context reviews were not finished before merge.",
         "gate": "Two real JDK 17 runs, back to back, no failure between them. First: testDebugUnitTest 4773 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 12m 53s, test task executed. Second: the same tasks with --rerun-tasks, 4773 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 13m 12s, 107 tasks executed.",
         "independent": "APPROVE. Zero Critical or High. Wrong password, a newer backup, a file that is too big, Drive with no connection, and settings still owed each have their own heading. A live session and a partial settings restore have their own sentences. A completed restore is the line that starts with Restored. Confirm clears the plan before the commit. Medium: a killed process does not keep the confirm dialog, and it also does not replay the commit. Phone reading is unobserved.",
         "adversarial": "APPROVE. Zero Critical or High. A second claim of the cleared slot has nothing to commit. A settings-pending note and a wrong password are not treated as a completed restore. Medium: the heading is chosen by matching the message text, so a reworded failure falls through to the generic heading."

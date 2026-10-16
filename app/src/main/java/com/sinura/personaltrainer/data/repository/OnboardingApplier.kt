@@ -6,7 +6,10 @@ import com.sinura.personaltrainer.domain.BlueprintRoutine
 import com.sinura.personaltrainer.domain.CustomWeekLift
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.FrozenLift
+import com.sinura.personaltrainer.domain.FrozenRoutine
 import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.domain.PlanAcceptReceipt
 import com.sinura.personaltrainer.domain.PlanBlueprint
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.logging.AppLog
@@ -18,6 +21,10 @@ import java.util.UUID
 import kotlinx.coroutines.flow.first
 
 private const val TAG = "PT/Onboarding"
+
+enum class AcceptCrashPoint { NONE, AFTER_BLOCK, AFTER_PINS }
+
+private class AcceptCrash : RuntimeException()
 
 /** What "Use this plan" produced, or why it did not. */
 sealed interface ApplyPlanResult {
@@ -50,6 +57,11 @@ class OnboardingApplier(
     private val preferencesRepository: PreferencesRepository,
     private val failAfterRoutines: Boolean = false,
 ) {
+    /** Test hook. A crash leaves the rows already committed and does not roll them back. */
+    var crashPoint: AcceptCrashPoint = AcceptCrashPoint.NONE
+
+    /** Test hook. Thrown before any catch so the screen has to clear its own busy flag. */
+    var throwBeforeCatch: Boolean = false
     /**
      * @param weekStart the lifter's stored first day of the week. Required, and deliberately
      * not defaulted: it used to default to Monday and the one caller never passed it, so every
@@ -76,32 +88,23 @@ class OnboardingApplier(
         keepCurrentBlock: Boolean = false,
         acceptanceId: String? = null,
     ): ApplyPlanResult {
+        if (throwBeforeCatch) error("accept threw before it could catch")
         val clean = answers.sanitized()
         // Generate a week is a different door. It may add routines inside the current block
         // even after setup has already accepted a plan.
         val visitId = acceptanceId?.takeUnless { keepCurrentBlock }
-        if (visitId != null && preferencesRepository.acceptedPlanId() == visitId) {
-            preferencesRepository.setOnboardingComplete(true)
-            return ApplyPlanResult.Applied(
-                routineCount = blueprint.routines.size,
-                pinnedDays = blueprint.days.count { it.routineKey != null },
-            )
-        }
-        if (visitId != null && blueprint.routines.isNotEmpty()) {
-            val already = blueprint.routines.map { routine ->
-                routineRepository.getById(stableRoutineId(visitId, routine.key))
-            }
-            if (already.all { it != null }) {
-                preferencesRepository.setAcceptedPlanId(visitId)
-                preferencesRepository.setOnboardingComplete(true)
-                return ApplyPlanResult.Applied(
-                    routineCount = already.size,
-                    pinnedDays = blueprint.days.count { it.routineKey != null },
-                )
-            }
-        }
         val createdIds = LinkedHashMap<String, String>()
         return runCatchingCancellable {
+            val receipt = visitId?.let { freezeReceipt(it, clean, blueprint, weekStart, today) }
+            if (visitId != null && preferencesRepository.acceptedPlanId() == visitId || receipt?.complete == true) {
+                preferencesRepository.setOnboardingComplete(true)
+                return@runCatchingCancellable ApplyPlanResult.Applied(
+                    routineCount = receipt?.pins?.map { it.second }?.distinct()?.size
+                        ?: blueprint.routines.size,
+                    pinnedDays = receipt?.pins?.size
+                        ?: blueprint.days.count { it.routineKey != null },
+                )
+            }
             // Preferences first. If anything below fails the lifter still gets an app that
             // knows their days, their goal and their equipment — a worse outcome than the
             // whole plan, but a much better one than a questionnaire they filled in for
@@ -123,37 +126,106 @@ class OnboardingApplier(
             preferencesRepository.setPreferredDays(clean.preferredDays)
             preferencesRepository.setTrainingPlaces(clean.resolvedPlaces())
             preferencesRepository.setTrainingFocus(clean.focus)
+            val epochDay = receipt?.epochDay ?: today.toEpochDay()
+            val block = receipt?.let {
+                TrainingBlock(startEpochDay = it.blockStartEpochDay, weeks = TrainingBlock.DEFAULT_WEEKS)
+            } ?: TrainingBlock.startingIn(
+                today = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(epochDay),
+                weekStart = weekStart,
+            )
             if (!keepCurrentBlock) {
                 // Recorded as a weigh-in, not just stored: it is the opening reading of the block
                 // being started below, and the block review compares against it.
-                clean.bodyweightKg?.let { kg ->
-                    preferencesRepository.recordBodyweight(kg, today.toEpochDay())
-                }
+                // The day is the one frozen on the receipt, so a retry on a later day
+                // replaces that same day instead of logging a second weigh-in.
+                val kg = receipt?.bodyweightKg ?: clean.bodyweightKg
+                kg?.let { preferencesRepository.recordBodyweight(it, epochDay) }
             }
             if (!keepCurrentBlock || preferencesRepository.trainingBlock.first() == null) {
                 // The block starts the moment a plan is accepted, not the moment the app was
                 // installed: what is being counted is twelve weeks of *this* programme. beginBlock
                 // keeps the one this replaces if it had finished — re-running setup the week after
-                // a block ends should not lose the block that ended.
-                preferencesRepository.beginBlock(
-                    next = TrainingBlock.startingIn(
-                        today = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(today.toEpochDay()),
-                        weekStart = weekStart,
-                    ),
-                    todayEpochDay = today.toEpochDay(),
-                )
+                // a block ends should not lose the block that ended. A retry whose block start
+                // already matches the receipt does not delete that block and start another.
+                startBlockOnce(block, epochDay)
             }
+            if (crashPoint == AcceptCrashPoint.AFTER_BLOCK) throw AcceptCrash()
 
             val byId = catalog.associateBy { it.id }
-            val pinned = writeGeneratedProgram(blueprint, byId, createdIds, visitId)
+            val pinned = if (receipt != null) {
+                writeFrozenProgram(receipt, blueprint, byId, createdIds)
+            } else {
+                writeGeneratedProgram(blueprint, byId, createdIds, visitId)
+            }
+            if (crashPoint == AcceptCrashPoint.AFTER_PINS) throw AcceptCrash()
             preferencesRepository.setOnboardingComplete(true)
             if (visitId != null) preferencesRepository.setAcceptedPlanId(visitId)
+            if (receipt != null) {
+                preferencesRepository.savePlanAcceptReceipt(receipt.copy(complete = true))
+            }
             ApplyPlanResult.Applied(routineCount = createdIds.size, pinnedDays = pinned)
         }.getOrElse { thrown ->
+            if (thrown is AcceptCrash) {
+                return@getOrElse ApplyPlanResult.Failed("Couldn’t build that plan. Your answers are saved — try again.")
+            }
             AppLog.e(TAG, "Applying the generated plan failed", thrown)
             dropAttempt(createdIds.values)
             ApplyPlanResult.Failed("Couldn’t build that plan. Your answers are saved — try again.")
         }
+    }
+
+    /**
+     * Records the visit before the block and the days. A receipt already stored for
+     * this visit is left as it was, including its day and its pins.
+     */
+    private suspend fun freezeReceipt(
+        visitId: String,
+        answers: OnboardingAnswers,
+        blueprint: PlanBlueprint,
+        weekStart: Weekday,
+        today: LocalDate,
+    ): PlanAcceptReceipt {
+        preferencesRepository.planAcceptReceipt()?.takeIf { it.id == visitId }?.let { return it }
+        val epochDay = today.toEpochDay()
+        val block = TrainingBlock.startingIn(
+            today = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(epochDay),
+            weekStart = weekStart,
+        )
+        val receipt = PlanAcceptReceipt(
+            id = visitId,
+            epochDay = epochDay,
+            bodyweightKg = answers.bodyweightKg,
+            blockStartEpochDay = block.startEpochDay,
+            pins = blueprint.days.mapNotNull { day -> day.routineKey?.let { day.dayOfWeek to it } },
+            routines = blueprint.routines.map { routine ->
+                FrozenRoutine(
+                    key = routine.key,
+                    name = routine.name,
+                    lifts = routine.lifts.map { lift ->
+                        FrozenLift(
+                            exerciseId = lift.exerciseId,
+                            sets = lift.targets.sets,
+                            reps = lift.targets.reps,
+                            restSeconds = lift.targets.restSeconds,
+                        )
+                    },
+                )
+            },
+            complete = false,
+        )
+        preferencesRepository.savePlanAcceptReceipt(receipt)
+        return receipt
+    }
+
+    private suspend fun startBlockOnce(desired: TrainingBlock, epochDay: Long) {
+        val current = preferencesRepository.trainingBlock.first()
+        if (current != null &&
+            current.startEpochDay == desired.startEpochDay &&
+            current.weeks == desired.weeks
+        ) {
+            return
+        }
+        preferencesRepository.beginBlock(next = desired, todayEpochDay = epochDay)
     }
 
     private suspend fun createRoutine(
@@ -184,6 +256,36 @@ class OnboardingApplier(
     /** Same visit and same routine key always name the same stored routine. */
     private fun stableRoutineId(acceptanceId: String, routineKey: String): String =
         UUID.nameUUIDFromBytes("$acceptanceId:$routineKey".toByteArray(Charsets.UTF_8)).toString()
+
+    private fun stablePinId(acceptanceId: String, routineKey: String, day: Weekday): String =
+        UUID.nameUUIDFromBytes("$acceptanceId:pin:$day:$routineKey".toByteArray(Charsets.UTF_8)).toString()
+
+    /** Pins only the days frozen on the receipt, and reuses a slot that already has that id. */
+    private suspend fun writeFrozenProgram(
+        receipt: PlanAcceptReceipt,
+        blueprint: PlanBlueprint,
+        byId: Map<String, Exercise>,
+        createdIds: MutableMap<String, String>,
+    ): Int = database.withTransaction {
+        createdIds.clear()
+        val live = blueprint.routines.associateBy { it.key }
+        val frozen = receipt.routines.associateBy { it.key }
+        var pinned = 0
+        receipt.pins.forEach { (day, key) ->
+            val routine = live[key] ?: frozen[key]?.toBlueprint() ?: return@forEach
+            val routineId = createRoutine(routine, byId, stableRoutineId(receipt.id, key))
+            createdIds[key] = routineId
+            scheduleRepository.pin(
+                routineId = routineId,
+                focusKind = null,
+                anchorDay = day,
+                id = stablePinId(receipt.id, key, day),
+            )
+            pinned += 1
+        }
+        if (failAfterRoutines) error("test: fail after routine creates")
+        pinned
+    }
 
     /**
      * Then the week. Anchored to the weekday rather than to a date, because a slot is

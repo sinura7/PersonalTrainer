@@ -44,13 +44,18 @@ class ScheduleRepository(private val scheduleDao: ScheduleDao) {
         routineId: String?,
         focusKind: SessionFocusKind?,
         anchorDay: Weekday?,
+        id: String = UUID.randomUUID().toString(),
     ): ScheduleSlot {
         require((routineId == null) != (focusKind == null)) {
             "A slot is a routine or a focus, never both and never neither."
         }
+        scheduleDao.getById(id)?.toDomain()?.let { return it }
+        if (routineId != null && anchorDay != null) {
+            slots().firstOrNull { it.routineId == routineId && it.anchorDay == anchorDay }?.let { return it }
+        }
         val now = System.currentTimeMillis()
         val slot = ScheduleSlot(
-            id = UUID.randomUUID().toString(),
+            id = id,
             position = (scheduleDao.maxPosition() ?: -1) + 1,
             routineId = routineId,
             focusKind = focusKind,

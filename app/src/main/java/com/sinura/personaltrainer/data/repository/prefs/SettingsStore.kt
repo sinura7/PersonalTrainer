@@ -166,6 +166,9 @@ internal val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
 
 /** The setup visit that already tapped Use this plan. A second tap of that visit writes nothing. */
 internal val ACCEPTED_PLAN_ID = stringPreferencesKey("accepted_plan_id")
+
+/** Frozen day, block start, and pins for that visit. Written before those rows. */
+internal val PLAN_ACCEPT_RECEIPT = stringPreferencesKey("plan_accept_receipt")
 internal val SAVE_POSTURE = stringPreferencesKey("save_posture")
 internal val SAVE_POSTURE_CHOSEN = booleanPreferencesKey("save_posture_chosen")
 internal val FOUNDATION_GENERATION = stringPreferencesKey("foundation_generation")
