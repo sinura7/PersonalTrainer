@@ -50,8 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -733,7 +733,7 @@ internal fun ExerciseSearchField(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
-        Icon(Icons.Outlined.Search, contentDescription = null, tint = TextTertiary)
+        Icon(Icons.Outlined.Search, contentDescription = "Search exercises", tint = TextTertiary)
         Box(modifier = Modifier.weight(1f)) {
             if (value.isEmpty()) {
                 Text(
@@ -748,7 +748,9 @@ internal fun ExerciseSearchField(
                 value = value,
                 onValueChange = onValueChange,
                 enabled = enabled,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("exercise-search"),
                 textStyle = InstrumentType.body.copy(color = TextPrimary),
                 singleLine = true,
                 cursorBrush = SolidColor(Volt),

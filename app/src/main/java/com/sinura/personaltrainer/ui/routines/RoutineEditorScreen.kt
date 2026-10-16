@@ -488,6 +488,8 @@ internal fun RoutineEditorHeader(onBack: () -> Unit) {
 }
 
 object RoutineEditorTags {
+    const val NAME = "routine-name"
+    const val NAME_PURPOSE = "routine-name-purpose"
     const val BACK = "routine-editor-back"
     const val SCOPE = "routine-editor-scope"
     const val ADD_LIFTS = "routine-editor-add-lifts"
@@ -616,15 +618,23 @@ private fun RoutineSaveDock(
  * what say so, since a title with a box drawn around it is form chrome again.
  */
 @Composable
-private fun RoutineTitleField(
+internal fun RoutineTitleField(
     name: String,
     onNameChange: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        Text(
+            "Routine name",
+            style = InstrumentType.caption,
+            color = TextTertiary,
+            modifier = Modifier.testTag(RoutineEditorTags.NAME_PURPOSE),
+        )
         BasicTextField(
             value = name,
             onValueChange = onNameChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(RoutineEditorTags.NAME),
             textStyle = InstrumentType.display.copy(color = TextPrimary),
             singleLine = true,
             cursorBrush = SolidColor(Volt),

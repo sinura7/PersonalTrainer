@@ -4410,10 +4410,10 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX25",
         "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "automated": "FieldPurposeTest on e543e78e: the search mark says Search exercises and the caption says Routine name, empty and after Back squat and Upper A. The text fields keep those typed words and carry no content description and no state description. Physical TalkBack is still unobserved.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P19"
         ],
@@ -5595,7 +5595,8 @@
         "gate": "Two earlier full runs failed SettingsUnitsRenderTest.displayRestAndBackupStayReachableAndDistanceCanDifferFromWeight while it waited on the preference file (five seconds, then thirty). That wait was removed. After that fix, two real JDK 17 runs, back to back, no failure between them. First: testDebugUnitTest 4769 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 11m 33s, test task executed. Second: the same tasks with --rerun-tasks, 4769 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 12m 44s, 107 tasks executed.",
         "independent": "APPROVE. Zero Critical or High. The four pairings are separate. No stored distance choice follows the weight unit. A typed mile stays 2414.016 metres when the preference changes to kilometres and the weight changes to kilograms. Display, Rest timer, and Backup are on the list. A failed display save stays on the Rest timer page. The debug update row is absent on the everyday list and present on the debug list. Medium: account sync does not upload the distance choice. Phone reading is unobserved.",
         "adversarial": "APPROVE. Zero Critical or High. Changing the weight unit does not clear a stored distance choice or an 80 kg weigh-in. A display download that has no distance field leaves the local choice in place. A blank typed distance drops the pinned unit so the next number uses the current choice. Medium: the activity composer pins the typed unit in the screen state, while live cardio also stores it with the draft.",
-        "cleanContext": "Run after pull request 521 was already merged. Independent APPROVE, Critical 0, High 0, Medium 2, Low 2. Adversarial BLOCK, Critical 0, High 2, Medium 4, Low 1. High: a backup does not store the distance choice, so a kilogram lifter who chose miles restores as kilometres on a phone with no distance key. High: restoring an older backup does not clear a distance choice already stored on the phone. Both Highs are fixed on 340e0793."
+        "cleanContext": "Run after pull request 521 was already merged. Independent APPROVE, Critical 0, High 0, Medium 2, Low 2. Adversarial BLOCK, Critical 0, High 2, Medium 4, Low 1. High: a backup does not store the distance choice, so a kilogram lifter who chose miles restores as kilometres on a phone with no distance key. High: restoring an older backup does not clear a distance choice already stored on the phone. Both Highs are fixed on 340e0793.",
+        "deferred": "The Medium that account sync does not upload the distance choice stays open on purpose. Cloud sync is a deferred project. It is not part of P19."
       },
       "e437d921": {
         "when": "2026-10-15",
@@ -5619,6 +5620,13 @@
         "gate": "The first full run on d638288b failed ReminderStartOverAScreenTest.aStartTappedOnTheFinishedSessionsPageOpensThePlannedSession: Compose threw after one idle attempt in 60 seconds with no busy resource named. That budget now outlasts one Espresso drain. Two greens on 86121fd8 (4777 tests, 0 failures) came before a review High was fixed, so they do not gate this head. The next full run on cb10e040 failed NotesTruthMatrixRenderTest.smallFont16 because the held clock still showed Saving notes. That check now steps frames until the screen says the notes were cleared. After that fix, two real JDK 17 runs on 32eed179, back to back, no failure between them. First: testDebugUnitTest 4778 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 12m 15s, test task executed. Second: the same tasks with --rerun-tasks, 4778 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 13m 24s, 107 tasks executed. connectedDebugAndroidTest was not run.",
         "independent": "APPROVE. Zero Critical or High. The receipt is saved before the block, the weigh-in, and the days. A later day and a changed preview reuse that frozen day, weight, block, and pins. A throw after the week is stored does not delete it, and the next tap is finished only while those pins are still there. Building clears when accept throws. Medium: a retry whose week is already stored can still delete those routines if the rewrite throws inside the transaction; the next tap builds them again. Medium: pinning the same routine on the same weekday now returns the existing row for every caller.",
         "adversarial": "APPROVE. Zero Critical or High. The earlier hole is closed: the finished receipt is saved before the visit id, a throw after the commit does not delete the week, and a retry rebuilds only when the frozen pins are missing. The weigh-in stays on the frozen day. A retry does not rewrite days, goal, or equipment. Building clears. Medium: if the process dies after the receipt is saved and before the preference writes finish, the retry skips those preference writes. Medium: a throw inside the rewrite of an already stored week deletes those routines before the next tap rebuilds them. Low: Generate a week still uses new ids, so a second tap after that write has committed can add another week."
+      },
+      "e543e78e": {
+        "when": "2026-10-16",
+        "packet": "P19a field purpose",
+        "gate": "Two earlier shapes were reviewed and blocked before these greens. contentDescription on the box hid the typed words. stateDescription on the box is discarded by the text-field accessibility bridge. After the purpose moved beside the box, two real JDK 17 runs on e543e78e, back to back, no failure between them. First: testDebugUnitTest 4783 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 14m 1s, test task executed. Second: the same tasks with --rerun-tasks, 4783 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 13m 6s, 107 tasks executed. connectedDebugAndroidTest was not run.",
+        "independent": "APPROVE. Zero Critical or High. The search mark says Search exercises. The routine caption says Routine name. Both stay after text is typed. The boxes keep Back squat and Upper A and carry no content description and no state description. Low: the same search mark says Search exercises on the library row, which already has its own longer phrase.",
+        "adversarial": "APPROVE. Zero Critical or High. The purpose nodes are siblings. The rows do not merge them into the text field. A purpose that lived only as state on the box would fail the test."
       }
     }
   }

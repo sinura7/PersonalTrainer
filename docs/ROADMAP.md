@@ -19,6 +19,11 @@
 > days before it writes them. A retry does not add a second weigh-in or a
 > second week. If the accept throws, Building clears.
 >
+> 16 Oct 2026 — P19a: the search mark says Search exercises, and the
+> routine title has Routine name beside the box. The typed words stay
+> in the box. Account sync still does not upload the distance choice;
+> that stays deferred with cloud sync.
+>
 > 16 Oct 2026 — A kilometres or miles choice now travels in a backup. An
 > older file clears a choice already on the phone. A restore that still
 > owes settings is not announced as finished, and a wrong password closes
