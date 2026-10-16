@@ -28,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -488,6 +490,7 @@ internal fun RoutineEditorHeader(onBack: () -> Unit) {
 }
 
 object RoutineEditorTags {
+    const val NAME = "routine-name"
     const val BACK = "routine-editor-back"
     const val SCOPE = "routine-editor-scope"
     const val ADD_LIFTS = "routine-editor-add-lifts"
@@ -616,7 +619,7 @@ private fun RoutineSaveDock(
  * what say so, since a title with a box drawn around it is form chrome again.
  */
 @Composable
-private fun RoutineTitleField(
+internal fun RoutineTitleField(
     name: String,
     onNameChange: (String) -> Unit,
 ) {
@@ -624,7 +627,10 @@ private fun RoutineTitleField(
         BasicTextField(
             value = name,
             onValueChange = onNameChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(RoutineEditorTags.NAME)
+                .semantics { contentDescription = "Routine name" },
             textStyle = InstrumentType.display.copy(color = TextPrimary),
             singleLine = true,
             cursorBrush = SolidColor(Volt),
