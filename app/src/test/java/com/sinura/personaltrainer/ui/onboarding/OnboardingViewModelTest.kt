@@ -228,6 +228,31 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun aThrownAcceptClearsBuildingSoThePlanCanBeTriedAgain() = runBlocking {
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
+        deps.dbMaintenance.seedCatalog()
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
+        deps.onboardingApplier.throwBeforeCatch = true
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.preview != null } }
+        viewModel!!.applyPlan()
+        val refused = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { !it.applying && it.error != null }
+        }
+        assertEquals(
+            "Couldn’t build that plan. Your answers are saved — try again.",
+            refused.error,
+        )
+        assertFalse(viewModel!!.finished.value)
+        assertEquals(0, deps.routineRepository.count())
+
+        deps.onboardingApplier.throwBeforeCatch = false
+        viewModel!!.applyPlan()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.finished.first { it } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { !it.applying } }
+        assertTrue(deps.routineRepository.count() > 0)
+    }
+
+    @Test
     fun skippingBodyweightLeavesTheWeighInUnset() {
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),

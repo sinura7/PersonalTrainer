@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 16 Oct 2026 — P16b: Use this plan freezes the day, the weight, and the
+> days before it writes them. A retry does not add a second weigh-in or a
+> second week. If the accept throws, Building clears.
+>
 > 2 Oct 2026 — Packet P4a (eight-asks plan): Settings → Permissions — one
 > page listing notifications, precise rest alarms, lock-screen alert, battery,
 > and vibration with fix buttons; first-open walk and page share one probe.

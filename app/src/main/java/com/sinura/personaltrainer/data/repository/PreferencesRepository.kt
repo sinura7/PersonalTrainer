@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.local.dao.TrainingBlockDao
 import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
 import com.sinura.personaltrainer.data.local.entity.TrainingBlockEntity
 import com.sinura.personaltrainer.data.repository.prefs.ACCEPTED_PLAN_ID
+import com.sinura.personaltrainer.data.repository.prefs.PLAN_ACCEPT_RECEIPT
 import com.sinura.personaltrainer.data.repository.prefs.AVAILABLE_EQUIPMENT
 import com.sinura.personaltrainer.data.repository.prefs.BLOCK_START
 import com.sinura.personaltrainer.data.repository.prefs.BLOCK_WEEKS
@@ -66,6 +67,7 @@ import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.domain.PlanAcceptReceipt
 import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -507,6 +509,14 @@ class PreferencesRepository(
 
     suspend fun setAcceptedPlanId(id: String) {
         dataStore.edit { prefs -> prefs[ACCEPTED_PLAN_ID] = id }
+    }
+
+    /** The command frozen before the block and the days. Null until that visit accepts. */
+    suspend fun planAcceptReceipt(): PlanAcceptReceipt? =
+        PlanAcceptReceipt.decode(dataStore.data.first()[PLAN_ACCEPT_RECEIPT])
+
+    suspend fun savePlanAcceptReceipt(receipt: PlanAcceptReceipt) {
+        dataStore.edit { prefs -> prefs[PLAN_ACCEPT_RECEIPT] = receipt.encode() }
     }
 
     /**

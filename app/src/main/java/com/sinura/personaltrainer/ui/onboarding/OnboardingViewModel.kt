@@ -365,15 +365,22 @@ class OnboardingViewModel @JvmOverloads constructor(
         val blueprint = uiState.value.preview ?: return
         applying.value = true
         viewModelScope.launch {
-            val result = container.onboardingApplier.apply(
-                answers = answers.value,
-                blueprint = blueprint,
-                catalog = catalog.value,
-                weekStart = weekStart.value,
-                today = civilToday().toLocalDate(),
-                acceptanceId = acceptanceId,
-            )
-            applying.value = false
+            val result = try {
+                runCatchingCancellable {
+                    container.onboardingApplier.apply(
+                        answers = answers.value,
+                        blueprint = blueprint,
+                        catalog = catalog.value,
+                        weekStart = weekStart.value,
+                        today = civilToday().toLocalDate(),
+                        acceptanceId = acceptanceId,
+                    )
+                }.getOrElse {
+                    ApplyPlanResult.Failed("Couldn’t build that plan. Your answers are saved — try again.")
+                }
+            } finally {
+                applying.value = false
+            }
             when (result) {
                 is ApplyPlanResult.Applied -> {
                     pendingWeightUnit.value?.let { unit ->

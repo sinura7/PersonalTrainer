@@ -33,6 +33,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.testutil.ComposeIdleBudget
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -101,6 +102,7 @@ class NotesTruthMatrixRenderTest {
     private var reachabilityFailures = 0
 
     @Before fun setUp() {
+        ComposeIdleBudget.install()
         Dispatchers.setMain(dispatcher)
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher,
@@ -348,6 +350,20 @@ class NotesTruthMatrixRenderTest {
         heldWrite = null
         flush()
         compose.awaitThat("$prefix confirmed clear", state) { state().status == NotesSaveStatus.SAVED && state().cleared && !state().busy }
+        // The clock is held, so the status line does not catch the saved state until
+        // frames are stepped. A loaded suite read "Saving notes…" while the state
+        // had already moved on.
+        val deadline = System.currentTimeMillis() + FLOOR_WAIT_MS
+        var shown = false
+        while (System.currentTimeMillis() < deadline) {
+            compose.settle()
+            shown = runCatching {
+                compose.onNodeWithTag(NotesTestTags.STATUS).fetchSemanticsNode().config
+                    .getOrNull(SemanticsProperties.Text).orEmpty().any { it.text.contains("Notes cleared") }
+            }.getOrDefault(false)
+            if (shown) break
+        }
+        assertTrue("$prefix status never said Notes cleared; state ${state()}", shown)
         readable(node = compose.onNodeWithTag(NotesTestTags.STATUS)).assertTextContains("Notes cleared")
         capture("$prefix-cleared")
     }

@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
  * this throws rather than letting those tests pass on the wrong app.
  */
 fun forgetFirstApplication() {
+    ComposeIdleBudget.install()
     ViewModelProvider.AndroidViewModelFactory::class.java
         .getDeclaredField("_instance")
         .apply { isAccessible = true }
