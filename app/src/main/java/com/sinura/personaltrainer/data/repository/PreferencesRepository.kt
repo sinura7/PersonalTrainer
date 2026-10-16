@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.data.repository.prefs.CLOCK_FORMAT
 import com.sinura.personaltrainer.data.repository.prefs.CoachingPrefs
 import com.sinura.personaltrainer.data.repository.prefs.CoachingPrefsStore
 import com.sinura.personaltrainer.data.repository.prefs.DISMISSED_COLLISIONS
+import com.sinura.personaltrainer.data.repository.prefs.DISTANCE_UNIT
 import com.sinura.personaltrainer.data.repository.prefs.DisplayPrefs
 import com.sinura.personaltrainer.data.repository.prefs.DisplayPrefsStore
 import com.sinura.personaltrainer.data.repository.prefs.FOUNDATION_GENERATION
@@ -82,6 +83,7 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.SavePosture
 import com.sinura.personaltrainer.domain.SavePostureState
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -299,6 +301,7 @@ class PreferencesRepository(
         reminderQuietEndHour: Int = ReminderPreferences.DEFAULT_QUIET_END_HOUR,
         clockFormat: ClockFormat = ClockFormat.TWELVE,
         bodyweightCheckInWeekday: Weekday? = null,
+        distanceUnit: String?,
     ) {
         val cleanSchedule = schedule.sanitized()
         val cleanRest = rest.sanitized()
@@ -364,6 +367,12 @@ class PreferencesRepository(
                 prefs.remove(BODYWEIGHT_CHECK_IN_WEEKDAY)
             } else {
                 prefs[BODYWEIGHT_CHECK_IN_WEEKDAY] = bodyweightCheckInWeekday.name
+            }
+            val distance = DistanceUnit.fromStorage(distanceUnit)
+            if (distance == null) {
+                prefs.remove(DISTANCE_UNIT)
+            } else {
+                prefs[DISTANCE_UNIT] = distance.storageKey
             }
         }
         replaceRoomHistory(bodyweightLog, block, pastBlocks)

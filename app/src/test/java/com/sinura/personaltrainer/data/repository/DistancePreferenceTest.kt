@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.data.repository
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.sync.RemoteDisplayPrefsRow
 import com.sinura.personaltrainer.data.sync.SyncAccountPrefs
 import com.sinura.personaltrainer.domain.DistanceUnit
@@ -12,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -70,6 +72,37 @@ class DistancePreferenceTest {
         prefs.setWeightUnit(WeightUnit.LBS)
         assertNull(DistanceUnit.fromStorage(raw = null))
         assertNull(prefs.storedDistanceUnit.first())
+        assertEquals(
+            DistanceUnit.MI,
+            DistanceUnit.resolve(prefs.storedDistanceUnit.first(), prefs.weightUnit.first()),
+        )
+    }
+
+    @Test
+    fun aStoredMileTravelsInTheBackup() = runBlocking {
+        val prefs = deps.preferencesRepository
+        prefs.setWeightUnit(WeightUnit.KG)
+        prefs.setDistanceUnit(DistanceUnit.MI)
+        val parsed = BackupJson.decode(BackupJson.encode(deps.localBackupRepository.createSnapshot()))
+        prefs.setDistanceUnit(DistanceUnit.KM)
+        assertTrue(deps.localBackupRepository.applyPreferences(parsed))
+        assertEquals(DistanceUnit.MI, prefs.storedDistanceUnit.first())
+        assertEquals(WeightUnit.KG, prefs.weightUnit.first())
+    }
+
+    @Test
+    fun anOlderBackupClearsADistanceChoiceAlreadyOnThePhone() = runBlocking {
+        val prefs = deps.preferencesRepository
+        prefs.setWeightUnit(WeightUnit.KG)
+        prefs.setDistanceUnit(DistanceUnit.KM)
+        val older = deps.localBackupRepository.createSnapshot().let { document ->
+            document.copy(
+                preferences = document.preferences.copy(weightUnit = "lbs", distanceUnit = null),
+            )
+        }
+        assertTrue(deps.localBackupRepository.applyPreferences(older))
+        assertNull(prefs.storedDistanceUnit.first())
+        assertEquals(WeightUnit.LBS, prefs.weightUnit.first())
         assertEquals(
             DistanceUnit.MI,
             DistanceUnit.resolve(prefs.storedDistanceUnit.first(), prefs.weightUnit.first()),

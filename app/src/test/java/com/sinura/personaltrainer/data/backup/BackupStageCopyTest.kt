@@ -45,6 +45,26 @@ class BackupStageCopyTest {
     }
 
     @Test
+    fun aRestoreThatStillOwesSettingsIsNotHeadedAsFinished() {
+        val done = BackupStageCopy.restoreStatus(
+            sourceName = "Monday",
+            summary = "2 sessions",
+            preferencesRestored = true,
+            settingsPending = false,
+        )
+        val owed = BackupStageCopy.restoreStatus(
+            sourceName = "Monday",
+            summary = "2 sessions",
+            preferencesRestored = false,
+            settingsPending = true,
+        )
+        assertTrue(BackupStageCopy.isCompletedRestore(done))
+        assertFalse(owed.startsWith("Restored "))
+        assertFalse(BackupStageCopy.isCompletedRestore(owed))
+        assertEquals(BackupStageCopy.SETTINGS_STILL_OWED, BackupStageCopy.titleFor(owed))
+    }
+
+    @Test
     fun aSecondClaimHasNothingLeftToCommit() {
         val first = RestoreCommitGate.claim("plan-1")
         assertEquals(null, first.slot)
