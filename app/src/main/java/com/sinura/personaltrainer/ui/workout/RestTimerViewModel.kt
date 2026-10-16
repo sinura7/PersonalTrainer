@@ -248,7 +248,8 @@ class RestTimerViewModel @JvmOverloads constructor(
     }
 
     fun startSelectedRest() {
-        restCommands.startPlanned(restTotal.value.seconds)
+        val planned = restTotal.value
+        restCommands.startPlanned(planned.seconds, planned.sourceTag)
     }
 
     fun acknowledgeRestBatteryHint() {
@@ -306,10 +307,7 @@ class RestTimerViewModel @JvmOverloads constructor(
             unit = key.unit,
             nextLine = shown?.let { SetMicroRecCopy.line(it, loadClass, key.unit) },
             prescribedPlan = restPlan,
-        ).also {
-            lastFloor = key to it
-            reseedRestFromPlan(restPlan)
-        }
+        ).also { lastFloor = key to it }
     }
 
     private fun resolveExerciseId(current: WorkoutSession?): String? {

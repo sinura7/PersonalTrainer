@@ -2469,7 +2469,8 @@ class ActiveWorkoutViewModel internal constructor(
         clocks.bump()
         clocks.stopHold()
         clocks.discardStopwatch()
-        restCommands.startPlanned(restTotal.value.seconds)
+        val planned = restTotal.value
+        restCommands.startPlanned(planned.seconds, planned.sourceTag)
     }
 
     fun acknowledgeRestBatteryHint() {
@@ -2687,17 +2688,18 @@ class ActiveWorkoutViewModel internal constructor(
         val planned = session.value?.exercises
             ?.firstOrNull { it.exercise.id == selectedExerciseId.value }
         val restPrefs = restPrefsNow.value
+        val tempoReps = microRec.value?.nextReps
         val plan = RestTimer.resolvePlan(
             exerciseRestSeconds = planned?.restSeconds,
             preferences = restPrefs,
             prescribedSeconds = prescribedSeconds,
-            tempoRepsForLabel = null,
+            tempoRepsForLabel = tempoReps,
         )
         restTotal.update {
             it.copy(seconds = plan.seconds, sourceTag = plan.sourceTag())
         }
         val seconds = plan.seconds
-        restTimer.start(seconds, sessionId)
+        restTimer.start(seconds, sessionId, plan.sourceTag())
         viewModelScope.launch {
             container.preferencesRepository.markRestAlarmEligible()
         }

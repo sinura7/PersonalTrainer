@@ -40,6 +40,10 @@ object RestIdleCopy {
     /** `Planned 1:30`, under the dock card's running clock. */
     fun plannedBeside(clock: String): String = "$PLANNED $clock"
 
+    /** `Tempo 2:00` — short dock caption while rest runs (D11, narrow column). */
+    fun compactBeside(sourceTag: String, clock: String): String =
+        "${sourceTag.substringBefore(" · ")} $clock"
+
     /** `Planned rest 1:30`, the same words for TalkBack, which reads the dot aloud. */
     fun plannedSpoken(clock: String): String = "$PLANNED_REST $clock"
 
@@ -55,7 +59,14 @@ object RestIdleCopy {
     }
 
     fun dockSpoken(clock: String, afterWarmup: Boolean): String =
-        dockSpokenWithSource(PLANNED_REST, clock, afterWarmup)
+        dockSpokenWithSource(
+            RestPlan(
+                seconds = RestTimerPreferences.DEFAULT_SECONDS,
+                source = RestPlanSource.DEFAULT,
+            ).sourceTag(),
+            clock,
+            afterWarmup,
+        )
 
     fun dockSpokenWithSource(sourceTag: String, clock: String, afterWarmup: Boolean): String {
         val plan = plannedWithSource(sourceTag, clock)

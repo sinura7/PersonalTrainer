@@ -74,10 +74,11 @@ internal class RestCommands(
             restTimer.persistenceHealthy,
         ) { remaining, snapshot, chosen, completedId, healthy ->
             val (plannedSeconds, plannedSource) = plan(chosen)
+            val runningSource = snapshot.sourceTag.takeIf { it.isNotBlank() } ?: plannedSource
             RestTimerUiState(
                 remainingSeconds = remaining,
                 totalSeconds = if (snapshot.running) snapshot.totalSeconds else plannedSeconds,
-                restSourceTag = plannedSource,
+                restSourceTag = if (snapshot.running) runningSource else plannedSource,
                 running = snapshot.running,
                 timerId = snapshot.timerId.takeIf { snapshot.running }.orEmpty(),
                 completedTimerId = completedId,
@@ -114,12 +115,12 @@ internal class RestCommands(
      * comes here: the rest a logged set starts saves no preset
      * (`ActiveWorkoutViewModel.startRestAfterSet`, ADR-012 decision 18).
      */
-    fun startPlanned(plannedSeconds: Int) {
+    fun startPlanned(plannedSeconds: Int, sourceTag: String = "") {
         val seconds = plannedSeconds.coerceIn(
             RestTimerPreferences.MIN_SECONDS,
             RestTimerPreferences.MAX_SECONDS,
         )
-        restTimer.start(seconds, sessionId)
+        restTimer.start(seconds, sessionId, sourceTag)
         scope.launch {
             preferences.setLastRestPresetSeconds(seconds)
             preferences.markRestAlarmEligible()

@@ -38,6 +38,8 @@ data class RestTimerSnapshot(
     val sessionId: String? = null,
     /** Generation of this rest. A stale alarm carries a different id and cannot complete it. */
     val timerId: String = "",
+    /** Where [totalSeconds] came from for this running rest; frozen until the rest ends. */
+    val sourceTag: String = "",
 ) {
     fun remainingSeconds(nowElapsedRealtime: Long): Int {
         if (!running) return 0

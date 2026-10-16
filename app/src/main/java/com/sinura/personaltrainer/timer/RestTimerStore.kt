@@ -44,6 +44,7 @@ class RestTimerStore(
         totalSeconds: Int,
         sessionId: String?,
         nowElapsedRealtime: Long,
+        sourceTag: String = "",
         nowWallClockMillis: Long = System.currentTimeMillis(),
     ) {
         val safe = totalSeconds.coerceAtLeast(1)
@@ -54,6 +55,7 @@ class RestTimerStore(
                 totalSeconds = safe,
                 sessionId = sessionId,
                 timerId = ids.newId(),
+                sourceTag = sourceTag,
             ),
         )
     }
@@ -89,6 +91,7 @@ class RestTimerStore(
                     totalSeconds = maxOf(current.totalSeconds, next),
                     sessionId = current.sessionId,
                     timerId = ids.newId(),
+                    sourceTag = current.sourceTag,
                 ).also { remember(it.timerId, beganAs(current.timerId)) }
             }
             if (snapshotState.compareAndSet(current, replacement)) {

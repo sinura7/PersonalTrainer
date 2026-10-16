@@ -298,7 +298,16 @@ object SetMicroRecCalculator {
             unit = inputs.unit,
             targetRir = inputs.targetRir,
         )
-        val showApply = !previewOnly && reason != LIFT_DONE
+        val effectiveReason = if (
+            reason == IN_TANK &&
+            loadMathNote == RpeLoadModel.MATH_NOTE_HOLD_LOAD &&
+            weight == basis.weightKg
+        ) {
+            CLIMB_REPS
+        } else {
+            reason
+        }
+        val showApply = !previewOnly && effectiveReason != LIFT_DONE
         return rec(
             inputs = inputs,
             weight = weight,
@@ -306,7 +315,7 @@ object SetMicroRecCalculator {
             rpe = effortRpe ?: historyRpe(inputs),
             previewOnly = previewOnly,
             showApply = showApply,
-            reason = reason,
+            reason = effectiveReason,
             traceBasis = basis,
             loadMathNote = loadMathNote,
             extraCodes = buildList {

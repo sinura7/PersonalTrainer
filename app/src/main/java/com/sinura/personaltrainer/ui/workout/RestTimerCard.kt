@@ -139,10 +139,11 @@ internal fun RestTimerCard(
     val clock = RestTimer.formatClock(clockSeconds)
     val targetClock = RestTimer.formatClock(safeTotal)
     val sourceLine = RestIdleCopy.plannedWithSource(restSourceTag, targetClock)
+    val compactLine = RestIdleCopy.compactBeside(restSourceTag, targetClock)
     val caption = when {
         justFinished -> REST_COMPLETE
-        // Running, the clock is the time left and the plan is said apart from it (D11).
-        running -> sourceLine
+        // Running: short dock caption so the narrow column does not wrap (W1b).
+        running -> compactLine
         afterWarmup -> RestIdleCopy.afterWarmupHint()
         else -> restSourceTag
     }

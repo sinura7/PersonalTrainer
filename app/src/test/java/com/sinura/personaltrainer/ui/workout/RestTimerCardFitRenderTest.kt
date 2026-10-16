@@ -92,7 +92,7 @@ class RestTimerCardFitRenderTest {
         compose.waitForIdle()
         assertWholeOnOneLine("REST")
         assertWholeOnOneLine("1:32")
-        assertWholeOnOneLine("Default · 2:00")
+        assertWholeOnOneLine("Default 2:00")
         assertBesideTheClock(cardTag = WorkoutTestTags.REST_BAR, clock = "1:32", controlTag = WorkoutTestTags.REST_MINUS)
         assertEquals(idle, compose.onNodeWithTag(WorkoutTestTags.REST_BAR).getBoundsInRoot().height)
     }

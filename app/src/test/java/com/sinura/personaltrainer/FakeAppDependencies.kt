@@ -437,9 +437,9 @@ private class InMemoryRestTimerGateway(
         _lastCompletedTimerId.value = timerId
     }
 
-    override fun start(totalSeconds: Int, sessionId: String?) {
+    override fun start(totalSeconds: Int, sessionId: String?, sourceTag: String) {
         _lastCompletedTimerId.value = null
-        store.start(totalSeconds, sessionId, elapsedRealtimeMs)
+        store.start(totalSeconds, sessionId, elapsedRealtimeMs, sourceTag = sourceTag)
     }
 
     override fun adjust(deltaSeconds: Int) {

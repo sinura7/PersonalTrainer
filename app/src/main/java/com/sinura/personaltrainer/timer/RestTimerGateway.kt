@@ -36,7 +36,7 @@ interface RestTimerGateway {
     val persistenceHealthy: StateFlow<Boolean>
         get() = ALWAYS_HEALTHY
 
-    fun start(totalSeconds: Int, sessionId: String?)
+    fun start(totalSeconds: Int, sessionId: String?, sourceTag: String = "")
     fun adjust(deltaSeconds: Int)
     fun stop(fromService: Boolean = false)
 
