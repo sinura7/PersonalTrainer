@@ -58,6 +58,8 @@ import com.sinura.personaltrainer.domain.LogReceiptCopy
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.RestPlan
+import com.sinura.personaltrainer.domain.RestPlanSource
 import com.sinura.personaltrainer.domain.RestPrescription
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
@@ -350,7 +352,16 @@ class ActiveWorkoutViewModel internal constructor(
      */
     private val priorHistory = MutableStateFlow<List<ExerciseSetRecord>>(emptyList())
     val exerciseHistory: StateFlow<List<ExerciseSetRecord>> = priorHistory.asStateFlow()
-    private val restTotal = MutableStateFlow(PlannedRest(seconds = 90, chosenFor = null))
+    private val restTotal = MutableStateFlow(
+        PlannedRest(
+            seconds = RestTimerPreferences.DEFAULT_SECONDS,
+            sourceTag = RestPlan(
+                seconds = RestTimerPreferences.DEFAULT_SECONDS,
+                source = RestPlanSource.DEFAULT,
+            ).sourceTag(),
+            chosenFor = null,
+        ),
+    )
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
 
@@ -748,7 +759,11 @@ class ActiveWorkoutViewModel internal constructor(
                     if (plan.seconds == last) {
                         plan
                     } else {
-                        PlannedRest(seconds = last, chosenFor = selectedExerciseId.value)
+                        PlannedRest(
+                            seconds = last,
+                            sourceTag = RestPlan(last, RestPlanSource.LAST_PRESET).sourceTag(),
+                            chosenFor = selectedExerciseId.value,
+                        )
                     }
                 }
             }
@@ -757,7 +772,7 @@ class ActiveWorkoutViewModel internal constructor(
 
     /** The dock's rest card. The shared builder is cold; this screen's sharing is its own. */
     val restTimerState: StateFlow<RestTimerUiState> =
-        restCommands.restState(restTotal) { it.seconds }.stateIn(
+        restCommands.restState(restTotal) { it.seconds to it.sourceTag }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = RestTimerUiState(),
@@ -1097,29 +1112,39 @@ class ActiveWorkoutViewModel internal constructor(
             priorHistory.value = container.workoutRepository
                 .historyBefore(sessionId, listOf(exerciseId))[exerciseId].orEmpty()
             if (!isCurrentPrefill(exerciseId, generation)) return
-            val seededRest = RestTimer.secondsToStart(
-                planned?.restSeconds,
-                restPrefs,
-                prescribedSeconds = workoutMicroRec(
-                    session = current,
-                    selectedExerciseId = exerciseId,
-                    draft = draft.value,
-                    hint = progression,
-                    editingSetId = editingSetId.value,
-                    lighterWeek = settings.lighterWeek,
-                    unit = settings.unit,
-                    nowMs = time.nowMillis(),
-                    todayEpochDay = todayEpochDay(),
-                    historySets = lastPerformance.value?.sets.orEmpty(),
-                    coachPrefs = container.preferencesRepository.coachPreferences.first(),
-                )?.restSeconds,
+            val microRec = workoutMicroRec(
+                session = current,
+                selectedExerciseId = exerciseId,
+                draft = draft.value,
+                hint = progression,
+                editingSetId = editingSetId.value,
+                lighterWeek = settings.lighterWeek,
+                unit = settings.unit,
+                nowMs = time.nowMillis(),
+                todayEpochDay = todayEpochDay(),
+                historySets = lastPerformance.value?.sets.orEmpty(),
+                coachPrefs = container.preferencesRepository.coachPreferences.first(),
+            )
+            val seededPlan = RestTimer.resolvePlan(
+                exerciseRestSeconds = planned?.restSeconds,
+                preferences = restPrefs,
+                prescribedSeconds = microRec?.restSeconds,
+                tempoRepsForLabel = microRec?.nextReps,
             )
             if (!isCurrentPrefill(exerciseId, generation)) return
             // The seed fills in this lift's plan; it never replaces a length picked for this
             // lift while the reads above were running. A pick made on another lift does not
             // count, so switching lifts still brings the new lift's own rest.
             restTotal.update { plan ->
-                if (plan.chosenFor == exerciseId) plan else PlannedRest(seconds = seededRest, chosenFor = null)
+                if (plan.chosenFor == exerciseId) {
+                    plan
+                } else {
+                    PlannedRest(
+                        seconds = seededPlan.seconds,
+                        sourceTag = seededPlan.sourceTag(),
+                        chosenFor = null,
+                    )
+                }
             }
             // The reads above resume off the main thread. Checking "untouched" and then writing
             // the seed on that same continuation let a typed weight land in the gap and come
@@ -2425,7 +2450,11 @@ class ActiveWorkoutViewModel internal constructor(
 
     /** Names the next rest. Does not start the clock. */
     fun selectRestDuration(seconds: Int) {
-        restTotal.value = PlannedRest(seconds = seconds, chosenFor = selectedExerciseId.value)
+        restTotal.value = PlannedRest(
+            seconds = seconds,
+            sourceTag = RestPlan(seconds, RestPlanSource.LAST_PRESET).sourceTag(),
+            chosenFor = selectedExerciseId.value,
+        )
         restCommands.rememberPick(seconds)
     }
 
@@ -2657,17 +2686,17 @@ class ActiveWorkoutViewModel internal constructor(
     private fun startRestAfterSet(prescribedSeconds: Int? = null) {
         val planned = session.value?.exercises
             ?.firstOrNull { it.exercise.id == selectedExerciseId.value }
-        val seconds = RestTimer.secondsToStart(
-            planned?.restSeconds,
-            RestTimerPreferences(
-                defaultRestSeconds = restTotal.value.seconds.coerceIn(
-                    RestTimerPreferences.MIN_SECONDS,
-                    RestTimerPreferences.MAX_SECONDS,
-                ),
-            ),
+        val restPrefs = restPrefsNow.value
+        val plan = RestTimer.resolvePlan(
+            exerciseRestSeconds = planned?.restSeconds,
+            preferences = restPrefs,
             prescribedSeconds = prescribedSeconds,
+            tempoRepsForLabel = null,
         )
-        restTotal.update { it.copy(seconds = seconds) }
+        restTotal.update {
+            it.copy(seconds = plan.seconds, sourceTag = plan.sourceTag())
+        }
+        val seconds = plan.seconds
         restTimer.start(seconds, sessionId)
         viewModelScope.launch {
             container.preferencesRepository.markRestAlarmEligible()
@@ -2951,7 +2980,7 @@ class ActiveWorkoutViewModel internal constructor(
      * or on the rest page through the shared last preset — and that lift's late prefill seed
      * leaves it alone. Null when it is a seed or the default.
      */
-    private data class PlannedRest(val seconds: Int, val chosenFor: String?)
+    private data class PlannedRest(val seconds: Int, val sourceTag: String, val chosenFor: String?)
 
     private data class WorkoutExtras(
         val restTotal: Int,

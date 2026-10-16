@@ -286,7 +286,7 @@ object SetMicroRecCalculator {
             lighterHold = afterLight.lighterHold,
             bodyweight = bodyweight,
         )
-        val (weight, reps) = nextLoad(
+        val (weight, reps, loadMathNote) = nextLoad(
             lastWeightKg = basis.weightKg,
             lastReps = basis.reps,
             lastRpe = basis.rpe,
@@ -308,6 +308,7 @@ object SetMicroRecCalculator {
             showApply = showApply,
             reason = reason,
             traceBasis = basis,
+            loadMathNote = loadMathNote,
             extraCodes = buildList {
                 if (afterLight.rpeHold) add(RPE_HOLD)
                 if (afterLight.lighterHold) add(LIGHTER_HOLD)
@@ -349,11 +350,11 @@ object SetMicroRecCalculator {
         reason: String,
         unit: WeightUnit,
         targetRir: Int,
-    ): Pair<Double, Int> {
+    ): Triple<Double, Int, String?> {
         val climb = reason == IN_TANK || reason == BW_ADD_REP
         val drop = reason == FAILED_DROP || reason == SKIP_RPE_DROP || reason == BW_DROP_REP
         if (reason == CLIMB_REPS) {
-            return lastWeightKg to (lastReps + 1).coerceAtMost(targetReps.coerceAtLeast(1))
+            return Triple(lastWeightKg, (lastReps + 1).coerceAtMost(targetReps.coerceAtLeast(1)), null)
         }
         if (bodyweight) {
             val reps = when {
@@ -361,7 +362,7 @@ object SetMicroRecCalculator {
                 drop -> (lastReps - 1).coerceAtLeast(1)
                 else -> lastReps
             }
-            return 0.0 to reps
+            return Triple(0.0, reps, null)
         }
         if (drop || climb) {
             val nextWeight = ProgressionCalculator.suggestWeightKg(
@@ -372,26 +373,25 @@ object SetMicroRecCalculator {
                 weightMeaning = meaning,
                 unit = unit,
             )
-            val nextReps = if (
+            if (
                 climb &&
                 !bodyweight &&
                 meaning != WeightMeaning.ADDED &&
                 nextWeight > lastWeightKg &&
                 lastRpe != null
             ) {
-                RpeLoadModel.repsAfterWeightIncrease(
+                val suggestion = RpeLoadModel.suggestAfterWeightIncrease(
                     lastWeightKg = lastWeightKg,
                     lastReps = lastReps,
                     lastRpe = lastRpe,
-                    nextWeightKg = nextWeight,
+                    proposedNextWeightKg = nextWeight,
                     targetRir = targetRir,
                 )
-            } else {
-                lastReps
+                return Triple(suggestion.nextWeightKg, suggestion.nextReps, suggestion.mathNote)
             }
-            return nextWeight to nextReps
+            return Triple(nextWeight, lastReps, null)
         }
-        return lastWeightKg to lastReps
+        return Triple(lastWeightKg, lastReps, null)
     }
 
     /**
@@ -428,6 +428,7 @@ object SetMicroRecCalculator {
         showApply: Boolean,
         reason: String,
         traceBasis: LoggedSetView? = null,
+        loadMathNote: String? = null,
         extraCodes: List<String> = emptyList(),
     ): SetMicroRec {
         val codes = listOf(reason) + extraCodes.filter { it != reason }
@@ -465,6 +466,7 @@ object SetMicroRecCalculator {
             call = SetMicroRecCopy.callLine(reason, weight, reps, loadClass, inputs.unit),
             rule = SetMicroRecCopy.ruleLine(reason),
             alternatives = alternativesFor(reason),
+            loadMathNote = loadMathNote,
         )
         return SetMicroRec(
             nextWeightKg = weight,

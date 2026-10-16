@@ -227,10 +227,12 @@ internal fun RestFloorBody(
                         Text(it, modifier = Modifier.testTag(RestFloorTags.NEXT), style = InstrumentType.body, color = TextSecondary)
                     }
                     val plannedClock = RestTimer.formatClock(rest.totalSeconds)
+                    val plannedLine = RestIdleCopy.plannedWithSource(rest.restSourceTag, plannedClock)
                     Text(
-                        RestIdleCopy.planned(plannedClock),
-                        // Read without the dot.
-                        modifier = Modifier.semantics { contentDescription = RestIdleCopy.plannedSpoken(plannedClock) },
+                        plannedLine,
+                        modifier = Modifier.semantics {
+                            contentDescription = plannedLine.replace(" · ", " ")
+                        },
                         style = InstrumentType.body,
                         color = TextSecondary,
                     )

@@ -2,6 +2,8 @@ package com.sinura.personaltrainer.ui.workout
 
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
+import com.sinura.personaltrainer.domain.RestPlan
+import com.sinura.personaltrainer.domain.RestPlanSource
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +17,11 @@ import kotlinx.coroutines.launch
 data class RestTimerUiState(
     val remainingSeconds: Int = 0,
     val totalSeconds: Int = 90,
+    /** Where [totalSeconds] came from: Tempo, Routine, Last used, or Default. */
+    val restSourceTag: String = RestPlan(
+        seconds = RestTimerPreferences.DEFAULT_SECONDS,
+        source = RestPlanSource.DEFAULT,
+    ).sourceTag(),
     val running: Boolean = false,
     /** The running rest's id, blank while none runs. The rest page's Skip names it (W2b-3). */
     val timerId: String = "",
@@ -55,17 +62,22 @@ internal class RestCommands(
      * rest page and the rest: the page's first state would show that copy's default (idle,
      * 1:30) before the real one (`lastSetLineAppearsAfterAWorkingSetOnTheSharedStore`).
      */
-    fun <T> restState(planned: Flow<T>, seconds: (T) -> Int): Flow<RestTimerUiState> = combine(
+    fun <T> restState(
+        planned: Flow<T>,
+        plan: (T) -> Pair<Int, String>,
+    ): Flow<RestTimerUiState> = combine(
         combine(
             restTimer.remainingSeconds,
             restTimer.snapshot,
             planned,
             restTimer.lastCompletedTimerId,
             restTimer.persistenceHealthy,
-        ) { remaining, snapshot, plan, completedId, healthy ->
+        ) { remaining, snapshot, chosen, completedId, healthy ->
+            val (plannedSeconds, plannedSource) = plan(chosen)
             RestTimerUiState(
                 remainingSeconds = remaining,
-                totalSeconds = if (snapshot.running) snapshot.totalSeconds else seconds(plan),
+                totalSeconds = if (snapshot.running) snapshot.totalSeconds else plannedSeconds,
+                restSourceTag = plannedSource,
                 running = snapshot.running,
                 timerId = snapshot.timerId.takeIf { snapshot.running }.orEmpty(),
                 completedTimerId = completedId,

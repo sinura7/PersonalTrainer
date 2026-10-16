@@ -121,6 +121,7 @@ class ReducedMotionRenderTest {
                     RestTimerCard(
                         remainingSeconds = remainingNow(),
                         totalSeconds = TOTAL_SECONDS,
+                        restSourceTag = "Default",
                         running = true,
                         completedTimerId = null,
                         afterWarmup = false,

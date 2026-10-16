@@ -85,6 +85,7 @@ import kotlinx.coroutines.delay
 internal fun RestTimerCard(
     remainingSeconds: Int,
     totalSeconds: Int,
+    restSourceTag: String,
     running: Boolean,
     completedTimerId: String?,
     afterWarmup: Boolean,
@@ -137,21 +138,22 @@ internal fun RestTimerCard(
     }
     val clock = RestTimer.formatClock(clockSeconds)
     val targetClock = RestTimer.formatClock(safeTotal)
+    val sourceLine = RestIdleCopy.plannedWithSource(restSourceTag, targetClock)
     val caption = when {
         justFinished -> REST_COMPLETE
         // Running, the clock is the time left and the plan is said apart from it (D11).
-        running -> RestIdleCopy.plannedBeside(targetClock)
+        running -> sourceLine
         afterWarmup -> RestIdleCopy.afterWarmupHint()
-        else -> RestIdleCopy.PLANNED
+        else -> restSourceTag
     }
     val spoken = when {
         justFinished -> "$kicker. $REST_COMPLETE."
         running -> buildString {
-            append("Rest $clock remaining. ${RestIdleCopy.plannedSpoken(targetClock)}.")
+            append("Rest $clock remaining. $sourceLine.")
             if (urgent) append(" Last ten seconds.")
             append(" Open rest timer.")
         }
-        else -> RestIdleCopy.dockSpoken(clock, afterWarmup)
+        else -> RestIdleCopy.dockSpokenWithSource(restSourceTag, clock, afterWarmup)
     }
     val progress = if (justFinished) 0f else RestTimer.sweepFraction(
         remainingSeconds = if (running) safeRemaining else 0,

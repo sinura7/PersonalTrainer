@@ -13,6 +13,8 @@ import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestFloorContext
 import com.sinura.personaltrainer.domain.RestFloorCopy
+import com.sinura.personaltrainer.domain.RestPlan
+import com.sinura.personaltrainer.domain.RestPlanSource
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
@@ -64,7 +66,16 @@ class RestTimerViewModel @JvmOverloads constructor(
 ) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val restTimer = container.restTimerController
-    private val restTotal = MutableStateFlow(PlannedRest(seconds = RestTimerPreferences.DEFAULT_SECONDS, chosen = false))
+    private val restTotal = MutableStateFlow(
+        PlannedRest(
+            seconds = RestTimerPreferences.DEFAULT_SECONDS,
+            sourceTag = RestPlan(
+                seconds = RestTimerPreferences.DEFAULT_SECONDS,
+                source = RestPlanSource.DEFAULT,
+            ).sourceTag(),
+            chosen = false,
+        ),
+    )
 
     /** What was read for one lift, its hint and then its last session. Used only for that lift. */
     private val liftReads = MutableStateFlow<LiftReads?>(null)
@@ -81,6 +92,10 @@ class RestTimerViewModel @JvmOverloads constructor(
     /** The unit and the week's mark, as they change. The hint is read under them (W2e). */
     private val hintSettings: StateFlow<HintSettings?> =
         hintLoader.settings().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val restPrefsNow: StateFlow<RestTimerPreferences> =
+        container.preferencesRepository.restTimerPreferences
+            .stateIn(viewModelScope, SharingStarted.Eagerly, RestTimerPreferences.DEFAULT)
 
     /** The floor last drawn and what it was drawn from; [uiState]'s one collector reads it. */
     private var lastFloor: Pair<FloorKey, RestFloorContext>? = null
@@ -111,16 +126,28 @@ class RestTimerViewModel @JvmOverloads constructor(
                 val question = nextSetInputs(current = current, exerciseId = exerciseId, loaded = loaded)
                 // Only the Next line asks the Log's question; the planned length keeps the page's
                 // old one ([forPlannedRest]), so it does not move in W2b-4.
-                val seeded = RestTimer.secondsToStart(
-                    planned?.restSeconds,
-                    prefs,
-                    prescribedSeconds = question.forPlannedRest()
-                        .rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())?.restSeconds,
+                val microRec = question.forPlannedRest()
+                    .rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
+                val seededPlan = RestTimer.resolvePlan(
+                    exerciseRestSeconds = planned?.restSeconds,
+                    preferences = prefs,
+                    prescribedSeconds = microRec?.restSeconds,
+                    tempoRepsForLabel = microRec?.nextReps,
                 )
                 // The seed fills in the plan; it never replaces a length someone already picked.
                 // This load can finish after a tap here or on the Log, and a plain write put the
                 // coach's 2:30 back over the 1:45 just chosen (23 Sept).
-                restTotal.update { plan -> if (plan.chosen) plan else PlannedRest(seconds = seeded, chosen = false) }
+                restTotal.update { plan ->
+                    if (plan.chosen) {
+                        plan
+                    } else {
+                        PlannedRest(
+                            seconds = seededPlan.seconds,
+                            sourceTag = seededPlan.sourceTag(),
+                            chosen = false,
+                        )
+                    }
+                }
                 // Last session is read after the seed: the length does not use it, and a slow or
                 // failed read held the page at the 1:30 default (W2b-4 review).
                 if (reading != null) readLastSession(reading)
@@ -128,7 +155,11 @@ class RestTimerViewModel @JvmOverloads constructor(
         }
         viewModelScope.launch {
             restCommands.presetEchoes.collect { last ->
-                restTotal.value = PlannedRest(seconds = last, chosen = true)
+                restTotal.value = PlannedRest(
+                    seconds = last,
+                    sourceTag = RestPlan(last, RestPlanSource.LAST_PRESET).sourceTag(),
+                    chosen = true,
+                )
             }
         }
         viewModelScope.launch {
@@ -152,7 +183,7 @@ class RestTimerViewModel @JvmOverloads constructor(
 
     val uiState: StateFlow<RestTimerScreenState> = combine(
         sessionReader.observations,
-        restCommands.restState(restTotal) { it.seconds },
+        restCommands.restState(restTotal) { it.seconds to it.sourceTag },
         combine(
             liftReads,
             hintSettings,
@@ -202,7 +233,11 @@ class RestTimerViewModel @JvmOverloads constructor(
     }
 
     fun selectRestDuration(seconds: Int) {
-        restTotal.value = PlannedRest(seconds = seconds, chosen = true)
+        restTotal.value = PlannedRest(
+            seconds = seconds,
+            sourceTag = RestPlan(seconds, RestPlanSource.LAST_PRESET).sourceTag(),
+            chosen = true,
+        )
         restCommands.rememberPick(seconds)
     }
 
@@ -253,12 +288,28 @@ class RestTimerViewModel @JvmOverloads constructor(
             liftIsHold = liftIsHold,
         )?.takeIf { !key.saveHeld }
         val loadClass = exerciseId?.let { current.loadClassOf(it) } ?: LoadClass.LOADED
+        val prefs = restPrefsNow.value
+        val plannedExercise = exerciseId?.let { id ->
+            current.exercises.firstOrNull { it.exercise.id == id }
+        }
+        val restRec = inputs.forPlannedRest()
+            .rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
+        val restPlan = RestTimer.resolvePlan(
+            exerciseRestSeconds = plannedExercise?.restSeconds,
+            preferences = prefs,
+            prescribedSeconds = restRec?.restSeconds,
+            tempoRepsForLabel = restRec?.nextReps,
+        )
         return RestFloorCopy.context(
             session = current,
             selectedExerciseId = exerciseId,
             unit = key.unit,
             nextLine = shown?.let { SetMicroRecCopy.line(it, loadClass, key.unit) },
-        ).also { lastFloor = key to it }
+            prescribedPlan = restPlan,
+        ).also {
+            lastFloor = key to it
+            reseedRestFromPlan(restPlan)
+        }
     }
 
     private fun resolveExerciseId(current: WorkoutSession?): String? {
@@ -314,6 +365,40 @@ class RestTimerViewModel @JvmOverloads constructor(
         if (current.isFinished) return
         publish(loadHint(current, exerciseId))
         readLastSession(exerciseId)
+        reseedRestForLift(current, exerciseId)
+    }
+
+    private fun reseedRestFromPlan(plan: RestPlan) {
+        restTotal.update { current ->
+            if (current.chosen) {
+                current
+            } else {
+                current.copy(seconds = plan.seconds, sourceTag = plan.sourceTag())
+            }
+        }
+    }
+
+    private suspend fun reseedRestForLift(current: WorkoutSession, exerciseId: String) {
+        if (restTotal.value.chosen) return
+        val prefs = container.preferencesRepository.restTimerPreferences.first()
+        val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
+        val settings = hintSettings.filterNotNull().first()
+        val loaded = RestFloorInputs(
+            reads = liftReads.value?.takeIf { it.exerciseId == exerciseId },
+            lighterWeek = settings.lighterWeek,
+            unit = settings.unit,
+            coachPrefs = container.preferencesRepository.coachPreferences.first(),
+        )
+        val question = nextSetInputs(current = current, exerciseId = exerciseId, loaded = loaded)
+        val restRec = question.forPlannedRest()
+            .rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
+        val plan = RestTimer.resolvePlan(
+            exerciseRestSeconds = planned?.restSeconds,
+            preferences = prefs,
+            prescribedSeconds = restRec?.restSeconds,
+            tempoRepsForLabel = restRec?.nextReps,
+        )
+        reseedRestFromPlan(plan)
     }
 
     private suspend fun readLastSession(exerciseId: String) {
@@ -383,7 +468,7 @@ private fun NextSetInputs.forPlannedRest(): NextSetInputs =
  * The length this page will start. [chosen] once someone picked it — here, or on the Log
  * through the shared last preset — and from then on the loader's seed leaves it alone.
  */
-private data class PlannedRest(val seconds: Int, val chosen: Boolean)
+private data class PlannedRest(val seconds: Int, val sourceTag: String, val chosen: Boolean)
 
 /** What the rest page read for its coach call, beside the session, the Log's entry and the clock. */
 private data class RestFloorInputs(

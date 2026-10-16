@@ -175,18 +175,29 @@ object RestTimer {
         return seconds
     }
 
+    fun resolvePlan(
+        exerciseRestSeconds: Int?,
+        preferences: RestTimerPreferences,
+        prescribedSeconds: Int? = null,
+        tempoRepsForLabel: Int? = null,
+    ): RestPlan = RestPlanResolver.resolve(
+        exerciseRestSeconds = exerciseRestSeconds,
+        preferences = preferences,
+        prescribedSeconds = prescribedSeconds,
+        tempoRepsForLabel = tempoRepsForLabel,
+    )
+
     fun secondsToStart(
         exerciseRestSeconds: Int?,
         preferences: RestTimerPreferences,
         prescribedSeconds: Int? = null,
-    ): Int {
-        val prescribed = prescribedSeconds?.takeIf { it > 0 }
-        val fromExercise = exerciseRestSeconds?.takeIf { it > 0 }
-        val fromLast = preferences.lastPresetSeconds
-        val fromDefault = preferences.defaultRestSeconds
-        return (prescribed ?: fromExercise ?: fromLast ?: fromDefault)
-            .coerceIn(RestTimerPreferences.MIN_SECONDS, RestTimerPreferences.MAX_SECONDS)
-    }
+        tempoRepsForLabel: Int? = null,
+    ): Int = resolvePlan(
+        exerciseRestSeconds = exerciseRestSeconds,
+        preferences = preferences,
+        prescribedSeconds = prescribedSeconds,
+        tempoRepsForLabel = tempoRepsForLabel,
+    ).seconds
 
     /**
      * Rest follows a working set that still has work after it.

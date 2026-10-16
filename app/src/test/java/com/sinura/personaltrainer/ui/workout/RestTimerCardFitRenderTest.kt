@@ -50,6 +50,7 @@ class RestTimerCardFitRenderTest {
                 RestTimerCard(
                     remainingSeconds = 92,
                     totalSeconds = 120,
+                    restSourceTag = "Default",
                     running = running.value,
                     completedTimerId = null,
                     afterWarmup = false,

@@ -175,6 +175,7 @@ data class RuleTrace(
             call: String? = null,
             rule: String? = null,
             alternatives: List<String> = emptyList(),
+            loadMathNote: String? = null,
         ): RuleTrace = RuleTrace(
             ruleId = SetMicroRecCalculator.RULE_ID,
             version = VERSION,
@@ -194,6 +195,7 @@ data class RuleTrace(
                 incrementLabel?.let { add(TraceFact("increment", it)) }
                 restSeconds?.let { add(TraceFact("rest", "Start at ${RestTimer.formatClock(it)}")) }
                 rule?.let { add(TraceFact("rule", it)) }
+                loadMathNote?.let { add(TraceFact("loadMathNote", it)) }
             },
             thresholds = buildList {
                 targetReps?.let { add(TraceThreshold("targetReps", it.toString())) }

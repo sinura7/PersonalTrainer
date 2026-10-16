@@ -476,6 +476,7 @@ class WorkoutFloorComponentsTest {
             RestTimerCard(
                 remainingSeconds = 92,
                 totalSeconds = 120,
+                restSourceTag = "Default",
                 running = true,
                 completedTimerId = null,
                 afterWarmup = false,
@@ -508,6 +509,7 @@ class WorkoutFloorComponentsTest {
             RestTimerCard(
                 remainingSeconds = 0,
                 totalSeconds = 120,
+                restSourceTag = "Default",
                 running = false,
                 completedTimerId = null,
                 afterWarmup = false,

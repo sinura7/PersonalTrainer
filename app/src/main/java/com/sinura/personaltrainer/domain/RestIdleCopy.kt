@@ -34,6 +34,9 @@ object RestIdleCopy {
     /** `Planned rest · 1:30`, the rest page's line under the lift. */
     fun planned(clock: String): String = "$PLANNED_REST · $clock"
 
+    /** `Tempo · heavy set · 2:30` — source and clock, idle and running. */
+    fun plannedWithSource(sourceTag: String, clock: String): String = "$sourceTag · $clock"
+
     /** `Planned 1:30`, under the dock card's running clock. */
     fun plannedBeside(clock: String): String = "$PLANNED $clock"
 
@@ -51,12 +54,16 @@ object RestIdleCopy {
         }
 
     fun dockSpoken(clock: String, afterWarmup: Boolean): String =
-        if (afterWarmup) {
-            "Rest is not running. Warm-ups do not start rest. ${plannedSpoken(clock)}. " +
-                CHANGE_DURATION
+        dockSpokenWithSource(PLANNED_REST, clock, afterWarmup)
+
+    fun dockSpokenWithSource(sourceTag: String, clock: String, afterWarmup: Boolean): String {
+        val plan = plannedWithSource(sourceTag, clock)
+        return if (afterWarmup) {
+            "Rest is not running. Warm-ups do not start rest. $plan. $CHANGE_DURATION"
         } else {
-            "Rest is not running. ${plannedSpoken(clock)}. $CHANGE_DURATION"
+            "Rest is not running. $plan. $CHANGE_DURATION"
         }
+    }
 
     fun startSpoken(totalSeconds: Int): String =
         "Start rest, ${spokenAmount(totalSeconds.coerceAtLeast(0))}"

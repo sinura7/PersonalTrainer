@@ -48,4 +48,12 @@ object RestPrescription {
         }
         return adjusted.coerceIn(RestTimerPreferences.MIN_SECONDS, MAX_SECONDS)
     }
+
+    /** Label for [RestPlan] when Tempo sets the rest from the next working set. */
+    fun tempoRestDetail(reps: Int): String = when {
+        reps <= HEAVY_REPS -> "heavy set"
+        reps <= MODERATE_REPS -> "moderate set"
+        reps <= HIGH_REPS -> "volume set"
+        else -> "light set"
+    }
 }

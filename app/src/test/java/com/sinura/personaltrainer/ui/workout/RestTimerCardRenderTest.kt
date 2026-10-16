@@ -78,6 +78,7 @@ class RestTimerCardRenderTest {
             RestTimerCard(
                 remainingSeconds = remaining.value,
                 totalSeconds = total,
+                restSourceTag = "Default",
                 running = running.value,
                 completedTimerId = completed.value,
                 afterWarmup = afterWarmup.value,
