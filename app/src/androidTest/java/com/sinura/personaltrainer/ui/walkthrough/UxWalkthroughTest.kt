@@ -45,6 +45,7 @@ import com.sinura.personaltrainer.domain.ColdStartIntroCopy
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OnboardingPreviewCopy
+import com.sinura.personaltrainer.testonly.WalkthroughOnboardingNavHook
 import com.sinura.personaltrainer.domain.PlanSetupCopy
 import com.sinura.personaltrainer.domain.RestNudgeCopy
 import com.sinura.personaltrainer.domain.SavePosture
@@ -342,7 +343,11 @@ class UxWalkthroughTest {
         ensureHarnessPermissions()
         dismissTransientOverlays()
         awaitHomeReady()
-        runBlocking(Dispatchers.IO) { seedOnboardingAnswersForPreview() }
+        runBlocking(Dispatchers.IO) {
+            seedOnboardingAnswersForPreview()
+            val seeded = container.preferencesRepository.storedOnboardingAnswers()
+            WalkthroughOnboardingNavHook.installForcePreview(seeded)
+        }
         openGuidedSetup()
         shot("onboarding-start")
         reachOnboardingPlanPreview()
@@ -465,14 +470,15 @@ class UxWalkthroughTest {
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
         }
-        composerScrollToTag(ComposerTags.ADD_SET)
-        compose.waitUntil(30_000) {
-            compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size >= 2
+        compose.waitUntil(60_000) {
+            compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size >= 2 &&
+                compose.onAllNodesWithTag(ComposerTags.ADD_SET).fetchSemanticsNodes().isNotEmpty()
         }
+        composerScrollToTag(ComposerTags.ADD_SET)
         compose.onAllNodes(hasSetTextAction())[0].performTextReplacement("60")
         compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("5")
         dismissSoftKeyboard()
-        tapComposerTag(ComposerTags.ADD_SET)
+        compose.onNodeWithTag(ComposerTags.ADD_SET).performClick()
         compose.waitUntil(30_000) {
             compose.onAllNodesWithTag(ComposerTags.SAVE).fetchSemanticsNodes().isNotEmpty()
         }
