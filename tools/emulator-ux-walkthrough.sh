@@ -1,7 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Runs UxWalkthroughTest on the disposable CI emulator and pulls PNG artifacts.
-# android-emulator-runner executes each line of workflow `script:` as its own sh -c,
-# so the Gradle invocation must live in this file, not as continued shell lines.
+# android-emulator-runner executes this file directly; bash is required for pipefail.
 set -eu
 set -o pipefail
 
