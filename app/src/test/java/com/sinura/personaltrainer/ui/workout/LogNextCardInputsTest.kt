@@ -126,12 +126,12 @@ class LogNextCardInputsTest {
         deps.preferencesRepository.setTrainingGoal(TrainingGoal.STRENGTH)
         val strength = checkNotNull(
             log.awaitCall("the Log's call in the strength goal's words") {
-                it?.ruleLine()?.contains("strength bias") == true
+                it?.ruleLine()?.contains("strength goal holds two reps in reserve") == true
             },
         )
         assertEquals(
             "a strength goal reaches the Why sheet's Rule line of the Log's Next card",
-            "Rule: Had more in you — add weight · strength bias keeps reps before big jumps",
+            "Rule: Had more in you — add weight · strength goal holds two reps in reserve",
             strength.ruleLine(),
         )
     }

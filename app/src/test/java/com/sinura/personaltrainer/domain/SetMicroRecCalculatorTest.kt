@@ -110,7 +110,7 @@ class SetMicroRecCalculatorTest {
         )
         assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
         assertEquals(12.5, rec.nextWeightKg, 0.0001)
-        assertEquals(8, rec.nextReps)
+        assertEquals(10, rec.nextReps)
     }
 
     @Test
