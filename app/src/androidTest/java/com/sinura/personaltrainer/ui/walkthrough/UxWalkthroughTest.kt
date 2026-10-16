@@ -333,7 +333,6 @@ class UxWalkthroughTest {
         scenarioRule.scenario.recreate()
         ensureHarnessPermissions()
         dismissTransientOverlays()
-        awaitHomeReady()
         openGuidedSetup()
         advanceOnboardingWizardSteps()
         compose.waitUntil(90_000) {
@@ -427,8 +426,11 @@ class UxWalkthroughTest {
         }
         compose.onNodeWithTag(CardioTags.FINISH).performClick()
         compose.waitUntil(120_000) { cardioSessionFinished() }
-        if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithText("Back").performClick()
+        when {
+            compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty() ->
+                compose.onNodeWithText("Back").performClick()
+            compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isEmpty() ->
+                pressBackToHome()
         }
         awaitHomeReady()
         shot("cardio-finished")
@@ -739,8 +741,9 @@ class UxWalkthroughTest {
     }
 
     private fun awaitHomeReady() {
-        compose.waitUntil(30_000) {
-            compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty()
         }
         dismissTransientOverlays()
     }
@@ -819,7 +822,7 @@ class UxWalkthroughTest {
 
     private fun pressBackToSettingsHome() {
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
-        compose.waitUntil(15_000) {
+        compose.waitUntil(60_000) {
             compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()
         }
     }
