@@ -5670,6 +5670,14 @@
         "independent": "APPROVE. Zero Critical, High, Medium, or Low. debugLiveCode moves from 127 to 128. The gym-floor version code stays 1. No tag, debug-live branch, or APK upload is in the commit.",
         "adversarial": "APPROVE. Zero Critical, High, Medium, or Low. The roadmap says this packet does not publish the phone build."
       },
+      "f510b3bd": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint T1 RPE-to-load math (P-2)",
+        "gate": "First full JDK 17 run on 7b4b3930: testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest, BUILD SUCCESSFUL in 15m 28s. Second run failed on stale strength-goal copy in two render tests; fixed on c1f12d96. Final --rerun-tasks run: BUILD SUCCESSFUL in 13m 10s, 4788 tests, 0 failures.",
+        "independent": "BLOCK then APPROVE after fix. High: NextSetInputs did not pass coachPrefs (fixed). Medium: Why sheet basis and added-weight skip (fixed). Goal-based target RIR retained per owner 2026-10-16 decision.",
+        "adversarial": "BLOCK then partial fix. Added-weight e1RM skip applied. ADR-025 tension noted; owner-approved goal RIR threshold wired through coachPrefs on Log and rest Next lines.",
+        "cleanContext": "Subagent reviews on branch before merge; fixes in 7b4b3930 and c1f12d96. Squash-merged as f510b3bd. PR https://github.com/sinura7/PersonalTrainer/pull/531."
+      },
       "251dc30b": {
         "when": "2026-10-16",
         "packet": "P20 phone checklist",
