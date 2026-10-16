@@ -4,6 +4,11 @@
 # so the Gradle invocation must live in this file, not as continued shell lines.
 set -eu
 
+PACKAGE=com.sinura.personaltrainer.debug
+adb shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS 2>/dev/null || true
+adb shell cmd appops set "$PACKAGE" SCHEDULE_EXACT_ALARM allow 2>/dev/null || true
+adb shell dumpsys deviceidle whitelist +"$PACKAGE" 2>/dev/null || true
+
 gradle_status=0
 ./gradlew connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.sinura.personaltrainer.ui.walkthrough.UxWalkthroughTest \
@@ -19,4 +24,11 @@ if adb shell 'ls /sdcard/Download/ux-walkthrough-*.png 2>/dev/null'; then
   done
 fi
 echo "UX_WALKTHROUGH_PNG_COUNT=$(find ux-walkthrough -name '*.png' 2>/dev/null | wc -l | tr -d ' ')"
+if [ "$gradle_status" -ne 0 ]; then
+  mkdir -p app/build/reports/androidTests
+  adb logcat -d > app/build/reports/androidTests/logcat.txt 2>/dev/null || true
+  echo '::group::logcat (last 200 lines)'
+  tail -n 200 app/build/reports/androidTests/logcat.txt 2>/dev/null || true
+  echo '::endgroup::'
+fi
 exit "$gradle_status"

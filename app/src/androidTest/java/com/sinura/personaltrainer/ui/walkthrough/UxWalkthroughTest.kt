@@ -129,10 +129,7 @@ class UxWalkthroughTest {
 
     @Test
     fun captureProductWalkthrough() {
-        runFlow("01-cold-start-intro") {
-            flowColdStartIntro()
-            ensureEnvironmentPrepared()
-        }
+        runFlow("01-cold-start-intro") { flowColdStartIntro() }
         runFlow("02-onboarding-preview-accept") { flowOnboardingAcceptPlan() }
         runFlow("03-main-tabs") { flowMainTabs() }
         runFlow("04-live-strength") { flowLiveStrengthWorkout() }
@@ -173,6 +170,15 @@ class UxWalkthroughTest {
             shot("cold-start-already-advanced")
             app.markColdStartIntroShown()
         }
+        ensureEnvironmentPrepared()
+        runBlocking(Dispatchers.IO) {
+            container.preferencesRepository.setLaunchPermissionsAsked(true)
+            container.preferencesRepository.markRestAlertsAsked()
+            container.preferencesRepository.markRestBatteryHintShown()
+            container.preferencesRepository.setSavePosture(SavePosture.LOCAL)
+        }
+        scenarioRule.scenario.recreate()
+        dismissBlockingUi()
         awaitHomeReady()
     }
 
@@ -561,10 +567,16 @@ class UxWalkthroughTest {
     }
 
     private fun dismissTransientOverlays() {
-        repeat(3) {
+        dismissBlockingUi()
+    }
+
+    private fun dismissBlockingUi() {
+        repeat(5) {
             compose.waitForIdle()
-            if (compose.onAllNodesWithText("Not now").fetchSemanticsNodes().isNotEmpty()) {
-                compose.onNodeWithText("Not now").performClick()
+            listOf("Not now", "Wait", "Close", "OK", "Dismiss").forEach { label ->
+                if (compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()) {
+                    runCatching { compose.onNodeWithText(label).performClick() }
+                }
             }
             if (compose.onAllNodesWithText(ColdStartIntroCopy.SKIP).fetchSemanticsNodes().isNotEmpty() &&
                 compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isNotEmpty()
