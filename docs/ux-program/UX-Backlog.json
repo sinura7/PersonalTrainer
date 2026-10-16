@@ -5684,7 +5684,23 @@
         "gate": "Two consecutive full --rerun-tasks runs on a0651ce6 with --no-daemon, org.gradle.parallel=false, workers.max=2, kotlin in-process, GRADLE_OPTS -Xmx3072m: BUILD SUCCESSFUL in 13m 54s and 13m 57s (p3-gate-safe5.log, p3-gate-safe6.log). testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest each run; 4791 tests, 0 failures.",
         "independent": "APPROVE after fixes. Zero Critical/High. Medium items addressed: running source frozen on RestTimerSnapshot; floorFor no longer reseeds planned rest on lighter-week redraw; hold-load uses CLIMB_REPS when weight held; dock running caption uses compactBeside.",
         "adversarial": "APPROVE after fixes. Prior BLOCK (wrong running source, floorFor drift, card wrap, IN_TANK copy on hold) closed on bcefd2c8 and a0651ce6.",
-        "cleanContext": "PR https://github.com/sinura7/PersonalTrainer/pull/532. Includes P-2 follow-up light dumbbell hold guard and Why copy."
+        "cleanContext": "PR https://github.com/sinura7/PersonalTrainer/pull/532. Squash-merged to trunk as a26d95481f80d49628b4fae03b039f7428f98c31. Includes P-2 follow-up light dumbbell hold guard and Why copy."
+      },
+      "a26d9548": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint T2 honest rest source (P-3) merge head",
+        "gate": "Same as a0651ce6 entry; merge commit on trunk after two consecutive safe full gates on branch tip 2cf40867.",
+        "independent": "APPROVE (carried from branch review).",
+        "adversarial": "APPROVE (carried from branch review).",
+        "cleanContext": "Squash merge of cursor/rest-source-honest-ae41."
+      },
+      "95d18cb7": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint P-4 history readiness (ledger-only, no app gap)",
+        "gate": "Ledger tip 146ef2cd. First clean --rerun-tasks run lost one test (FloorWorkClocksCharacterisationTest flake); immediate retry then two consecutive full safe gates (p4-gate-safe1-retry.log, p4-gate-safe2.log) each BUILD SUCCESSFUL ~14m: testDebugUnitTest 4791 tests 0 failures, assembleDebug, lintDebug, assembleDebugAndroidTest.",
+        "independent": "APPROVE. Zero Critical/High. Code and tests already gate History on real readiness: HistoryScreen.kt:180-182 shows ScreenLoading until navigationReady and selection match; empty-period EmptyState only in the loaded branch (268-274), never while loading. HistoryViewModel.kt:438-469 keeps progressLoading until horizon read matches request key; unavailable uses retry EmptyState not fake empty (425-436). Evidence tests: HistoryPeriodRenderTest.scrollabilityDoesNotMeanTheRequiredHistoryReadIsReady (144-168) — scrollable list while required read held, no CURRENT row; heldAndFailedProgressNeverLooksLikeSuccessfulZero (172+); HistoryPeriodViewModelTest awaits !isLoading && !progressLoading before totals; HistoryPeriodRestorationTest periodNavigationReady. No product change warranted.",
+        "adversarial": "APPROVE. Zero Critical/High. Ledger-only packet; independent review confirms no false-empty path found.",
+        "cleanContext": "Branch cursor/history-readiness-ae41. Evidence paths are app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt, HistoryViewModel.kt, app/src/test/java/com/sinura/personaltrainer/ui/history/HistoryPeriodRenderTest.kt."
       },
       "251dc30b": {
         "when": "2026-10-16",
