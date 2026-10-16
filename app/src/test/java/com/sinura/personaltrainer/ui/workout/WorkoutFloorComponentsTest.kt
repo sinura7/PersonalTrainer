@@ -476,6 +476,7 @@ class WorkoutFloorComponentsTest {
             RestTimerCard(
                 remainingSeconds = 92,
                 totalSeconds = 120,
+                restSourceTag = "Default",
                 running = true,
                 completedTimerId = null,
                 afterWarmup = false,
@@ -491,7 +492,7 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
         compose.onNodeWithText("REST").assertIsDisplayed()
         compose.onNodeWithText("1:32").assertIsDisplayed()
-        compose.onNodeWithText("Planned 2:00").assertIsDisplayed()
+        compose.onNodeWithText("Default 2:00").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.REST_MINUS).performClick()
         assertEquals(-15, nudged)
         compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).performClick()
@@ -508,6 +509,7 @@ class WorkoutFloorComponentsTest {
             RestTimerCard(
                 remainingSeconds = 0,
                 totalSeconds = 120,
+                restSourceTag = "Default",
                 running = false,
                 completedTimerId = null,
                 afterWarmup = false,
@@ -522,12 +524,12 @@ class WorkoutFloorComponentsTest {
         }
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertExists()
         compose.onNodeWithText("2:00").assertIsDisplayed()
-        compose.onNodeWithText("Planned").assertIsDisplayed()
+        compose.onNodeWithText("Default").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.START_SET_CLOCK).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
         assertEquals(1, started)
-        compose.onNodeWithContentDescription("Rest is not running. Planned rest 2:00. Tap to change duration.").performClick()
+        compose.onNodeWithContentDescription("Rest is not running. Default · 2:00. Tap to change duration.").performClick()
         assertEquals(1, edits)
     }
 }

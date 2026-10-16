@@ -217,7 +217,9 @@ object TempoWhySheetCopy {
             val lastRpe = trace.facts.firstOrNull { it.name == "lastRpe" }?.value?.toIntOrNull()
             val lastWeight = trace.facts.firstOrNull { it.name == "lastWeightKg" }?.value?.toDoubleOrNull()
             val lastReps = trace.facts.firstOrNull { it.name == "lastReps" }?.value?.toIntOrNull()
-            if (lastRpe != null && lastWeight != null && lastReps != null && rec.nextWeightKg > lastWeight) {
+            if (lastRpe != null && lastWeight != null && lastReps != null) {
+                val mathNote = trace.facts.firstOrNull { it.name == "loadMathNote" }?.value
+                val formulaReps = trace.facts.firstOrNull { it.name == "nextReps" }?.value?.toIntOrNull()
                 val line = RpeLoadModel.oneLineMath(
                     lastWeightKg = lastWeight,
                     lastReps = lastReps,
@@ -225,6 +227,8 @@ object TempoWhySheetCopy {
                     nextWeightKg = rec.nextWeightKg,
                     nextReps = rec.nextReps,
                     unit = unit,
+                    mathNote = mathNote,
+                    formulaReps = formulaReps,
                 )
                 if (line.isNotBlank()) {
                     add(DecisionRow(LABEL_LOAD_MATH, line))

@@ -177,7 +177,7 @@ class RestPageFollowsSettingsTest {
         awaitRestRunning()
         log.skipRest()
         val page = createPage(fixture.session.id)
-        page.awaitPage("the page planning the coach's 2:00 with no rest running") {
+        page.awaitPage("the page planning Tempo's 2:00 with no rest running") {
             it.loadState == SessionLoadState.FOUND && it.floor.exerciseName == "Squat" &&
                 !it.rest.running && it.rest.totalSeconds == 120
         }

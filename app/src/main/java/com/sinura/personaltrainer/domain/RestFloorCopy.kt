@@ -21,6 +21,7 @@ object RestFloorCopy {
         unit: WeightUnit,
         nextLine: String? = null,
         prescribedSeconds: Int? = null,
+        prescribedPlan: RestPlan? = null,
     ): RestFloorContext {
         if (session == null) {
             return RestFloorContext(
@@ -49,11 +50,15 @@ object RestFloorCopy {
             },
             sessionTargetLine = nextLine,
             afterWarmup = last?.isWarmup == true,
-            prescribedRestLine = prescribedSeconds?.let { prescribedLine(it) },
+            prescribedRestLine = prescribedPlan?.let { prescribedLine(it) }
+                ?: prescribedSeconds?.let { prescribedLine(it) },
         )
     }
 
     fun prescribedLine(seconds: Int): String = RestIdleCopy.planned(RestTimer.formatClock(seconds))
+
+    fun prescribedLine(plan: RestPlan): String =
+        plan.plannedLabel(RestTimer.formatClock(plan.seconds))
 
     /**
      * A hold reads as its time, "Last set · 30s". Without the duration a plank read "Last set ·

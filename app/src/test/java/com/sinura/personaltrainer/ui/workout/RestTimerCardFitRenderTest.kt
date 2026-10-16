@@ -50,6 +50,7 @@ class RestTimerCardFitRenderTest {
                 RestTimerCard(
                     remainingSeconds = 92,
                     totalSeconds = 120,
+                    restSourceTag = "Default",
                     running = running.value,
                     completedTimerId = null,
                     afterWarmup = false,
@@ -84,14 +85,14 @@ class RestTimerCardFitRenderTest {
         showCard()
         assertWholeOnOneLine("REST")
         assertWholeOnOneLine("2:00")
-        assertWholeOnOneLine("Planned")
+        assertWholeOnOneLine("Default")
         assertBesideTheClock(cardTag = WorkoutTestTags.REST_IDLE, clock = "2:00", controlTag = WorkoutTestTags.START_SET_CLOCK)
         val idle = compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).getBoundsInRoot().height
         running.value = true
         compose.waitForIdle()
         assertWholeOnOneLine("REST")
         assertWholeOnOneLine("1:32")
-        assertWholeOnOneLine("Planned 2:00")
+        assertWholeOnOneLine("Default 2:00")
         assertBesideTheClock(cardTag = WorkoutTestTags.REST_BAR, clock = "1:32", controlTag = WorkoutTestTags.REST_MINUS)
         assertEquals(idle, compose.onNodeWithTag(WorkoutTestTags.REST_BAR).getBoundsInRoot().height)
     }

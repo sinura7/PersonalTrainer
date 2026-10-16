@@ -7,9 +7,16 @@ import kotlin.math.floor
  *
  * e1RM = w × (1 + (reps + RIR) / 30), RIR = 10 − RPE. Reps at a new weight reserve
  * [targetRir] below capacity. Reps never rise above the last set; a heavier load always
- * lowers reps when the formula would not.
+ * lowers reps when the formula would not. A full plate step that would drop more than
+ * two reps holds the load instead (light dumbbell jumps).
  */
 object RpeLoadModel {
+    const val MAX_REP_DROP_FOR_WEIGHT_STEP = 2
+
+    const val MATH_NOTE_FORMULA = "formula"
+    const val MATH_NOTE_CAP = "cap"
+    const val MATH_NOTE_HOLD_LOAD = "hold_load"
+
     fun repsInReserve(rpe: Int): Int = (10 - rpe).coerceAtLeast(0)
 
     fun estimatedMaxKg(weightKg: Double, reps: Int, rpe: Int): Double? {
@@ -28,26 +35,75 @@ object RpeLoadModel {
         return floor(capacity).toInt().coerceAtLeast(0) - targetRir.coerceAtLeast(0)
     }
 
-    /**
-     * Reps for [nextWeightKg] after a load increase from the last working set.
-     */
+    data class WeightIncreaseSuggestion(
+        val nextWeightKg: Double,
+        val nextReps: Int,
+        val mathNote: String,
+        val formulaReps: Int?,
+    )
+
+    fun suggestAfterWeightIncrease(
+        lastWeightKg: Double,
+        lastReps: Int,
+        lastRpe: Int,
+        proposedNextWeightKg: Double,
+        targetRir: Int,
+    ): WeightIncreaseSuggestion {
+        if (proposedNextWeightKg <= lastWeightKg) {
+            return WeightIncreaseSuggestion(
+                nextWeightKg = lastWeightKg,
+                nextReps = lastReps.coerceAtLeast(1),
+                mathNote = MATH_NOTE_FORMULA,
+                formulaReps = lastReps,
+            )
+        }
+        val e1rm = estimatedMaxKg(lastWeightKg, lastReps, lastRpe)
+            ?: return WeightIncreaseSuggestion(
+                nextWeightKg = proposedNextWeightKg,
+                nextReps = lastReps.coerceAtLeast(1),
+                mathNote = MATH_NOTE_FORMULA,
+                formulaReps = null,
+            )
+        val formulaReps = repsAtWeightKg(proposedNextWeightKg, e1rm, targetRir).coerceAtLeast(1)
+        val stepRatio = proposedNextWeightKg / lastWeightKg
+        if (
+            stepRatio > 1.2 &&
+            lastReps - formulaReps > MAX_REP_DROP_FOR_WEIGHT_STEP
+        ) {
+            return WeightIncreaseSuggestion(
+                nextWeightKg = lastWeightKg,
+                nextReps = lastReps.coerceAtLeast(1),
+                mathNote = MATH_NOTE_HOLD_LOAD,
+                formulaReps = formulaReps,
+            )
+        }
+        var nextReps = formulaReps.coerceAtMost(lastReps)
+        var mathNote = MATH_NOTE_FORMULA
+        if (nextReps >= lastReps) {
+            nextReps = (lastReps - 1).coerceAtLeast(1)
+            mathNote = MATH_NOTE_CAP
+        }
+        return WeightIncreaseSuggestion(
+            nextWeightKg = proposedNextWeightKg,
+            nextReps = nextReps,
+            mathNote = mathNote,
+            formulaReps = formulaReps,
+        )
+    }
+
     fun repsAfterWeightIncrease(
         lastWeightKg: Double,
         lastReps: Int,
         lastRpe: Int,
         nextWeightKg: Double,
         targetRir: Int,
-    ): Int {
-        if (nextWeightKg <= lastWeightKg) return lastReps.coerceAtLeast(1)
-        val e1rm = estimatedMaxKg(lastWeightKg, lastReps, lastRpe) ?: return lastReps.coerceAtLeast(1)
-        val computed = repsAtWeightKg(nextWeightKg, e1rm, targetRir)
-        val capped = computed.coerceAtMost(lastReps)
-        return if (capped >= lastReps) {
-            (lastReps - 1).coerceAtLeast(1)
-        } else {
-            capped.coerceAtLeast(1)
-        }
-    }
+    ): Int = suggestAfterWeightIncrease(
+        lastWeightKg = lastWeightKg,
+        lastReps = lastReps,
+        lastRpe = lastRpe,
+        proposedNextWeightKg = nextWeightKg,
+        targetRir = targetRir,
+    ).nextReps
 
     fun oneLineMath(
         lastWeightKg: Double,
@@ -56,12 +112,28 @@ object RpeLoadModel {
         nextWeightKg: Double,
         nextReps: Int,
         unit: WeightUnit,
+        mathNote: String? = null,
+        formulaReps: Int? = null,
     ): String {
         val e1rm = estimatedMaxKg(lastWeightKg, lastReps, lastRpe) ?: return ""
         val lastDisplay = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(lastWeightKg, unit))
         val nextDisplay = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(nextWeightKg, unit))
         val e1rmDisplay = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(e1rm, unit))
-        return "From $lastDisplay×$lastReps @ RPE $lastRpe → e1RM ≈ $e1rmDisplay → $nextDisplay×$nextReps"
+        val base = "From $lastDisplay×$lastReps @ RPE $lastRpe → e1RM ≈ $e1rmDisplay → $nextDisplay×$nextReps"
+        return when (mathNote) {
+            MATH_NOTE_CAP ->
+                "$base · Reps capped so a heavier load always lowers reps"
+            MATH_NOTE_HOLD_LOAD -> buildString {
+                append(base)
+                append(" · Load held; a full step would drop more than $MAX_REP_DROP_FOR_WEIGHT_STEP reps")
+                formulaReps?.let { raw ->
+                    if (raw != nextReps) {
+                        append(" (formula had $raw)")
+                    }
+                }
+            }
+            else -> base
+        }
     }
 }
 

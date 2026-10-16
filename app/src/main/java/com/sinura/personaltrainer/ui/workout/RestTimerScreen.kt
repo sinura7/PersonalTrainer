@@ -210,7 +210,9 @@ internal fun RestFloorBody(
                             remainingSeconds = if (rest.running) safeRemaining else 0,
                             totalSeconds = rest.totalSeconds, accent = accent, clock = clock,
                             kicker = label, running = rest.running || completed, finished = completed,
-                            afterWarmup = floor.afterWarmup, ringSize = ringSize,
+                            afterWarmup = floor.afterWarmup,
+                            restSourceTag = rest.restSourceTag,
+                            ringSize = ringSize,
                             modifier = Modifier.testTag(RestFloorTags.RING), clockTestTag = RestFloorTags.CLOCK,
                         )
                     } else Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -227,10 +229,12 @@ internal fun RestFloorBody(
                         Text(it, modifier = Modifier.testTag(RestFloorTags.NEXT), style = InstrumentType.body, color = TextSecondary)
                     }
                     val plannedClock = RestTimer.formatClock(rest.totalSeconds)
+                    val plannedLine = RestIdleCopy.plannedWithSource(rest.restSourceTag, plannedClock)
                     Text(
-                        RestIdleCopy.planned(plannedClock),
-                        // Read without the dot.
-                        modifier = Modifier.semantics { contentDescription = RestIdleCopy.plannedSpoken(plannedClock) },
+                        plannedLine,
+                        modifier = Modifier.semantics {
+                            contentDescription = plannedLine.replace(" · ", " ")
+                        },
                         style = InstrumentType.body,
                         color = TextSecondary,
                     )

@@ -154,7 +154,8 @@ internal class NoServiceRestTimer : RestTimerGateway {
     override val lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.FAILED)
     override val exactAlarmAttempt = MutableStateFlow(ExactAlarmAttempt.BEST_EFFORT)
     override val lastCompletedTimerId = MutableStateFlow<String?>(null)
-    override fun start(totalSeconds: Int, sessionId: String?) = error("This notes/coach fixture must not start rest")
+    override fun start(totalSeconds: Int, sessionId: String?, sourceTag: String) =
+        error("This notes/coach fixture must not start rest")
     override fun adjust(deltaSeconds: Int) = error("This notes/coach fixture must not adjust rest")
     override fun stop(fromService: Boolean) { snapshot.value = RestTimerSnapshot() }
     override fun skipIfShown(timerId: String, fromService: Boolean) = false

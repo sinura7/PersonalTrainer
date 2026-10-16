@@ -56,7 +56,7 @@ class RestIdlePresentationTest {
     @Test
     fun talkBackIdleClockAndStartMatchTheInstrument() {
         assertEquals(
-            "Rest is not running. Planned rest 2:30. Tap to change duration.",
+            "Rest is not running. Default · 2:30. Tap to change duration.",
             RestIdleCopy.dockSpoken(clock = "2:30", afterWarmup = false),
         )
         assertEquals(

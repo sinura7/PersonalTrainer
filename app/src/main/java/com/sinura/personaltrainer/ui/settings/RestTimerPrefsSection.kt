@@ -48,8 +48,8 @@ internal fun RestTimerPrefsSection(
     SettingsGroup(
         title = "",
         caption = "The cue plays when rest ends. Play complete cue to hear it now. " +
-            "The last five seconds tick while the phone is awake. Default rest is used " +
-            "after a working set if the lift has none and you haven't picked a preset.",
+            "The last five seconds tick while the phone is awake. Default rest is used when " +
+            "Tempo and the routine have none and you have not picked a preset on this phone.",
     ) {
         if (offerExactAlarmAccess) {
             GymNoticeBanner(

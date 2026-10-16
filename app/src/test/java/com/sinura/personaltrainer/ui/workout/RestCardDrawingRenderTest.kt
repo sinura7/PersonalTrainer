@@ -254,6 +254,7 @@ class RestCardDrawingRenderTest {
                 RestTimerCard(
                     remainingSeconds = remaining,
                     totalSeconds = total,
+                    restSourceTag = "Default",
                     running = running,
                     completedTimerId = null,
                     afterWarmup = false,

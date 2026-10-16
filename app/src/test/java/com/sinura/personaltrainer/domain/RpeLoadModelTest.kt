@@ -46,18 +46,50 @@ class RpeLoadModelTest {
             val lastRpe = random.nextInt(6, 9)
             val step = 2.5
             val nextWeight = lastWeight + step
-            val nextReps = RpeLoadModel.repsAfterWeightIncrease(
+            val suggestion = RpeLoadModel.suggestAfterWeightIncrease(
                 lastWeightKg = WeightConverter.toKg(lastWeight, WeightUnit.LBS),
                 lastReps = lastReps,
                 lastRpe = lastRpe,
-                nextWeightKg = WeightConverter.toKg(nextWeight, WeightUnit.LBS),
+                proposedNextWeightKg = WeightConverter.toKg(nextWeight, WeightUnit.LBS),
                 targetRir = 1,
             )
-            assertTrue(
-                "w=$lastWeight r=$lastReps @ $lastRpe -> $nextWeight x $nextReps",
-                nextReps < lastReps,
-            )
+            if (suggestion.nextWeightKg > WeightConverter.toKg(lastWeight, WeightUnit.LBS)) {
+                assertTrue(
+                    "w=$lastWeight r=$lastReps @ $lastRpe -> ${suggestion.nextReps}",
+                    suggestion.nextReps < lastReps,
+                )
+            }
         }
+    }
+
+    @Test
+    fun lightDumbbellJumpHoldsLoadWhenRepsWouldCollapse() {
+        val lastKg = WeightConverter.toKg(2.5, WeightUnit.KG)
+        val nextKg = WeightConverter.toKg(4.5, WeightUnit.KG)
+        val suggestion = RpeLoadModel.suggestAfterWeightIncrease(
+            lastWeightKg = lastKg,
+            lastReps = 12,
+            lastRpe = 6,
+            proposedNextWeightKg = nextKg,
+            targetRir = 1,
+        )
+        assertEquals(RpeLoadModel.MATH_NOTE_HOLD_LOAD, suggestion.mathNote)
+        assertEquals(lastKg, suggestion.nextWeightKg, 0.0001)
+        assertEquals(12, suggestion.nextReps)
+    }
+
+    @Test
+    fun capNoteExplainsForcedRepDrop() {
+        val line = RpeLoadModel.oneLineMath(
+            lastWeightKg = 100.0,
+            lastReps = 5,
+            lastRpe = 6,
+            nextWeightKg = 102.5,
+            nextReps = 4,
+            unit = WeightUnit.KG,
+            mathNote = RpeLoadModel.MATH_NOTE_CAP,
+        )
+        assertTrue(line.contains("capped"))
     }
 
     private fun assertGolden(
@@ -71,13 +103,14 @@ class RpeLoadModelTest {
     ) {
         val lastKg = WeightConverter.toKg(lastWeightLb, WeightUnit.LBS)
         val nextKg = WeightConverter.toKg(expectedWeightLb, WeightUnit.LBS)
-        val reps = RpeLoadModel.repsAfterWeightIncrease(
+        val suggestion = RpeLoadModel.suggestAfterWeightIncrease(
             lastWeightKg = lastKg,
             lastReps = lastReps,
             lastRpe = lastRpe,
-            nextWeightKg = nextKg,
+            proposedNextWeightKg = nextKg,
             targetRir = targetRir,
         )
-        assertEquals(expectedReps, reps)
+        assertEquals(expectedWeightLb, WeightConverter.toDisplayValue(suggestion.nextWeightKg, WeightUnit.LBS), 0.01)
+        assertEquals(expectedReps, suggestion.nextReps)
     }
 }

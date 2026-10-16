@@ -34,29 +34,48 @@ object RestIdleCopy {
     /** `Planned rest · 1:30`, the rest page's line under the lift. */
     fun planned(clock: String): String = "$PLANNED_REST · $clock"
 
+    /** `Tempo · heavy set · 2:30` — source and clock, idle and running. */
+    fun plannedWithSource(sourceTag: String, clock: String): String = "$sourceTag · $clock"
+
     /** `Planned 1:30`, under the dock card's running clock. */
     fun plannedBeside(clock: String): String = "$PLANNED $clock"
+
+    /** `Tempo 2:00` — short dock caption while rest runs (D11, narrow column). */
+    fun compactBeside(sourceTag: String, clock: String): String =
+        "${sourceTag.substringBefore(" · ")} $clock"
 
     /** `Planned rest 1:30`, the same words for TalkBack, which reads the dot aloud. */
     fun plannedSpoken(clock: String): String = "$PLANNED_REST $clock"
 
     fun afterWarmupHint(): String = "Warm-ups do not start rest"
 
-    fun spoken(clock: String, afterWarmup: Boolean): String =
-        if (afterWarmup) {
-            "Rest is not running. Warm-ups do not start rest. ${plannedSpoken(clock)}. " +
-                "Start starts rest only."
+    fun spoken(clock: String, afterWarmup: Boolean, sourceTag: String = PLANNED_REST): String {
+        val plan = plannedWithSource(sourceTag, clock).replace(" · ", " ")
+        return if (afterWarmup) {
+            "Rest is not running. Warm-ups do not start rest. $plan. Start starts rest only."
         } else {
-            "Rest is not running. ${plannedSpoken(clock)}. Start starts rest only."
+            "Rest is not running. $plan. Start starts rest only."
         }
+    }
 
     fun dockSpoken(clock: String, afterWarmup: Boolean): String =
-        if (afterWarmup) {
-            "Rest is not running. Warm-ups do not start rest. ${plannedSpoken(clock)}. " +
-                CHANGE_DURATION
+        dockSpokenWithSource(
+            RestPlan(
+                seconds = RestTimerPreferences.DEFAULT_SECONDS,
+                source = RestPlanSource.DEFAULT,
+            ).sourceTag(),
+            clock,
+            afterWarmup,
+        )
+
+    fun dockSpokenWithSource(sourceTag: String, clock: String, afterWarmup: Boolean): String {
+        val plan = plannedWithSource(sourceTag, clock)
+        return if (afterWarmup) {
+            "Rest is not running. Warm-ups do not start rest. $plan. $CHANGE_DURATION"
         } else {
-            "Rest is not running. ${plannedSpoken(clock)}. $CHANGE_DURATION"
+            "Rest is not running. $plan. $CHANGE_DURATION"
         }
+    }
 
     fun startSpoken(totalSeconds: Int): String =
         "Start rest, ${spokenAmount(totalSeconds.coerceAtLeast(0))}"

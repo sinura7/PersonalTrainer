@@ -131,9 +131,9 @@ class RestTimerController(
         snap.sessionId.takeIf { snap.running }
     }.distinctUntilChanged()
 
-    override fun start(totalSeconds: Int, sessionId: String?) {
+    override fun start(totalSeconds: Int, sessionId: String?, sourceTag: String) {
         _lastCompletedTimerId.value = null
-        store.start(totalSeconds, sessionId, SystemClock.elapsedRealtime())
+        store.start(totalSeconds, sessionId, SystemClock.elapsedRealtime(), sourceTag = sourceTag)
         persistThenArm(syncService = true)
     }
 

@@ -126,8 +126,8 @@ class RestPagesRenderTest {
     fun theRestPageRunsTheDockCardsThreeBesideThePlannedLength() {
         showRestPage(running = true)
         assertTheRunningThree(minusTag = RestFloorTags.MINUS, plusTag = RestFloorTags.PLUS, skipTag = RestFloorTags.SKIP)
-        val planned = compose.onNode(hasText("Planned rest · 2:00"), useUnmergedTree = true).assertIsDisplayed()
-        assertEquals(listOf("Planned rest 2:00"), planned.spokenDescriptions())
+        val planned = compose.onNode(hasText("Default · 2:00"), useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(listOf("Default 2:00"), planned.spokenDescriptions())
         compose.onAllNodesWithText("−15s", useUnmergedTree = true).assertCountEquals(0)
         compose.onAllNodesWithText("+15s", useUnmergedTree = true).assertCountEquals(0)
     }
@@ -147,9 +147,9 @@ class RestPagesRenderTest {
     fun atRestThePageNamesThePlannedRestAndOffersStartRest() {
         showRestPage(running = false)
         compose.onNode(hasText("PLANNED REST"), useUnmergedTree = true).assertIsDisplayed()
-        compose.onNode(hasText("Planned rest · 2:00"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(hasText("Default · 2:00"), useUnmergedTree = true).assertIsDisplayed()
         assertEquals(
-            listOf("Rest is not running. Planned rest 2:00. Start starts rest only."),
+            listOf("Rest is not running. Default 2:00. Start starts rest only."),
             compose.onNodeWithTag(RestFloorTags.CLOCK, useUnmergedTree = true).spokenDescriptions(),
         )
         compose.onNodeWithTag(RestFloorTags.MINUS).assertDoesNotExist()

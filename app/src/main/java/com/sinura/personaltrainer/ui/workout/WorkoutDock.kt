@@ -45,6 +45,7 @@ internal data class WorkoutDockTimer(
     val show: Boolean,
     val restRemainingSeconds: Int = 0,
     val restTotalSeconds: Int = 0,
+    val restSourceTag: String = "Default",
     val restRunning: Boolean = false,
     val restCompletedTimerId: String? = null,
     val hideIdleRest: Boolean = false,
@@ -209,6 +210,7 @@ internal fun WorkoutDock(
             -> RestTimerCard(
                 remainingSeconds = timer.restRemainingSeconds,
                 totalSeconds = timer.restTotalSeconds,
+                restSourceTag = timer.restSourceTag,
                 running = timer.restRunning,
                 completedTimerId = timer.restCompletedTimerId,
                 afterWarmup = timer.afterWarmup,

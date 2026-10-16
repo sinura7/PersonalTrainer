@@ -590,6 +590,7 @@ private fun ActiveWorkoutContent(
                                     show = showRest,
                                     restRemainingSeconds = rest.remainingSeconds,
                                     restTotalSeconds = rest.totalSeconds,
+                                    restSourceTag = rest.restSourceTag,
                                     restRunning = rest.running,
                                     restCompletedTimerId = rest.completedTimerId,
                                     hideIdleRest = LandscapeChrome.hideIdleRest(landscape),
