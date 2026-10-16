@@ -5684,7 +5684,15 @@
         "gate": "Two consecutive full --rerun-tasks runs on a0651ce6 with --no-daemon, org.gradle.parallel=false, workers.max=2, kotlin in-process, GRADLE_OPTS -Xmx3072m: BUILD SUCCESSFUL in 13m 54s and 13m 57s (p3-gate-safe5.log, p3-gate-safe6.log). testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest each run; 4791 tests, 0 failures.",
         "independent": "APPROVE after fixes. Zero Critical/High. Medium items addressed: running source frozen on RestTimerSnapshot; floorFor no longer reseeds planned rest on lighter-week redraw; hold-load uses CLIMB_REPS when weight held; dock running caption uses compactBeside.",
         "adversarial": "APPROVE after fixes. Prior BLOCK (wrong running source, floorFor drift, card wrap, IN_TANK copy on hold) closed on bcefd2c8 and a0651ce6.",
-        "cleanContext": "PR https://github.com/sinura7/PersonalTrainer/pull/532. Includes P-2 follow-up light dumbbell hold guard and Why copy."
+        "cleanContext": "PR https://github.com/sinura7/PersonalTrainer/pull/532. Squash-merged to trunk as a26d95481f80d49628b4fae03b039f7428f98c31. Includes P-2 follow-up light dumbbell hold guard and Why copy."
+      },
+      "a26d9548": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint T2 honest rest source (P-3) merge head",
+        "gate": "Same as a0651ce6 entry; merge commit on trunk after two consecutive safe full gates on branch tip 2cf40867.",
+        "independent": "APPROVE (carried from branch review).",
+        "adversarial": "APPROVE (carried from branch review).",
+        "cleanContext": "Squash merge of cursor/rest-source-honest-ae41."
       },
       "251dc30b": {
         "when": "2026-10-16",
