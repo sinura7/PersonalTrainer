@@ -1,0 +1,611 @@
+package com.sinura.personaltrainer.ui.walkthrough
+
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.os.Build
+import android.os.SystemClock
+import android.view.KeyEvent
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextReplacement
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.rules.ActivityScenarioRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.sinura.personaltrainer.AppContainer
+import com.sinura.personaltrainer.MainActivity
+import com.sinura.personaltrainer.PersonalTrainerApp
+import com.sinura.personaltrainer.domain.ColdStartIntroCopy
+import com.sinura.personaltrainer.domain.CurrentLiftCopy
+import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.PlanSetupCopy
+import com.sinura.personaltrainer.domain.RestNudgeCopy
+import com.sinura.personaltrainer.domain.SavePosture
+import com.sinura.personaltrainer.domain.SettingsHomeCopy
+import com.sinura.personaltrainer.domain.TrainingAge
+import com.sinura.personaltrainer.domain.TrainingEmphasis
+import com.sinura.personaltrainer.domain.TrainingFocus
+import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.TrainingPlace
+import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.NativeArtifacts
+import com.sinura.personaltrainer.ui.activity.ComposerTags
+import com.sinura.personaltrainer.ui.activity.CardioTags
+import com.sinura.personaltrainer.ui.components.NumberEntryTags
+import com.sinura.personaltrainer.ui.home.HomeStartTags
+import com.sinura.personaltrainer.ui.home.HomeTags
+import com.sinura.personaltrainer.ui.intro.ColdStartIntroTags
+import com.sinura.personaltrainer.ui.onboarding.OnboardingTags
+import com.sinura.personaltrainer.ui.plan.PlanTags
+import com.sinura.personaltrainer.ui.progress.BodyTags
+import com.sinura.personaltrainer.ui.settings.SettingsTags
+import com.sinura.personaltrainer.ui.workout.NativeWorkoutFixtureEnvironment
+import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
+import com.sinura.personaltrainer.ui.workout.revealFloorControlAboveTempo
+import java.io.FileInputStream
+import java.util.UUID
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.After
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * Emulator-only UX walkthrough: numbered PNGs land in `/sdcard/Download/` via [NativeArtifacts].
+ * Each flow is isolated; failures capture a FAIL frame and the run continues.
+ */
+@RunWith(AndroidJUnit4::class)
+class UxWalkthroughTest {
+    private val environment = NativeWorkoutFixtureEnvironment(PREFIX)
+    private lateinit var container: AppContainer
+    private lateinit var app: PersonalTrainerApp
+    private var step = 1
+    private lateinit var walkthroughRoutineId: String
+    private lateinit var walkthroughRoutineName: String
+    private lateinit var primaryLift: Exercise
+    private lateinit var secondaryLift: Exercise
+
+    private val launchIntent = Intent(
+        ApplicationProvider.getApplicationContext(),
+        MainActivity::class.java,
+    )
+    private val scenarioRule = ActivityScenarioRule<MainActivity>(launchIntent)
+    private val compose = AndroidComposeTestRule(scenarioRule) { rule ->
+        lateinit var activity: MainActivity
+        rule.scenario.onActivity { activity = it }
+        activity
+    }
+
+    @get:Rule
+    val composeRule = compose
+
+    @Before
+    fun prepare() {
+        check(Build.HARDWARE in setOf("ranchu", "goldfish") && Build.FINGERPRINT.startsWith("Android/sdk_")) {
+            "UX walkthrough runs only on an SDK emulator."
+        }
+        app = ApplicationProvider.getApplicationContext()
+        container = app.container
+        environment.prepare(container)
+        dismissTransientOverlays()
+    }
+
+    @After
+    fun restore() {
+        runCatching {
+            runBlocking(Dispatchers.IO) { withTimeout(30_000) { cleanSyntheticData() } }
+        }
+        environment.restore()
+        shell("settings put system font_scale 1.0")
+    }
+
+    @Test
+    fun captureProductWalkthrough() {
+        runFlow("01-cold-start-intro") { flowColdStartIntro() }
+        runFlow("02-onboarding-preview-accept") { flowOnboardingAcceptPlan() }
+        runFlow("03-main-tabs") { flowMainTabs() }
+        runFlow("04-live-strength") { flowLiveStrengthWorkout() }
+        runFlow("05-live-cardio") { flowLiveCardio() }
+        runFlow("06-past-mixed-save") { flowPastMixedSave() }
+        runFlow("07-body-map-measurements") { flowBodyMapAndMeasurements() }
+        runFlow("08-settings-units-backup") { flowSettingsUnitsAndBackup() }
+        runFlow("09-font-scale-live-workout") { flowLargeFontLiveWorkout() }
+        shot("99-complete")
+        println("UX_WALKTHROUGH_STEPS=$step")
+    }
+
+    private fun runFlow(name: String, block: () -> Unit) {
+        try {
+            block()
+        } catch (failure: Throwable) {
+            println("UX_WALKTHROUGH_FLOW_FAIL $name ${failure.message}")
+            failure.printStackTrace()
+            shot("FAIL-$name")
+        }
+    }
+
+    private fun flowColdStartIntro() {
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("cold-start-intro")
+        compose.onNodeWithTag(ColdStartIntroTags.ROOT).performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isEmpty()
+        }
+        app.markColdStartIntroShown()
+        shot("cold-start-dismissed")
+        awaitHomeReady()
+    }
+
+    private fun flowOnboardingAcceptPlan() {
+        runBlocking(Dispatchers.IO) {
+            cleanSyntheticData()
+            container.preferencesRepository.setOnboardingComplete(false)
+            container.preferencesRepository.setLaunchPermissionsAsked(true)
+            container.preferencesRepository.setSavePosture(SavePosture.LOCAL)
+            container.preferencesRepository.markRestBatteryHintShown()
+            container.preferencesRepository.markRestAlertsAsked()
+        }
+        scenarioRule.scenario.recreate()
+        dismissTransientOverlays()
+        awaitHomeReady()
+        openGuidedSetup()
+        shot("onboarding-start")
+        clickLabel(TrainingFocus.STRENGTH.displayName)
+        clickLabel(TrainingAge.NEW.displayName)
+        clickLabel("3")
+        clickLabel("Continue")
+        clickLabel("Space them out for me")
+        clickLabel("Continue")
+        clickLabel(TrainingPlace.FULL_GYM.displayName)
+        clickLabel("Continue")
+        clickLabel(TrainingGoal.GENERAL.displayName)
+        clickLabel(TrainingEmphasis.BALANCED.displayName)
+        clickLabel("Skip this")
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithTag(OnboardingTags.USE_PLAN).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("onboarding-plan-preview")
+        compose.onNodeWithTag(OnboardingTags.USE_PLAN).performClick()
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithTag(OnboardingTags.USE_PLAN).fetchSemanticsNodes().isEmpty()
+        }
+        awaitHomeReady()
+        shot("onboarding-accepted-home")
+    }
+
+    private fun flowMainTabs() {
+        preparePopulatedApp()
+        val tabRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
+        for (label in listOf("Home", "Plan", "Body", "History", "Settings")) {
+            dismissTransientOverlays()
+            compose.onNode(hasText(label.uppercase()) and tabRole).performClick()
+            val loaded = when (label) {
+                "Home" -> hasText("TRAINED TODAY")
+                "Body" -> hasTestTag(BodyTags.MAP)
+                "Plan" -> hasTestTag(PlanTags.ADD_SESSION)
+                "History" -> hasTestTag("history-horizon-readout")
+                else -> hasTestTag(SettingsTags.HOME)
+            }
+            compose.waitUntil(30_000) {
+                compose.onAllNodes(loaded).fetchSemanticsNodes().isNotEmpty()
+            }
+            shot("tab-${label.lowercase()}")
+        }
+    }
+
+    private fun flowLiveStrengthWorkout() {
+        preparePopulatedApp()
+        seedWalkthroughRoutine()
+        awaitHomeReady()
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
+        compose.onNodeWithTag(HomeStartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("strength-live-entry")
+        repeat(3) { index ->
+            logWorkingSet(weightKg = 60.0 + index, reps = 5 + index, rpe = 7 + index)
+            shot("strength-set-${index + 1}-logged")
+            if (index < 2) {
+                skipRestIfVisible()
+                shot("strength-rest-after-set-${index + 1}")
+            }
+        }
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.TEMPO_COACH_CARD)
+        shot("strength-tempo-coach")
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_WHY)
+        if (compose.onAllNodesWithTag(WorkoutTestTags.MICRO_REC_WHY).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+            compose.waitUntil(15_000) {
+                compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).fetchSemanticsNodes().isNotEmpty()
+            }
+            shot("strength-tempo-why-sheet")
+            compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_KEEP).performClick()
+        }
+        if (compose.onAllNodesWithTag(WorkoutTestTags.ANOTHER_SET).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
+            shot("strength-add-another-set")
+        }
+        openSwapPicker()
+        shot("strength-swap-picker")
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
+        }
+        finishLiveWorkout()
+        shot("strength-finished-summary")
+    }
+
+    private fun flowLiveCardio() {
+        preparePopulatedApp()
+        awaitHomeReady()
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithTag(HomeStartTags.CARDIO).performScrollTo().performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag(HomeStartTags.CARDIO_PAGE).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("cardio-picker")
+        compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Run"))
+        compose.onNodeWithText("Run").performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("cardio-live")
+        compose.onNodeWithTag(CardioTags.FINISH).performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isEmpty()
+        }
+        awaitHomeReady()
+        shot("cardio-finished")
+    }
+
+    private fun flowPastMixedSave() {
+        preparePopulatedApp()
+        goToTab("history")
+        compose.onNodeWithTag("history-start-sheet").performClick()
+        clickLabel("Mixed session")
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("mixed-composer-open")
+        compose.onNodeWithTag("composer-title").performTextReplacement("UX walkthrough mixed")
+        scrollToTag(ComposerTags.CHOOSE_LIFT)
+        compose.onNodeWithTag(ComposerTags.CHOOSE_LIFT).performClick()
+        awaitPicker()
+        val query = hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search"))
+        compose.onNode(query).performTextReplacement("squat")
+        compose.onNode(query).performImeAction()
+        val result = hasText("Barbell Back Squat") and hasAnyAncestor(hasTestTag("picker-content"))
+        compose.onNodeWithTag("picker-content").performScrollToNode(result)
+        compose.onNode(result).performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
+        }
+        shot("mixed-composer-filled")
+        scrollToTag(ComposerTags.SAVE)
+        compose.onNodeWithTag(ComposerTags.SAVE).performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty()
+        }
+        awaitHomeReady()
+        shot("mixed-saved")
+    }
+
+    private fun flowBodyMapAndMeasurements() {
+        preparePopulatedApp()
+        goToTab("progress")
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag(BodyTags.MAP).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("body-map")
+        if (compose.onAllNodesWithTag(BodyTags.MUSCLES).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(BodyTags.MUSCLES).performScrollTo()
+            shot("body-muscles")
+        }
+        goToTab("settings")
+        openSettingsRow(SettingsHomeCopy.BODYWEIGHT)
+        shot("bodyweight-measurements")
+        pressBackToSettingsHome()
+    }
+
+    private fun flowSettingsUnitsAndBackup() {
+        preparePopulatedApp()
+        goToTab("settings")
+        openSettingsRow(SettingsHomeCopy.DISPLAY)
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag(SettingsTags.DISPLAY).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("settings-units")
+        pressBackToSettingsHome()
+        compose.onNodeWithTag(SettingsTags.ROW_BACKUP).performScrollTo().performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag(SettingsTags.EXPORT_FILE).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("settings-backup-view")
+        pressBackToSettingsHome()
+    }
+
+    private fun flowLargeFontLiveWorkout() {
+        shell("settings put system font_scale 1.3")
+        preparePopulatedApp()
+        seedWalkthroughRoutine()
+        awaitHomeReady()
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
+        compose.onNodeWithTag(HomeStartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("strength-live-font-1-3")
+        runBlocking(Dispatchers.IO) {
+            container.workoutRepository.getInProgress()?.let { container.discardWorkout(it.id) }
+        }
+        pressBackToHome()
+    }
+
+    private fun preparePopulatedApp() {
+        runBlocking(Dispatchers.IO) {
+            cleanSyntheticData()
+            container.preferencesRepository.setOnboardingComplete(true)
+            container.preferencesRepository.setLaunchPermissionsAsked(true)
+            container.preferencesRepository.setSavePosture(SavePosture.LOCAL)
+            container.preferencesRepository.setWeightUnit(WeightUnit.KG)
+            container.preferencesRepository.markRestBatteryHintShown()
+            container.preferencesRepository.markRestAlertsAsked()
+        }
+        app.markColdStartIntroShown()
+        dismissTransientOverlays()
+    }
+
+    private fun seedWalkthroughRoutine() = runBlocking(Dispatchers.IO) {
+        withTimeout(60_000) {
+            val catalog = container.exerciseRepository.observeAll().first { rows ->
+                rows.any { it.id == "ex-barbell-back-squat" }
+            }
+            primaryLift = catalog.first { it.id == "ex-barbell-back-squat" }
+            secondaryLift = catalog.first { it.id == "ex-barbell-row" }
+            val suffix = UUID.randomUUID().toString().take(6)
+            walkthroughRoutineName = "$PREFIX $suffix"
+            val routine = container.routineRepository.create(walkthroughRoutineName)
+            walkthroughRoutineId = routine.id
+            for (exercise in listOf(primaryLift, secondaryLift)) {
+                container.routineRepository.addExercise(
+                    routineId = routine.id,
+                    exercise = exercise,
+                    targetSets = 3,
+                    targetReps = 8,
+                    targetWeightKg = 60.0,
+                    restSeconds = 90,
+                )
+            }
+        }
+    }
+
+    private suspend fun cleanSyntheticData() {
+        container.restTimerController.stop()
+        container.workoutRepository.getInProgress()?.let { live ->
+            if (live.routineName?.startsWith(PREFIX) == true) container.discardWorkout(live.id)
+        }
+        container.activityRepository.getLive()?.let { container.discardActivity(it.id) }
+        container.workoutRepository.observeHistory().first()
+            .filter { it.routineName?.startsWith(PREFIX) == true || it.routineName == "UX walkthrough mixed" }
+            .forEach { container.workoutRepository.deleteFinishedSession(it.id) }
+        container.routineRepository.observeAll().first()
+            .filter { it.name.startsWith(PREFIX) }
+            .forEach { container.routineRepository.delete(it.id) }
+    }
+
+    private fun logWorkingSet(weightKg: Double, reps: Int, rpe: Int) {
+        enterNumbers(weightKg, reps)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.rpeChoice(rpe))
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(rpe)).performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.LOG_SET) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
+        compose.waitForIdle()
+    }
+
+    private fun enterNumbers(weightKg: Double, reps: Int) {
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER))
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
+        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performClick()
+        compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement(weightKg.toString())
+        compose.onNodeWithText("Set").performClick()
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.REPS_STEPPER)
+        compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).performClick()
+        compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement(reps.toString())
+        compose.onNodeWithText("Set").performClick()
+    }
+
+    private fun skipRestIfVisible() {
+        val autoAdvance = compose.mainClock.autoAdvance
+        compose.mainClock.autoAdvance = false
+        try {
+            compose.mainClock.advanceTimeBy(1_000)
+            if (compose.onAllNodesWithTag(WorkoutTestTags.REST_SKIP).fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
+            } else if (compose.onAllNodesWithText(RestNudgeCopy.SKIP).fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithText(RestNudgeCopy.SKIP).performClick()
+            }
+        } finally {
+            compose.mainClock.autoAdvance = autoAdvance
+        }
+        compose.waitForIdle()
+    }
+
+    private fun openSwapPicker() {
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.onNodeWithText(CurrentLiftCopy.SWAP).performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun finishLiveWorkout() {
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.onNodeWithText("End workout?").assertIsDisplayed()
+        compose.onNodeWithText("Save as is").performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithText("WORKOUT COMPLETE").fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun openGuidedSetup() {
+        goToTab("settings")
+        clickLabel(SettingsHomeCopy.PLAN)
+        clickLabel(PlanSetupCopy.ROW_TITLE)
+    }
+
+    private fun openSettingsRow(title: String) {
+        scrollToText(title)
+        compose.onNodeWithText(title).performClick()
+    }
+
+    private fun goToTab(path: String) {
+        val tabRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
+        val label = when (path) {
+            "home" -> "Home"
+            "progress" -> "Body"
+            "routines" -> "Plan"
+            "history" -> "History"
+            "settings" -> "Settings"
+            else -> error("Unknown tab $path")
+        }
+        compose.onNode(hasText(label.uppercase()) and tabRole).performClick()
+        compose.waitForIdle()
+    }
+
+    private fun awaitHomeReady() {
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
+        }
+        dismissTransientOverlays()
+    }
+
+    private fun dismissTransientOverlays() {
+        repeat(3) {
+            compose.waitForIdle()
+            if (compose.onAllNodesWithText("Not now").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithText("Not now").performClick()
+            }
+            if (compose.onAllNodesWithText(ColdStartIntroCopy.SKIP).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isNotEmpty()
+            ) {
+                compose.onNodeWithTag(ColdStartIntroTags.ROOT).performClick()
+                app.markColdStartIntroShown()
+            }
+        }
+    }
+
+    private fun clickLabel(label: String) {
+        compose.waitUntil(30_000) {
+            if (compose.onAllNodes(hasText(label) and isEnabled()).fetchSemanticsNodes().isEmpty()) {
+                runCatching {
+                    compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+                        .performScrollToNode(hasText(label))
+                }
+            }
+            compose.onAllNodes(hasText(label) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(label).performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.waitForIdle()
+    }
+
+    private fun scrollToText(text: String) {
+        compose.waitUntil(30_000) {
+            runCatching {
+                compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+                    .performScrollToNode(hasText(text))
+            }.isSuccess || compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun scrollToTag(tag: String) {
+        compose.waitUntil(30_000) {
+            runCatching {
+                compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+                    .performScrollToNode(hasTestTag(tag))
+            }.isSuccess
+        }
+    }
+
+    private fun awaitPicker() {
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun pressBackToSettingsHome() {
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun pressBackToHome() {
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        awaitHomeReady()
+    }
+
+    private fun shot(label: String) {
+        compose.waitForIdle()
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        val safeLabel = label.replace(Regex("[^A-Za-z0-9-]"), "-")
+        val name = "step-${step.toString().padStart(3, '0')}-$safeLabel"
+        step += 1
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val bitmap = automation.takeScreenshot() ?: automation.executeShellCommand("screencap -p").use { pipe ->
+            FileInputStream(pipe.fileDescriptor).use(BitmapFactory::decodeStream)
+        }
+        checkNotNull(bitmap) { "Screenshot failed for $name" }
+        try {
+            val path = NativeArtifacts.write(name, bitmap)
+            println("UX_WALKTHROUGH_CAPTURE $path ${bitmap.width}x${bitmap.height}")
+            assertTrue("Capture must be non-trivial", bitmap.width > 100 && bitmap.height > 100)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    private fun shell(command: String): String = InstrumentationRegistry.getInstrumentation().uiAutomation
+        .executeShellCommand(command).use { pipe ->
+            FileInputStream(pipe.fileDescriptor).use { it.readBytes().toString(Charsets.UTF_8) }
+        }
+
+    private companion object {
+        const val PREFIX = "UX walkthrough"
+    }
+}
