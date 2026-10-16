@@ -5673,10 +5673,18 @@
       "f510b3bd": {
         "when": "2026-10-16",
         "packet": "UX blueprint T1 RPE-to-load math (P-2)",
-        "gate": "First full JDK 17 run on 7b4b3930: testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest, BUILD SUCCESSFUL in 15m 28s. Second run failed on stale strength-goal copy in two render tests; fixed on c1f12d96. Final --rerun-tasks run: BUILD SUCCESSFUL in 13m 10s, 4788 tests, 0 failures.",
+        "gate": "First full JDK 17 run on 7b4b3930: testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest, BUILD SUCCESSFUL in 15m 28s. Second run failed on stale strength-goal copy in two render tests; fixed on c1f12d96. Final --rerun-tasks run: BUILD SUCCESSFUL in 13m 10s, 4788 tests, 0 failures. Post-merge trunk at f510b3bd (worktree /tmp/trunk-gate-f510 only): two consecutive full --rerun-tasks runs with --no-daemon, org.gradle.parallel=false, workers.max=2, kotlin in-process, GRADLE_OPTS -Xmx3072m — BUILD SUCCESSFUL in 13m 59s and 13m 48s, 4791 tests, 0 failures each. Earlier parallel default-heap runs died: Gradle/Kotlin daemons OOM on ~15 GiB host with no swap (daemon disappeared / DaemonCrashedException); not counted as greens.",
         "independent": "BLOCK then APPROVE after fix. High: NextSetInputs did not pass coachPrefs (fixed). Medium: Why sheet basis and added-weight skip (fixed). Goal-based target RIR retained per owner 2026-10-16 decision.",
         "adversarial": "BLOCK then partial fix. Added-weight e1RM skip applied. ADR-025 tension noted; owner-approved goal RIR threshold wired through coachPrefs on Log and rest Next lines.",
         "cleanContext": "Subagent reviews on branch before merge; fixes in 7b4b3930 and c1f12d96. Squash-merged as f510b3bd. PR https://github.com/sinura7/PersonalTrainer/pull/531."
+      },
+      "a0651ce6": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint T2 honest rest source (P-3)",
+        "gate": "Two consecutive full --rerun-tasks runs on a0651ce6 with --no-daemon, org.gradle.parallel=false, workers.max=2, kotlin in-process, GRADLE_OPTS -Xmx3072m: BUILD SUCCESSFUL in 13m 54s and 13m 57s (p3-gate-safe5.log, p3-gate-safe6.log). testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest each run; 4791 tests, 0 failures.",
+        "independent": "APPROVE after fixes. Zero Critical/High. Medium items addressed: running source frozen on RestTimerSnapshot; floorFor no longer reseeds planned rest on lighter-week redraw; hold-load uses CLIMB_REPS when weight held; dock running caption uses compactBeside.",
+        "adversarial": "APPROVE after fixes. Prior BLOCK (wrong running source, floorFor drift, card wrap, IN_TANK copy on hold) closed on bcefd2c8 and a0651ce6.",
+        "cleanContext": "PR https://github.com/sinura7/PersonalTrainer/pull/532. Includes P-2 follow-up light dumbbell hold guard and Why copy."
       },
       "251dc30b": {
         "when": "2026-10-16",
