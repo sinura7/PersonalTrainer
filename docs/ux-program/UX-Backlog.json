@@ -5662,6 +5662,13 @@
         "gate": "An up-to-date invocation was not counted. Two real JDK 17 runs with --rerun-tasks on 2cdbdb1f, back to back, no failure between them. Each: testDebugUnitTest 4784 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, 107 tasks executed. First BUILD SUCCESSFUL in 13m 18s. Second BUILD SUCCESSFUL in 13m 13s. connectedDebugAndroidTest was not run.",
         "independent": "APPROVE. Zero Critical or High. The three calendar rows are bounded automated evidence from WeekStripGeometryRenderTest, and physical use stays unobserved. The still-open list keeps TalkBack, landscape keyboard touch, native65, Close and Another set, readiness, and the custom-lift checks open.",
         "adversarial": "APPROVE. Zero Critical or High. Nothing still open was marked passed. Native65 stays unexplained. Landscape keyboard touch and physical TalkBack stay open."
+      },
+      "e5632447": {
+        "when": "2026-10-16",
+        "packet": "Drop C version 128",
+        "gate": "Two real JDK 17 runs with --rerun-tasks on e5632447, back to back, no failure between them. Each: testDebugUnitTest 4784 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, 107 tasks executed. First BUILD SUCCESSFUL in 17m 38s. Second BUILD SUCCESSFUL in 13m 13s. connectedDebugAndroidTest was not run. This packet does not publish.",
+        "independent": "APPROVE. Zero Critical, High, Medium, or Low. debugLiveCode moves from 127 to 128. The gym-floor version code stays 1. No tag, debug-live branch, or APK upload is in the commit.",
+        "adversarial": "APPROVE. Zero Critical, High, Medium, or Low. The roadmap says this packet does not publish the phone build."
       }
     }
   }
