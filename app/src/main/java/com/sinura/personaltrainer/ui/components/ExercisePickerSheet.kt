@@ -645,7 +645,7 @@ fun ExerciseRow(
      * worse row if it repeated the group the rows below it already show.
      */
     subtitle: String? = null,
-    nameMaxLines: Int = 1,
+    nameMaxLines: Int = Int.MAX_VALUE,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Row(

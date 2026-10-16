@@ -4296,18 +4296,18 @@
         "F11"
       ],
       "requirement": "Two long similarly named variants can be distinguished before selection.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence on e543e78e's successor 792314b4",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P19",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX24",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "implementation": "ExerciseRow wraps the name by default. The picker already did. The swap list and the body explorer now do too.",
+        "automated": "ExerciseRowLongNameTest at 360 dp and font 2: Barbell bench press with a close grip and with a wide grip have no ellipsized line, and each row is at least 48 dp tall. Physical reading is unobserved.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P19"
         ],
@@ -5627,6 +5627,13 @@
         "gate": "Two earlier shapes were reviewed and blocked before these greens. contentDescription on the box hid the typed words. stateDescription on the box is discarded by the text-field accessibility bridge. After the purpose moved beside the box, two real JDK 17 runs on e543e78e, back to back, no failure between them. First: testDebugUnitTest 4783 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 14m 1s, test task executed. Second: the same tasks with --rerun-tasks, 4783 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 13m 6s, 107 tasks executed. connectedDebugAndroidTest was not run.",
         "independent": "APPROVE. Zero Critical or High. The search mark says Search exercises. The routine caption says Routine name. Both stay after text is typed. The boxes keep Back squat and Upper A and carry no content description and no state description. Low: the same search mark says Search exercises on the library row, which already has its own longer phrase.",
         "adversarial": "APPROVE. Zero Critical or High. The purpose nodes are siblings. The rows do not merge them into the text field. A purpose that lived only as state on the box would fail the test."
+      },
+      "792314b4": {
+        "when": "2026-10-16",
+        "packet": "P19b long lift names",
+        "gate": "Two real JDK 17 runs on 792314b4, back to back, no failure between them. First: testDebugUnitTest 4784 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 13m 57s, test task executed. Second: the same tasks with --rerun-tasks, 4784 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 13m 11s, 107 tasks executed. connectedDebugAndroidTest was not run.",
+        "independent": "APPROVE. Zero Critical, High, Medium, or Low. The name wraps inside the row. The swap list and the body explorer use the new default. The row floor stays 56 dp. The test checks both full names for no ellipsis at font 2 on a 360 dp width.",
+        "adversarial": "APPROVE. Zero Critical or High. Wrapping only makes the row taller. The lists scroll. The test reads the name's own text node. Low: a custom name with no length cap can be taller than the phone until you scroll; it is not cut off."
       }
     }
   }
