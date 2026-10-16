@@ -208,6 +208,46 @@ class UxWalkthroughTest {
         environmentPrepared = true
     }
 
+    private suspend fun awaitCatalogReady() {
+        withTimeout(90_000) {
+            container.exerciseRepository.observeAll().first { rows ->
+                rows.any { it.id == "ex-barbell-back-squat" }
+            }
+        }
+    }
+
+    private fun advanceOnboardingWizardSteps() {
+        val labels = listOf(
+            TrainingFocus.STRENGTH.displayName,
+            TrainingAge.NEW.displayName,
+            "Continue",
+            "Space them out for me",
+            "Continue",
+            TrainingGoal.GENERAL.displayName,
+            TrainingEmphasis.BALANCED.displayName,
+            "Skip this",
+        )
+        for (label in labels) {
+            runBlocking(Dispatchers.IO) { awaitCatalogReady() }
+            clickOnboardingLabel(label)
+        }
+        runBlocking(Dispatchers.IO) { awaitCatalogReady() }
+    }
+
+    private fun ensureOnboardingVisible() {
+        val onPreview = compose.onAllNodesWithTag(OnboardingTags.USE_PLAN).fetchSemanticsNodes().isNotEmpty()
+        val onFocus = compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
+        if (!onPreview && !onFocus) {
+            openGuidedSetup()
+        }
+    }
+
+    private fun dismissSoftKeyboard() {
+        compose.waitForIdle()
+        runCatching { compose.onAllNodes(hasSetTextAction()).onFirst().performImeAction() }
+        compose.waitForIdle()
+    }
+
     private fun flowOnboardingAcceptPlan() {
         app.markColdStartIntroShown()
         runBlocking(Dispatchers.IO) {
@@ -217,25 +257,26 @@ class UxWalkthroughTest {
             container.preferencesRepository.setSavePosture(SavePosture.LOCAL)
             container.preferencesRepository.markRestBatteryHintShown()
             container.preferencesRepository.markRestAlertsAsked()
-            withTimeout(90_000) {
-                container.exerciseRepository.observeAll().first { rows ->
-                    rows.any { it.id == "ex-barbell-back-squat" }
-                }
-            }
+            awaitCatalogReady()
+            runCatching { container.dbMaintenance.seedCatalog() }
+            awaitCatalogReady()
         }
         scenarioRule.scenario.recreate()
         dismissTransientOverlays()
         awaitHomeReady()
         openGuidedSetup()
         shot("onboarding-start")
-        clickOnboardingLabel(TrainingFocus.STRENGTH.displayName)
-        clickOnboardingLabel(TrainingAge.NEW.displayName)
-        clickOnboardingLabel("Continue")
-        clickOnboardingLabel("Space them out for me")
-        clickOnboardingLabel("Continue")
-        clickOnboardingLabel(TrainingGoal.GENERAL.displayName)
-        clickOnboardingLabel(TrainingEmphasis.BALANCED.displayName)
-        clickOnboardingLabel("Skip this")
+        val wizardOk = runCatching { advanceOnboardingWizardSteps() }
+        if (wizardOk.isFailure) {
+            println("UX_WALKTHROUGH onboarding wizard fallback ${wizardOk.exceptionOrNull()?.message}")
+            wizardOk.exceptionOrNull()?.printStackTrace()
+            ensureOnboardingVisible()
+            runBlocking(Dispatchers.IO) {
+                runCatching { container.dbMaintenance.seedCatalog() }
+                awaitCatalogReady()
+            }
+            advanceOnboardingWizardSteps()
+        }
         compose.waitUntil(90_000) {
             compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
@@ -321,14 +362,11 @@ class UxWalkthroughTest {
         }
         shot("cardio-live")
         SystemClock.sleep(2_000)
+        dismissSoftKeyboard()
         compose.onNodeWithTag(CardioTags.FINISH).assertIsEnabled().performClick()
         compose.waitUntil(90_000) {
-            compose.onAllNodesWithText(CardioCopy.FINISHING).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty() ||
+            compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.waitUntil(90_000) {
-            compose.onAllNodesWithText(CardioCopy.FINISHING).fetchSemanticsNodes().isEmpty()
         }
         if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText("Back").performClick()
@@ -350,6 +388,7 @@ class UxWalkthroughTest {
         }
         shot("mixed-composer-open")
         compose.onNodeWithTag("composer-title").performTextReplacement("UX walkthrough mixed")
+        dismissSoftKeyboard()
         scrollToTag(ComposerTags.CHOOSE_LIFT)
         compose.onNodeWithTag(ComposerTags.CHOOSE_LIFT).performClick()
         awaitPicker()
@@ -368,12 +407,17 @@ class UxWalkthroughTest {
         }
         compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("60")
         compose.onAllNodes(hasSetTextAction())[2].performTextReplacement("5")
+        dismissSoftKeyboard()
         compose.onNodeWithTag(ComposerTags.ADD_SET).performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag(ComposerTags.SAVE).fetchSemanticsNodes().isNotEmpty()
+        }
         shot("mixed-composer-filled")
         scrollToTag(ComposerTags.SAVE)
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
+        dismissSoftKeyboard()
         compose.onNodeWithTag(ComposerTags.SAVE).performClick()
         compose.waitUntil(60_000) {
             compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty() &&
