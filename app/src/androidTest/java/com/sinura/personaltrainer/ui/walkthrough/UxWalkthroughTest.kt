@@ -363,6 +363,9 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
         }
         scrollToTag(ComposerTags.ADD_SET)
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size >= 3
+        }
         compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("60")
         compose.onAllNodes(hasSetTextAction())[2].performTextReplacement("5")
         compose.onNodeWithTag(ComposerTags.ADD_SET).performClick()
@@ -670,7 +673,7 @@ class UxWalkthroughTest {
             compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
                 .performScrollToNode(hasText(label))
         }
-        compose.onNodeWithText(label).performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText(label).performClick()
         compose.waitForIdle()
     }
 
