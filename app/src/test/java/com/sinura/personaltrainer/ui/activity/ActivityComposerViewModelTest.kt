@@ -28,6 +28,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -83,6 +84,11 @@ class ActivityComposerViewModelTest {
             val created = withTimeout(TestWaits.FLOW_MS) { vm.createdExercise.first { it != null } }!!
             assertFalse(vm.canLeave())
             vm.onCreatedExerciseHandled()
+            // The created lift can arrive before the picker write drops its busy flag.
+            // Under a loaded suite that gap is long enough for an immediate read to fail.
+            withTimeout(TestWaits.FLOW_MS) {
+                while (!vm.canLeave()) yield()
+            }
             assertTrue(vm.canLeave())
             vm.addStrength(created, 50.0, 8)
             vm.save()

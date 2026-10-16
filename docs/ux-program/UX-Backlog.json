@@ -5669,6 +5669,13 @@
         "gate": "Two real JDK 17 runs with --rerun-tasks on e5632447, back to back, no failure between them. Each: testDebugUnitTest 4784 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, 107 tasks executed. First BUILD SUCCESSFUL in 17m 38s. Second BUILD SUCCESSFUL in 13m 13s. connectedDebugAndroidTest was not run. This packet does not publish.",
         "independent": "APPROVE. Zero Critical, High, Medium, or Low. debugLiveCode moves from 127 to 128. The gym-floor version code stays 1. No tag, debug-live branch, or APK upload is in the commit.",
         "adversarial": "APPROVE. Zero Critical, High, Medium, or Low. The roadmap says this packet does not publish the phone build."
+      },
+      "251dc30b": {
+        "when": "2026-10-16",
+        "packet": "P20 phone checklist",
+        "gate": "The first full run on a736d7b7 failed ActivityComposerViewModelTest.pendingCreationOwnsTheDraftUntilSelectionIsDelivered because canLeave was read before the picker write dropped its busy flag. The test now waits, with a 30 second limit. After that fix, two real JDK 17 runs with --rerun-tasks on 251dc30b, back to back, no failure between them. Each: testDebugUnitTest 4784 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, 107 tasks executed. First BUILD SUCCESSFUL in 18m 7s. Second BUILD SUCCESSFUL in 13m 6s. connectedDebugAndroidTest was not run.",
+        "independent": "APPROVE. 102 boxes. The 93 phone-unobserved acceptance IDs are present except the four screen-reader rows, which are left out on purpose. Nine extra rows cover Another set, Close, Swap opening, landscape keyboard on a routine, history readiness, sound, vibration, rest overlay, and the lock screen. The canLeave wait has a 30 second timeout.",
+        "adversarial": "APPROVE. Zero Critical or High. The checklist uses Temper Debug and made-up weights. It does not clear the gym-floor app. No screen-reader steps. No em dashes in the checklist. No duplicate IDs."
       }
     }
   }
