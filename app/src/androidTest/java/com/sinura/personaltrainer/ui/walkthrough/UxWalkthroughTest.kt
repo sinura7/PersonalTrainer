@@ -286,12 +286,30 @@ class UxWalkthroughTest {
      * walks the wizard once.
      */
     private fun reachOnboardingPlanPreview() {
+        compose.waitUntil(120_000) {
+            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
+        }
         if (compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isEmpty()) {
             advanceOnboardingWizardSteps()
         }
+        runBlocking(Dispatchers.IO) { awaitCatalogReady() }
         compose.waitUntil(120_000) {
             compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun leaveOnboardingScreen() {
+        repeat(3) {
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            if (compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
+            ) {
+                return
+            }
+        }
+        awaitHomeReady()
     }
 
     private suspend fun seedOnboardingAnswersForPreview() {
@@ -343,13 +361,15 @@ class UxWalkthroughTest {
         ensureHarnessPermissions()
         dismissTransientOverlays()
         awaitHomeReady()
+        openGuidedSetup()
+        shot("onboarding-start")
         runBlocking(Dispatchers.IO) {
             seedOnboardingAnswersForPreview()
             val seeded = container.preferencesRepository.storedOnboardingAnswers()
             WalkthroughOnboardingNavHook.installForcePreview(seeded)
         }
+        leaveOnboardingScreen()
         openGuidedSetup()
-        shot("onboarding-start")
         reachOnboardingPlanPreview()
         shot("onboarding-plan-preview")
         scrollToTag(OnboardingTags.USE_PLAN)
