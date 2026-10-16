@@ -1,8 +1,12 @@
 name: Emulator UX walkthrough
 
 # Manual UX capture lane only. Does not publish APKs, tags, or releases.
+# workflow_dispatch only resolves from the default branch; this branch uses push
+# on tools/emulator-ux-walkthrough to start runs without merging to trunk.
 on:
   workflow_dispatch:
+  push:
+    branches: [tools/emulator-ux-walkthrough]
 
 permissions:
   contents: read
