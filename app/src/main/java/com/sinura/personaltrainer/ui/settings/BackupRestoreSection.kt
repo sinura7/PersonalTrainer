@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
+import com.sinura.personaltrainer.data.backup.BackupStageCopy
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.DayLabel
@@ -133,13 +134,25 @@ internal fun BackupRestoreSection(
         if (status != null) {
             GymStatusBanner(status, onDismissed = { dismissedStatus = status })
         }
-        state.error?.let { GymErrorBanner(it, onDismiss = onDismissError) }
+        state.error?.let { message ->
+            GymErrorBanner(
+                message = message,
+                title = BackupStageCopy.titleFor(message),
+                onDismiss = onDismissError,
+            )
+        }
         // Durable, not a dwell banner: recovery wrote it because the owner has something
         // to check, and it stays until they say they have.
-        state.restoreNote?.let { note -> GymErrorBanner(message = note, onDismiss = onDismissRestoreNote) }
+        state.restoreNote?.let { note ->
+            GymErrorBanner(
+                message = note,
+                title = BackupStageCopy.titleFor(note),
+                onDismiss = onDismissRestoreNote,
+            )
+        }
         state.restorePending?.let { source ->
             Text(
-                "Training data from $source is in. Settings still need to be applied.",
+                "${BackupStageCopy.PARTIAL_SETTINGS} ($source)",
                 style = InstrumentType.caption,
                 color = Warn,
             )
@@ -152,8 +165,7 @@ internal fun BackupRestoreSection(
 
         if (state.sessionLive) {
             Text(
-                "Finish or discard the live session before restoring. A restore would " +
-                    "delete the session you are standing in.",
+                BackupStageCopy.LIVE_SESSION,
                 style = InstrumentType.caption,
                 color = Warn,
             )

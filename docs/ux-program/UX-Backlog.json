@@ -3978,18 +3978,18 @@
         "F08"
       ],
       "requirement": "Wrong password, oversized input, unsupported version, offline Drive, live workout, partial preferences failure and completed restore each have a distinct actionable screen.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P18",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX21",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Wrong password, a newer backup, a file that is too big, Drive with no connection, and settings still owed each get their own heading. A live session and a partial settings restore have their own sentences.",
+        "automated": "BackupStageCopyTest.eachStopHasItsOwnHeading and liveSessionAndPartialSettingsAreTheirOwnLines.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P18"
         ],
@@ -4005,18 +4005,18 @@
         "F08"
       ],
       "requirement": "Displayed success follows the actual accepted operation; no UI-only fix masks R01–R04.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P18",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX21",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "The line that starts with Restored is the completed restore. A wrong password and a settings-pending note are not that line.",
+        "automated": "BackupStageCopyTest.aCompletedRestoreIsTheLineAfterTheCommit.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P18"
         ],
@@ -4032,18 +4032,18 @@
         "F08"
       ],
       "requirement": "Back/rotation/permission return retains the operation's correct stage and never repeats a destructive commit.",
-      "status": "Not executed",
+      "status": "Bounded automated evidence. Phone reading is still unobserved.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P18",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX21",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "Confirm takes the pending restore once and clears it before the commit. A second tap has nothing left to commit.",
+        "automated": "BackupStageCopyTest.aSecondClaimHasNothingLeftToCommit. confirmRestore uses that claim.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P18"
         ],
@@ -4984,7 +4984,7 @@
       {
         "id": "P18",
         "title": "Backup and restore experience",
-        "state": "Open"
+        "state": "Wrong password, a newer backup, a file that is too big, Drive with no connection, and settings still owed each have their own heading. A live session blocks restore with its own sentence. A completed restore is the line that starts with Restored, written after the commit. Confirm takes the plan once. The phone check stays open."
       },
       {
         "id": "P19",
@@ -5206,8 +5206,8 @@
         "test": "app/src/test/java/com/sinura/personaltrainer/data/local/RestoreRecoveryTest.kt",
         "baselineSuite": "TEST-com.sinura.personaltrainer.data.local.RestoreRecoveryTest.xml",
         "baselineExecutedTests": 11,
-        "scope": "Existing encrypted backup, safety snapshot and restore journal; complete truthful failure-stage UI and reconciliation remain.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "scope": "Each stop has its own heading. A completed restore is the line after the commit. Confirm clears the pending plan before the commit so a second tap has nothing left.",
+        "limitation": "Phone reading is unobserved. P19 integration and P20 physical acceptance remain. Rotation keeps the in-memory stage on the settings screen; a killed process does not replay the commit."
       },
       "UX22": {
         "primaryPacket": "P04",
@@ -5594,6 +5594,13 @@
         "gate": "Two earlier full runs failed SettingsUnitsRenderTest.displayRestAndBackupStayReachableAndDistanceCanDifferFromWeight while it waited on the preference file (five seconds, then thirty). That wait was removed. After that fix, two real JDK 17 runs, back to back, no failure between them. First: testDebugUnitTest 4769 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 11m 33s, test task executed. Second: the same tasks with --rerun-tasks, 4769 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 12m 44s, 107 tasks executed.",
         "independent": "APPROVE. Zero Critical or High. The four pairings are separate. No stored distance choice follows the weight unit. A typed mile stays 2414.016 metres when the preference changes to kilometres and the weight changes to kilograms. Display, Rest timer, and Backup are on the list. A failed display save stays on the Rest timer page. The debug update row is absent on the everyday list and present on the debug list. Medium: account sync does not upload the distance choice. Phone reading is unobserved.",
         "adversarial": "APPROVE. Zero Critical or High. Changing the weight unit does not clear a stored distance choice or an 80 kg weigh-in. A display download that has no distance field leaves the local choice in place. A blank typed distance drops the pinned unit so the next number uses the current choice. Medium: the activity composer pins the typed unit in the screen state, while live cardio also stores it with the draft."
+      },
+      "e437d921": {
+        "when": "2026-10-15",
+        "packet": "P18 backup stages",
+        "gate": "Two real JDK 17 runs, back to back, no failure between them. First: testDebugUnitTest 4773 tests, 0 failures, 0 ignored, plus assembleDebug and lintDebug, BUILD SUCCESSFUL in 12m 53s, test task executed. Second: the same tasks with --rerun-tasks, 4773 tests, 0 failures, 0 ignored, BUILD SUCCESSFUL in 13m 12s, 107 tasks executed.",
+        "independent": "APPROVE. Zero Critical or High. Wrong password, a newer backup, a file that is too big, Drive with no connection, and settings still owed each have their own heading. A live session and a partial settings restore have their own sentences. A completed restore is the line that starts with Restored. Confirm clears the plan before the commit. Medium: a killed process does not keep the confirm dialog, and it also does not replay the commit. Phone reading is unobserved.",
+        "adversarial": "APPROVE. Zero Critical or High. A second claim of the cleared slot has nothing to commit. A settings-pending note and a wrong password are not treated as a completed restore. Medium: the heading is chosen by matching the message text, so a reworded failure falls through to the generic heading."
       }
     }
   }

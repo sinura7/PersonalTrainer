@@ -669,9 +669,9 @@ integration; prior failures and the wider UX15/phone limits above remain.
 
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
-| UX21-AC01 | P1 | F12, F08 | Wrong password, oversized input, unsupported version, offline Drive, live workout, partial preferences failure and completed restore each have a distinct actionable screen. | Not executed |
-| UX21-AC02 | P1 | F12, F08 | Displayed success follows the actual accepted operation; no UI-only fix masks R01–R04. | Not executed |
-| UX21-AC03 | P1 | F12, F08 | Back/rotation/permission return retains the operation's correct stage and never repeats a destructive commit. | Not executed |
+| UX21-AC01 | P1 | F12, F08 | Wrong password, oversized input, unsupported version, offline Drive, live workout, partial preferences failure and completed restore each have a distinct actionable screen. | Bounded automated evidence. Phone reading is still unobserved. |
+| UX21-AC02 | P1 | F12, F08 | Displayed success follows the actual accepted operation; no UI-only fix masks R01–R04. | Bounded automated evidence. Phone reading is still unobserved. |
+| UX21-AC03 | P1 | F12, F08 | Back/rotation/permission return retains the operation's correct stage and never repeats a destructive commit. | Bounded automated evidence. Phone reading is still unobserved. |
 
 ### UX22 — Preserve context through navigation, notifications and external screens
 

@@ -22,6 +22,7 @@ import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.backup.readAtMost
 import com.sinura.personaltrainer.data.repository.RestorePlan
 import com.sinura.personaltrainer.data.repository.RestoreResult
+import com.sinura.personaltrainer.data.backup.RestoreCommitGate
 import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.ErrorSlot
@@ -566,8 +567,9 @@ class BackupCoordinator(
     }
 
     fun confirmRestore() {
-        val plan = pendingPlan.value ?: return
-        pendingPlan.value = null
+        val claimed = RestoreCommitGate.claim(pendingPlan.value)
+        pendingPlan.value = claimed.slot
+        val plan = claimed.taken ?: return
         runBackupAction("Restoring backup…") {
             val result = container.backupService.commitRestore(plan)
             container.preferencesRepository.setLastRestore(
