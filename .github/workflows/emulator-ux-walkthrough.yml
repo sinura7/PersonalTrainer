@@ -62,11 +62,11 @@ jobs:
           emulator-options: -memory 4096 -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: ./tools/emulator-ux-walkthrough.sh
 
-      - name: Upload UX walkthrough screenshots
+      - name: Upload UX walkthrough artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ux-walkthrough
-          path: ux-walkthrough/*.png
+          path: ux-walkthrough/
           retention-days: 14
           if-no-files-found: warn
