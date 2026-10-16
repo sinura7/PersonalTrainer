@@ -36,9 +36,11 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
+import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.ColdStartIntroCopy
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.OnboardingPreviewCopy
 import com.sinura.personaltrainer.domain.PlanSetupCopy
 import com.sinura.personaltrainer.domain.RestNudgeCopy
 import com.sinura.personaltrainer.domain.SavePosture
@@ -54,8 +56,10 @@ import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.activity.ComposerTags
 import com.sinura.personaltrainer.ui.activity.CardioTags
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
+import com.sinura.personaltrainer.ui.history.HistoryTags
 import com.sinura.personaltrainer.ui.home.HomeStartTags
 import com.sinura.personaltrainer.ui.home.HomeTags
+import com.sinura.personaltrainer.ui.plan.CardioPickTags
 import com.sinura.personaltrainer.ui.intro.ColdStartIntroTags
 import com.sinura.personaltrainer.ui.onboarding.OnboardingTags
 import com.sinura.personaltrainer.ui.plan.PlanTags
@@ -205,6 +209,7 @@ class UxWalkthroughTest {
     }
 
     private fun flowOnboardingAcceptPlan() {
+        app.markColdStartIntroShown()
         runBlocking(Dispatchers.IO) {
             cleanSyntheticData()
             container.preferencesRepository.setOnboardingComplete(false)
@@ -212,6 +217,11 @@ class UxWalkthroughTest {
             container.preferencesRepository.setSavePosture(SavePosture.LOCAL)
             container.preferencesRepository.markRestBatteryHintShown()
             container.preferencesRepository.markRestAlertsAsked()
+            withTimeout(90_000) {
+                container.exerciseRepository.observeAll().first { rows ->
+                    rows.any { it.id == "ex-barbell-back-squat" }
+                }
+            }
         }
         scenarioRule.scenario.recreate()
         dismissTransientOverlays()
@@ -229,13 +239,18 @@ class UxWalkthroughTest {
         clickLabel(TrainingGoal.GENERAL.displayName)
         clickLabel(TrainingEmphasis.BALANCED.displayName)
         clickLabel("Skip this")
-        compose.waitUntil(60_000) {
-            compose.onAllNodesWithTag(OnboardingTags.USE_PLAN).fetchSemanticsNodes().isNotEmpty()
+        compose.waitUntil(90_000) {
+            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         shot("onboarding-plan-preview")
+        scrollToTag(OnboardingTags.USE_PLAN)
         compose.onNodeWithTag(OnboardingTags.USE_PLAN).performClick()
-        compose.waitUntil(60_000) {
-            compose.onAllNodesWithTag(OnboardingTags.USE_PLAN).fetchSemanticsNodes().isEmpty()
+        if (compose.onAllNodesWithText(OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithText(OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN).performClick()
+        }
+        compose.waitUntil(120_000) {
+            compose.onAllNodesWithTag(OnboardingTags.USE_PLAN).fetchSemanticsNodes().isEmpty() &&
+                compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
         }
         awaitHomeReady()
         shot("onboarding-accepted-home")
@@ -271,6 +286,8 @@ class UxWalkthroughTest {
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT)
+            .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(primaryLift.id)))
         shot("strength-live-entry")
         repeat(3) { index ->
             logWorkingSet(weightKg = 60.0 + index, reps = 5 + index, rpe = 7 + index)
@@ -279,6 +296,12 @@ class UxWalkthroughTest {
                 skipRestIfVisible()
                 shot("strength-rest-after-set-${index + 1}")
             }
+        }
+        advanceToNextExerciseIfShown()
+        repeat(3) { index ->
+            logWorkingSet(weightKg = 50.0 + index, reps = 6 + index, rpe = 7 + index)
+            shot("strength-set-lift2-${index + 1}-logged")
+            if (index < 2) skipRestIfVisible()
         }
         compose.revealFloorControlAboveTempo(WorkoutTestTags.TEMPO_COACH_CARD)
         shot("strength-tempo-coach")
@@ -314,8 +337,9 @@ class UxWalkthroughTest {
             compose.onAllNodesWithTag(HomeStartTags.CARDIO_PAGE).fetchSemanticsNodes().isNotEmpty()
         }
         shot("cardio-picker")
-        compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Run"))
-        compose.onNodeWithText("Run").performClick()
+        val runCard = hasTestTag(CardioPickTags.card(CardioType.RUN))
+        compose.onNodeWithTag(HomeStartTags.CARDIO_PAGE).performScrollToNode(runCard)
+        compose.onNode(runCard).performClick()
         compose.waitUntil(30_000) {
             compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
         }
@@ -331,10 +355,13 @@ class UxWalkthroughTest {
     private fun flowPastMixedSave() {
         preparePopulatedApp()
         goToTab("history")
-        compose.onNodeWithTag("history-start-sheet").performClick()
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(HistoryTags.START_SHEET).performScrollTo().performClick()
         clickLabel("Mixed session")
         compose.waitUntil(30_000) {
-            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-composer-open")
         compose.onNodeWithTag("composer-title").performTextReplacement("UX walkthrough mixed")
@@ -352,6 +379,9 @@ class UxWalkthroughTest {
         }
         shot("mixed-composer-filled")
         scrollToTag(ComposerTags.SAVE)
+        compose.waitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag(ComposerTags.SAVE).performClick()
         compose.waitUntil(30_000) {
             compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty()
@@ -512,6 +542,22 @@ class UxWalkthroughTest {
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).performClick()
         compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement(reps.toString())
         compose.onNodeWithText("Set").performClick()
+    }
+
+    private fun advanceToNextExerciseIfShown() {
+        compose.waitUntil(30_000) {
+            val next = compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes()
+            val finish = compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled()).fetchSemanticsNodes()
+            next.isNotEmpty() || finish.isNotEmpty()
+        }
+        if (compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
+            compose.waitUntil(30_000) {
+                compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag(WorkoutTestTags.CONTENT)
+                .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id)))
+        }
     }
 
     private fun skipRestIfVisible() {
