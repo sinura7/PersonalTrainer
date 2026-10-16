@@ -19,6 +19,10 @@
 > days before it writes them. A retry does not add a second weigh-in or a
 > second week. If the accept throws, Building clears.
 >
+> 16 Oct 2026 — P19 residuals: the week strip's three calendar checks
+> stay as automated evidence. Screen reader walks, landscape keyboard
+> touch, the old Swap opening, and Close / Another set stay open.
+>
 > 16 Oct 2026 — P19b: a long lift name wraps, so two names that start
 > the same way still show the words that differ before the tap.
 >
