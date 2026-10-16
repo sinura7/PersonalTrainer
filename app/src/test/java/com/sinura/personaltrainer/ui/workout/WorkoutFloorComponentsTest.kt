@@ -492,7 +492,7 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
         compose.onNodeWithText("REST").assertIsDisplayed()
         compose.onNodeWithText("1:32").assertIsDisplayed()
-        compose.onNodeWithText("Default · 2:00").assertIsDisplayed()
+        compose.onNodeWithText("Default 2:00").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.REST_MINUS).performClick()
         assertEquals(-15, nudged)
         compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).performClick()

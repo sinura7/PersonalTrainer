@@ -175,7 +175,7 @@ class RestTimerCardRenderTest {
         word("REST").assertIsDisplayed()
         // The time left is the clock; the plan is said apart from it, in the idle card's word.
         // That it stays on one line is measured in RestTimerCardFitRenderTest.
-        word("Default · 2:00").assertIsDisplayed()
+        word("Default 2:00").assertIsDisplayed()
         assertEquals(listOf("Rest 1:32 remaining. Default · 2:00. Open rest timer."), tile.spokenDescriptions())
         // Bright while it runs: the time in primary ink, the kicker in rest cyan. The kicker
         // is a label inside the tile, not a heading TalkBack would jump to.
@@ -329,7 +329,7 @@ class RestTimerCardRenderTest {
         showCard()
         val tile = tile(WorkoutTestTags.REST_BAR, clock = "1:32")
         word("REST").assertIsDisplayed()
-        word("Default · 2:00").assertIsDisplayed()
+        word("Default 2:00").assertIsDisplayed()
         compose.onAllNodesWithText("WARM-UP", useUnmergedTree = true).assertCountEquals(0)
         compose.onAllNodesWithText("Warm-ups do not start rest", useUnmergedTree = true).assertCountEquals(0)
         assertEquals(listOf("Rest 1:32 remaining. Default · 2:00. Open rest timer."), tile.spokenDescriptions())
