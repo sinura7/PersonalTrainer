@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -153,8 +154,8 @@ class WorkoutMicroRecTest {
         assertEquals("Had more in you — add weight", general.explanationShort)
         assertEquals("Had more in you — add weight · strength bias keeps reps before big jumps", strength.explanationShort)
         assertNotEquals(general.explanationShort, strength.explanationShort)
-        // The numbers are the same; the rec carries the call's own words to the Why sheet.
-        assertEquals(general.toMicroRec().copy(explanation = null), strength.toMicroRec().copy(explanation = null))
+        assertEquals(general.weightKg, strength.weightKg, 1e-9)
+        assertTrue(strength.reps < general.reps)
         assertEquals(strength.explanationShort, strength.toMicroRec().explanation)
         assertEquals("Rule: ${strength.explanationShort}", SetMicroRecCopy.whyLines(strength.toMicroRec()).first { it.startsWith("Rule: ") })
     }

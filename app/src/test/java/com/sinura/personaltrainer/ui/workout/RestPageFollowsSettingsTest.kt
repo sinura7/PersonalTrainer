@@ -146,7 +146,7 @@ class RestPageFollowsSettingsTest {
         log.logOneSetAtRpe(7)
         awaitRestRunning()
         val page = createPage(fixture.session.id)
-        page.awaitLine("the page's line after 100 kg × 5 at RPE 7: add weight", "Next: 102.5 kg × 5 · RPE 7")
+        page.awaitLine("the page's line after 100 kg × 5 at RPE 7: add weight", "Next: 102.5 kg × 4 · RPE 7")
 
         markThisWeekLighter(fixture.session.id)
         val held = page.awaitLine("the page's lighter-week line: hold where it would add weight", "Next: 100 kg × 5 · RPE 7")

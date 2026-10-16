@@ -145,7 +145,7 @@ class CoachRecomputeTest {
         log.requestExtraSet()
         log.awaitCall("the Log's call for the extra set") { it?.reasonCode == SetMicroRecCalculator.IN_TANK }
         val logLine = log.shownNextLine(log.awaitState { !it.entryLocked })
-        assertEquals("the Log shows the extra set's call", "Next: 102.5 kg × 5 · RPE 7", logLine)
+        assertEquals("the Log shows the extra set's call", "Next: 102.5 kg × 4 · RPE 7", logLine)
 
         page.adjustRest(15)
         val after = page.awaitPage("the page after a +15") { it.rest.totalSeconds == before.rest.totalSeconds + 15 }

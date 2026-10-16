@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecInputs
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.targetRepsInReserve
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
 /**
@@ -42,6 +43,7 @@ internal fun workoutCoachSuggestion(
     todayEpochDay = todayEpochDay,
     wantAnotherSet = wantAnotherSet,
     historySets = historySets,
+    coachPrefs = coachPrefs,
 )?.let { inputs -> CoachEngine.suggest(inputs = inputs, prefs = coachPrefs) }
 
 /**
@@ -60,6 +62,7 @@ internal fun workoutCoachInputs(
     todayEpochDay: Long,
     wantAnotherSet: Boolean = false,
     historySets: List<ExerciseSetRecord> = emptyList(),
+    coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
 ): SetMicroRecInputs? {
     if (session == null) return null
     val exerciseId = session.resolveSelectedExerciseId(selectedExerciseId) ?: return null
@@ -103,6 +106,7 @@ internal fun workoutCoachInputs(
                 isWarmup = false,
             )
         },
+        targetRir = coachPrefs.targetRepsInReserve(),
     )
 }
 

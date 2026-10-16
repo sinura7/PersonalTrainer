@@ -121,7 +121,7 @@ class NextSetRecommendationRenderTest {
         // Reps in the tank add the kit's step, said as the step itself.
         rec = recAfter(set(reps = 10, rpe = 7))
         shown("+5")
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).assertTextEquals("75 lb × 10")
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).assertTextEquals("75 lb × 9")
         shown("Had more in you — add weight · Target RPE 7")
         // The first set has nothing to move from, so there is no change line.
         rec = recAfter()

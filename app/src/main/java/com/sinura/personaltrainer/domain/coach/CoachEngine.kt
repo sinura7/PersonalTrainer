@@ -58,7 +58,7 @@ data class CoachSuggestion(
 }
 
 object CoachEngine {
-    const val VERSION = 1
+    const val VERSION = 2
 
     fun suggest(
         inputs: SetMicroRecInputs,
