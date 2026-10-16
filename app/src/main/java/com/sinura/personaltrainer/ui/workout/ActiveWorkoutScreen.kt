@@ -492,16 +492,14 @@ private fun ActiveWorkoutContent(
                 routineName = session?.routineName ?: "Workout",
                 progress = progress,
                 canFinish = state.canFinish,
-                showDiscard = state.showDiscard,
                 compact = LandscapeChrome.compactHeader(landscape),
                 focused = true,
                 onExit = { keepAndExit() },
                 onFinish = { confirmEnd = true },
-                onDiscard = { confirmDiscard = true },
-                overflow = selected?.let { lift ->
-                    {
-                        LiftOverflowMenu(
-                            liftId = lift.id,
+                overflow = {
+                    when {
+                        selected != null -> LiftOverflowMenu(
+                            liftId = selected.id,
                             canEdit = logged.isEmpty(),
                             onSwap = viewModel::requestSwap,
                             onRemove = viewModel::removeSelectedLift,
@@ -509,9 +507,14 @@ private fun ActiveWorkoutContent(
                             onSummary = { sessionSummaryOpen = true },
                             onSkip = viewModel::skipForNow,
                             onSwitch = { liftSwitcherOpen = true },
-                            onDetails = { onOpenExercise(lift.exercise.id) },
+                            onDetails = { onOpenExercise(selected.exercise.id) },
                             enabled = !state.entryLocked,
                             onSetOptions = { setOptionsOpen = true },
+                            showDiscardWorkout = state.showDiscard,
+                            onDiscardWorkout = { confirmDiscard = true },
+                        )
+                        state.showDiscard -> SessionDiscardOverflowMenu(
+                            onDiscardWorkout = { confirmDiscard = true },
                         )
                     }
                 },

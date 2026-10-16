@@ -151,7 +151,7 @@ class WorkoutHeaderRowRenderTest {
 
     @Test
     @Config(qualifiers = "w412dp-h840dp-xhdpi")
-    fun focusedHeaderKeepsItsHeightAndActionWidthAfterTheFirstSave() {
+    fun focusedHeaderKeepsItsHeightAndFinishWidthAfterTheFirstSave() {
         val saved = mutableStateOf(false)
         compose.showFloor {
             Column(Modifier.width(412.dp)) {
@@ -162,7 +162,6 @@ class WorkoutHeaderRowRenderTest {
                     compact = false,
                     onExit = {},
                     onFinish = {},
-                    showDiscard = !saved.value,
                     focused = true,
                     overflow = { Box(Modifier.size(Metrics.touchMin)) },
                 )
@@ -170,13 +169,13 @@ class WorkoutHeaderRowRenderTest {
             }
         }
         val beforeBottom = compose.onNodeWithTag("after-workout-header").fetchSemanticsNode().boundsInRoot.top
-        val beforeAction = compose.onNodeWithTag(WorkoutTestTags.DISCARD).fetchSemanticsNode().boundsInRoot
+        val beforeAction = compose.onNodeWithTag(WorkoutTestTags.FINISH).fetchSemanticsNode().boundsInRoot
         val beforeProgress = compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).fetchSemanticsNode().boundsInRoot
         compose.runOnIdle { saved.value = true }
         compose.waitForIdle()
         val finish = compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val afterProgress = compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).fetchSemanticsNode()
-        assertEquals("Saving must not resize the end action", beforeAction.width, finish.width, 1f)
+        assertEquals("Enabling Finish must not resize the end action", beforeAction.width, finish.width, 1f)
         assertEquals("Saving must not move the content below the header", beforeBottom,
             compose.onNodeWithTag("after-workout-header").fetchSemanticsNode().boundsInRoot.top, 1f)
         assertEquals("Progress retains its vertical anchor", beforeProgress.top, afterProgress.boundsInRoot.top, 1f)

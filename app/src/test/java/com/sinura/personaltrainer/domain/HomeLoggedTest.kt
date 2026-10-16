@@ -43,6 +43,16 @@ class HomeLoggedTest {
     }
 
     @Test
+    fun setAndMinuteLabelsUseSingularForms() {
+        assertEquals("1 set", HomeLogged.setCountLabel(1))
+        assertEquals("3 sets", HomeLogged.setCountLabel(3))
+        assertEquals("1 min", HomeLogged.minuteCountLabel(1))
+        assertEquals("45 min", HomeLogged.minuteCountLabel(45))
+        val line = summary("s1", DAY).copy(workingSets = 1, durationMinutes = 1, volumeKg = 0.0)
+        assertEquals("1 set · 1 min", HomeLogged.statsLine(line, WeightUnit.KG))
+    }
+
+    @Test
     fun byDayGroupsSummariesOnLocalEpochDay() {
         val map = HomeLogged.byDay(
             listOf(

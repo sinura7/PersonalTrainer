@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
 import com.sinura.personaltrainer.ui.components.OutlinedMarks
@@ -24,6 +25,40 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+
+/** Empty session: Discard lives in overflow, not the Finish slot (UX blueprint P-6). */
+@Composable
+internal fun SessionDiscardOverflowMenu(onDiscardWorkout: () -> Unit) {
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
+    Box {
+        IconButton(
+            onClick = { menuOpen = true },
+            modifier = Modifier
+                .size(Metrics.touchMin)
+                .testTag(WorkoutTestTags.LIFT_OPTIONS),
+        ) {
+            Icon(OutlinedMarks.MoreVert, contentDescription = "Workout options")
+        }
+        InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            InstrumentMenuItem(
+                spokenLabel = EndWorkoutCopy.HEADER_DISCARD,
+                leadingIcon = TemperIcons.Delete,
+                iconTint = Danger,
+                onClick = {
+                    menuOpen = false
+                    onDiscardWorkout()
+                },
+                text = {
+                    Text(
+                        EndWorkoutCopy.HEADER_DISCARD,
+                        style = InstrumentType.bodyStrong,
+                        color = Danger,
+                    )
+                },
+            )
+        }
+    }
+}
 
 /**
  * The session's secondary actions, behind one ⋮ in the header.
@@ -46,6 +81,8 @@ internal fun LiftOverflowMenu(
     onSkip: () -> Unit = {},
     enabled: Boolean = true,
     onSetOptions: (() -> Unit)? = null,
+    showDiscardWorkout: Boolean = false,
+    onDiscardWorkout: () -> Unit = {},
 ) {
     var menuOpen by rememberSaveable(liftId) { mutableStateOf(false) }
     LaunchedEffect(enabled) { if (!enabled) menuOpen = false }
@@ -153,6 +190,24 @@ internal fun LiftOverflowMenu(
                     }
                 },
             )
+            if (showDiscardWorkout) {
+                InstrumentMenuItem(
+                    spokenLabel = EndWorkoutCopy.HEADER_DISCARD,
+                    leadingIcon = TemperIcons.Delete,
+                    iconTint = Danger,
+                    onClick = {
+                        menuOpen = false
+                        onDiscardWorkout()
+                    },
+                    text = {
+                        Text(
+                            EndWorkoutCopy.HEADER_DISCARD,
+                            style = InstrumentType.bodyStrong,
+                            color = Danger,
+                        )
+                    },
+                )
+            }
         }
     }
 }

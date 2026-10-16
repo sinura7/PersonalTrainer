@@ -159,4 +159,14 @@ object WeekBoard {
     }
 
     const val REST = "Rest"
+    const val TRAINED_TODAY = "Trained today"
+
+    fun withLoggedDays(cells: List<WeekBoardCell>, loggedEpochDays: Set<Long>): List<WeekBoardCell> =
+        cells.map { cell ->
+            if (cell.fill == DayFill.EMPTY && cell.epochDay in loggedEpochDays) {
+                cell.copy(caption = TRAINED_TODAY, fill = DayFill.ALL)
+            } else {
+                cell
+            }
+        }
 }
