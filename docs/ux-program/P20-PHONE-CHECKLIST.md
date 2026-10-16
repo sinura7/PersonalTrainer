@@ -132,7 +132,7 @@ Pass: You can still tap the number you are editing and the button that keeps it.
 
 ## 4. Rest, sound, and the lock screen
 
-Log one more set so rest starts. Turn rest sound and vibration on in Settings, Rest timer, if they are off. Then log again.
+If you already finished the workout, start an empty one. Log one more set so rest starts. Turn rest sound and vibration on in Settings, Rest timer, if they are off. Then log again.
 
 [ ] **P20-SOUND**
 Do: Let rest run with sound on.
