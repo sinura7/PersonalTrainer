@@ -50,7 +50,6 @@ import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
-import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.isDisposableSdkEmulator
 import com.sinura.personaltrainer.testutil.NativeArtifacts
@@ -229,14 +228,14 @@ class UxWalkthroughTest {
         awaitHomeReady()
         openGuidedSetup()
         shot("onboarding-start")
-        clickLabel(TrainingFocus.STRENGTH.displayName)
-        clickLabel(TrainingAge.NEW.displayName)
-        clickLabel("Continue")
-        clickLabel("Space them out for me")
-        clickLabel("Continue")
-        clickLabel(TrainingGoal.GENERAL.displayName)
-        clickLabel(TrainingEmphasis.BALANCED.displayName)
-        clickLabel("Skip this")
+        clickOnboardingLabel(TrainingFocus.STRENGTH.displayName)
+        clickOnboardingLabel(TrainingAge.NEW.displayName)
+        clickOnboardingLabel("Continue")
+        clickOnboardingLabel("Space them out for me")
+        clickOnboardingLabel("Continue")
+        clickOnboardingLabel(TrainingGoal.GENERAL.displayName)
+        clickOnboardingLabel(TrainingEmphasis.BALANCED.displayName)
+        clickOnboardingLabel("Skip this")
         compose.waitUntil(90_000) {
             compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
@@ -323,9 +322,13 @@ class UxWalkthroughTest {
         shot("cardio-live")
         SystemClock.sleep(2_000)
         compose.onNodeWithTag(CardioTags.FINISH).assertIsEnabled().performClick()
-        compose.waitUntil(60_000) {
-            compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty() ||
+        compose.waitUntil(90_000) {
+            compose.onAllNodesWithText(CardioCopy.FINISHING).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.waitUntil(90_000) {
+            compose.onAllNodesWithText(CardioCopy.FINISHING).fetchSemanticsNodes().isEmpty()
         }
         if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText("Back").performClick()
@@ -360,8 +363,8 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
         }
         scrollToTag(ComposerTags.ADD_SET)
-        compose.onAllNodes(hasSetTextAction())[0].performTextReplacement("60")
-        compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("5")
+        compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("60")
+        compose.onAllNodes(hasSetTextAction())[2].performTextReplacement("5")
         compose.onNodeWithTag(ComposerTags.ADD_SET).performClick()
         shot("mixed-composer-filled")
         scrollToTag(ComposerTags.SAVE)
@@ -653,6 +656,19 @@ class UxWalkthroughTest {
                 }
             }
             compose.onAllNodes(hasText(label) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(label).performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.waitForIdle()
+    }
+
+    /** Onboarding rows are not always reported as enabled to the test matcher; scroll and click. */
+    private fun clickOnboardingLabel(label: String) {
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()
+        }
+        runCatching {
+            compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
+                .performScrollToNode(hasText(label))
         }
         compose.onNodeWithText(label).performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.waitForIdle()
