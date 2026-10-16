@@ -30,9 +30,21 @@ capture_flow_logcat() {
 
 grant_permissions
 
+flows_from_spec() {
+  spec="${1:-1-9}"
+  if [[ "$spec" =~ ^([0-9]+)-([0-9]+)$ ]]; then
+    seq "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+  else
+    echo "$spec" | tr ',' ' '
+  fi
+}
+
+FLOW_SPEC="${UX_WALKTHROUGH_FLOWS:-${UX_WALKTHROUGH_FLOW_RANGE:-1-9}}"
+echo "UX_WALKTHROUGH_FLOW_SPEC=$FLOW_SPEC"
+
 mkdir -p ux-walkthrough
 gradle_status=0
-for flow in 1 2 3 4 5 6 7 8 9; do
+for flow in $(flows_from_spec "$FLOW_SPEC"); do
   adb logcat -c 2>/dev/null || true
   adb shell pm clear "$PACKAGE" >/dev/null 2>&1 || true
   grant_permissions

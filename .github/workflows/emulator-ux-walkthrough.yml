@@ -13,9 +13,19 @@ permissions:
 
 jobs:
   ux-walkthrough:
-    name: UX walkthrough screenshots
+    name: UX walkthrough (${{ matrix.flows }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flows: "1-3"
+            artifact: ux-walkthrough-flows-1-3
+          - flows: "4-6"
+            artifact: ux-walkthrough-flows-4-6
+          - flows: "7-9"
+            artifact: ux-walkthrough-flows-7-9
 
     steps:
       - name: Check out
@@ -53,6 +63,8 @@ jobs:
 
       - name: Instrumented UX walkthrough on emulator
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          UX_WALKTHROUGH_FLOWS: ${{ matrix.flows }}
         with:
           api-level: 34
           target: google_apis
@@ -66,7 +78,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ux-walkthrough
+          name: ${{ matrix.artifact }}
           path: ux-walkthrough/
           retention-days: 14
           if-no-files-found: warn

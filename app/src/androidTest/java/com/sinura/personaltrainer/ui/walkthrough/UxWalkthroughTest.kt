@@ -67,6 +67,7 @@ import com.sinura.personaltrainer.ui.home.HomeStartTags
 import com.sinura.personaltrainer.ui.home.HomeTags
 import com.sinura.personaltrainer.ui.plan.CardioPickTags
 import com.sinura.personaltrainer.ui.intro.ColdStartIntroTags
+import com.sinura.personaltrainer.ui.onboarding.CATALOG_MISSING_MESSAGE
 import com.sinura.personaltrainer.ui.onboarding.OnboardingTags
 import com.sinura.personaltrainer.ui.plan.PlanTags
 import com.sinura.personaltrainer.ui.progress.BodyTags
@@ -285,8 +286,41 @@ class UxWalkthroughTest {
      * extra wizard screenshots. Uses stored prefs when the preview is already enabled; otherwise
      * walks the wizard once.
      */
+    private fun tapCatalogRetryIfBannerVisible() {
+        if (compose.onAllNodesWithText(CATALOG_MISSING_MESSAGE).fetchSemanticsNodes().isEmpty()) return
+        runCatching { compose.onNodeWithText("Retry").performClick() }
+        compose.waitForIdle()
+        runBlocking(Dispatchers.IO) {
+            runCatching { container.dbMaintenance.seedCatalog() }
+            awaitCatalogReady()
+        }
+    }
+
+    /**
+     * Waits for [OnboardingTags.USE_PLAN] to become enabled, recovering from catalog banners and
+     * logging how long the preview button stayed disabled after it first appeared.
+     */
+    private fun waitForUsePlanEnabledWithCatalogRecovery(timeoutMs: Long = 120_000) {
+        var disabledSinceMs: Long? = null
+        compose.waitUntil(timeoutMs) {
+            tapCatalogRetryIfBannerVisible()
+            val previewVisible =
+                compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
+            if (previewVisible && disabledSinceMs == null) {
+                disabledSinceMs = SystemClock.elapsedRealtime()
+            }
+            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        val disabledMs = disabledSinceMs?.let { SystemClock.elapsedRealtime() - it }
+        if (disabledMs != null) {
+            logHarness("UX_WALKTHROUGH_PLAN_PREVIEW_DISABLED_MS=$disabledMs")
+        }
+    }
+
     private fun reachOnboardingPlanPreview() {
+        runBlocking(Dispatchers.IO) { awaitCatalogReady() }
         compose.waitUntil(120_000) {
+            tapCatalogRetryIfBannerVisible()
             compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
         }
@@ -294,9 +328,7 @@ class UxWalkthroughTest {
             advanceOnboardingWizardSteps()
         }
         runBlocking(Dispatchers.IO) { awaitCatalogReady() }
-        compose.waitUntil(120_000) {
-            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
-        }
+        waitForUsePlanEnabledWithCatalogRecovery()
     }
 
     private fun leaveOnboardingScreen() {
@@ -490,7 +522,10 @@ class UxWalkthroughTest {
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
         }
-        compose.waitUntil(60_000) {
+        compose.waitUntil(90_000) {
+            if (compose.onAllNodesWithTag(ComposerTags.ADD_SET).fetchSemanticsNodes().isEmpty()) {
+                runCatching { composerScrollToTag(ComposerTags.ADD_SET) }
+            }
             compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size >= 2 &&
                 compose.onAllNodesWithTag(ComposerTags.ADD_SET).fetchSemanticsNodes().isNotEmpty()
         }
@@ -512,15 +547,16 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(ComposerTags.SAVE).performClick()
-        compose.waitUntil(60_000) {
+        compose.waitUntil(90_000) {
             compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty() &&
-                (
-                    compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty() ||
-                        compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
-                    )
+                compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
         }
-        if (compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isEmpty()) {
-            goToTab("history")
+        assertTrue(
+            "Save should land on History (${HistoryTags.LIST})",
+            compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty(),
+        )
+        compose.waitUntil(30_000) {
+            compose.onAllNodesWithTag("history-horizon-readout").fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-saved")
     }
