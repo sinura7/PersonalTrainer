@@ -144,7 +144,7 @@ class FloorScreenWiringRenderTest {
         assertEquals(tops.size, tops.toSet().size)
         if (exists(WorkoutTestTags.TEMPO_COACH_CARD)) {
             compose.onAllNodes(
-                hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+                hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
             ).assertCountEquals(1)
         }
         // The identity names the set about to be logged, from the saved rows.

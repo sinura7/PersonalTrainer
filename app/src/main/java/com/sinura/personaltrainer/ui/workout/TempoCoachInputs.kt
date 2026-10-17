@@ -13,8 +13,8 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.coach.AddASetMuscleStats
 import com.sinura.personaltrainer.domain.coach.AddASetPolicy
 import com.sinura.personaltrainer.domain.coach.AddASetTrace
-import com.sinura.personaltrainer.domain.coach.TempoCoach
 import com.sinura.personaltrainer.domain.coach.TempoCoachTip
+import com.sinura.personaltrainer.tempo.TempoEngine
 
 internal data class TempoCoachSnapshot(
     val microRec: SetMicroRec?,
@@ -38,13 +38,13 @@ internal data class TempoCoachSnapshot(
 ) {
     fun tip(): TempoCoachTip? {
         if (tempoDismissed) return null
-        val ctx = buildAddASetContext() ?: return TempoCoach.resolve(
+        val ctx = buildAddASetContext() ?: return TempoEngine.recommend(
             microRec = microRec,
             prefs = coachPrefs,
             addASet = null,
             extraSetRec = null,
         )
-        return TempoCoach.resolve(
+        return TempoEngine.recommend(
             microRec = microRec,
             prefs = coachPrefs,
             addASet = ctx,

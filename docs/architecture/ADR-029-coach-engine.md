@@ -33,7 +33,7 @@ trace; it must not gate Home, Plan, History, or the logger.
    evidence ids, and the same [`RuleTrace`](../../app/src/main/java/com/sinura/personaltrainer/domain/RuleTrace.kt) as today.
 
 2. **Evidence is curated on-device.** A versioned seed catalog
-   ([`EvidenceCatalog`](../../app/src/main/java/com/sinura/personaltrainer/domain/coach/EvidenceCatalog.kt),
+   ([`EvidenceCatalog`](../../tempo/src/main/kotlin/com/sinura/personaltrainer/domain/coach/EvidenceCatalog.kt),
    human mirror [`docs/coach/evidence-seed.json`](../coach/evidence-seed.json))
    holds real peer-reviewed entries with DOI where one exists, year, short claim,
    and policy rule ids that may cite them. Rules that cannot be tied to a real

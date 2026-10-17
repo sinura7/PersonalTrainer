@@ -190,8 +190,7 @@ class AddASetWhyJourneyRenderTest {
     }
 
     private fun openWhy() {
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.MICRO_REC_WHY))
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsEnabled().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().assertIsEnabled().performClick()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
     }
 

@@ -29,12 +29,16 @@ from kotlin_source import kotlin_files, kotlin_files_in, strip_comments_and_stri
 # false positives — which is why this was main-only, and why nothing checked the imports of
 # the instrumented tests at all.
 MAIN_ROOT = "app/src/main/java"
+TEMPO_MAIN_ROOT = "tempo/src/main/kotlin"
+PRODUCTION_ROOTS = (MAIN_ROOT, TEMPO_MAIN_ROOT)
 ROOTS = sys.argv[1:] or [
     "app/src/main/java",
     "app/src/test/java",
     "app/src/androidTest/java",
     "app/src/debug/java",
     "app/src/sharedTest/java",
+    "tempo/src/main/kotlin",
+    "tempo/src/test/kotlin",
 ]
 PREFIX = "com.sinura.personaltrainer."
 
@@ -107,7 +111,7 @@ def main() -> int:
             continue
         package = match.group(1)
         names = by_package.setdefault(package, set())
-        in_main = path.startswith(MAIN_ROOT)
+        in_main = any(path.startswith(root) for root in PRODUCTION_ROOTS)
         for decl in TOP_DECL_RE.finditer(src):
             names.add(decl.group(1))
             if in_main:
@@ -139,11 +143,12 @@ def main() -> int:
             # Main code cannot see a test or debug declaration. Judging it against the pooled
             # index would let `import ...testutil.FakeClock` in a production file pass, which
             # the compiler rejects and the old main-only scan caught.
-            visible = main_names if path.startswith(MAIN_ROOT) else by_package
+            in_production = any(path.startswith(root) for root in PRODUCTION_ROOTS)
+            visible = main_names if in_production else by_package
             known = visible.get(package)
             if known is not None and name in known:
                 continue
-            if path.startswith(MAIN_ROOT) and by_package.get(package, set()) >= {name}:
+            if in_production and by_package.get(package, set()) >= {name}:
                 problems.append(
                     f"{path}: import {fqn} — '{name}' is declared only outside app/src/main, "
                     f"so production code cannot see it"

@@ -34,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalAccessibilityManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -121,8 +122,12 @@ object WorkoutTestTags {
     const val COACH_EVIDENCE_CHIP = "workout-coach-evidence-chip"
     const val NEXT_SET = "workout-next-set"
     const val NEXT_SET_COMPACT = "workout-next-set-compact"
+    const val FLOOR_DOCK = "workout-floor-dock"
     const val TEMPO_COACH_CARD = "workout-tempo-coach-card"
+    const val TEMPO_COACH_SHORTCUT = "workout-tempo-coach-shortcut"
+    const val TEMPO_SUGGESTION_LABEL = "workout-tempo-suggestion-label"
     const val TEMPO_COACH_DISMISS = "workout-tempo-coach-dismiss"
+    const val TEMPO_COACH_DISMISS_MENU = "workout-tempo-coach-dismiss-menu"
     const val TEMPO_WHY_SHEET = "workout-tempo-why-sheet"
     const val TEMPO_WHY_TITLE = "workout-tempo-why-title"
     const val TEMPO_WHY_CLOSE = "workout-tempo-why-close"
@@ -206,6 +211,7 @@ fun ActiveWorkoutScreen(
             landscape = LandscapeChrome.isLandscape(
                 widthDp = maxWidth.value.roundToInt(), heightDp = maxHeight.value.roundToInt(),
             ),
+            viewportHeightDp = maxHeight.value.roundToInt(),
         )
     }
 }
@@ -219,7 +225,10 @@ private fun ActiveWorkoutContent(
     viewModel: ActiveWorkoutViewModel,
     restNotificationsEnabledOverride: Boolean?,
     landscape: Boolean,
+    viewportHeightDp: Int,
 ) {
+    val fontScale = LocalDensity.current.fontScale
+    val compactTempoDock = landscape || viewportHeightDp <= 640 || fontScale >= 1.6f
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val restState = viewModel.restTimerState.collectAsStateWithLifecycle()
     val holdState = viewModel.holdTimer.collectAsStateWithLifecycle()
@@ -554,6 +563,7 @@ private fun ActiveWorkoutContent(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .testTag(WorkoutTestTags.FLOOR_DOCK)
                         .then(
                             if (logBarVisible || emptySession) Modifier
                             else Modifier.navigationBarsPadding(),
@@ -574,6 +584,24 @@ private fun ActiveWorkoutContent(
                             },
                         )
                     } else if (logBarVisible) {
+                        floorTempoTip?.let { tip ->
+                            TempoCoachCard(
+                                tip = tip,
+                                loadClass = loadClass,
+                                unit = unit,
+                                applied = floorTempoApplied,
+                                enabled = floorEntryEnabled,
+                                onApply = { viewModel.applyTempoCoachTip(tip) },
+                                onDismiss = { viewModel.dismissTempoCoachTip(tip) },
+                                cardState = checkNotNull(floorTempoCardState),
+                                renderDialogs = false,
+                                compactLandscape = landscape || compactTempoDock,
+                                compactStrip = compactTempoDock,
+                                modifier = Modifier
+                                    .padding(horizontal = Metrics.gutter)
+                                    .padding(top = Metrics.space2, bottom = Metrics.space1),
+                            )
+                        }
                         WorkoutDock(
                             state = WorkoutDockState(
                                 primaryAction = primaryAction,
@@ -879,15 +907,7 @@ private fun ActiveWorkoutContent(
                                         onOpenAll = { setsOpen = true },
                                         focused = true,
                                         modifier = Modifier.testTag(WorkoutTestTags.SECTION_SET_HISTORY),
-                                        trailing = floorTempoTip?.let { tip ->
-                                            {
-                                                TempoCoachShortcut(
-                                                    enabled = floorEntryEnabled,
-                                                    description = tip.tipShort,
-                                                    onOpen = { checkNotNull(floorTempoCardState).showWhy = true },
-                                                )
-                                            }
-                                        },
+                                        trailing = null,
                                     )
                                 }
                             }
@@ -960,7 +980,7 @@ private fun ActiveWorkoutContent(
                 QuietButton(text = "Dismiss Tempo suggestion", onClick = {
                     viewModel.dismissTempoCoachTip(tip)
                     setOptionsOpen = false
-                }, modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.TEMPO_COACH_DISMISS), maxLines = Int.MAX_VALUE)
+                }, modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.TEMPO_COACH_DISMISS_MENU), maxLines = Int.MAX_VALUE)
             }
             val stats = remember(session, selected.exercise.id, state.lastPerformance, exerciseHistory, unit) {
                 ExerciseFloorStatsCalculator.of(session = session, exerciseId = selected.exercise.id,

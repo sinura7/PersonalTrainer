@@ -134,7 +134,6 @@ class FloorFeedbackRenderTest {
         val rec = checkNotNull(vm.microRec.value)
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.tempoCoachTip.value != null }
         // Quiet keeps coaching in the list; reach its actual action before opening Why.
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.MICRO_REC_WHY))
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().assertIsEnabled().performClick()
         compose.waitForIdle()
         val before = felt.felt().size

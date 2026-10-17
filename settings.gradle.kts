@@ -27,4 +27,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "PersonalTrainer"
-include(":app")
+include(":app", ":tempo")

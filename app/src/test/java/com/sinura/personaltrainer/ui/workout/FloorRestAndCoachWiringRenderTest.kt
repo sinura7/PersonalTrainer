@@ -403,7 +403,7 @@ class FloorRestAndCoachWiringRenderTest {
         assertTrue("the call is one the card shows on entry", SetMicroRecCopy.visibleOnEntry(call!!))
         // Look where the card would be: the effort track sits just above it.
         assertTempoCoachCardOnScreen(vm)
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsNotEnabled()
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsNotEnabled()
         compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).assertIsNotEnabled()
         gate.complete(Unit)
@@ -476,16 +476,16 @@ class FloorRestAndCoachWiringRenderTest {
         vm.setReps(8)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.reps == 8 }
         compose.waitForIdle()
-        // Numbers, effort and saved work precede the ordinary scrolling coach.
+        // Entry and effort scroll above; the suggestion cloud sits in the dock band.
         compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertIsDisplayed()
         assertTempoCoachCardOnScreen(vm)
-        val floor = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
+        val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
         val tempo = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNode().boundsInRoot
         val timerRow = compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).fetchSemanticsNode().boundsInRoot.top
         val savedWork = compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNode().boundsInRoot
-        assertTrue("advice stays within the shared saved-work row", tempo.top >= savedWork.top && tempo.bottom <= savedWork.bottom)
-        assertTrue("Tempo sits on the scroll floor", tempo.bottom <= floor.bottom + 1f)
+        assertTrue("saved work stays above the dock suggestion", savedWork.bottom <= tempo.top + 1f)
+        assertTrue("Tempo sits in the dock below the scroll column", tempo.top >= content.bottom - 1f)
         assertTrue("Tempo stays above the timer row", tempo.bottom <= timerRow + 1f)
     }
 
@@ -552,8 +552,8 @@ class FloorRestAndCoachWiringRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_KEEP).performClick()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertDoesNotExist()
         assertEquals(draft, vm.uiState.value.draft)
-        compose.revealWorkoutSetOption(WorkoutTestTags.TEMPO_COACH_DISMISS)
-        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_DISMISS).performClick()
+        compose.revealWorkoutSetOption(WorkoutTestTags.TEMPO_COACH_DISMISS_MENU)
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_DISMISS_MENU).performClick()
         compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_SHEET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertDoesNotExist()
         assertEquals(draft, vm.uiState.value.draft)
@@ -638,10 +638,10 @@ class FloorRestAndCoachWiringRenderTest {
 
     private fun assertTempoCoachCardOnScreen(vm: ActiveWorkoutViewModel) {
         waitForTempoCoachTip(vm)
-        scrollTo(WorkoutTestTags.TEMPO_COACH_CARD)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_SUGGESTION_LABEL).assertIsDisplayed()
         compose.onAllNodes(
-            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
         ).assertCountEquals(1)
     }
 

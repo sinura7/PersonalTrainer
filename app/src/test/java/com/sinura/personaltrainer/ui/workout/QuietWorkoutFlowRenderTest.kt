@@ -170,9 +170,9 @@ class QuietWorkoutFlowRenderTest {
         ).assert(hasText(EFFORT_MISSING))
         compose.onAllNodesWithTag(WorkoutTestTags.LOG_SET).assertCountEquals(1)
         assertNoFloatingCoach()
-        val saved = compose.onNodeWithTag(WorkoutTestTags.SECTION_SET_HISTORY).fetchSemanticsNode().boundsInRoot
-        val tempo = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNode().boundsInRoot
-        assertTrue("Tempo shares the saved-work region", tempo.top >= saved.top && tempo.bottom <= saved.bottom)
+        compose.onAllNodes(
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
+        ).assertCountEquals(1)
         compose.revealWorkoutSetOption(WorkoutTestTags.STATS_ROW)
         compose.onNodeWithTag(WorkoutTestTags.STAT_LAST).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.STAT_BEST).assertExists()
@@ -265,7 +265,7 @@ class QuietWorkoutFlowRenderTest {
             WorkoutTestTags.weightPreset(WeightDraftSource.PLAN),
             WorkoutTestTags.RPE_HELPER, WorkoutTestTags.RPE_CLEAR,
             WorkoutTestTags.SET_OPTIONS_SETS, WorkoutTestTags.SET_OPTIONS_TEMPO,
-            WorkoutTestTags.TEMPO_COACH_DISMISS, WorkoutTestTags.SET_OPTIONS_DETAILS,
+            WorkoutTestTags.TEMPO_COACH_DISMISS_MENU, WorkoutTestTags.SET_OPTIONS_DETAILS,
             WorkoutTestTags.STAT_LAST, WorkoutTestTags.STAT_BEST, WorkoutTestTags.STAT_VOLUME,
         )
         tags.forEach { tag ->
@@ -286,7 +286,7 @@ class QuietWorkoutFlowRenderTest {
             val completeLabels = mapOf(
                 WorkoutTestTags.SET_OPTIONS_SETS to "View all saved sets",
                 WorkoutTestTags.SET_OPTIONS_TEMPO to "Tempo suggestion",
-                WorkoutTestTags.TEMPO_COACH_DISMISS to "Dismiss Tempo suggestion",
+                WorkoutTestTags.TEMPO_COACH_DISMISS_MENU to "Dismiss Tempo suggestion",
                 WorkoutTestTags.SET_OPTIONS_DETAILS to "Exercise details",
             )
             completeLabels[tag]?.let { label ->
@@ -457,6 +457,8 @@ class QuietWorkoutFlowRenderTest {
     }
 
     private fun awaitIllustration() {
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.DETAILS))
+        compose.waitForIdle()
         val still = compose.onNodeWithTag(WorkoutTestTags.DETAILS).assertIsDisplayed().fetchSemanticsNode().boundsInWindow
         val density = compose.density.density
         // Stay inside the border and above the Details badge in either direction.
@@ -475,7 +477,7 @@ class QuietWorkoutFlowRenderTest {
 
     private fun assertNoFloatingCoach() {
         compose.onAllNodes(
-            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and !hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
         ).assertCountEquals(0)
     }
 

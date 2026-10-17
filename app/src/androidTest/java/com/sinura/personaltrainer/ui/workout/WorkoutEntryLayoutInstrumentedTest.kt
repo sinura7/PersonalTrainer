@@ -172,13 +172,13 @@ class WorkoutEntryLayoutInstrumentedTest(
         @JvmStatic @Parameterized.Parameters(name = "{0}x{1}-font{2}-{3}")
         fun profiles(): List<Array<Any>> = buildList {
             for ((w, h) in listOf(360 to 640, 360 to 800, 412 to 840, 600 to 840, 640 to 360)) {
-                for (scale in listOf(1f, 1.6f, 2f)) add(arrayOf(w, h, scale, "working"))
+                for (fontScale in listOf(1f, 1.6f, 2f)) add(arrayOf(w, h, fontScale, "working"))
             }
             add(arrayOf(360, 800, 1f, "warmup"))
             add(arrayOf(360, 640, 2f, "warmup"))
             add(arrayOf(360, 640, 2f, "large"))
             for (scenario in listOf("bodyweight", "added", "assisted", "hold", "zero", "long", "error", "undo", "latest")) {
-                for (scale in listOf(1f, 2f)) add(arrayOf(360, 800, scale, scenario))
+                for (fontScale in listOf(1f, 2f)) add(arrayOf(360, 800, fontScale, scenario))
             }
             add(arrayOf(360, 800, 1f, "working-rtl"))
             add(arrayOf(360, 640, 2f, "warmup-rtl"))
