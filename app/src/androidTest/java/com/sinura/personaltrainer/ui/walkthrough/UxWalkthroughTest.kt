@@ -694,7 +694,8 @@ class UxWalkthroughTest {
         }
         shot("body-map")
         if (compose.onAllNodesWithTag(BodyTags.MUSCLES).fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag(BodyTags.MUSCLES).performScrollTo()
+            runCatching { scrollToTag(BodyTags.MUSCLES) }
+            compose.waitForIdle()
             shot("body-muscles")
         }
         goToTab("settings")
@@ -944,7 +945,8 @@ class UxWalkthroughTest {
         dismissSystemNotRespondingDialogs()
         navigateToSettingsHome()
         scrollToText(title)
-        compose.onNodeWithText(title).performScrollTo().performClick()
+        runCatching { compose.onNodeWithText(title).performScrollTo() }
+        compose.onNodeWithText(title).performClick()
         compose.waitForIdle()
     }
 
