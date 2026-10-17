@@ -27,12 +27,14 @@ internal fun TempoCoachMascot(
     contentDescription: String? = null,
 ) {
     val reducedMotion = LocalReducedMotion.current
+    val pulseUp = instrumentTween<Float>(150)
+    val pulseDown = instrumentTween<Float>(240)
     val scale = remember { Animatable(1f) }
     LaunchedEffect(appearanceKey, reducedMotion) {
         scale.snapTo(1f)
         if (reducedMotion) return@LaunchedEffect
-        scale.animateTo(1.1f, instrumentTween(150))
-        scale.animateTo(1f, instrumentTween(240))
+        scale.animateTo(1.1f, pulseUp)
+        scale.animateTo(1f, pulseDown)
     }
     Image(
         painter = painterResource(R.drawable.tempo_coach_avatar),
