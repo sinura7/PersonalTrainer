@@ -183,7 +183,10 @@ private fun FocusExerciseIdentity(
     onSwap: (() -> Unit)?,
     canSwap: Boolean,
 ) {
-    Box(modifier.fillMaxWidth().testTag(WorkoutTestTags.CURRENT_LIFT)) {
+    Column(
+        modifier = modifier.fillMaxWidth().testTag(WorkoutTestTags.CURRENT_LIFT),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .testTag(WorkoutTestTags.liftCard(lift.exercise.id)).semantics { isTraversalGroup = true },
@@ -226,11 +229,7 @@ private fun FocusExerciseIdentity(
         }
     }
     if (onSwap != null) {
-        HeaderSwapLink(
-            enabled = enabled && canSwap,
-            onSwap = onSwap,
-            modifier = Modifier.padding(top = Metrics.space2),
-        )
+        HeaderSwapLink(enabled = enabled && canSwap, onSwap = onSwap)
     }
     }
 }
