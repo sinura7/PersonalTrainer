@@ -23,7 +23,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 /** Opens the existing explanation and Apply action without covering the entry. */
 @Composable
 internal fun TempoCoachShortcut(enabled: Boolean, description: String, onOpen: () -> Unit) {
-    Row(Modifier.testTag(WorkoutTestTags.TEMPO_COACH_CARD)) {
+    Row(Modifier.testTag(WorkoutTestTags.TEMPO_COACH_SHORTCUT)) {
         TextButton(onClick = onOpen, enabled = enabled,
             modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.MICRO_REC_WHY)
                 .semantics { contentDescription = "Tempo suggestion. $description" }) {

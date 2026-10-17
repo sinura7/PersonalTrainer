@@ -134,13 +134,13 @@ internal fun TempoWhySheet(
                         .padding(bottom = Metrics.space4),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space4),
                 ) {
-                    SuggestionCallout(model.callout)
                     Text(
                         model.summary,
                         modifier = Modifier.testTag(WorkoutTestTags.TEMPO_WHY_SUMMARY),
                         style = InstrumentType.body,
                         color = TextSecondary,
                     )
+                    SuggestionCallout(model.callout)
                     DecisionBlock(model.decisionRows)
                     EvidenceBlock(
                         evidenceIds = model.evidenceIds,

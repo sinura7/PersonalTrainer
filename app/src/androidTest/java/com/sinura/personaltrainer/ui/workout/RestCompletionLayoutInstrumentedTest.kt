@@ -86,7 +86,7 @@ class RestCompletionLayoutInstrumentedTest(
         @JvmStatic @Parameterized.Parameters(name = "{0}x{1}-font{2}-{3}")
         fun profiles(): List<Array<Any>> = buildList {
             for ((w, h) in listOf(360 to 640, 360 to 800, 412 to 840, 600 to 840, 640 to 360)) {
-                for (scale in listOf(1f, 1.6f, 2f)) add(arrayOf(w, h, scale, "running"))
+                for (fontScale in listOf(1f, 1.6f, 2f)) add(arrayOf(w, h, fontScale, "running"))
             }
             for (scenario in listOf("idle", "complete", "denied")) {
                 add(arrayOf(360, 800, 1f, scenario))

@@ -98,6 +98,12 @@ android {
     }
 
     sourceSets {
+        getByName("main") {
+            kotlin.srcDir("${rootProject.projectDir}/tempo/src/main/kotlin")
+        }
+        getByName("test") {
+            kotlin.srcDir("${rootProject.projectDir}/tempo/src/test/kotlin")
+        }
         // Lets MigrationTestHelper read the exported schemas as test assets.
         getByName("androidTest").assets.srcDir("$projectDir/schemas")
         getByName("androidTest").java.srcDir("$projectDir/src/sharedTest/java")

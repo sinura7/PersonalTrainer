@@ -170,9 +170,9 @@ class QuietWorkoutFlowRenderTest {
         ).assert(hasText(EFFORT_MISSING))
         compose.onAllNodesWithTag(WorkoutTestTags.LOG_SET).assertCountEquals(1)
         assertNoFloatingCoach()
-        val saved = compose.onNodeWithTag(WorkoutTestTags.SECTION_SET_HISTORY).fetchSemanticsNode().boundsInRoot
-        val tempo = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNode().boundsInRoot
-        assertTrue("Tempo shares the saved-work region", tempo.top >= saved.top && tempo.bottom <= saved.bottom)
+        compose.onAllNodes(
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
+        ).assertCountEquals(1)
         compose.revealWorkoutSetOption(WorkoutTestTags.STATS_ROW)
         compose.onNodeWithTag(WorkoutTestTags.STAT_LAST).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.STAT_BEST).assertExists()
@@ -475,7 +475,7 @@ class QuietWorkoutFlowRenderTest {
 
     private fun assertNoFloatingCoach() {
         compose.onAllNodes(
-            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and !hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
         ).assertCountEquals(0)
     }
 

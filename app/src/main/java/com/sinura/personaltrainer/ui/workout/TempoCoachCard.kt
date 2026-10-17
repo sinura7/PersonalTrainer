@@ -1,7 +1,5 @@
 package com.sinura.personaltrainer.ui.workout
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,14 +21,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
@@ -47,9 +46,9 @@ import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.SectionEdge
-import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.VoltContainer
 
 /** Keep open explanations when the floor moves its card between pinned and scroll layouts. */
 internal class TempoCoachCardState(
@@ -112,8 +111,22 @@ internal fun TempoCoachCard(
     }
     val stackWells = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val oneLineCoach = compactLandscape || compactStrip
-    val showAvatar = true
     val avatarSize = if (oneLineCoach) Metrics.space6 else Metrics.touchMin
+    val cloudModifier = Modifier
+        .fillMaxWidth()
+        .testTag(WorkoutTestTags.TEMPO_COACH_CARD)
+        .drawWithContent {
+            drawContent()
+            val stroke = Stroke(
+                width = Metrics.hairline.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f), 0f),
+            )
+            drawRoundRect(
+                color = SectionEdge,
+                style = stroke,
+                cornerRadius = CornerRadius(Radius.lg.toPx(), Radius.lg.toPx()),
+            )
+        }
     val pad = if (oneLineCoach) Metrics.space1 else Metrics.space2
     val touchMin = if (oneLineCoach) Metrics.space6 else Metrics.touchMin
     val tempoActions: @Composable RowScope.() -> Unit = {
@@ -149,12 +162,9 @@ internal fun TempoCoachCard(
         }
     }
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(WorkoutTestTags.TEMPO_COACH_CARD),
-        shape = RoundedCornerShape(Radius.md),
-        color = Surface3,
-        border = BorderStroke(Metrics.hairline, SectionEdge),
+        modifier = modifier.then(cloudModifier),
+        shape = RoundedCornerShape(Radius.lg),
+        color = VoltContainer,
     ) {
         when {
             oneLineCoach && !(compactStrip && stackWells && !compactLandscape) -> {
@@ -166,14 +176,11 @@ internal fun TempoCoachCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
                 ) {
-                    if (showAvatar) {
-                        Image(
-                            painter = painterResource(R.drawable.tempo_coach_avatar),
-                            contentDescription = null,
-                            modifier = Modifier.size(avatarSize),
-                            contentScale = ContentScale.Crop,
-                        )
-                    }
+                    TempoCoachMascot(
+                        appearanceKey = tip.tipShort,
+                        size = avatarSize,
+                        contentDescription = null,
+                    )
                     Text(
                         detailLine,
                         modifier = Modifier
@@ -198,15 +205,15 @@ internal fun TempoCoachCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
-                        Image(
-                            painter = painterResource(R.drawable.tempo_coach_avatar),
+                        TempoCoachMascot(
+                            appearanceKey = tip.tipShort,
+                            size = avatarSize,
                             contentDescription = "Tempo coach",
-                            modifier = Modifier.size(avatarSize),
-                            contentScale = ContentScale.Crop,
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Tempo",
+                                "Suggestion",
+                                modifier = Modifier.testTag(WorkoutTestTags.TEMPO_SUGGESTION_LABEL),
                                 style = InstrumentType.caption,
                                 color = TextSecondary,
                                 maxLines = 1,
@@ -246,18 +253,18 @@ internal fun TempoCoachCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                 ) {
-                    Image(
-                        painter = painterResource(R.drawable.tempo_coach_avatar),
+                    TempoCoachMascot(
+                        appearanceKey = tip.tipShort,
+                        size = avatarSize,
                         contentDescription = "Tempo coach",
-                        modifier = Modifier.size(avatarSize),
-                        contentScale = ContentScale.Crop,
                     )
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
                     ) {
                         Text(
-                            "Tempo",
+                            "Suggestion",
+                            modifier = Modifier.testTag(WorkoutTestTags.TEMPO_SUGGESTION_LABEL),
                             style = InstrumentType.caption,
                             color = TextSecondary,
                             maxLines = 1,

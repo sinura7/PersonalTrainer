@@ -159,24 +159,14 @@ class AdaptiveTempoReachabilityRenderTest {
         capture("why-relocation", "inline-why-open")
         observeWhy("inline-why-open")
 
-        // The top of the floor remains at its identity; the new inline coach is
-        // below entry and effort, outside this short viewport. Its dialog must not
-        // disappear when that LazyColumn item is not composed.
+        // Large text reflows the scroll column; the dock suggestion cloud stays composed.
         compose.runOnIdle { font.floatValue = 2f }
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.CURRENT_LIFT))
         compose.waitForIdle()
         compose.onAllNodes(
-            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
-                !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
-        ).assertCountEquals(0)
-        val contentBounds = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
-        // A retained lazy item must be completely outside the viewport; no item means
-        // it is uncomposed. Either state independently proves the sheet outlives its card.
-        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNodes().forEach { card ->
-            assertTrue("Why remains open with its card offscreen, card=${card.boundsInRoot} content=$contentBounds",
-                card.boundsInRoot.bottom <= contentBounds.top || card.boundsInRoot.top >= contentBounds.bottom)
-        }
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
+        ).assertCountEquals(1)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
         capture("why-relocation", "inline-offscreen-why-open")
         observeWhy("inline-offscreen-why-open")
@@ -184,8 +174,8 @@ class AdaptiveTempoReachabilityRenderTest {
         compose.runOnIdle { font.floatValue = 1f }
         compose.waitForIdle()
         compose.onAllNodes(
-            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
-        ).assertCountEquals(0)
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
+        ).assertCountEquals(1)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
         observeWhy("returned-inline-before-keep-touch")
         assertWhyActionReachable(WorkoutTestTags.TEMPO_WHY_USE, 64f)
@@ -326,19 +316,18 @@ class AdaptiveTempoReachabilityRenderTest {
         compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(1)
         compose.onAllNodes(
             hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
-                hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
-        ).assertCountEquals(if (inline) 1 else 0)
+                hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
+        ).assertCountEquals(1)
     }
 
     /** Bounded real swipes, with full-size / no-overlay geometry as the stop condition. */
     private fun reveal(tag: String, profile: String): SemanticsNodeInteraction {
         val node = compose.onNodeWithTag(tag)
-        val pinned = hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
-            !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT))
-        // Pinned coach controls already belong to the fixed floor; inline coach
-        // controls, numerals and effort belong to the scrollable content.
+        val dockCoach = hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
+            hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK))
+        // Apply and Why live on the dock suggestion cloud; everything else scrolls in content.
         if (tag != WorkoutTestTags.MICRO_REC_APPLY && tag != WorkoutTestTags.MICRO_REC_WHY ||
-            compose.onAllNodes(pinned).fetchSemanticsNodes().isEmpty()
+            compose.onAllNodes(dockCoach).fetchSemanticsNodes().isEmpty()
         ) {
             compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
             compose.waitForIdle()

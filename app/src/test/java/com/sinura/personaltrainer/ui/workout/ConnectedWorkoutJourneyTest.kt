@@ -379,7 +379,7 @@ class ConnectedWorkoutJourneyTest {
             val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
             val tempo = compose.onAllNodes(
                 hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
-                    !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+                    hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
             ).fetchSemanticsNodes()
                 .singleOrNull()?.boundsInRoot
             val safeBottom = minOf(content.bottom, tempo?.top ?: content.bottom)

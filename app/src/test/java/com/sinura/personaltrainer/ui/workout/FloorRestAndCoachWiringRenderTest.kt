@@ -638,10 +638,10 @@ class FloorRestAndCoachWiringRenderTest {
 
     private fun assertTempoCoachCardOnScreen(vm: ActiveWorkoutViewModel) {
         waitForTempoCoachTip(vm)
-        scrollTo(WorkoutTestTags.TEMPO_COACH_CARD)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_SUGGESTION_LABEL).assertIsDisplayed()
         compose.onAllNodes(
-            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
         ).assertCountEquals(1)
     }
 
