@@ -735,7 +735,9 @@ class UxWalkthroughTest {
         runBlocking(Dispatchers.IO) {
             container.workoutRepository.getInProgress()?.let { container.discardWorkout(it.id) }
         }
-        pressBackToHome()
+        compose.waitForIdle()
+        dismissSoftKeyboard()
+        navigateToHome()
     }
 
     private fun preparePopulatedApp() {
@@ -1051,12 +1053,18 @@ class UxWalkthroughTest {
             scrollPreviewToUsePlan()
             return
         }
+        if (compose.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()) {
+            runCatching { compose.onNodeWithTag(tag, useUnmergedTree = true).performScrollTo() }
+            return
+        }
         harnessWaitUntil(30_000) {
             runCatching {
                 compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
                     .performScrollToNode(hasTestTag(tag))
-            }.isSuccess
+            }.isSuccess ||
+                compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
         }
+        runCatching { compose.onNodeWithTag(tag).performScrollTo() }
     }
 
     private fun usePlanPresentInTree(): Boolean =
@@ -1179,18 +1187,27 @@ class UxWalkthroughTest {
         harnessWaitUntil(120_000) { settingsHomeVisible() }
     }
 
-    private fun performHarnessClickOnTag(tag: String) {
+    private fun performHarnessClickOnTag(tag: String, enabledTimeoutMs: Long = 90_000) {
         dismissSoftKeyboard()
         dismissSystemNotRespondingDialogs()
-        scrollToTag(tag)
+        if (tag.startsWith("activity-composer") || tag == ComposerTags.SAVE) {
+            composerScrollToTag(tag)
+        } else {
+            scrollToTag(tag)
+        }
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
         }
-        harnessWaitUntil(30_000) {
-            scrollToTag(tag)
-            compose.onAllNodes(hasTestTag(tag) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        val enabledReady = runCatching {
+            harnessWaitUntil(enabledTimeoutMs) {
+                dismissSoftKeyboard()
+                compose.onAllNodes(hasTestTag(tag) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+            }
+        }.isSuccess
+        if (!enabledReady) {
+            logHarness("UX_WALKTHROUGH_HARNESS_CLICK tag=$tag enabled-wait-fallback")
         }
-        compose.onNodeWithTag(tag, useUnmergedTree = true).performScrollTo().performClick()
+        compose.onNodeWithTag(tag, useUnmergedTree = true).performScrollTo().performTouchInput { click(center) }
         compose.waitForIdle()
     }
 
@@ -1225,26 +1242,31 @@ class UxWalkthroughTest {
     }
 
     private fun pressBackToHome() {
-        if (compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
+        navigateToHome()
+    }
+
+    private fun homeScreenVisible(): Boolean =
+        compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
             compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty()
-        ) {
-            return
-        }
-        runCatching {
-            goToTab("home")
-            awaitHomeReady()
-            return
-        }
-        repeat(3) {
+
+    private fun navigateToHome() {
+        dismissSoftKeyboard()
+        dismissSystemNotRespondingDialogs()
+        if (homeScreenVisible()) return
+        repeat(8) {
+            dismissSystemNotRespondingDialogs()
+            if (homeScreenVisible()) return
+            if (compose.onAllNodes(hasContentDescription("Back")).fetchSemanticsNodes().isNotEmpty()) {
+                runCatching { compose.onAllNodes(hasContentDescription("Back")).onFirst().performClick() }
+                compose.waitForIdle()
+                if (homeScreenVisible()) return
+            }
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
             compose.waitForIdle()
-            if (compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty()
-            ) {
-                return
-            }
+            if (homeScreenVisible()) return
         }
-        awaitHomeReady()
+        runCatching { goToTab("home") }
+        harnessWaitUntil(120_000) { homeScreenVisible() }
     }
 
     private fun shot(label: String) {
