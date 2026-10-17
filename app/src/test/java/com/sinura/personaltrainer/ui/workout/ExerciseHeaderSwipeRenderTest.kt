@@ -5,8 +5,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeUp
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -48,6 +50,31 @@ class ExerciseHeaderSwipeRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).performClick()
         assertEquals(1, switched)
         assertEquals(0, swipedNext)
+    }
+
+    @Test
+    fun verticalScrollOnTheHeaderDoesNotSwitchLifts() {
+        showHeader(canSwipeNext = true, canSwipePrevious = true, number = 2)
+        compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).performTouchInput {
+            swipeUp()
+            swipeDown()
+        }
+        assertEquals(0, swipedNext)
+        assertEquals(0, swipedPrevious)
+    }
+
+    @Test
+    fun swipingPastTheLastLiftBouncesWithoutSelectingTheNextLift() {
+        showHeader(canSwipeNext = false, number = 1)
+        compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).performTouchInput { swipeLeft() }
+        assertEquals(0, swipedNext)
+    }
+
+    @Test
+    fun swipingBeforeTheFirstLiftBouncesWithoutSelectingThePreviousLift() {
+        showHeader(canSwipePrevious = false, number = 1)
+        compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).performTouchInput { swipeRight() }
+        assertEquals(0, swipedPrevious)
     }
 
     @Test

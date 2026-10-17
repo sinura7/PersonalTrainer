@@ -323,7 +323,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        compose.onNodeWithContentDescription("Exit workout").performClick()
+        compose.onNodeWithContentDescription("Close").performClick()
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasTestTag(LiveSessionBarTestTags.ROOT))
                 .fetchSemanticsNodes().isNotEmpty()
@@ -341,7 +341,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithContentDescription("Exit workout").performClick()
+        compose.onNodeWithContentDescription("Close").performClick()
         compose.onNodeWithContentDescription("Workout actions").performClick()
         compose.onNodeWithText("Finish workout").performClick()
 
