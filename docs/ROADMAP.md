@@ -26,6 +26,9 @@
 > 16 Oct 2026 — Drop C version: debugLiveCode 128. The gym-floor
 > version stays 1. This packet does not publish the phone build.
 >
+> 17 Oct 2026 — Debug 129 version: debugLiveCode 129. The gym-floor
+> version stays 1. This packet does not publish the phone build.
+>
 > 16 Oct 2026 — P19 residuals: the week strip's three calendar checks
 > stay as automated evidence. Screen reader walks, landscape keyboard
 > touch, the old Swap opening, and Close / Another set stay open.
