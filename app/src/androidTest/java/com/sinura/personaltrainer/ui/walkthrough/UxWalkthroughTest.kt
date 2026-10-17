@@ -43,6 +43,7 @@ import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.CardioCopy
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.ColdStartIntroCopy
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
@@ -732,11 +733,8 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
         shot("strength-live-font-1-3")
-        runBlocking(Dispatchers.IO) {
-            container.workoutRepository.getInProgress()?.let { container.discardWorkout(it.id) }
-        }
-        compose.waitForIdle()
         dismissSoftKeyboard()
+        // Leave through the UI (W-14); repository discard alone leaves the workout screen up on CI.
         navigateToHome()
     }
 
@@ -1207,7 +1205,16 @@ class UxWalkthroughTest {
         if (!enabledReady) {
             logHarness("UX_WALKTHROUGH_HARNESS_CLICK tag=$tag enabled-wait-fallback")
         }
-        compose.onNodeWithTag(tag, useUnmergedTree = true).performScrollTo().performTouchInput { click(center) }
+        safeClickOnTag(tag)
+    }
+
+    private fun safeClickOnTag(tag: String) {
+        val node = compose.onNodeWithTag(tag, useUnmergedTree = true)
+        runCatching { node.performScrollTo() }
+        val clicked =
+            runCatching { node.performClick() }.isSuccess ||
+                runCatching { node.performTouchInput { click(center) } }.isSuccess
+        check(clicked) { "Could not click tag=$tag" }
         compose.waitForIdle()
     }
 
@@ -1253,8 +1260,11 @@ class UxWalkthroughTest {
         dismissSoftKeyboard()
         dismissSystemNotRespondingDialogs()
         if (homeScreenVisible()) return
+        runCatching { goToTab("home") }
+        if (homeScreenVisible()) return
         repeat(8) {
             dismissSystemNotRespondingDialogs()
+            dismissWorkoutLeaveDialogsIfVisible()
             if (homeScreenVisible()) return
             if (compose.onAllNodes(hasContentDescription("Back")).fetchSemanticsNodes().isNotEmpty()) {
                 runCatching { compose.onAllNodes(hasContentDescription("Back")).onFirst().performClick() }
@@ -1263,10 +1273,18 @@ class UxWalkthroughTest {
             }
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
             compose.waitForIdle()
+            dismissWorkoutLeaveDialogsIfVisible()
+            if (homeScreenVisible()) return
+            runCatching { goToTab("home") }
             if (homeScreenVisible()) return
         }
-        runCatching { goToTab("home") }
         harnessWaitUntil(120_000) { homeScreenVisible() }
+    }
+
+    private fun dismissWorkoutLeaveDialogsIfVisible() {
+        if (compose.onAllNodesWithText(EndWorkoutCopy.TITLE).fetchSemanticsNodes().isEmpty()) return
+        runCatching { compose.onNodeWithText(EndWorkoutCopy.DISCARD).performClick() }
+        compose.waitForIdle()
     }
 
     private fun shot(label: String) {
