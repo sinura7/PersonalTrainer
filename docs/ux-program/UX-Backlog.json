@@ -5766,6 +5766,25 @@
         "adversarial": "APPROVE (carried from P8 branch review).",
         "cleanContext": "Squash merge to trunk as dae80bd8532c63a10ef351875b4e37b781063255. Remote branch cursor/p8-live-hero-rpe-hint-ae41 deleted."
       },
+<<<<<<< Updated upstream
+=======
+      "5f01e6b5": {
+        "when": "2026-10-17",
+        "packet": "UX blueprint P9 merge head",
+        "gate": "Carried from cd51491f two-green safe gates (p9-gate-safe1.log, p9-gate-safe2.log).",
+        "independent": "APPROVE (carried from P9 branch review).",
+        "adversarial": "APPROVE (carried from P9 branch review).",
+        "cleanContext": "Squash merge to trunk as 5f01e6b53f0972cf57c284f66480dfac6057973f. Remote branch cursor/p9-tempo-cloud-mascot-ae41 deleted."
+      },
+      "cd51491f": {
+        "when": "2026-10-17",
+        "packet": "UX blueprint P9 Tempo cloud, mascot pulse, :tempo module (R6)",
+        "gate": "preflight.sh OK. Two consecutive full --rerun-tasks safe JVM gates on cd51491f (p9-gate-safe1.log BUILD SUCCESSFUL 18m 26s; p9-gate-safe2.log BUILD SUCCESSFUL 17m 55s): testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest, 135 tasks. GRADLE_OPTS -Xmx3072m, --no-daemon, org.gradle.parallel=false, workers.max=2, kotlin in-process. Unit test maxHeapSize 2048m forkEvery 25.",
+        "independent": "APPROVE. Zero Critical/High. Medium: dead TempoCoachShortcut; stale inline test names. Low: TEMPO_COACH_SHORTCUT unused.",
+        "adversarial": "APPROVE. Zero Critical/High. Reachability not weakened: assertFullyVisibleInWindow for dock Why/Apply; overlap safeBottom only when tempo covers content. Apply load-only unchanged. :tempo is source-set boundary via TempoEngine.recommend.",
+        "cleanContext": "Branch cursor/p9-tempo-cloud-mascot-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/540. Look B tempo_coach_avatar unchanged (#460)."
+      },
+>>>>>>> Stashed changes
       "9cf9e2c4": {
         "when": "2026-10-17",
         "packet": "UX blueprint P8 live hero steppers and RPE Last hint (R5 / L1)",
