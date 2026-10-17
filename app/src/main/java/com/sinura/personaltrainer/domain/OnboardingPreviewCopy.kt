@@ -35,6 +35,9 @@ object OnboardingPreviewCopy {
         return "$title · ${routine.name}" to lifts
     }
 
+    /** Shown while the lift catalog seeds and the preview generates (strength / mixed setup). */
+    const val PREPARING_PLAN = "Preparing your plan"
+
     const val FOOTER =
         "Rest days stay rest days. Swap a lift, or change sets and reps, any time after you accept."
 

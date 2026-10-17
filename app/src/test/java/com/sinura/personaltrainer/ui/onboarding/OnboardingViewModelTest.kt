@@ -57,6 +57,29 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun previewRebuildsWhenCatalogSeedsAfterSetupOpens() = runBlocking {
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = OnboardingViewModel(
+            ApplicationProvider.getApplicationContext<Application>(),
+            SavedStateHandle(),
+            deps,
+        )
+        assertNull(viewModel!!.uiState.value.preview)
+
+        deps.dbMaintenance.seedCatalog()
+        viewModel!!.setFocus(TrainingFocus.STRENGTH)
+        viewModel!!.setExperience(TrainingAge.NEW)
+        repeat(6) { viewModel!!.next() }
+        withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.step == OnboardingStep.PREVIEW && it.preview != null }
+        }
+        assertFalse(viewModel!!.uiState.value.preparingPlan)
+    }
+
+    @Test
     fun previewStaysNullUntilTheCatalogArrivesThenTracksDays() = runBlocking {
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),

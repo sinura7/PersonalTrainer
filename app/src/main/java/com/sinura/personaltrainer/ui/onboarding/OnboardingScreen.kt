@@ -506,7 +506,11 @@ private fun PreviewStep(
                             append(why)
                         }
                     }
-                } ?: (state.error ?: "Building it…"),
+                } ?: when {
+                    state.error != null -> state.error
+                    state.preparingPlan -> OnboardingPreviewCopy.PREPARING_PLAN
+                    else -> "Building it…"
+                },
             )
         }
         if (plan != null) {

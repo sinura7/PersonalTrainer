@@ -15,6 +15,7 @@ class OnboardingPreviewCopyTest {
 
     @Test
     fun fullWeekWarningNamesTheChoice() {
+        assertEquals("Preparing your plan", OnboardingPreviewCopy.PREPARING_PLAN)
         assertEquals("No rest day this week.", OnboardingPreviewCopy.FULL_WEEK_TITLE)
         assertEquals("Use this plan", OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN)
         assertEquals("Use this week", OnboardingPreviewCopy.FULL_WEEK_CONFIRM_WEEK)

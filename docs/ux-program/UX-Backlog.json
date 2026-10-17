@@ -5734,6 +5734,22 @@
         "adversarial": "APPROVE. Zero Critical/High. Empty session uses overflow-only discard; Finish stays disabled until a set exists.",
         "cleanContext": "Branch cursor/week-discard-overflow-ae41."
       },
+      "c0606a1b": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint P-6 merge head",
+        "gate": "Carried from 55aee6ef two-green safe gates.",
+        "independent": "APPROVE (carried from P-6 branch review).",
+        "adversarial": "APPROVE (carried from P-6 branch review).",
+        "cleanContext": "Squash merge to trunk as c0606a1b537465fa8e6976ec5994e2eabfb7f142."
+      },
+      "b99cd848": {
+        "when": "2026-10-17",
+        "packet": "UX blueprint P-6b onboarding catalog preview",
+        "gate": "Two consecutive full --rerun-tasks safe JVM gates on b99cd848 (p6b-gate-safe1.log, p6b-gate-safe2.log) ~13m 40s each BUILD SUCCESSFUL.",
+        "independent": "APPROVE. Zero Critical/High. Root cause flow-2: DB had 143 rows while preview null. Fix: catalog via observeAll().stateIn(Eagerly) wired into preview combine (OnboardingViewModel.kt:131-138, 172-195); preparingPlan + OnboardingPreviewCopy.PREPARING_PLAN (OnboardingScreen.kt:509-512); early seedCatalog launch (PersonalTrainerApp.kt:103-112). Test: OnboardingViewModelTest.previewRebuildsWhenCatalogSeedsAfterSetupOpens.",
+        "adversarial": "APPROVE. Zero Critical/High. retryCatalog no longer manually assigns catalog; Room emissions drive preview. Early seed parallel to restore/import.",
+        "cleanContext": "Branch cursor/onboarding-catalog-preview-ae41. Evidence: FLOW-2-CATALOG-ROOT-CAUSE.md (harness); OnboardingViewModel.kt:179-220 superseded by Eagerly stateIn."
+      },
       "251dc30b": {
         "when": "2026-10-16",
         "packet": "P20 phone checklist",
