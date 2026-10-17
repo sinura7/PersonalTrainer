@@ -734,8 +734,7 @@ class UxWalkthroughTest {
         }
         shot("strength-live-font-1-3")
         dismissSoftKeyboard()
-        // Leave through the UI (W-14); repository discard alone leaves the workout screen up on CI.
-        navigateToHome()
+        exitLiveWorkoutToHomeViaUserPaths()
     }
 
     private fun preparePopulatedApp() {
@@ -950,6 +949,10 @@ class UxWalkthroughTest {
     }
 
     private fun goToTab(path: String) {
+        tryGoToTab(path, tabWaitTimeoutMs = 120_000)
+    }
+
+    private fun tryGoToTab(path: String, tabWaitTimeoutMs: Long = 30_000) {
         dismissSystemNotRespondingDialogs()
         val tabRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
         val label = when (path) {
@@ -961,7 +964,7 @@ class UxWalkthroughTest {
             else -> error("Unknown tab $path")
         }
         val tab = hasText(label.uppercase()) and tabRole
-        harnessWaitUntil(120_000) {
+        harnessWaitUntil(tabWaitTimeoutMs) {
             compose.onAllNodes(tab).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(tab).performClick()
@@ -1196,6 +1199,9 @@ class UxWalkthroughTest {
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
         }
+        val enabledBeforeClick =
+            compose.onAllNodes(hasTestTag(tag) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        logHarness("UX_WALKTHROUGH_HARNESS_CLICK tag=$tag enabledBeforeClick=$enabledBeforeClick")
         val enabledReady = runCatching {
             harnessWaitUntil(enabledTimeoutMs) {
                 dismissSoftKeyboard()
@@ -1260,7 +1266,7 @@ class UxWalkthroughTest {
         dismissSoftKeyboard()
         dismissSystemNotRespondingDialogs()
         if (homeScreenVisible()) return
-        runCatching { goToTab("home") }
+        runCatching { tryGoToTab("home", tabWaitTimeoutMs = 15_000) }
         if (homeScreenVisible()) return
         repeat(8) {
             dismissSystemNotRespondingDialogs()
@@ -1275,10 +1281,65 @@ class UxWalkthroughTest {
             compose.waitForIdle()
             dismissWorkoutLeaveDialogsIfVisible()
             if (homeScreenVisible()) return
-            runCatching { goToTab("home") }
+            runCatching { tryGoToTab("home", tabWaitTimeoutMs = 15_000) }
             if (homeScreenVisible()) return
         }
-        harnessWaitUntil(120_000) { homeScreenVisible() }
+        harnessWaitUntil(60_000) { homeScreenVisible() }
+    }
+
+    /**
+     * Flow 9: exercise W-14 back, then in-app Discard workout (empty session), then Home tab.
+     * If all user paths fail to reach Home, the harness fails loudly (possible app navigation bug).
+     */
+    private fun exitLiveWorkoutToHomeViaUserPaths() {
+        logHarness("UX_WALKTHROUGH_LIVE_WORKOUT_EXIT start")
+        dismissSoftKeyboard()
+        if (homeScreenVisible()) {
+            logHarness("UX_WALKTHROUGH_LIVE_WORKOUT_EXIT route=already-home")
+            return
+        }
+        repeat(4) {
+            dismissSystemNotRespondingDialogs()
+            InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+            compose.waitForIdle()
+            dismissWorkoutLeaveDialogsIfVisible()
+            if (homeScreenVisible()) {
+                logHarness("UX_WALKTHROUGH_LIVE_WORKOUT_EXIT route=system-back")
+                return
+            }
+        }
+        if (compose.onAllNodesWithTag(WorkoutTestTags.SET_ENTRY).fetchSemanticsNodes().isNotEmpty()) {
+            val openedOverflow =
+                runCatching { compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick() }.isSuccess
+            if (openedOverflow) {
+                runCatching { compose.onNodeWithText(EndWorkoutCopy.HEADER_DISCARD).performClick() }
+                runCatching { compose.onNodeWithText("Discard").performClick() }
+                compose.waitForIdle()
+            }
+            harnessWaitUntil(60_000) {
+                homeScreenVisible() ||
+                    compose.onAllNodesWithTag(WorkoutTestTags.SET_ENTRY).fetchSemanticsNodes().isEmpty()
+            }
+            if (homeScreenVisible()) {
+                logHarness("UX_WALKTHROUGH_LIVE_WORKOUT_EXIT route=overflow-discard")
+                return
+            }
+        }
+        runCatching { tryGoToTab("home", tabWaitTimeoutMs = 30_000) }
+        harnessWaitUntil(60_000) { homeScreenVisible() }
+        if (homeScreenVisible()) {
+            logHarness("UX_WALKTHROUGH_LIVE_WORKOUT_EXIT route=home-tab")
+            return
+        }
+        val stillOnWorkout = compose.onAllNodesWithTag(WorkoutTestTags.SET_ENTRY).fetchSemanticsNodes().isNotEmpty()
+        logHarness(
+            "UX_WALKTHROUGH_LIVE_WORKOUT_EXIT_FAIL stillOnWorkout=$stillOnWorkout " +
+                "navigation-home=${compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()}",
+        )
+        fail(
+            "Live workout did not return to Home after system Back, overflow Discard, and Home tab " +
+                "(stillOnWorkout=$stillOnWorkout). If reproduced on device, treat as app navigation bug.",
+        )
     }
 
     private fun dismissWorkoutLeaveDialogsIfVisible() {

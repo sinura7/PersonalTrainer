@@ -15,7 +15,7 @@ jobs:
   ux-walkthrough:
     name: UX walkthrough (${{ matrix.flows }})
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
