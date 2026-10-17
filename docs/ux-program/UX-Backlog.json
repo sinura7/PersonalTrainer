@@ -5750,6 +5750,22 @@
         "adversarial": "APPROVE. Zero Critical/High. retryCatalog no longer manually assigns catalog; Room emissions drive preview. Early seed parallel to restore/import.",
         "cleanContext": "Branch cursor/onboarding-catalog-preview-ae41. Evidence: FLOW-2-CATALOG-ROOT-CAUSE.md (harness); OnboardingViewModel.kt:179-220 superseded by Eagerly stateIn."
       },
+      "e1a17855": {
+        "when": "2026-10-17",
+        "packet": "UX blueprint P-6b merge head",
+        "gate": "Carried from b99cd848 / b1457dc1 two-green safe gates.",
+        "independent": "APPROVE (carried from P-6b branch review).",
+        "adversarial": "APPROVE (carried from P-6b branch review).",
+        "cleanContext": "Squash merge to trunk as e1a1785580abe8896849e121b0bb0a2ca2c5878c. debug-live/2026-10-17 push failed CI ratchet at debugLiveCode 128."
+      },
+      "babcd965": {
+        "when": "2026-10-17",
+        "packet": "Debug 129 version (debugLiveCode bump)",
+        "gate": "preflight.sh static half OK after JVM compile path; first gate lost UnlockHeadingTest flake; two consecutive --rerun-tasks runs (debug129-gate-safe1-retry.log, debug129-gate-safe2.log) each testDebugUnitTest 4797 tests 0 failures, assembleDebug, lintDebug, 107 tasks, ~13m 35s BUILD SUCCESSFUL. connectedDebugAndroidTest not run. Does not publish.",
+        "independent": "APPROVE. Zero Critical/High/Medium/Low. debugLiveCode 128→129 in app/build.gradle.kts:20. appVersionCode stays 1. No tag, debug-live branch, or APK in commit.",
+        "adversarial": "APPROVE. Zero Critical/High/Medium/Low. ROADMAP notes no phone publish in this packet.",
+        "cleanContext": "Branch cursor/debug-live-129-ae41. Unblocks CI ratchet for Debug 129 drop after e1a17855."
+      },
       "251dc30b": {
         "when": "2026-10-16",
         "packet": "P20 phone checklist",
