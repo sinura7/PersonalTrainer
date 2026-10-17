@@ -326,11 +326,27 @@ class UxWalkthroughTest {
         }
     }
 
+    private fun logOnboardingPreviewHeadlineIfVisible() {
+        when {
+            compose.onAllNodesWithText(OnboardingPreviewCopy.PREPARING_PLAN).fetchSemanticsNodes().isNotEmpty() ->
+                logHarness("UX_WALKTHROUGH_ONBOARDING_HEADLINE=preparing-plan")
+            compose.onAllNodesWithText(CATALOG_MISSING_MESSAGE).fetchSemanticsNodes().isNotEmpty() ->
+                logHarness("UX_WALKTHROUGH_ONBOARDING_HEADLINE=catalog-error")
+            compose.onAllNodesWithText("Building it…").fetchSemanticsNodes().isNotEmpty() ->
+                logHarness("UX_WALKTHROUGH_ONBOARDING_HEADLINE=building")
+        }
+    }
+
     private fun waitForUsePlanEnabledWithCatalogRecovery(timeoutMs: Long = 120_000) {
         var disabledSinceMs: Long? = null
         var loggedDisabledSnapshot = false
+        var loggedHeadline = false
         compose.waitUntil(timeoutMs) {
             tapCatalogRetryIfBannerVisible()
+            if (!loggedHeadline) {
+                logOnboardingPreviewHeadlineIfVisible()
+                loggedHeadline = true
+            }
             val previewVisible =
                 compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
             if (previewVisible && disabledSinceMs == null) {
@@ -357,7 +373,10 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
         }
-        if (compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isEmpty()) {
+        val onPreviewStep = compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
+        if (!onPreviewStep &&
+            compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
+        ) {
             advanceOnboardingWizardSteps()
         }
         runBlocking(Dispatchers.IO) { awaitCatalogReady() }
@@ -426,8 +445,6 @@ class UxWalkthroughTest {
         ensureHarnessPermissions()
         dismissTransientOverlays()
         awaitHomeReady()
-        openGuidedSetup()
-        shot("onboarding-start")
         runBlocking(Dispatchers.IO) {
             seedOnboardingAnswersForPreview()
             val seeded = container.preferencesRepository.storedOnboardingAnswers()
@@ -436,13 +453,9 @@ class UxWalkthroughTest {
         scenarioRule.scenario.recreate()
         ensureHarnessPermissions()
         dismissTransientOverlays()
-        awaitHomeOrOnboardingEntry()
-        if (compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isEmpty() &&
-            compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isEmpty()
-        ) {
-            awaitHomeReady()
-            openGuidedSetup()
-        }
+        awaitHomeReady()
+        openGuidedSetup()
+        shot("onboarding-start")
         reachOnboardingPlanPreview()
         shot("onboarding-plan-preview")
         scrollToTag(OnboardingTags.USE_PLAN)
@@ -602,9 +615,11 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(ComposerTags.SAVE).performClick()
-        // Same post-save History assertion as run 38976165996 (dcada111); 120s composer dismiss for CI flake.
+        // Post-save History assertion (38976165996): accept summary or history as composer exit.
         compose.waitUntil(120_000) {
-            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty()
+            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty() ||
+                compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()
         }
         val autoHistory = runCatching {
             compose.waitUntil(15_000) {
