@@ -45,7 +45,6 @@ import com.sinura.personaltrainer.domain.ColdStartIntroCopy
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OnboardingPreviewCopy
-import com.sinura.personaltrainer.testonly.WalkthroughOnboardingNavHook
 import com.sinura.personaltrainer.domain.PlanSetupCopy
 import com.sinura.personaltrainer.domain.RestNudgeCopy
 import com.sinura.personaltrainer.domain.SavePosture
@@ -279,29 +278,52 @@ class UxWalkthroughTest {
         )
     }
 
-    private fun advanceOnboardingWizardSteps() {
-        val labels = listOf(
-            TrainingFocus.STRENGTH.displayName,
-            TrainingAge.NEW.displayName,
-            "Continue",
-            "Space them out for me",
-            "Continue",
-            TrainingGoal.GENERAL.displayName,
-            TrainingEmphasis.BALANCED.displayName,
-            "Skip this",
-        )
-        for (label in labels) {
-            runBlocking(Dispatchers.IO) { awaitCatalogReady() }
-            clickOnboardingLabel(label)
+    private fun clickOnboardingPrimaryAction(label: String) {
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()
         }
-        runBlocking(Dispatchers.IO) { awaitCatalogReady() }
+        compose.onNodeWithText(label).performClick()
+        compose.waitForIdle()
     }
 
-    /**
-     * After [seedOnboardingAnswersForPreview] and [openGuidedSetup], land on the plan preview without
-     * extra wizard screenshots. Uses stored prefs when the preview is already enabled; otherwise
-     * walks the wizard once.
-     */
+    /** Real taps through setup so [com.sinura.personaltrainer.ui.onboarding.OnboardingViewModel.next] runs. */
+    private fun walkOnboardingSetupAsUser() {
+        compose.waitUntil(120_000) {
+            compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
+        }
+        clickOnboardingLabel(TrainingFocus.STRENGTH.displayName)
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText("How much lifting have you done?").fetchSemanticsNodes().isNotEmpty()
+        }
+        clickOnboardingLabel(TrainingAge.NEW.displayName)
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText("How many days a week can you train?").fetchSemanticsNodes().isNotEmpty()
+        }
+        clickOnboardingPrimaryAction("Continue")
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText("Which days suit you?").fetchSemanticsNodes().isNotEmpty()
+        }
+        clickOnboardingPrimaryAction("Space them out for me")
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText("Where will you train?").fetchSemanticsNodes().isNotEmpty()
+        }
+        clickOnboardingLabel(TrainingPlace.FULL_GYM.displayName)
+        clickOnboardingPrimaryAction("Continue")
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText("What are you training for?").fetchSemanticsNodes().isNotEmpty()
+        }
+        clickOnboardingLabel(TrainingGoal.GENERAL.displayName)
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText("Where do you want the work?").fetchSemanticsNodes().isNotEmpty()
+        }
+        clickOnboardingLabel(TrainingEmphasis.BALANCED.displayName)
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithText("What's your bodyweight?").fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithText("Skip this").fetchSemanticsNodes().isNotEmpty()
+        }
+        clickOnboardingPrimaryAction("Skip this")
+    }
+
     private fun tapCatalogRetryIfBannerVisible() {
         if (compose.onAllNodesWithText(CATALOG_MISSING_MESSAGE).fetchSemanticsNodes().isEmpty()) return
         runCatching { compose.onNodeWithText("Retry").performClick() }
@@ -326,61 +348,71 @@ class UxWalkthroughTest {
         }
     }
 
-    private fun logOnboardingPreviewHeadlineIfVisible() {
-        when {
+    private fun logOnboardingPreviewHeadline() {
+        val headline = when {
             compose.onAllNodesWithText(OnboardingPreviewCopy.PREPARING_PLAN).fetchSemanticsNodes().isNotEmpty() ->
-                logHarness("UX_WALKTHROUGH_ONBOARDING_HEADLINE=preparing-plan")
+                "preparing-plan"
             compose.onAllNodesWithText(CATALOG_MISSING_MESSAGE).fetchSemanticsNodes().isNotEmpty() ->
-                logHarness("UX_WALKTHROUGH_ONBOARDING_HEADLINE=catalog-error")
+                "catalog-error"
             compose.onAllNodesWithText("Building it…").fetchSemanticsNodes().isNotEmpty() ->
-                logHarness("UX_WALKTHROUGH_ONBOARDING_HEADLINE=building")
+                "building"
+            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty() ->
+                "use-plan-enabled"
+            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty() ->
+                "use-plan-disabled"
+            compose.onAllNodesWithText("Here's your block").fetchSemanticsNodes().isNotEmpty() ->
+                "preview-title"
+            else -> "unknown"
         }
+        logHarness("UX_WALKTHROUGH_ONBOARDING_HEADLINE=$headline")
     }
 
-    private fun waitForUsePlanEnabledWithCatalogRecovery(timeoutMs: Long = 120_000) {
-        var disabledSinceMs: Long? = null
-        var loggedDisabledSnapshot = false
-        var loggedHeadline = false
-        compose.waitUntil(timeoutMs) {
-            tapCatalogRetryIfBannerVisible()
-            if (!loggedHeadline) {
-                logOnboardingPreviewHeadlineIfVisible()
-                loggedHeadline = true
-            }
-            val previewVisible =
-                compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
-            if (previewVisible && disabledSinceMs == null) {
-                disabledSinceMs = SystemClock.elapsedRealtime()
-            }
-            val enabled =
-                compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
-            if (previewVisible && !enabled && !loggedDisabledSnapshot) {
-                loggedDisabledSnapshot = true
-                logHarnessCatalogSnapshot("use-plan-disabled")
-            }
-            enabled
-        }
-        val disabledMs = disabledSinceMs?.let { SystemClock.elapsedRealtime() - it }
-        if (disabledMs != null) {
-            logHarness("UX_WALKTHROUGH_PLAN_PREVIEW_DISABLED_MS=$disabledMs")
-        }
+    private fun logFlow2Diagnostics(label: String) {
+        logHarness("UX_WALKTHROUGH_FLOW2_DIAG=$label")
+        logHarnessCatalogSnapshot(label)
+        logOnboardingPreviewHeadline()
     }
 
-    private fun reachOnboardingPlanPreview() {
-        runBlocking(Dispatchers.IO) { awaitCatalogReady() }
+    /**
+     * On preview: "Preparing your plan" may flash; [OnboardingTags.USE_PLAN] must enable within 30s.
+     */
+    private fun assertUsePlanReadyWithin30Seconds() {
         compose.waitUntil(120_000) {
-            tapCatalogRetryIfBannerVisible()
-            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
         }
-        val onPreviewStep = compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
-        if (!onPreviewStep &&
-            compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
-        ) {
-            advanceOnboardingWizardSteps()
+        logFlow2Diagnostics("preview-visible")
+        var preparingSeen = false
+        var disabledSinceMs: Long? = null
+        try {
+            compose.waitUntil(30_000) {
+                tapCatalogRetryIfBannerVisible()
+                if (compose.onAllNodesWithText(OnboardingPreviewCopy.PREPARING_PLAN).fetchSemanticsNodes().isNotEmpty()) {
+                    preparingSeen = true
+                }
+                logOnboardingPreviewHeadline()
+                val previewVisible =
+                    compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
+                if (previewVisible && disabledSinceMs == null) {
+                    disabledSinceMs = SystemClock.elapsedRealtime()
+                }
+                compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+            }
+        } catch (timeout: Throwable) {
+            logFlow2Diagnostics("use-plan-timeout-30s")
+            shot("flow2-use-plan-timeout")
+            val catalogLoaded = runBlocking(Dispatchers.IO) {
+                container.exerciseRepository.observeAll().first().any { it.id == "ex-barbell-back-squat" }
+            }
+            if (catalogLoaded) {
+                logHarness("UX_WALKTHROUGH_FLOW2_POSSIBLE_APP_BUG=catalog-loaded-use-plan-still-disabled")
+            }
+            throw timeout
         }
-        runBlocking(Dispatchers.IO) { awaitCatalogReady() }
-        waitForUsePlanEnabledWithCatalogRecovery()
+        logHarness("UX_WALKTHROUGH_PREPARING_PLAN_SEEN=$preparingSeen")
+        disabledSinceMs?.let {
+            logHarness("UX_WALKTHROUGH_PLAN_PREVIEW_DISABLED_MS=${SystemClock.elapsedRealtime() - it}")
+        }
+        logFlow2Diagnostics("use-plan-enabled")
     }
 
     private fun leaveOnboardingScreen() {
@@ -394,19 +426,6 @@ class UxWalkthroughTest {
             }
         }
         awaitHomeReady()
-    }
-
-    private suspend fun seedOnboardingAnswersForPreview() {
-        awaitCatalogReady()
-        seedCatalogAndLog("seed-onboarding-preview-prefs")
-        awaitCatalogReady()
-        container.preferencesRepository.setTrainingFocus(TrainingFocus.STRENGTH)
-        container.preferencesRepository.setTrainingAge(TrainingAge.NEW)
-        container.preferencesRepository.setTrainingDaysPerWeek(SchedulePreferences.DEFAULT_DAYS)
-        container.preferencesRepository.setPreferredDays(emptySet())
-        container.preferencesRepository.setTrainingPlaces(setOf(TrainingPlace.FULL_GYM))
-        container.preferencesRepository.setTrainingGoal(TrainingGoal.GENERAL)
-        container.preferencesRepository.setTrainingEmphasis(TrainingEmphasis.BALANCED)
     }
 
     private fun cardioSessionFinished(): Boolean {
@@ -445,18 +464,10 @@ class UxWalkthroughTest {
         ensureHarnessPermissions()
         dismissTransientOverlays()
         awaitHomeReady()
-        runBlocking(Dispatchers.IO) {
-            seedOnboardingAnswersForPreview()
-            val seeded = container.preferencesRepository.storedOnboardingAnswers()
-            WalkthroughOnboardingNavHook.installForcePreview(seeded)
-        }
-        scenarioRule.scenario.recreate()
-        ensureHarnessPermissions()
-        dismissTransientOverlays()
-        awaitHomeReady()
         openGuidedSetup()
         shot("onboarding-start")
-        reachOnboardingPlanPreview()
+        walkOnboardingSetupAsUser()
+        assertUsePlanReadyWithin30Seconds()
         shot("onboarding-plan-preview")
         scrollToTag(OnboardingTags.USE_PLAN)
         compose.onNodeWithTag(OnboardingTags.USE_PLAN).performClick()
