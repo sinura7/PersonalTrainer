@@ -82,6 +82,8 @@ data class OnboardingUiState(
     val applying: Boolean = false,
     val existingProgram: Boolean = false,
     val error: String? = null,
+    /** Lift catalog still empty on preview — seed in flight, not a silent disabled button. */
+    val preparingPlan: Boolean = false,
     /** Display unit for the bodyweight wheel. Pending until apply; abandon leaves DataStore. */
     val weightUnit: WeightUnit = WeightUnit.LBS,
 ) {
@@ -128,7 +130,17 @@ class OnboardingViewModel @JvmOverloads constructor(
     private val applying = MutableStateFlow(false)
     private val error = ErrorSlot()
     private val existingProgram = MutableStateFlow(false)
-    private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
+    /**
+     * Always subscribed to Room so a seed that finishes after setup opens still reaches the
+     * preview combine. A side collect into a MutableStateFlow could lag behind what the DB
+     * already holds (flow-2 harness: rowCount=143 while preview stayed null).
+     */
+    private val catalog: StateFlow<List<Exercise>> = container.exerciseRepository.observeAll()
+        .catch { thrown ->
+            AppLog.w(TAG, "Reading the catalog for setup failed", thrown)
+            emit(emptyList())
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /**
      * The lifter's stored first day of the week.
@@ -170,6 +182,10 @@ class OnboardingViewModel @JvmOverloads constructor(
             )
         },
     ) { currentStep, currentAnswers, exercises, flags ->
+        val preparingPlan = currentStep == OnboardingStep.PREVIEW &&
+            currentAnswers.focus != TrainingFocus.CARDIO &&
+            exercises.isEmpty() &&
+            flags.error == null
         OnboardingUiState(
             step = currentStep,
             answers = currentAnswers,
@@ -183,6 +199,7 @@ class OnboardingViewModel @JvmOverloads constructor(
             },
             applying = flags.applying,
             error = flags.error,
+            preparingPlan = preparingPlan,
             existingProgram = flags.existingProgram,
             weightUnit = flags.weightUnit,
         )
@@ -198,23 +215,6 @@ class OnboardingViewModel @JvmOverloads constructor(
 
     init {
         viewModelScope.launch {
-            // Collected for as long as this view model lives, not read once.
-            //
-            // `observeAll().first()` took whatever the catalog tables held at the instant of
-            // subscription — and on the launch this whole phase exists for, that is nothing.
-            // A fresh install seeds the catalog from Application.onCreate, fire and forget on
-            // an IO dispatcher, while Home can compose before the seed finishes. Collecting
-            // means the seed's arrival is what fills the preview in.
-            container.exerciseRepository.observeAll()
-                .catch { thrown ->
-                    AppLog.w(TAG, "Reading the catalog for setup failed", thrown)
-                    emit(emptyList())
-                }
-                .collect { exercises -> catalog.value = exercises }
-        }
-        viewModelScope.launch {
-            // Its own coroutine: the collection above never returns, so anything sequenced
-            // after it would never run.
             existingProgram.value = runCatchingCancellable { container.onboardingApplier.hasExistingProgram() }
                 .getOrDefault(false)
         }
@@ -305,7 +305,6 @@ class OnboardingViewModel @JvmOverloads constructor(
                 container.exerciseRepository.observeAll().first()
             }
             seeded.onSuccess { exercises ->
-                catalog.value = exercises
                 if (exercises.isEmpty() && answers.value.focus != TrainingFocus.CARDIO) {
                     error.fail(source = ERR_CATALOG, message = CATALOG_MISSING_MESSAGE)
                 }

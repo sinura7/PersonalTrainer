@@ -100,6 +100,16 @@ class PersonalTrainerApp : Application() {
         applicationScope.launch { TemperStillCache.bind(resources) }
         // A rest can outlive its process. Recover it before any screen asks for timer state.
         container.restTimerController.rehydrate()
+        // Seed the lift catalog early so onboarding preview is not blocked behind restore/import.
+        applicationScope.launch {
+            try {
+                container.dbMaintenance.seedCatalog()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                AppLog.e(TAG, "Seeding the default exercise catalog failed", error)
+            }
+        }
         applicationScope.launch {
             try {
                 container.backupService.recoverInterruptedRestore()
@@ -123,14 +133,6 @@ class PersonalTrainerApp : Application() {
                 throw error
             } catch (error: Exception) {
                 AppLog.e(TAG, "Importing schedule rules failed", error)
-            }
-            try {
-                container.dbMaintenance.seedCatalog()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                // The catalog is a convenience; the app is fully usable without it.
-                AppLog.e(TAG, "Seeding the default exercise catalog failed", error)
             }
             try {
                 if (container.accountAuth.session.first() != null) {
