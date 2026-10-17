@@ -5766,8 +5766,6 @@
         "adversarial": "APPROVE (carried from P8 branch review).",
         "cleanContext": "Squash merge to trunk as dae80bd8532c63a10ef351875b4e37b781063255. Remote branch cursor/p8-live-hero-rpe-hint-ae41 deleted."
       },
-<<<<<<< Updated upstream
-=======
       "5f01e6b5": {
         "when": "2026-10-17",
         "packet": "UX blueprint P9 merge head",
@@ -5784,7 +5782,14 @@
         "adversarial": "APPROVE. Zero Critical/High. Reachability not weakened: assertFullyVisibleInWindow for dock Why/Apply; overlap safeBottom only when tempo covers content. Apply load-only unchanged. :tempo is source-set boundary via TempoEngine.recommend.",
         "cleanContext": "Branch cursor/p9-tempo-cloud-mascot-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/540. Look B tempo_coach_avatar unchanged (#460)."
       },
->>>>>>> Stashed changes
+      "751dec48": {
+        "when": "2026-10-17",
+        "packet": "UX blueprint P10 swipe lifts, header Swap, Close label (R7 / L2)",
+        "gate": "Two consecutive full --rerun-tasks safe JVM gates on 751dec48 (p10-gate-safe1-retry.log BUILD SUCCESSFUL 19m 14s; p10-gate-safe2-retry.log BUILD SUCCESSFUL 19m 3s after one flaky WorkoutPrivateRecoveryTest on first gate2). Final review commit adds edge-bounce and vertical-scroll swipe tests; p10-gate-final1.log pending at push.",
+        "independent": "APPROVE after review fixes. Zero Critical/High. Medium: lambda_arity_declined 47 ratchet. Low: phone swipe feel [EMU].",
+        "adversarial": "APPROVE. Zero Critical/High. Reachability ratchets unchanged; LiftOptionsRenderTest expects header+menu Swap; Close label in instrumented journeys.",
+        "cleanContext": "Branch cursor/p10-swipe-lifts-ae41."
+      },
       "9cf9e2c4": {
         "when": "2026-10-17",
         "packet": "UX blueprint P8 live hero steppers and RPE Last hint (R5 / L1)",
