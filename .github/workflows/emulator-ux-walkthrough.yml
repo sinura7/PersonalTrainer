@@ -57,9 +57,30 @@ jobs:
       - name: Make walkthrough script executable
         run: chmod +x ./tools/emulator-ux-walkthrough.sh
 
+      # Parallel matrix jobs race on a cold configuration cache; one shard can fail
+      # storing :app:mergeReleaseNativeLibs and surface a bogus gotrue-kt-android miss
+      # while Maven Central has the artifact (see run 39006918648 job 7-9).
       - name: Build debug and androidTest APKs
         run: |
-          ./gradlew assembleDebug assembleDebugAndroidTest --stacktrace
+          set -eu
+          attempt=1
+          max_attempts=3
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Gradle build attempt ${attempt}/${max_attempts}"
+            extra_args=""
+            if [ "$attempt" -gt 1 ]; then
+              extra_args="--refresh-dependencies"
+              sleep $((attempt * 15))
+            fi
+            if ./gradlew assembleDebug assembleDebugAndroidTest \
+              --stacktrace \
+              --no-configuration-cache \
+              $extra_args; then
+              exit 0
+            fi
+            attempt=$((attempt + 1))
+          done
+          exit 1
 
       - name: Instrumented UX walkthrough on emulator
         uses: reactivecircus/android-emulator-runner@v2
