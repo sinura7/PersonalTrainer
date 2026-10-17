@@ -37,6 +37,10 @@
 > for previous/next in session order, header Swap link, workout Close label.
 > Lift counter tap still opens the full switcher.
 >
+> 17 Oct 2026 — UX blueprint P11 (R8): past/mixed composer shows no fake
+> default lift, a Draft · not saved list, quiet Add set/cardio, Discard under
+> Cancel, and Save disabled until there is at least one entry.
+>
 > 16 Oct 2026 — P19 residuals: the week strip's three calendar checks
 > stay as automated evidence. Screen reader walks, landscape keyboard
 > touch, the old Swap opening, and Close / Another set stay open.
