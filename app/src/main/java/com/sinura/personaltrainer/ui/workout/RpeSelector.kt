@@ -62,6 +62,8 @@ internal fun RpeSelector(
     modifier: Modifier = Modifier,
     focused: Boolean = false,
     optional: Boolean = false,
+    /** Weight and reps (or hold time) are set — the effort row is shown in full. */
+    entryReady: Boolean = true,
 ) {
     var helpOpen by rememberSaveable { mutableStateOf(false) }
     val measurer = rememberTextMeasurer()
@@ -140,6 +142,13 @@ internal fun RpeSelector(
                 style = InstrumentType.caption,
                 color = TextSecondary,
             )
+        } else if (!entryReady) {
+            Text(
+                "Set weight and reps before choosing effort.",
+                modifier = Modifier.testTag(WorkoutTestTags.RPE_WAIT_ENTRY),
+                style = InstrumentType.caption,
+                color = TextTertiary,
+            )
         } else {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 // A compact chip is its label plus space2 a side (InstrumentChip); space1 on top
@@ -160,11 +169,9 @@ internal fun RpeSelector(
                     ) {
                         RpeCopy.VALUES.forEach { value ->
                             val selected = rpe == value
-                            val recommended = recommendedRpe == value && !selected
                             if (focused) FocusEffortChoice(
                                 value = value,
                                 selected = selected,
-                                recommended = recommended,
                                 enabled = enabled,
                                 onSelect = { onRpe(if (selected) null else value) },
                                 modifier = Modifier.weight(1f),
@@ -173,13 +180,20 @@ internal fun RpeSelector(
                                 selected = selected,
                                 onClick = { onRpe(if (selected) null else value) },
                                 modifier = Modifier.weight(1f).testTag(WorkoutTestTags.rpeChoice(value)),
-                                recommended = recommended,
                                 compact = true,
                                 role = Role.RadioButton,
-                                spoken = RpeCopy.spoken(value = value, selected = selected, recommended = recommended),
+                                spoken = RpeCopy.spoken(value = value, selected = selected),
                                 enabled = enabled,
                             )
                         }
+                    }
+                    RpeCopy.lastHint(recommendedRpe)?.takeIf { rpe == null }?.let { hint ->
+                        Text(
+                            hint,
+                            modifier = Modifier.testTag(WorkoutTestTags.RPE_LAST_HINT),
+                            style = InstrumentType.caption,
+                            color = TextTertiary,
+                        )
                     }
                     // Under the track, whether it fits one row or wraps: the chosen value's
                     // meaning once there is one, the track's ends until then. One row either way.

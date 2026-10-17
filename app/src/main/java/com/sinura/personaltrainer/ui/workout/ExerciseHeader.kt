@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
@@ -160,9 +161,9 @@ private fun FocusExerciseIdentity(
         horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DetailsStill(lift, enabled, onDetails)
+        DetailsStill(lift, enabled, onDetails, Metrics.exerciseHeroImage)
         Column(
-            modifier = Modifier.weight(1f).heightIn(min = Metrics.workoutIdentityImage),
+            modifier = Modifier.weight(1f).heightIn(min = Metrics.exerciseHeroImage),
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             Text(lift.exercise.name, style = InstrumentType.workoutTitle, color = TextPrimary)
@@ -260,6 +261,7 @@ private fun DetailsStill(
     lift: SessionExercise,
     enabled: Boolean,
     onDetails: () -> Unit,
+    imageSize: Dp = Metrics.workoutIdentityImage,
 ) {
     Box(
         modifier = Modifier
@@ -275,7 +277,7 @@ private fun DetailsStill(
     ) {
         ExerciseThumb(
             exercise = lift.exercise,
-            size = Metrics.workoutIdentityImage,
+            size = imageSize,
             showBadge = false,
             artPadding = Metrics.space1,
         )

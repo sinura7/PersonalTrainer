@@ -105,7 +105,8 @@ class RpeSelectorRenderTest {
                 .getBoundsInRoot()
         }
         assertTrue("all five choices stay on the same row", bounds.all { it.top == bounds.first().top })
-        assertEquals(listOf("RPE 8, about two reps left, recommended"), choice(8).spokenDescriptions())
+        compose.onNodeWithTag(WorkoutTestTags.RPE_LAST_HINT).assert(hasText("Last: 8"))
+        assertEquals(listOf("RPE 8, about two reps left"), choice(8).spokenDescriptions())
         assertTrue(picks.isEmpty())
         rpe = 8
         choice(8).assertIsSelected()
@@ -271,10 +272,8 @@ class RpeSelectorRenderTest {
     fun aRecommendationIsSpokenButNeverSelected() {
         showTrack(recommended = 8)
         choice(8).assertIsNotSelected()
-        assertEquals(listOf("RPE 8, about two reps left, recommended"), choice(8).spokenDescriptions())
-        RpeCopy.VALUES.filter { it != 8 }.forEach {
-            assertFalse(choice(it).spokenDescriptions().single().endsWith("recommended"))
-        }
+        compose.onNodeWithTag(WorkoutTestTags.RPE_LAST_HINT).assert(hasText("Last: 8"))
+        assertEquals(listOf("RPE 8, about two reps left"), choice(8).spokenDescriptions())
         compose.onAllNodesWithTag(WorkoutTestTags.RPE_CLEAR).assertCountEquals(0)
         // Nothing is chosen, so the ends stay and no meaning line claims one.
         compose.onAllNodesWithTag(WorkoutTestTags.RPE_MEANING, useUnmergedTree = true).assertCountEquals(0)
@@ -284,6 +283,7 @@ class RpeSelectorRenderTest {
         rpe = 8
         choice(8).assertIsSelected()
         assertEquals(listOf("RPE 8, about two reps left"), choice(8).spokenDescriptions())
+        compose.onAllNodesWithTag(WorkoutTestTags.RPE_LAST_HINT).assertCountEquals(0)
     }
 
     @Test

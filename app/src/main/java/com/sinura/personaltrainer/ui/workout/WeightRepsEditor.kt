@@ -395,10 +395,13 @@ private fun HeroNumeral(
                 measurer.measure(label, style = InstrumentType.bodyStrong, softWrap = false).size.width.toDp()
             }
         } ?: 0.dp
-        val inlineLabel = flat && !LogLoopScale.stackEntryWells(density.fontScale) &&
-            sampleWidth + labelWidth + Metrics.space2 + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth
+        val stackWells = LogLoopScale.stackEntryWells(density.fontScale)
+        val platesFitBeside = sampleWidth + (Metrics.control + Metrics.space2) * 2 <= availableWidth
+        val inlineLabel = flat && !stackWells &&
+            sampleWidth + labelWidth + Metrics.space2 + (Metrics.control + Metrics.space2) * 2 <= availableWidth
         val labelReserve = if (inlineLabel) labelWidth + Metrics.space2 else 0.dp
-        val inline = flat || sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth
+        // Large system text stacks wells; −/+ sit under the numeral so the unit keeps its width.
+        val inline = platesFitBeside && !stackWells
         // The sample's one line, held by the field whatever size a value is drawn at, so a value
         // that steps down below does not pull the plates beneath it up (ADR-027 decision 7).
         val sampleLine = with(density) { sampleLayout.size.height.toDp() }
@@ -407,7 +410,7 @@ private fun HeroNumeral(
         // shared row. The unit's width comes off first, so a fitted value always leaves it whole.
         val numeralRoomPx = with(density) {
             availableWidth.roundToPx() -
-                (if (inline) (Metrics.stepperRound.roundToPx() + Metrics.space2.roundToPx()) * 2 else 0) -
+                (if (inline) (Metrics.control.roundToPx() + Metrics.space2.roundToPx()) * 2 else 0) -
                 labelReserve.roundToPx() -
                 Metrics.space1.roundToPx() * 2 -
                 unitWidth.roundToPx() - 1
@@ -415,7 +418,7 @@ private fun HeroNumeral(
         val numeral: @Composable (Modifier) -> Unit = { numeralModifier ->
             Box(
                 modifier = numeralModifier
-                    .heightIn(min = maxOf(Metrics.stepperRound, sampleLine))
+                    .heightIn(min = maxOf(Metrics.control, sampleLine))
                     .clip(RoundedCornerShape(Radius.sm))
                     .testTag(tag)
                     // The numeral is a field, and it looks like one (design audit D10): a quiet
@@ -576,8 +579,9 @@ private fun RoundPlate(
         onClick = onClick,
         modifier = Modifier.semantics { contentDescription = spoken },
         enabled = enabled,
-        plateWidth = Metrics.stepperRound,
-        plateHeight = Metrics.stepperRound,
+        plateWidth = Metrics.control,
+        plateHeight = Metrics.control,
+        // Layout math in HeroNumeral still reserves [Metrics.control]; the drawn plate is 56 dp.
         shape = Radius.full,
         // The glyph carries the emphasis the fill cannot: a heavier − / + on a smaller
         // circle reads as a control, where a quiet one on a large circle read as a gap.

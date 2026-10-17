@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -26,6 +27,7 @@ import com.sinura.personaltrainer.domain.IncrementTable
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LoggedSetView
+import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -291,7 +293,8 @@ class WorkoutFloorComponentsTest {
         // One sentence per chip: its digit is not read after it, and "selected" is left to
         // the radio's own state.
         val eight = compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8))
-        assertEquals(listOf("RPE 8, about two reps left, recommended"), eight.spokenDescriptions())
+        compose.onNodeWithTag(WorkoutTestTags.RPE_LAST_HINT).assert(hasText("Last: 8"))
+        assertEquals(listOf("RPE 8, about two reps left"), eight.spokenDescriptions())
         assertTrue("was ${eight.mergedTexts()}", eight.mergedTexts().isEmpty())
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(9)).performClick()
         assertEquals(9, chosen)
@@ -306,6 +309,34 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.RPE_HELPER).performClick()
         compose.onNodeWithText("Effort (RPE)").assertIsDisplayed()
+    }
+
+    @Test
+    fun effortTrackWaitsUntilLoadFieldsValidate() {
+        show {
+            RpeSelector(
+                enabled = true,
+                warmup = false,
+                rpe = null,
+                recommendedRpe = 8,
+                entryReady = false,
+                onRpe = {},
+            )
+        }
+        compose.onNodeWithTag(WorkoutTestTags.RPE_WAIT_ENTRY).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertDoesNotExist()
+    }
+
+    @Test
+    fun zeroAddedWeightWorkingSetCanReachTheEffortTrack() {
+        assertNull(
+            SetLogRules.validate(
+                weightKg = 0.0,
+                reps = 8,
+                isWarmup = false,
+                loadType = LoadType.BODYWEIGHT_PLUS,
+            ),
+        )
     }
 
     @Test

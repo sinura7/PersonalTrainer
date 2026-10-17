@@ -6,7 +6,8 @@ package com.sinura.personaltrainer.domain
  * Five equal values, 6–10. Required on a working set since P2a (owner decision of
  * 29 September 2026; W1b had it optional); warm-ups and holds log without one. Warm-up is
  * not an RPE value — that chip lives outside this track. A recommendation may outline a
- * chip; it never selects one.
+ * chip; it never selects one. On the live floor the last session effort is a
+ * plain "Last: n" hint under the track, not an outlined chip (UX blueprint R5).
  */
 object RpeCopy {
     /** Under the track before a value is chosen: why the set is waiting. */
@@ -46,6 +47,9 @@ object RpeCopy {
 
     fun recommended(lastRpe: Int?): Int? = lastRpe?.takeIf { it in VALUES }
 
+    /** Visible hint under the effort track; never a pre-selected chip. */
+    fun lastHint(lastRpe: Int?): String? = lastRpe?.takeIf { it in VALUES }?.let { "Last: $it" }
+
     /**
      * How many reps are still in the tank at this number.
      *
@@ -78,17 +82,15 @@ object RpeCopy {
      * The chip is a radio button, so its Selected state already says "selected" or "not
      * selected"; saying it in the words as well read it out twice (W1a).
      *
-     * Packet H: a recommendation outlines the chip without selecting it, so the
-     * outline needs the word `recommended` — the non-colour channel (ADR-023).
+     * The last-session hint lives in [lastHint], not on a chip.
      */
-    fun spoken(value: Int, selected: Boolean, recommended: Boolean = false): String {
+    fun spoken(value: Int, selected: Boolean, @Suppress("UNUSED_PARAMETER") recommended: Boolean = false): String {
         val effort = when (val body = meaning(value)) {
             null -> ""
             "max" -> ", max"
             else -> ", about $body"
         }
-        val outline = if (recommended && !selected) ", recommended" else ""
-        return "RPE $value$effort$outline"
+        return "RPE $value$effort"
     }
 
     fun helperSpoken(): String = "$HELPER. $HELPER_DISMISS."

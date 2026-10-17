@@ -5758,6 +5758,14 @@
         "adversarial": "APPROVE (carried from P-6b branch review).",
         "cleanContext": "Squash merge to trunk as e1a1785580abe8896849e121b0bb0a2ca2c5878c. debug-live/2026-10-17 push failed CI ratchet at debugLiveCode 128."
       },
+      "9cf9e2c4": {
+        "when": "2026-10-17",
+        "packet": "UX blueprint P8 live hero steppers and RPE Last hint (R5 / L1)",
+        "gate": "preflight.sh OK. Two consecutive full --rerun-tasks safe JVM gates on 9cf9e2c4 (p8-gate-safe1-final.log, p8-gate-safe2-final.log): BUILD SUCCESSFUL in 13m 25s and 13m 8s. testDebugUnitTest 4799 tests 0 failures, assembleDebug, lintDebug, assembleDebugAndroidTest. GRADLE_OPTS -Xmx3072m, --no-daemon, org.gradle.parallel=false, workers.max=2, kotlin in-process.",
+        "independent": "APPROVE. Zero Critical/High. Medium: hold wait copy still says weight and reps; optional WeightRepsEditor inline regression gap. Low: stale RpeSelector KDoc.",
+        "adversarial": "APPROVE after isApplied fix. Zero Critical/High. Prior High (Apply vs isApplied) closed on 88f05c07. Low: stale KDoc, RoundPlate comment.",
+        "cleanContext": "Branch cursor/p8-live-hero-rpe-hint-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/539."
+      },
       "babcd965": {
         "when": "2026-10-17",
         "packet": "Debug 129 version (debugLiveCode bump)",

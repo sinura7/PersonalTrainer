@@ -61,6 +61,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -432,7 +433,7 @@ class FloorRestAndCoachWiringRenderTest {
     }
 
     @Test
-    fun theCoachsEffortIsRecommendedOnTheTrackButNeverChosenForTheLifter() {
+    fun theCoachsLastEffortIsAHintUnderTheTrackNotAChosenChip() {
         val vm = openLegExtension(deps, viewModels, loggedSets = listOf(set(reps = 9, rpe = 8)))
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value?.nextRpe != null }
@@ -441,8 +442,8 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitForIdle()
         val recommended = checkNotNull(vm.microRec.value?.nextRpe)
         scrollTo(WorkoutTestTags.RPE_TRACK)
-        val chip = compose.onNodeWithTag(WorkoutTestTags.rpeChoice(recommended)).assertIsNotSelected()
-        assertTrue("was ${chip.spokenDescriptions()}", chip.spokenDescriptions().single().endsWith(", recommended"))
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(recommended)).assertIsNotSelected()
+        compose.onNodeWithTag(WorkoutTestTags.RPE_LAST_HINT).assert(hasText("Last: $recommended"))
     }
 
     @Test
@@ -461,7 +462,7 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.reps == rec.nextReps }
         val draft = vm.uiState.value.draft
         assertEquals(rec.nextWeightKg, draft.weightKg, 1e-6)
-        assertEquals(rec.nextRpe, draft.rpe)
+        assertNull("Apply fills load only; effort stays for the lifter to choose", draft.rpe)
         assertTrue("Apply fills the entry; it never logs", vm.uiState.value.session?.sets?.size == 1)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertDoesNotExist()
     }

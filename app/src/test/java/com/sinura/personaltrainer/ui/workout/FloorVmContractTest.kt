@@ -34,6 +34,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -133,14 +134,14 @@ class FloorVmContractTest {
         val saved = checkNotNull(SavedStateWorkoutDraft(handle).read(sessionId)) { "nothing was saved for the process to come back to" }
         assertEquals(rec.nextWeightKg, saved.weightKg, 1e-6)
         assertEquals(rec.nextReps, saved.reps)
-        assertEquals(rec.nextRpe, saved.rpe)
+        assertNull("Apply copies load only; effort is chosen separately", saved.rpe)
         vm.clearAndJoinForTest()
         viewModels.remove(vm)
         deps.workoutDraftCache.clearAll()
         val revived = viewModel(sessionId, handle)
         val state = revived.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg == rec.nextWeightKg }
         assertEquals(rec.nextReps, state.draft.reps)
-        assertEquals(rec.nextRpe, state.draft.rpe)
+        assertNull(state.draft.rpe)
         assertEquals("Apply never logs", 1, storedSession(sessionId).sets.size)
     }
 
