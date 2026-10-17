@@ -144,8 +144,14 @@ class AdaptiveTempoReachabilityRenderTest {
     @Test
     fun openWhySurvivesTextReflowEvenWhenTheInlineCardIsOffscreen() {
         val vm = openFloor(fontScale = 1f)
-        val before = vm.uiState.value
         val storedBefore = stored(vm)
+        reveal(WorkoutTestTags.WEIGHT_STEPPER, "why-relocation")
+        compose.withKeypad(compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER), "82.5")
+        compose.awaitThat("a manual load keeps Apply and Use visible under load-only Applied", vm.uiState::value) {
+            val rec = vm.microRec.value
+            rec != null && abs(vm.uiState.value.draft.weightKg - rec.nextWeightKg) > EPSILON
+        }
+        val manualDraft = vm.uiState.value.draft
         reveal(WorkoutTestTags.MICRO_REC_WHY, "why-relocation")
         assertCardPlacement(inline = true)
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsEnabled().performClick()
@@ -186,7 +192,7 @@ class AdaptiveTempoReachabilityRenderTest {
         assertWhyActionReachable(WorkoutTestTags.TEMPO_WHY_KEEP, 48f).performClick()
         observeWhy("returned-inline-after-keep-touch")
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertDoesNotExist()
-        assertEquals(before.draft, vm.uiState.value.draft)
+        assertEquals("Keep my numbers preserves the manual draft", manualDraft, vm.uiState.value.draft)
         assertEquals(storedBefore, stored(vm))
     }
 
@@ -254,7 +260,7 @@ class AdaptiveTempoReachabilityRenderTest {
         assertCardPlacement(inline)
         openWhy(profile, "apply-before-touch")
         assertWhyActionReachable(WorkoutTestTags.TEMPO_WHY_USE, 64f).assertIsEnabled().performClick()
-        compose.awaitThat("Apply changes the draft to the same recommendation", vm.uiState::value) {
+        compose.awaitThat("Apply changes the draft load to the recommendation", vm.uiState::value) {
             val draft = vm.uiState.value.draft
             abs(draft.weightKg - rec.nextWeightKg) < EPSILON &&
                 draft.reps == rec.nextReps &&
