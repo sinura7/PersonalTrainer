@@ -212,7 +212,7 @@ class AdaptiveTempoReachabilityRenderTest {
         compose.awaitThat("Use suggestion changes only the draft", vm.uiState::value) {
             val draft = vm.uiState.value.draft
             abs(draft.weightKg - rec.nextWeightKg) < EPSILON &&
-                draft.reps == rec.nextReps && draft.rpe == rec.nextRpe
+                draft.reps == rec.nextReps && draft.rpe == null
         }
         assertEquals("the sheet action does not log", storedBefore, stored(vm))
         assertEquals(storedBefore.sets.map { it.id }, vm.uiState.value.session?.sets?.map { it.id })
@@ -257,7 +257,8 @@ class AdaptiveTempoReachabilityRenderTest {
         compose.awaitThat("Apply changes the draft to the same recommendation", vm.uiState::value) {
             val draft = vm.uiState.value.draft
             abs(draft.weightKg - rec.nextWeightKg) < EPSILON &&
-                draft.reps == rec.nextReps && draft.rpe == rec.nextRpe
+                draft.reps == rec.nextReps &&
+                draft.rpe == 8
         }
         assertEquals("Apply remains draft-only after reflow", storedBefore, stored(vm))
         assertEquals(storedBefore.sets.map { it.id }, vm.uiState.value.session?.sets?.map { it.id })

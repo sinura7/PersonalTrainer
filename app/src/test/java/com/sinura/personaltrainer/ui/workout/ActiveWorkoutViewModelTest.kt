@@ -821,10 +821,10 @@ class ActiveWorkoutViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         vm.applyMicroRec()
         dispatcher.scheduler.advanceUntilIdle()
-        val draft = vm.awaitState { it.draft.weightKg == 100.0 && it.draft.rpe == 8 }.draft
+        val draft = vm.awaitState { it.draft.weightKg == 100.0 && it.draft.rpe == null }.draft
         assertEquals(100.0, draft.weightKg, 0.0001)
         assertEquals(5, draft.reps)
-        assertEquals(8, draft.rpe)
+        assertNull("Apply copies load only; last effort stays a hint", draft.rpe)
         assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
     }
 

@@ -2535,7 +2535,6 @@ class ActiveWorkoutViewModel internal constructor(
             draft.value = draft.value.copy(
                 weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
                 reps = rec.nextReps.coerceAtLeast(1),
-                rpe = rec.nextRpe,
             )
             markDraftDirty()
         }

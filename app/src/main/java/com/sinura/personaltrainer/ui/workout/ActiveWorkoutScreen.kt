@@ -58,6 +58,7 @@ import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.SetWork
@@ -138,6 +139,8 @@ object WorkoutTestTags {
     const val RPE_CLEAR = "workout-clear-rpe"
     const val RPE_WARMUP_REASON = "workout-rpe-warmup-reason"
     const val RPE_MEANING = "workout-rpe-meaning"
+    const val RPE_LAST_HINT = "workout-rpe-last-hint"
+    const val RPE_WAIT_ENTRY = "workout-rpe-wait-entry"
     const val SET_CONTEXT = "workout-set-context"
     const val SET_TYPE = "workout-set-type"
     const val WORKING_CHIP = "workout-working-choice"
@@ -739,6 +742,16 @@ private fun ActiveWorkoutContent(
                                 }.coerceAtLeast(0)
                                 val entryEnabled = !state.entryLocked
                                 val hold = HoldWork.isHold(currentLift.exercise)
+                                val effortEntryReady = SetLogRules.validate(
+                                    weightKg = state.draft.weightKg,
+                                    reps = state.draft.reps,
+                                    isWarmup = state.draft.isWarmup,
+                                    loadType = currentLift.exercise.loadType,
+                                    durationSeconds = state.draft.durationSeconds ?: currentLift.targetSeconds,
+                                    isHold = hold,
+                                    equipment = currentLift.exercise.equipment,
+                                    movementKey = currentLift.exercise.movementKey,
+                                ) == null
                                 item(key = "exercise-header") {
                                     ExerciseHeader(
                                         lift = currentLift,
@@ -827,6 +840,7 @@ private fun ActiveWorkoutContent(
                                             warmup = state.draft.isWarmup,
                                             rpe = state.draft.rpe,
                                             recommendedRpe = microRec?.nextRpe,
+                                            entryReady = effortEntryReady,
                                             onRpe = viewModel::setRpe,
                                         )
                                         WorkoutReadiness(
