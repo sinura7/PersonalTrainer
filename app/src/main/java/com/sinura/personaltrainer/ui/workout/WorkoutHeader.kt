@@ -111,7 +111,7 @@ internal fun WorkoutHeader(
             title = if (planAsTitle) headline else routineName,
             onBack = onExit,
             backIcon = TemperIcons.Back,
-            backDescription = "Exit workout",
+            backDescription = "Close",
             paintBackground = true,
             titleStyle = when {
                 compact -> InstrumentType.title

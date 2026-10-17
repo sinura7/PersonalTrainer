@@ -182,6 +182,7 @@ object WorkoutTestTags {
     const val PROGRESS_BAR = "workout-progress-bar"
     const val DETAILS = "workout-details"
     const val LIFT_SWITCH = "workout-lift-switch"
+    const val LIFT_SWAP = "workout-lift-swap"
     const val STATS_ROW = "workout-stats"
     const val STAT_LAST = "workout-stat-last"
     const val STAT_BEST = "workout-stat-best"
@@ -781,6 +782,10 @@ private fun ActiveWorkoutContent(
                                     movementKey = currentLift.exercise.movementKey,
                                 ) == null
                                 item(key = "exercise-header") {
+                                    val orderedIds = session.exercises.map { it.exercise.id }
+                                    val liftId = currentLift.exercise.id
+                                    val previousId = WorkoutAdvance.previousExerciseId(orderedIds, liftId)
+                                    val nextId = WorkoutAdvance.nextExerciseId(orderedIds, liftId)
                                     ExerciseHeader(
                                         lift = currentLift,
                                         number = currentIndex + 1,
@@ -792,6 +797,12 @@ private fun ActiveWorkoutContent(
                                         onDetails = { onOpenExercise(currentLift.exercise.id) },
                                         enabled = entryEnabled,
                                         focused = true,
+                                        onSwipePrevious = { previousId?.let(viewModel::selectExercise) },
+                                        onSwipeNext = { nextId?.let(viewModel::selectExercise) },
+                                        canSwipePrevious = previousId != null,
+                                        canSwipeNext = nextId != null,
+                                        onSwap = viewModel::requestSwap,
+                                        canSwap = logged.isEmpty(),
                                     )
                                 }
                                 item(key = "entry") {
