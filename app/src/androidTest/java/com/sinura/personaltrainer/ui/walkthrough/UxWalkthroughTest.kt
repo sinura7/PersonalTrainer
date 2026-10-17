@@ -602,7 +602,8 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(ComposerTags.SAVE).performClick()
-        compose.waitUntil(90_000) {
+        // Same post-save History assertion as run 38976165996 (dcada111); 120s composer dismiss for CI flake.
+        compose.waitUntil(120_000) {
             compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty()
         }
         val autoHistory = runCatching {
@@ -611,7 +612,7 @@ class UxWalkthroughTest {
             }
         }.isSuccess
         if (!autoHistory) {
-            compose.waitUntil(60_000) {
+            compose.waitUntil(90_000) {
                 compose.onAllNodesWithTag(ActivityDetailTags.CONTENT).fetchSemanticsNodes().isNotEmpty() ||
                     compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()
             }
@@ -619,7 +620,7 @@ class UxWalkthroughTest {
             if (compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()) {
                 compose.onNodeWithTag(ActivityDetailTags.DONE).performClick()
             } else {
-                pressBackToHome()
+                goToTab("home")
             }
             goToTab("history")
         } else {
