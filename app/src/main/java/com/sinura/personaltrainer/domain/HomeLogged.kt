@@ -59,7 +59,10 @@ object HomeLogged {
         val work = summary.homeWork(unit)
         val parts = buildList {
             if (summary.workingSets > 0) add(setCountLabel(summary.workingSets))
-            if (summary.hasLoggedWork()) add("${work.value} ${work.label}")
+            // homeWork falls back to a set count when volume is zero; sets are already above.
+            if (summary.volumeKg > 0.0 || summary.cardioSeconds > 0L) {
+                add("${work.value} ${work.label}")
+            }
             if (summary.durationMinutes > 0) add(minuteCountLabel(summary.durationMinutes))
         }
         return parts.joinToString(" · ").ifBlank { "Logged" }
