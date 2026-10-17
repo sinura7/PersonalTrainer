@@ -88,16 +88,16 @@ data class SetMicroRec(
     val explanation: String? = null,
 ) {
     /**
-     * True once the entry already holds this set exactly as Apply would write it, so the
-     * control can read Applied: the same coercions as the ViewModel's applyMicroRec, the
-     * weight compared at the unit's display precision, and the effort matched exactly
-     * (Apply clears a chosen RPE when the suggestion carries none).
+     * True once the entry already holds the load Apply would write (weight and reps only).
+     * Effort is a separate hint ("Last: n"); Apply never copies [nextRpe], so it is not
+     * part of Applied. Weight is compared at the unit's display precision with the same
+     * coercions as [applyCoachRec] in the ViewModel.
      */
+    @Suppress("UNUSED_PARAMETER")
     fun isApplied(weightKg: Double, reps: Int, rpe: Int?, unit: WeightUnit): Boolean =
         WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(weightKg, unit)) ==
             WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(nextWeightKg.coerceAtLeast(0.0), unit)) &&
-            reps == nextReps.coerceAtLeast(1) &&
-            rpe == nextRpe
+            reps == nextReps.coerceAtLeast(1)
 }
 
 object SetMicroRecCalculator {

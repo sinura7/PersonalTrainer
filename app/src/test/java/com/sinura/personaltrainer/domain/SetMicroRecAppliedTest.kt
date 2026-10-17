@@ -5,8 +5,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Applied is the domain's word, not the screen's: the entry matches the suggestion exactly
- * as Apply would write it, coercions included, so the control can stand down honestly.
+ * Applied is the domain's word, not the screen's: the entry matches the load Apply would
+ * write (weight and reps), coercions included, so the Tempo control can stand down honestly.
  */
 class SetMicroRecAppliedTest {
     @Test
@@ -16,18 +16,17 @@ class SetMicroRecAppliedTest {
         // An off-grid stored kilogram value that displays as the same pounds still counts.
         assertTrue(rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0) + 0.04, reps = 10, rpe = 9, unit = WeightUnit.LBS))
         assertFalse("reps differ", rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0), reps = 11, rpe = 9, unit = WeightUnit.LBS))
-        assertFalse("effort differs", rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = 8, unit = WeightUnit.LBS))
-        assertFalse("effort missing", rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = null, unit = WeightUnit.LBS))
+        assertTrue("effort differs but load matches", rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = 8, unit = WeightUnit.LBS))
+        assertTrue("effort missing but load matches", rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = null, unit = WeightUnit.LBS))
         assertFalse("a step away", rec.isApplied(weightKg = WeightConverter.lbsToKg(75.0), reps = 10, rpe = 9, unit = WeightUnit.LBS))
     }
 
     @Test
     fun appliedFollowsTheSameCoercionsAsApply() {
-        // Apply never writes fewer than one rep or a negative load, and it clears an effort
-        // the suggestion does not carry, so Applied reads the same way.
+        // Apply never writes fewer than one rep or a negative load; effort is not copied.
         val floor = rec(nextWeightKg = -5.0, nextReps = 0, nextRpe = null)
         assertTrue(floor.isApplied(weightKg = 0.0, reps = 1, rpe = null, unit = WeightUnit.KG))
-        assertFalse("a chosen effort would be cleared", floor.isApplied(weightKg = 0.0, reps = 1, rpe = 7, unit = WeightUnit.KG))
+        assertTrue("a chosen effort is left alone", floor.isApplied(weightKg = 0.0, reps = 1, rpe = 7, unit = WeightUnit.KG))
         assertFalse(floor.isApplied(weightKg = 0.0, reps = 0, rpe = null, unit = WeightUnit.KG))
     }
 
