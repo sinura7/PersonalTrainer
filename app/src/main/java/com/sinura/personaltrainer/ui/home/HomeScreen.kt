@@ -417,8 +417,11 @@ fun HomeScreen(
         routineId = null,
         routineName = null,
     )
-    val weekCells = remember(weekStart, state.occurrences, state.rules, names) {
-        WeekBoard.forWeek(weekStart, state.occurrences, state.rules, names)
+    val weekCells = remember(weekStart, state.occurrences, state.rules, names, state.loggedEpochDays) {
+        WeekBoard.withLoggedDays(
+            WeekBoard.forWeek(weekStart, state.occurrences, state.rules, names),
+            state.loggedEpochDays,
+        )
     }
     if (dayPicker && !startSheet && plannedStartPending == null && fallbackStartPending == null &&
         blockedOwner == null && !weighingIn && !starting.pending && !resetDayConfirm

@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -41,8 +42,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * A free workout with no lift yet, as the real screen shows it: the dock holds one thing, Add
  * exercise, standing where the commit will stand, with no rest card and no clock; the header
- * offers Discard in place of Finish, and it asks before deleting; there is no lift, so no ⋮
- * options. The list holds only the "Add a lift" placeholder, and the first lift takes its
+ * offers Discard in the overflow (not the Finish slot), and it asks before deleting; the ⋮
+ * menu holds only Discard until a lift exists. The list holds only the "Add a lift" placeholder, and the first lift takes its
  * place: the identity becomes the list's first row, and the dock becomes that lift's.
  *
  * These were lines of ActiveWorkoutScreen.kt and WorkoutHeader.kt read as text (`text = "Add
@@ -101,14 +102,9 @@ class EmptySessionFloorRenderTest {
     @Test
     fun anEmptySessionOffersDiscardNotFinishAndAsksBeforeDeleting() {
         val vm = openEmptyFreeWorkout()
-        val discard = compose.onNodeWithTag(WorkoutTestTags.DISCARD).assertIsDisplayed().assertHeightIsAtLeast(Metrics.touchMin)
-        assertEquals(listOf(EndWorkoutCopy.HEADER_DISCARD), discard.mergedTexts())
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertDoesNotExist()
-        // No lift, so nothing for the lift's options to act on.
-        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).assertDoesNotExist()
-        val floor = compose.onNodeWithTag(WorkoutTestTags.CONTENT).getBoundsInRoot()
-        assertTrue("Discard sits on the header, above the floor", discard.getBoundsInRoot().bottom <= floor.top)
-        discard.performClick()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).assertIsDisplayed().performClick()
+        compose.onNodeWithText(EndWorkoutCopy.HEADER_DISCARD).assertIsDisplayed().performClick()
         compose.onNodeWithText(DISCARD_TITLE).assertIsDisplayed()
         val sessionId = checkNotNull(vm.uiState.value.session).id
         assertNotNull("asking is not deleting", runBlocking { deps.workoutRepository.getSession(sessionId) })

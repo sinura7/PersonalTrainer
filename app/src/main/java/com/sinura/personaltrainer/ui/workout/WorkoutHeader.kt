@@ -69,8 +69,6 @@ internal fun WorkoutHeader(
     compact: Boolean,
     onExit: () -> Unit,
     onFinish: () -> Unit,
-    onDiscard: () -> Unit = {},
-    showDiscard: Boolean = false,
     overflow: (@Composable () -> Unit)? = null,
     focused: Boolean = false,
 ) {
@@ -83,14 +81,9 @@ internal fun WorkoutHeader(
     val direction = LocalLayoutDirection.current
     val measurer = rememberTextMeasurer()
     val endActionPadding = ButtonDefaults.TextButtonContentPadding
-    // Discard becoming Finish must not unwrap the routine title after saving.
-    // Reserve both labels at the actual current font and button padding.
     val endActionWidth = remember(focused, density, direction, measurer, endActionPadding) {
         if (focused) {
-            val labelWidth = maxOf(
-                measurer.measure(EndWorkoutCopy.HEADER_DISCARD, style = InstrumentType.bodyStrong).size.width,
-                measurer.measure(EndWorkoutCopy.HEADER_FINISH, style = InstrumentType.bodyStrong).size.width,
-            )
+            val labelWidth = measurer.measure(EndWorkoutCopy.HEADER_FINISH, style = InstrumentType.bodyStrong).size.width
             maxOf(Metrics.headerActMin, with(density) { labelWidth.toDp() } +
                 endActionPadding.calculateLeftPadding(direction) + endActionPadding.calculateRightPadding(direction))
         } else Metrics.headerActMin
@@ -134,44 +127,27 @@ internal fun WorkoutHeader(
                 .fillMaxWidth()
                 .heightIn(min = Metrics.control),
             trailing = {
-                if (showDiscard) {
-                    TextButton(
-                        onClick = onDiscard,
-                        contentPadding = endActionPadding,
-                        modifier = Modifier
-                            .widthIn(min = endActionWidth)
-                            .heightIn(min = Metrics.touchMin)
-                            .testTag(WorkoutTestTags.DISCARD),
-                    ) {
-                        Text(
-                            EndWorkoutCopy.HEADER_DISCARD,
-                            style = InstrumentType.bodyStrong,
-                            color = TextPrimary,
-                        )
-                    }
-                } else {
-                    TextButton(
-                        onClick = onFinish,
-                        contentPadding = endActionPadding,
-                        enabled = canFinish,
-                        modifier = Modifier
-                            .widthIn(min = endActionWidth)
-                            .heightIn(min = Metrics.touchMin)
-                            .testTag(WorkoutTestTags.FINISH)
-                            .semantics {
-                                // The name stays Finish; the reason it waits is its state.
-                                if (!canFinish) {
-                                    disabled()
-                                    stateDescription = EndWorkoutCopy.LOG_FIRST
-                                }
-                            },
-                    ) {
-                        Text(
-                            EndWorkoutCopy.HEADER_FINISH,
-                            style = InstrumentType.bodyStrong,
-                            color = if (canFinish) TextPrimary else TextTertiary,
-                        )
-                    }
+                TextButton(
+                    onClick = onFinish,
+                    contentPadding = endActionPadding,
+                    enabled = canFinish,
+                    modifier = Modifier
+                        .widthIn(min = endActionWidth)
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.FINISH)
+                        .semantics {
+                            // The name stays Finish; the reason it waits is its state.
+                            if (!canFinish) {
+                                disabled()
+                                stateDescription = EndWorkoutCopy.LOG_FIRST
+                            }
+                        },
+                ) {
+                    Text(
+                        EndWorkoutCopy.HEADER_FINISH,
+                        style = InstrumentType.bodyStrong,
+                        color = if (canFinish) TextPrimary else TextTertiary,
+                    )
                 }
                 overflow?.invoke()
             },

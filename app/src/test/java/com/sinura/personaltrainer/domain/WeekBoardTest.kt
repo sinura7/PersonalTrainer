@@ -13,6 +13,24 @@ class WeekBoardTest {
     }
 
     @Test
+    fun offPlanLoggedDayShowsTrainedTodayOnRestCell() {
+        val restDay = WeekBoardCell(
+            epochDay = 99L,
+            weekday = Weekday.MONDAY,
+            fill = DayFill.EMPTY,
+            caption = WeekBoard.REST,
+            plannedCount = 0,
+            resolvedCount = 0,
+            completedCount = 0,
+            skippedCount = 0,
+            missedCount = 0,
+        )
+        val updated = WeekBoard.withLoggedDays(listOf(restDay), loggedEpochDays = setOf(99L)).single()
+        assertEquals(WeekBoard.TRAINED_TODAY, updated.caption)
+        assertEquals(DayFill.ALL, updated.fill)
+    }
+
+    @Test
     fun noneSomeAllCountResolvedBlocks() {
         val planned = item("a", OccurrenceStatus.PLANNED)
         val done = item("b", OccurrenceStatus.DONE)

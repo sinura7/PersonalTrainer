@@ -58,9 +58,12 @@ object HomeLogged {
     fun statsLine(summary: SessionSummary, unit: WeightUnit): String {
         val work = summary.homeWork(unit)
         val parts = buildList {
-            if (summary.workingSets > 0) add("${summary.workingSets} sets")
-            if (summary.hasLoggedWork()) add("${work.value} ${work.label}")
-            if (summary.durationMinutes > 0) add("${summary.durationMinutes} min")
+            if (summary.workingSets > 0) add(setCountLabel(summary.workingSets))
+            // homeWork falls back to a set count when volume is zero; sets are already above.
+            if (summary.volumeKg > 0.0 || summary.cardioSeconds > 0L) {
+                add("${work.value} ${work.label}")
+            }
+            if (summary.durationMinutes > 0) add(minuteCountLabel(summary.durationMinutes))
         }
         return parts.joinToString(" · ").ifBlank { "Logged" }
     }
@@ -76,6 +79,12 @@ object HomeLogged {
             onOpenSession(summary.id)
         }
     }
+
+    fun setCountLabel(workingSets: Int): String =
+        if (workingSets == 1) "1 set" else "$workingSets sets"
+
+    fun minuteCountLabel(minutes: Int): String =
+        if (minutes == 1) "1 min" else "$minutes min"
 
     fun openCompletedId(
         activityId: String,
