@@ -16,7 +16,6 @@ import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.preview.TemperAccessibilityPreviews
 import com.sinura.personaltrainer.ui.preview.TemperWidthPreviews
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -55,7 +54,9 @@ private fun ActivityComposerPopulatedPreview() {
                         }
                     },
                 )
-                SecondaryGymButton(text = ComposerCopy.ADD_SET, onClick = {})
+                TextButton(onClick = {}) {
+                    Text(ComposerCopy.ADD_SET, style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
                 PrimaryGymButton(text = ComposerCopy.SAVE, onClick = {})
                 TextButton(onClick = {}) { Text(ComposerCopy.CANCEL) }
             }
@@ -77,7 +78,9 @@ private fun ActivityComposerEmptyPreview() {
             )
             Kicker("Strength")
             Text("Add a set before saving.", style = InstrumentType.caption, color = TextSecondary)
-            SecondaryGymButton(text = ComposerCopy.ADD_SET, onClick = {})
+            TextButton(onClick = {}) {
+                Text(ComposerCopy.ADD_SET, style = InstrumentType.bodyStrong, color = TextSecondary)
+            }
             PrimaryGymButton(text = ComposerCopy.SAVE, onClick = {})
             TextButton(onClick = {}) { Text(ComposerCopy.CANCEL) }
         }

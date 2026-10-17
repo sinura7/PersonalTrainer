@@ -5785,7 +5785,7 @@
       "751dec48": {
         "when": "2026-10-17",
         "packet": "UX blueprint P10 swipe lifts, header Swap, Close label (R7 / L2)",
-        "gate": "Two consecutive full --rerun-tasks safe JVM gates on 751dec48 (p10-gate-safe1-retry.log BUILD SUCCESSFUL 19m 14s; p10-gate-safe2-retry.log BUILD SUCCESSFUL 19m 3s after one flaky WorkoutPrivateRecoveryTest on first gate2). Final review commit adds edge-bounce and vertical-scroll swipe tests; p10-gate-final1.log pending at push.",
+        "gate": "preflight.sh OK. Two consecutive full --rerun-tasks safe JVM gates on 751dec48 (p10-gate-head-safe1-retry.log BUILD SUCCESSFUL 19m 13s; p10-gate-head-safe2.log BUILD SUCCESSFUL 19m 44s): testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest, 135 tasks. GRADLE_OPTS -Xmx3072m, --no-daemon, org.gradle.parallel=false, workers.max=2, kotlin in-process.",
         "independent": "APPROVE after review fixes. Zero Critical/High. Medium: lambda_arity_declined 47 ratchet. Low: phone swipe feel [EMU].",
         "adversarial": "APPROVE. Zero Critical/High. Reachability ratchets unchanged; LiftOptionsRenderTest expects header+menu Swap; Close label in instrumented journeys.",
         "cleanContext": "Branch cursor/p10-swipe-lifts-ae41."

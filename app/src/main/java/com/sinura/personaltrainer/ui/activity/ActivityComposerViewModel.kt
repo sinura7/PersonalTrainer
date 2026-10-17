@@ -108,6 +108,10 @@ data class ActivityComposerUiState(
             epochDay = epochDay,
             todayEpochDay = todayEpochDay,
         )
+
+    /** Save needs at least one strength or cardio line; an empty form cannot write. */
+    val canSave: Boolean
+        get() = strength.isNotEmpty() || cardio.isNotEmpty()
 }
 
 internal data class StrengthAdderFields(val pickedId: String = "", val weight: String = "0", val reps: String = "8", val unit: WeightUnit? = null)
@@ -438,6 +442,7 @@ class ActivityComposerViewModel internal constructor(
     fun save() {
         val started = error.mark()
         if (saving.value || pickerWrites.busy || _createdExercise.value != null) return
+        if (strength.value.isEmpty() && cardio.value.isEmpty()) return
         if (formRecovery?.status?.value?.ready == false || pickerRecovery?.create?.status?.value?.busy == true) return
         saving.value = true
         viewModelScope.launch {

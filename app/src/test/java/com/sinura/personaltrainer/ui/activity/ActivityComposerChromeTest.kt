@@ -15,6 +15,7 @@ class ActivityComposerChromeTest {
         assertEquals("activity-composer-choose-lift", ComposerTags.CHOOSE_LIFT)
         assertEquals("activity-composer-remove-strength", ComposerTags.REMOVE_STRENGTH)
         assertEquals("activity-composer-remove-cardio", ComposerTags.REMOVE_CARDIO)
+        assertEquals("activity-composer-discard-draft", ComposerTags.DISCARD_DRAFT)
     }
 
     @Test

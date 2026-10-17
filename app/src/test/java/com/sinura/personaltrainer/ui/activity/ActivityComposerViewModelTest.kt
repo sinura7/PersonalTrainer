@@ -440,6 +440,19 @@ class ActivityComposerViewModelTest {
     }
 
     @Test
+    fun emptyFormCannotSave() = runBlocking {
+        viewModel = composer("strength")
+        val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
+        assertFalse(state.canSave)
+        viewModel!!.save()
+        assertEquals(null, viewModel!!.savedId.value)
+        assertFalse(viewModel!!.uiState.value.saving)
+        val lift = seedLift()
+        viewModel!!.addStrength(lift, 40.0, 5)
+        assertTrue(viewModel!!.uiState.value.canSave)
+    }
+
+    @Test
     fun theChosenDayStaysThatDayWhenThePhoneIsFarAheadOrBehindUtc() = runBlocking {
         val exercise = seedLift()
         val clocks = listOf("Pacific/Kiritimati", "America/Chicago").map { zone ->

@@ -14,6 +14,8 @@ object ComposerCopy {
     const val ADD_SET = "Add set"
     const val ADD_CARDIO = "Add cardio"
     const val CHOOSE_LIFT = "Choose a lift"
+    const val DRAFT_NOT_SAVED = "Draft · not saved"
+    const val DISCARD_DRAFT = "Discard draft"
     const val REMOVE = "Remove"
     const val REPS = "Reps"
     const val MINUTES = "Minutes"
