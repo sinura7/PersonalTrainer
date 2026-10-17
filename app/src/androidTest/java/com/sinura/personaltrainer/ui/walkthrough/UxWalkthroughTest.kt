@@ -6,6 +6,7 @@ import android.os.Build
 import android.util.Log
 import android.os.SystemClock
 import android.view.KeyEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -32,6 +33,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -318,8 +320,7 @@ class UxWalkthroughTest {
         }
         clickOnboardingLabel(TrainingEmphasis.BALANCED.displayName)
         compose.waitUntil(60_000) {
-            compose.onAllNodesWithText("What's your bodyweight?").fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodesWithText("Skip this").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText("Roughly what do you weigh?").fetchSemanticsNodes().isNotEmpty()
         }
         clickOnboardingPrimaryAction("Skip this")
     }
@@ -375,27 +376,46 @@ class UxWalkthroughTest {
 
     /**
      * On preview: "Preparing your plan" may flash; [OnboardingTags.USE_PLAN] must enable within 30s.
+     * The accept button sits below the week list — scroll the preview [LazyColumn] before waiting on the tag.
      */
     private fun assertUsePlanReadyWithin30Seconds() {
         compose.waitUntil(120_000) {
-            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
+            dismissSystemNotRespondingDialogs()
+            tapCatalogRetryIfBannerVisible()
+            when {
+                compose.onAllNodesWithText("Here's your block").fetchSemanticsNodes().isNotEmpty() -> {
+                    scrollPreviewToUsePlan()
+                    usePlanPresentInTree()
+                }
+                usePlanPresentInTree() -> true
+                compose.onAllNodesWithText(OnboardingPreviewCopy.PREPARING_PLAN).fetchSemanticsNodes().isNotEmpty() ->
+                    true
+                compose.onAllNodesWithText("Building it…").fetchSemanticsNodes().isNotEmpty() -> true
+                else -> false
+            }
         }
+        scrollPreviewToUsePlan()
         logFlow2Diagnostics("preview-visible")
         var preparingSeen = false
         var disabledSinceMs: Long? = null
         try {
             compose.waitUntil(30_000) {
+                dismissSystemNotRespondingDialogs()
                 tapCatalogRetryIfBannerVisible()
+                scrollPreviewToUsePlan()
                 if (compose.onAllNodesWithText(OnboardingPreviewCopy.PREPARING_PLAN).fetchSemanticsNodes().isNotEmpty()) {
                     preparingSeen = true
                 }
                 logOnboardingPreviewHeadline()
-                val previewVisible =
-                    compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
+                val previewVisible = usePlanPresentInTree()
                 if (previewVisible && disabledSinceMs == null) {
                     disabledSinceMs = SystemClock.elapsedRealtime()
                 }
-                compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled(), useUnmergedTree = true)
+                    .fetchSemanticsNodes()
+                    .isNotEmpty() ||
+                    compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN) and isEnabled()).fetchSemanticsNodes()
+                        .isNotEmpty()
             }
         } catch (timeout: Throwable) {
             logFlow2Diagnostics("use-plan-timeout-30s")
@@ -469,8 +489,8 @@ class UxWalkthroughTest {
         walkOnboardingSetupAsUser()
         assertUsePlanReadyWithin30Seconds()
         shot("onboarding-plan-preview")
-        scrollToTag(OnboardingTags.USE_PLAN)
-        compose.onNodeWithTag(OnboardingTags.USE_PLAN).performClick()
+        scrollPreviewToUsePlan()
+        compose.onNodeWithTag(OnboardingTags.USE_PLAN, useUnmergedTree = true).performClick()
         if (compose.onAllNodesWithText(OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText(OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN).performClick()
         }
@@ -966,8 +986,10 @@ class UxWalkthroughTest {
     }
 
     private fun dismissBlockingUi() {
+        dismissSystemNotRespondingDialogs()
         repeat(5) {
             compose.waitForIdle()
+            dismissSystemNotRespondingDialogs()
             listOf("Not now", "Wait", "Close", "OK", "Dismiss").forEach { label ->
                 if (compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()) {
                     runCatching { compose.onNodeWithText(label).performClick() }
@@ -1019,12 +1041,98 @@ class UxWalkthroughTest {
     }
 
     private fun scrollToTag(tag: String) {
+        if (tag == OnboardingTags.USE_PLAN) {
+            scrollPreviewToUsePlan()
+            return
+        }
         compose.waitUntil(30_000) {
             runCatching {
                 compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
                     .performScrollToNode(hasTestTag(tag))
             }.isSuccess
         }
+    }
+
+    private fun usePlanPresentInTree(): Boolean =
+        compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN), useUnmergedTree = true).fetchSemanticsNodes()
+            .isNotEmpty() ||
+            compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
+
+    /** Scroll onboarding preview until [OnboardingTags.USE_PLAN] is composed (below the week list). */
+    private fun scrollPreviewToUsePlan() {
+        dismissSystemNotRespondingDialogs()
+        if (usePlanPresentInTree()) return
+        val usePlanMatcher = hasTestTag(OnboardingTags.USE_PLAN)
+        repeat(16) {
+            dismissSystemNotRespondingDialogs()
+            val scrolled =
+                runCatching {
+                    compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(usePlanMatcher)
+                }.isSuccess ||
+                    runCatching {
+                        compose.onNode(
+                            SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange),
+                            useUnmergedTree = true,
+                        ).performScrollToNode(usePlanMatcher)
+                    }.isSuccess ||
+                    runCatching {
+                        compose.onNode(
+                            SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange),
+                        ).performScrollToNode(usePlanMatcher)
+                    }.isSuccess
+            if (usePlanPresentInTree()) return
+            if (!scrolled) {
+                runCatching {
+                    compose.onAllNodes(hasScrollAction()).onFirst().performTouchInput { swipeUp() }
+                }
+            }
+            compose.waitForIdle()
+        }
+    }
+
+    /** System ANR dialogs (e.g. Pixel Launcher) sit outside Compose; dismiss via accessibility. */
+    private fun dismissSystemNotRespondingDialogs() {
+        val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        repeat(2) {
+            val root = uiAutomation.rootInActiveWindow ?: return@repeat
+            if (!accessibilityTreeContainsNotResponding(root)) return@repeat
+            val waitNode = findAccessibilityNodeWithExactText(root, "Wait")
+            waitNode?.let { node ->
+                val target =
+                    when {
+                        node.isClickable -> node
+                        node.parent?.isClickable == true -> node.parent
+                        else -> node
+                    }
+                target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                Thread.sleep(300)
+            }
+        }
+    }
+
+    private fun accessibilityTreeContainsNotResponding(node: AccessibilityNodeInfo): Boolean {
+        val blob =
+            listOfNotNull(node.text?.toString(), node.contentDescription?.toString()).joinToString(" ")
+        if (blob.contains("isn't responding", ignoreCase = true)) return true
+        for (i in 0 until node.childCount) {
+            node.getChild(i)?.let { child ->
+                if (accessibilityTreeContainsNotResponding(child)) return true
+            }
+        }
+        return false
+    }
+
+    private fun findAccessibilityNodeWithExactText(
+        node: AccessibilityNodeInfo,
+        text: String,
+    ): AccessibilityNodeInfo? {
+        if (node.text?.toString() == text) return node
+        for (i in 0 until node.childCount) {
+            node.getChild(i)?.let { child ->
+                findAccessibilityNodeWithExactText(child, text)?.let { return it }
+            }
+        }
+        return null
     }
 
     private fun awaitPicker() {

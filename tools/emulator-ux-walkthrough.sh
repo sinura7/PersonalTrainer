@@ -19,7 +19,13 @@ capture_catalog_seed_logcat() {
   echo "::endgroup::"
 }
 
+suppress_system_anr_dialogs() {
+  # Pixel Launcher ANR overlays block Compose from reaching preview actions below the fold.
+  adb shell settings put global hide_error_dialogs 1 2>/dev/null || true
+}
+
 grant_permissions() {
+  suppress_system_anr_dialogs
   adb shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS 2>/dev/null || true
   adb shell cmd appops set "$PACKAGE" SCHEDULE_EXACT_ALARM allow 2>/dev/null || true
   adb shell dumpsys deviceidle whitelist +"$PACKAGE" 2>/dev/null || true
