@@ -5718,6 +5718,22 @@
         "adversarial": "APPROVE. Zero Critical/High. In-app rest clock still runs after Later; no global resume block.",
         "cleanContext": "Branch cursor/rest-exterior-first-rest-ae41."
       },
+      "90c48d4d": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint P-5 merge head",
+        "gate": "Carried from 2acf726b / 63020993 two-green safe gates.",
+        "independent": "APPROVE (carried from P-5 branch review).",
+        "adversarial": "APPROVE (carried from P-5 branch review).",
+        "cleanContext": "Squash merge to trunk as 90c48d4d0d39cafc645446f610749486328cc2d0."
+      },
+      "55aee6ef": {
+        "when": "2026-10-16",
+        "packet": "UX blueprint P-6 discard overflow and Home week copy",
+        "gate": "Two consecutive full --rerun-tasks safe gates on 55aee6ef (p6-gate-safe1.log, p6-gate-safe2-retry.log) BUILD SUCCESSFUL ~14m each.",
+        "independent": "APPROVE. Zero Critical/High. WorkoutHeader always Finish; Discard in LiftOverflowMenu / SessionDiscardOverflowMenu; HomeLogged set/minute plurals; WeekBoard.withLoggedDays shows Trained today on off-plan rest days.",
+        "adversarial": "APPROVE. Zero Critical/High. Empty session uses overflow-only discard; Finish stays disabled until a set exists.",
+        "cleanContext": "Branch cursor/week-discard-overflow-ae41."
+      },
       "251dc30b": {
         "when": "2026-10-16",
         "packet": "P20 phone checklist",
