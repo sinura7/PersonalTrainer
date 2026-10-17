@@ -227,6 +227,7 @@ case "$CP" in
              SafetySnapshot.kt SafetySnapshotStore.kt RestoreJournal.kt RestoreJournalStore.kt \
              RestoreWitness.kt \
              BackupEnvelope.kt BackupScaleBudget.kt ProtectBackup.kt OpenBackup.kt \
+             BackupStageCopy.kt \
              DriveAboutJson.kt DriveFolderJson.kt \
              DriveErrorCopy.kt DriveHttp.kt DriveRestClient.kt; do
       [ -f "$BACKUP/$f" ] || { echo "FAILED: $BACKUP/$f is missing." >&2; exit 1; }
