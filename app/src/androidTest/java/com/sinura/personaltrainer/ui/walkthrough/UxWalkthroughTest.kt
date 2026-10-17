@@ -14,6 +14,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -220,16 +221,24 @@ class UxWalkthroughTest {
         Log.i(HARNESS_LOG_TAG, message)
     }
 
+    /** Every Compose wait dismisses system ANR overlays so CI navigation is not blocked mid-poll. */
+    private fun harnessWaitUntil(timeoutMillis: Long, condition: () -> Boolean) {
+        compose.waitUntil(timeoutMillis) {
+            dismissSystemNotRespondingDialogs()
+            condition()
+        }
+    }
+
     private fun flowColdStartIntro() {
         val introVisible = runCatching {
-            compose.waitUntil(5_000) {
+            harnessWaitUntil(5_000) {
                 compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isNotEmpty()
             }
         }.isSuccess
         if (introVisible) {
             shot("cold-start-intro")
             compose.onNodeWithTag(ColdStartIntroTags.ROOT).performClick()
-            compose.waitUntil(15_000) {
+            harnessWaitUntil(15_000) {
                 compose.onAllNodesWithTag(ColdStartIntroTags.ROOT).fetchSemanticsNodes().isEmpty()
             }
             app.markColdStartIntroShown()
@@ -281,7 +290,7 @@ class UxWalkthroughTest {
     }
 
     private fun clickOnboardingPrimaryAction(label: String) {
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText(label).performClick()
@@ -290,36 +299,36 @@ class UxWalkthroughTest {
 
     /** Real taps through setup so [com.sinura.personaltrainer.ui.onboarding.OnboardingViewModel.next] runs. */
     private fun walkOnboardingSetupAsUser() {
-        compose.waitUntil(120_000) {
+        harnessWaitUntil(120_000) {
             compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty()
         }
         clickOnboardingLabel(TrainingFocus.STRENGTH.displayName)
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodesWithText("How much lifting have you done?").fetchSemanticsNodes().isNotEmpty()
         }
         clickOnboardingLabel(TrainingAge.NEW.displayName)
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodesWithText("How many days a week can you train?").fetchSemanticsNodes().isNotEmpty()
         }
         clickOnboardingPrimaryAction("Continue")
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodesWithText("Which days suit you?").fetchSemanticsNodes().isNotEmpty()
         }
         clickOnboardingPrimaryAction("Space them out for me")
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodesWithText("Where will you train?").fetchSemanticsNodes().isNotEmpty()
         }
         clickOnboardingLabel(TrainingPlace.FULL_GYM.displayName)
         clickOnboardingPrimaryAction("Continue")
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodesWithText("What are you training for?").fetchSemanticsNodes().isNotEmpty()
         }
         clickOnboardingLabel(TrainingGoal.GENERAL.displayName)
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodesWithText("Where do you want the work?").fetchSemanticsNodes().isNotEmpty()
         }
         clickOnboardingLabel(TrainingEmphasis.BALANCED.displayName)
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodesWithText("Roughly what do you weigh?").fetchSemanticsNodes().isNotEmpty()
         }
         clickOnboardingPrimaryAction("Skip this")
@@ -379,7 +388,7 @@ class UxWalkthroughTest {
      * The accept button sits below the week list — scroll the preview [LazyColumn] before waiting on the tag.
      */
     private fun assertUsePlanReadyWithin30Seconds() {
-        compose.waitUntil(120_000) {
+        harnessWaitUntil(120_000) {
             dismissSystemNotRespondingDialogs()
             tapCatalogRetryIfBannerVisible()
             when {
@@ -399,7 +408,7 @@ class UxWalkthroughTest {
         var preparingSeen = false
         var disabledSinceMs: Long? = null
         try {
-            compose.waitUntil(30_000) {
+            harnessWaitUntil(30_000) {
                 dismissSystemNotRespondingDialogs()
                 tapCatalogRetryIfBannerVisible()
                 scrollPreviewToUsePlan()
@@ -494,7 +503,7 @@ class UxWalkthroughTest {
         if (compose.onAllNodesWithText(OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText(OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN).performClick()
         }
-        compose.waitUntil(120_000) {
+        harnessWaitUntil(120_000) {
             compose.onAllNodesWithTag(OnboardingTags.USE_PLAN).fetchSemanticsNodes().isEmpty() &&
                 compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty()
         }
@@ -515,7 +524,7 @@ class UxWalkthroughTest {
                 "History" -> hasTestTag("history-horizon-readout")
                 else -> hasTestTag(SettingsTags.HOME)
             }
-            compose.waitUntil(30_000) {
+            harnessWaitUntil(30_000) {
                 compose.onAllNodes(loaded).fetchSemanticsNodes().isNotEmpty()
             }
             shot("tab-${label.lowercase()}")
@@ -529,7 +538,7 @@ class UxWalkthroughTest {
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
         compose.onNodeWithTag(HomeStartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(WorkoutTestTags.CONTENT)
@@ -558,28 +567,28 @@ class UxWalkthroughTest {
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(HomeStartTags.CARDIO).performScrollTo().performClick()
-        compose.waitUntil(15_000) {
+        harnessWaitUntil(15_000) {
             compose.onAllNodesWithTag(HomeStartTags.CARDIO_PAGE).fetchSemanticsNodes().isNotEmpty()
         }
         shot("cardio-picker")
         val runCard = hasTestTag(CardioPickTags.card(CardioType.RUN))
         compose.onNodeWithTag(HomeStartTags.CARDIO_PAGE).performScrollToNode(runCard)
         compose.onNode(runCard).performClick()
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
         }
         shot("cardio-live")
         SystemClock.sleep(3_000)
         dismissSoftKeyboard()
-        compose.waitUntil(45_000) {
+        harnessWaitUntil(45_000) {
             compose.onAllNodes(hasTestTag(CardioTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(CardioTags.FINISH).performClick()
-        compose.waitUntil(120_000) { cardioSessionFinished() }
+        harnessWaitUntil(120_000) { cardioSessionFinished() }
         if (compose.onAllNodesWithText(CardioCopy.FINISHED_TITLE).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithText("Back").performClick()
         }
-        compose.waitUntil(90_000) {
+        harnessWaitUntil(90_000) {
             compose.onAllNodesWithTag(ActivityDetailTags.CONTENT).fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
@@ -603,12 +612,12 @@ class UxWalkthroughTest {
     private fun flowPastMixedSave() {
         preparePopulatedApp()
         goToTab("history")
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(HistoryTags.START_SHEET).performScrollTo().performClick()
         clickLabel("Mixed session")
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-composer-open")
@@ -618,10 +627,10 @@ class UxWalkthroughTest {
         composerPickerSearch().performTextReplacement("squat")
         composerPickerSearch().performImeAction()
         clickComposerPickerResult("Barbell Back Squat")
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isEmpty()
         }
-        compose.waitUntil(90_000) {
+        harnessWaitUntil(90_000) {
             if (compose.onAllNodesWithTag(ComposerTags.ADD_SET).fetchSemanticsNodes().isEmpty()) {
                 runCatching { composerScrollToTag(ComposerTags.ADD_SET) }
             }
@@ -633,32 +642,23 @@ class UxWalkthroughTest {
         compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("5")
         dismissSoftKeyboard()
         compose.onNodeWithTag(ComposerTags.ADD_SET).performClick()
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(ComposerTags.SAVE).fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-composer-filled")
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE)).fetchSemanticsNodes().isNotEmpty()
         }
         dismissSoftKeyboard()
-        runCatching { compose.onNodeWithTag(ComposerTags.SAVE).performScrollTo() }
-        compose.waitUntil(30_000) {
-            compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithTag(ComposerTags.SAVE).performClick()
-        // Post-save History assertion (38976165996): accept summary or history as composer exit.
-        compose.waitUntil(120_000) {
-            compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty() ||
-                compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()
-        }
+        performHarnessClickOnTag(ComposerTags.SAVE)
+        waitForComposerClosedOrHistoryShown()
         val autoHistory = runCatching {
-            compose.waitUntil(15_000) {
+            harnessWaitUntil(15_000) {
                 compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
             }
         }.isSuccess
         if (!autoHistory) {
-            compose.waitUntil(90_000) {
+            harnessWaitUntil(90_000) {
                 compose.onAllNodesWithTag(ActivityDetailTags.CONTENT).fetchSemanticsNodes().isNotEmpty() ||
                     compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()
             }
@@ -672,14 +672,14 @@ class UxWalkthroughTest {
         } else {
             logHarness("UX_WALKTHROUGH_POST_SAVE_ROUTE=history-list")
         }
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
         }
         assertTrue(
             "History screen (${HistoryTags.LIST}) should be visible after Save",
             compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty(),
         )
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag("history-horizon-readout").fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-saved")
@@ -688,7 +688,7 @@ class UxWalkthroughTest {
     private fun flowBodyMapAndMeasurements() {
         preparePopulatedApp()
         goToTab("progress")
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(BodyTags.MAP).fetchSemanticsNodes().isNotEmpty()
         }
         shot("body-map")
@@ -706,13 +706,13 @@ class UxWalkthroughTest {
         preparePopulatedApp()
         goToTab("settings")
         openSettingsRow(SettingsHomeCopy.DISPLAY)
-        compose.waitUntil(15_000) {
+        harnessWaitUntil(15_000) {
             compose.onAllNodesWithTag(SettingsTags.DISPLAY).fetchSemanticsNodes().isNotEmpty()
         }
         shot("settings-units")
         pressBackToSettingsHome()
         compose.onNodeWithTag(SettingsTags.ROW_BACKUP).performScrollTo().performClick()
-        compose.waitUntil(15_000) {
+        harnessWaitUntil(15_000) {
             compose.onAllNodesWithTag(SettingsTags.EXPORT_FILE).fetchSemanticsNodes().isNotEmpty()
         }
         shot("settings-backup-view")
@@ -728,7 +728,7 @@ class UxWalkthroughTest {
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
         compose.onNodeWithTag(HomeStartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
         shot("strength-live-font-1-3")
@@ -748,6 +748,7 @@ class UxWalkthroughTest {
             container.preferencesRepository.setWeightUnit(WeightUnit.KG)
             container.preferencesRepository.markRestBatteryHintShown()
             container.preferencesRepository.markRestAlertsAsked()
+            awaitCatalogReady()
             seedPopulatedHome()
         }
         app.markColdStartIntroShown()
@@ -821,7 +822,7 @@ class UxWalkthroughTest {
         enterNumbers(weightKg, reps)
         compose.revealFloorControlAboveTempo(WorkoutTestTags.rpeChoice(rpe))
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(rpe)).performClick()
-        compose.waitUntil(15_000) {
+        harnessWaitUntil(15_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.LOG_SET) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
@@ -841,14 +842,14 @@ class UxWalkthroughTest {
     }
 
     private fun advanceToNextExerciseIfShown() {
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             val next = compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes()
             val finish = compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled()).fetchSemanticsNodes()
             next.isNotEmpty() || finish.isNotEmpty()
         }
         if (compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
-            compose.waitUntil(30_000) {
+            harnessWaitUntil(30_000) {
                 compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithTag(WorkoutTestTags.CONTENT)
@@ -875,19 +876,19 @@ class UxWalkthroughTest {
     private fun openSwapPicker() {
         compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
         compose.onNodeWithText(CurrentLiftCopy.SWAP).performSemanticsAction(SemanticsActions.OnClick) { it() }
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     private fun finishLiveWorkout() {
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
         compose.onNodeWithText("End workout?").assertIsDisplayed()
         compose.onNodeWithText("Save as is").performClick()
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodesWithText("WORKOUT COMPLETE").fetchSemanticsNodes().isNotEmpty()
         }
     }
@@ -896,7 +897,7 @@ class UxWalkthroughTest {
         goToTab("settings")
         clickLabel(SettingsHomeCopy.PLAN)
         clickLabel(PlanSetupCopy.ROW_TITLE)
-        compose.waitUntil(120_000) {
+        harnessWaitUntil(120_000) {
             compose.onAllNodesWithText("What do you want to record?").fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -906,7 +907,7 @@ class UxWalkthroughTest {
         compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")), useUnmergedTree = true)
 
     private fun awaitComposerPicker() {
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodes(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")) and isEnabled())
                 .fetchSemanticsNodes().isNotEmpty()
         }
@@ -914,7 +915,7 @@ class UxWalkthroughTest {
 
     private fun clickComposerPickerResult(label: String) {
         val target = hasText(label) and hasAnyAncestor(hasTestTag("picker-content"))
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             runCatching {
                 compose.onNodeWithTag("picker-content").performScrollToNode(target)
             }.isSuccess
@@ -924,7 +925,7 @@ class UxWalkthroughTest {
 
     private fun composerScrollToTag(tag: String) {
         if (runCatching { compose.onNodeWithTag(tag).assertIsDisplayed() }.isSuccess) return
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             runCatching {
                 compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
                     .performScrollToNode(hasTestTag(tag))
@@ -933,7 +934,7 @@ class UxWalkthroughTest {
     }
 
     private fun tapComposerTag(tag: String) {
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(tag).assertIsDisplayed().performTouchInput { click(center) }
@@ -941,11 +942,15 @@ class UxWalkthroughTest {
     }
 
     private fun openSettingsRow(title: String) {
+        dismissSystemNotRespondingDialogs()
+        navigateToSettingsHome()
         scrollToText(title)
-        compose.onNodeWithText(title).performClick()
+        compose.onNodeWithText(title).performScrollTo().performClick()
+        compose.waitForIdle()
     }
 
     private fun goToTab(path: String) {
+        dismissSystemNotRespondingDialogs()
         val tabRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
         val label = when (path) {
             "home" -> "Home"
@@ -956,15 +961,16 @@ class UxWalkthroughTest {
             else -> error("Unknown tab $path")
         }
         val tab = hasText(label.uppercase()) and tabRole
-        compose.waitUntil(120_000) {
+        harnessWaitUntil(120_000) {
             compose.onAllNodes(tab).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(tab).performClick()
         compose.waitForIdle()
+        dismissSystemNotRespondingDialogs()
     }
 
     private fun awaitHomeOrOnboardingEntry() {
-        compose.waitUntil(120_000) {
+        harnessWaitUntil(120_000) {
             compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodes(hasTestTag(OnboardingTags.USE_PLAN)).fetchSemanticsNodes().isNotEmpty() ||
@@ -974,7 +980,7 @@ class UxWalkthroughTest {
     }
 
     private fun awaitHomeReady() {
-        compose.waitUntil(120_000) {
+        harnessWaitUntil(120_000) {
             compose.onAllNodesWithTag("navigation-home").fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodesWithTag(HomeTags.START).fetchSemanticsNodes().isNotEmpty()
         }
@@ -1005,7 +1011,7 @@ class UxWalkthroughTest {
     }
 
     private fun clickLabel(label: String) {
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             if (compose.onAllNodes(hasText(label) and isEnabled()).fetchSemanticsNodes().isEmpty()) {
                 runCatching {
                     compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
@@ -1020,7 +1026,7 @@ class UxWalkthroughTest {
 
     /** Onboarding rows are not always reported as enabled to the test matcher; scroll and click. */
     private fun clickOnboardingLabel(label: String) {
-        compose.waitUntil(60_000) {
+        harnessWaitUntil(60_000) {
             compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty()
         }
         runCatching {
@@ -1032,7 +1038,7 @@ class UxWalkthroughTest {
     }
 
     private fun scrollToText(text: String) {
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             runCatching {
                 compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
                     .performScrollToNode(hasText(text))
@@ -1045,7 +1051,7 @@ class UxWalkthroughTest {
             scrollPreviewToUsePlan()
             return
         }
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             runCatching {
                 compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
                     .performScrollToNode(hasTestTag(tag))
@@ -1136,28 +1142,86 @@ class UxWalkthroughTest {
     }
 
     private fun awaitPicker() {
-        compose.waitUntil(30_000) {
+        harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag("picker-search")).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     private fun pressBackToSettingsHome() {
-        if (compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()) return
-        runCatching {
-            goToTab("settings")
-            compose.waitUntil(120_000) {
-                compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()
+        navigateToSettingsHome()
+    }
+
+    private fun settingsHomeVisible(): Boolean {
+        runCatching { scrollToTag(SettingsTags.HOME) }
+        return compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    /** Subpages keep [SettingsTags.HOME] out of the tree until the header Back or system Back runs. */
+    private fun navigateToSettingsHome() {
+        dismissSoftKeyboard()
+        dismissSystemNotRespondingDialogs()
+        if (settingsHomeVisible()) return
+        repeat(8) {
+            dismissSystemNotRespondingDialogs()
+            if (settingsHomeVisible()) return
+            val backNodes = compose.onAllNodes(hasContentDescription("Back")).fetchSemanticsNodes()
+            if (backNodes.isNotEmpty()) {
+                runCatching { compose.onAllNodes(hasContentDescription("Back")).onFirst().performClick() }
+                compose.waitForIdle()
+                if (settingsHomeVisible()) return
             }
-            return
-        }
-        repeat(3) {
             InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
             compose.waitForIdle()
-            if (compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()) return
+            if (settingsHomeVisible()) return
         }
-        compose.waitUntil(120_000) {
-            compose.onAllNodesWithTag(SettingsTags.HOME).fetchSemanticsNodes().isNotEmpty()
+        goToTab("settings")
+        runCatching { scrollToTag(SettingsTags.HOME) }
+        harnessWaitUntil(120_000) { settingsHomeVisible() }
+    }
+
+    private fun performHarnessClickOnTag(tag: String) {
+        dismissSoftKeyboard()
+        dismissSystemNotRespondingDialogs()
+        scrollToTag(tag)
+        harnessWaitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
         }
+        harnessWaitUntil(30_000) {
+            scrollToTag(tag)
+            compose.onAllNodes(hasTestTag(tag) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(tag, useUnmergedTree = true).performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
+    private fun waitForComposerClosedOrHistoryShown(timeoutMs: Long = 120_000) {
+        dismissSoftKeyboard()
+        dismissTransientOverlays()
+        harnessWaitUntil(timeoutMs) {
+            dismissSoftKeyboard()
+            if (compose.onAllNodesWithTag("composer-title").fetchSemanticsNodes().isEmpty()) {
+                return@harnessWaitUntil true
+            }
+            if (compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()) {
+                return@harnessWaitUntil true
+            }
+            if (compose.onAllNodesWithTag(ActivityDetailTags.DONE).fetchSemanticsNodes().isNotEmpty()) {
+                return@harnessWaitUntil true
+            }
+            if (compose.onAllNodesWithTag(ActivityDetailTags.CONTENT).fetchSemanticsNodes().isNotEmpty()) {
+                return@harnessWaitUntil true
+            }
+            retryComposerSaveIfStuck()
+            false
+        }
+    }
+
+    private fun retryComposerSaveIfStuck() {
+        if (compose.onAllNodes(hasTestTag(ComposerTags.SAVE) and isEnabled()).fetchSemanticsNodes().isEmpty()) {
+            return
+        }
+        logHarness("UX_WALKTHROUGH_COMPOSER_SAVE_RETRY")
+        runCatching { performHarnessClickOnTag(ComposerTags.SAVE) }
     }
 
     private fun pressBackToHome() {

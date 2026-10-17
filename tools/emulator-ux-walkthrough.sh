@@ -24,8 +24,15 @@ suppress_system_anr_dialogs() {
   adb shell settings put global hide_error_dialogs 1 2>/dev/null || true
 }
 
-grant_permissions() {
+stabilize_emulator_ui() {
   suppress_system_anr_dialogs
+  adb shell settings put global window_animation_scale 0 2>/dev/null || true
+  adb shell settings put global transition_animation_scale 0 2>/dev/null || true
+  adb shell settings put global animator_duration_scale 0 2>/dev/null || true
+}
+
+grant_permissions() {
+  stabilize_emulator_ui
   adb shell pm grant "$PACKAGE" android.permission.POST_NOTIFICATIONS 2>/dev/null || true
   adb shell cmd appops set "$PACKAGE" SCHEDULE_EXACT_ALARM allow 2>/dev/null || true
   adb shell dumpsys deviceidle whitelist +"$PACKAGE" 2>/dev/null || true
@@ -46,7 +53,7 @@ capture_flow_logcat() {
   echo "::endgroup::"
 }
 
-grant_permissions
+stabilize_emulator_ui
 
 flows_from_spec() {
   spec="${1:-1-9}"

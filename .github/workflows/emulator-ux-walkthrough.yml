@@ -71,7 +71,9 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -memory 4096 -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          cores: 4
+          # Warm/quick boot (omit -no-snapshot); extra RAM and cores reduce IME and navigation flake.
+          emulator-options: -memory 6144 -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: ./tools/emulator-ux-walkthrough.sh
 
       - name: Upload UX walkthrough artifacts
