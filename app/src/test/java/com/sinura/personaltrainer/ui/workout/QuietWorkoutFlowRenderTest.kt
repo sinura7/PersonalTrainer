@@ -265,7 +265,7 @@ class QuietWorkoutFlowRenderTest {
             WorkoutTestTags.weightPreset(WeightDraftSource.PLAN),
             WorkoutTestTags.RPE_HELPER, WorkoutTestTags.RPE_CLEAR,
             WorkoutTestTags.SET_OPTIONS_SETS, WorkoutTestTags.SET_OPTIONS_TEMPO,
-            WorkoutTestTags.TEMPO_COACH_DISMISS, WorkoutTestTags.SET_OPTIONS_DETAILS,
+            WorkoutTestTags.TEMPO_COACH_DISMISS_MENU, WorkoutTestTags.SET_OPTIONS_DETAILS,
             WorkoutTestTags.STAT_LAST, WorkoutTestTags.STAT_BEST, WorkoutTestTags.STAT_VOLUME,
         )
         tags.forEach { tag ->
@@ -286,7 +286,7 @@ class QuietWorkoutFlowRenderTest {
             val completeLabels = mapOf(
                 WorkoutTestTags.SET_OPTIONS_SETS to "View all saved sets",
                 WorkoutTestTags.SET_OPTIONS_TEMPO to "Tempo suggestion",
-                WorkoutTestTags.TEMPO_COACH_DISMISS to "Dismiss Tempo suggestion",
+                WorkoutTestTags.TEMPO_COACH_DISMISS_MENU to "Dismiss Tempo suggestion",
                 WorkoutTestTags.SET_OPTIONS_DETAILS to "Exercise details",
             )
             completeLabels[tag]?.let { label ->

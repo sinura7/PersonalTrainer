@@ -126,6 +126,7 @@ object WorkoutTestTags {
     const val TEMPO_COACH_SHORTCUT = "workout-tempo-coach-shortcut"
     const val TEMPO_SUGGESTION_LABEL = "workout-tempo-suggestion-label"
     const val TEMPO_COACH_DISMISS = "workout-tempo-coach-dismiss"
+    const val TEMPO_COACH_DISMISS_MENU = "workout-tempo-coach-dismiss-menu"
     const val TEMPO_WHY_SHEET = "workout-tempo-why-sheet"
     const val TEMPO_WHY_TITLE = "workout-tempo-why-title"
     const val TEMPO_WHY_CLOSE = "workout-tempo-why-close"
@@ -972,7 +973,7 @@ private fun ActiveWorkoutContent(
                 QuietButton(text = "Dismiss Tempo suggestion", onClick = {
                     viewModel.dismissTempoCoachTip(tip)
                     setOptionsOpen = false
-                }, modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.TEMPO_COACH_DISMISS), maxLines = Int.MAX_VALUE)
+                }, modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.TEMPO_COACH_DISMISS_MENU), maxLines = Int.MAX_VALUE)
             }
             val stats = remember(session, selected.exercise.id, state.lastPerformance, exerciseHistory, unit) {
                 ExerciseFloorStatsCalculator.of(session = session, exerciseId = selected.exercise.id,

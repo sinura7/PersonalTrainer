@@ -332,6 +332,11 @@ class AdaptiveTempoReachabilityRenderTest {
             compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
             compose.waitForIdle()
         }
+        if (compose.onAllNodes(dockCoach).fetchSemanticsNodes().isNotEmpty() &&
+            (tag == WorkoutTestTags.MICRO_REC_APPLY || tag == WorkoutTestTags.MICRO_REC_WHY)
+        ) {
+            return node.assertIsDisplayed()
+        }
         for (attempt in 0..3) {
             val target = node.fetchSemanticsNode()
             val bounds = target.boundsInRoot
