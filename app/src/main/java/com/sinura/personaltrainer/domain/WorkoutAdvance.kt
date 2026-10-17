@@ -39,6 +39,14 @@ object WorkoutAdvance {
         return exerciseIds[index + 1]
     }
 
+    /** The lift before [currentId] in session order, or null on the first lift. */
+    fun previousExerciseId(exerciseIds: List<String>, currentId: String?): String? {
+        if (currentId == null) return null
+        val index = exerciseIds.indexOf(currentId)
+        if (index <= 0) return null
+        return exerciseIds[index - 1]
+    }
+
     /**
      * The lift Next should open: the next one in session order that has not
      * met its own target, wrapping to earlier skipped lifts.

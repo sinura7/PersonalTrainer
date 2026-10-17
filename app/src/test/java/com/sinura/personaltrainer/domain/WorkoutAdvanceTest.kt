@@ -36,6 +36,14 @@ class WorkoutAdvanceTest {
     }
 
     @Test
+    fun previousIsThePriorIdInOrder() {
+        val ids = listOf("squat", "bench", "row")
+        assertNull(WorkoutAdvance.previousExerciseId(ids, "squat"))
+        assertEquals("squat", WorkoutAdvance.previousExerciseId(ids, "bench"))
+        assertEquals("bench", WorkoutAdvance.previousExerciseId(ids, "row"))
+    }
+
+    @Test
     fun unknownOrBlankCurrentHasNoNext() {
         val ids = listOf("squat", "row")
         assertNull(WorkoutAdvance.nextExerciseId(ids, null))
