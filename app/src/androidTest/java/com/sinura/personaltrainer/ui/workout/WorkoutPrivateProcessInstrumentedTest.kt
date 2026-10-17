@@ -138,7 +138,7 @@ class WorkoutPrivateProcessInstrumentedTest {
             assertTrue(read { container.workoutRepository.getSession(sessionId)!!.sets.isEmpty() })
             assertEquals("Synthetic notes retained", read { container.workoutRepository.getSession(sessionId)!!.notes })
             capture("resume-clock-and-entry")
-            compose.onNodeWithContentDescription("Exit workout").performClick()
+            compose.onNodeWithContentDescription("Close").performClick()
             awaitTag(LiveSessionBarTestTags.ROOT)
             val entry = read { (container.workoutDraftCache.persistence!!.open(sessionId) as com.sinura.personaltrainer.workout.WorkoutDraftRestore.ReadyEntry).entry!! }
             assertEquals(82.0, entry.lifts.getValue(EXERCISE).weightKg, 0.0)
@@ -158,7 +158,7 @@ class WorkoutPrivateProcessInstrumentedTest {
             }
         }
         compose.waitUntil(30000) { compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD)).fetchSemanticsNodes().isEmpty() }
-        compose.onNodeWithContentDescription("Exit workout").performClick()
+        compose.onNodeWithContentDescription("Close").performClick()
         awaitTag(LiveSessionBarTestTags.ROOT)
         assertTrue(read { container.workoutRepository.getSession(sessionId)!!.sets.isEmpty() })
         read {
