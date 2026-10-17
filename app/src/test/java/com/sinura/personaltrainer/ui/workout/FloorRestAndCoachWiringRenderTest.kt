@@ -570,7 +570,7 @@ class FloorRestAndCoachWiringRenderTest {
     fun theHeadersXAndSystemBackLeaveWithTheSessionKeptAndNoPopup() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
-        compose.onNodeWithContentDescription("Exit workout").performClick()
+        compose.onNodeWithContentDescription("Close").performClick()
         compose.waitForIdle()
         assertEquals(1, exits)
         compose.onAllNodes(isDialog()).assertCountEquals(0)

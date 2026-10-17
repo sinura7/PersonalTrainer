@@ -80,7 +80,7 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithText("1 OF 2 EXERCISES · 2 OF 6 SETS").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_BAR).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled()
-        compose.onNodeWithContentDescription("Exit workout").assertExists()
+        compose.onNodeWithContentDescription("Close").assertExists()
     }
 
     @Test
