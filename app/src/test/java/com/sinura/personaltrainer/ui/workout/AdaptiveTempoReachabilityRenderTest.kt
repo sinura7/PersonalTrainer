@@ -342,8 +342,7 @@ class AdaptiveTempoReachabilityRenderTest {
             val bounds = target.boundsInRoot
             val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
             val tempo = compose.onAllNodes(dockCoach).fetchSemanticsNodes().singleOrNull()?.boundsInRoot
-            val isPinnedAction = (tag == WorkoutTestTags.MICRO_REC_APPLY || tag == WorkoutTestTags.MICRO_REC_WHY) && tempo != null
-            val safeBottom = if (isPinnedAction) content.bottom else minOf(content.bottom, tempo?.top ?: content.bottom)
+            val safeBottom = content.bottom
             val fullyVisible = bounds.width >= target.size.width - 1f && bounds.height >= target.size.height - 1f &&
                 bounds.left >= content.left - 1f && bounds.right <= content.right + 1f &&
                 bounds.top >= content.top - 1f && bounds.bottom <= safeBottom + 1f

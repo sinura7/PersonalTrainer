@@ -457,6 +457,8 @@ class QuietWorkoutFlowRenderTest {
     }
 
     private fun awaitIllustration() {
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.DETAILS))
+        compose.waitForIdle()
         val still = compose.onNodeWithTag(WorkoutTestTags.DETAILS).assertIsDisplayed().fetchSemanticsNode().boundsInWindow
         val density = compose.density.density
         // Stay inside the border and above the Details badge in either direction.
