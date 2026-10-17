@@ -146,6 +146,10 @@ android {
                 it.jvmArgs(
                     "-XX:CompileCommand=exclude,androidx/room/driver/SupportSQLiteConnection.prepare",
                 )
+                // Landscape / large-font Compose render suites retain full window bitmaps;
+                // a fresh fork avoids heap creep without skipping any test class.
+                it.maxHeapSize = "2048m"
+                it.forkEvery = 25
             }
         }
     }

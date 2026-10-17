@@ -34,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalAccessibilityManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -210,6 +211,7 @@ fun ActiveWorkoutScreen(
             landscape = LandscapeChrome.isLandscape(
                 widthDp = maxWidth.value.roundToInt(), heightDp = maxHeight.value.roundToInt(),
             ),
+            viewportHeightDp = maxHeight.value.roundToInt(),
         )
     }
 }
@@ -223,7 +225,10 @@ private fun ActiveWorkoutContent(
     viewModel: ActiveWorkoutViewModel,
     restNotificationsEnabledOverride: Boolean?,
     landscape: Boolean,
+    viewportHeightDp: Int,
 ) {
+    val fontScale = LocalDensity.current.fontScale
+    val compactTempoDock = landscape || viewportHeightDp <= 640 || fontScale >= 1.6f
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val restState = viewModel.restTimerState.collectAsStateWithLifecycle()
     val holdState = viewModel.holdTimer.collectAsStateWithLifecycle()
@@ -590,6 +595,8 @@ private fun ActiveWorkoutContent(
                                 onDismiss = { viewModel.dismissTempoCoachTip(tip) },
                                 cardState = checkNotNull(floorTempoCardState),
                                 renderDialogs = false,
+                                compactLandscape = landscape || compactTempoDock,
+                                compactStrip = compactTempoDock,
                                 modifier = Modifier
                                     .padding(horizontal = Metrics.gutter)
                                     .padding(top = Metrics.space2, bottom = Metrics.space1),

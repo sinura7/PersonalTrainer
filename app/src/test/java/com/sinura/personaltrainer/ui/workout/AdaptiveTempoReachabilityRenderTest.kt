@@ -320,6 +320,20 @@ class AdaptiveTempoReachabilityRenderTest {
         ).assertCountEquals(1)
     }
 
+    private fun assertFullyVisibleInWindow(node: SemanticsNodeInteraction, tag: String): SemanticsNodeInteraction {
+        val target = node.fetchSemanticsNode()
+        val bounds = target.boundsInWindow
+        val window = compose.runOnIdle {
+            val decor = compose.activity.window.decorView
+            decor.width to decor.height
+        }
+        val whole = bounds.width >= target.size.width - 1f && bounds.height >= target.size.height - 1f &&
+            bounds.left >= -1f && bounds.top >= -1f &&
+            bounds.right <= window.first + 1f && bounds.bottom <= window.second + 1f
+        assertTrue("$tag must be fully visible in the window (bounds=$bounds window=$window)", whole)
+        return node.assertIsDisplayed().assertIsEnabled()
+    }
+
     /** Bounded real swipes, with full-size / no-overlay geometry as the stop condition. */
     private fun reveal(tag: String, profile: String): SemanticsNodeInteraction {
         val node = compose.onNodeWithTag(tag)
@@ -335,14 +349,15 @@ class AdaptiveTempoReachabilityRenderTest {
         if (compose.onAllNodes(dockCoach).fetchSemanticsNodes().isNotEmpty() &&
             (tag == WorkoutTestTags.MICRO_REC_APPLY || tag == WorkoutTestTags.MICRO_REC_WHY)
         ) {
-            return node.assertIsDisplayed()
+            return assertFullyVisibleInWindow(node, tag)
         }
         for (attempt in 0..3) {
             val target = node.fetchSemanticsNode()
             val bounds = target.boundsInRoot
             val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
             val tempo = compose.onAllNodes(dockCoach).fetchSemanticsNodes().singleOrNull()?.boundsInRoot
-            val safeBottom = content.bottom
+            val tempoCoversContent = tempo != null && tempo.top < content.bottom - 1f
+            val safeBottom = if (tempoCoversContent) minOf(content.bottom, tempo.top) else content.bottom
             val fullyVisible = bounds.width >= target.size.width - 1f && bounds.height >= target.size.height - 1f &&
                 bounds.left >= content.left - 1f && bounds.right <= content.right + 1f &&
                 bounds.top >= content.top - 1f && bounds.bottom <= safeBottom + 1f

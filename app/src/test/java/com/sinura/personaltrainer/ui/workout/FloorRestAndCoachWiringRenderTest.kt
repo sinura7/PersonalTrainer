@@ -485,7 +485,7 @@ class FloorRestAndCoachWiringRenderTest {
         val timerRow = compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).fetchSemanticsNode().boundsInRoot.top
         val savedWork = compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNode().boundsInRoot
         assertTrue("saved work stays above the dock suggestion", savedWork.bottom <= tempo.top + 1f)
-        assertTrue("Tempo sits below the scroll column", tempo.top >= content.bottom - 1f || tempo.top >= savedWork.bottom)
+        assertTrue("Tempo sits in the dock below the scroll column", tempo.top >= content.bottom - 1f)
         assertTrue("Tempo stays above the timer row", tempo.bottom <= timerRow + 1f)
     }
 

@@ -181,16 +181,23 @@ internal fun TempoCoachCard(
                         size = avatarSize,
                         contentDescription = null,
                     )
-                    Text(
-                        detailLine,
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag(WorkoutTestTags.MICRO_REC),
-                        style = InstrumentType.bodyStrong,
-                        color = TextPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Suggestion",
+                            modifier = Modifier.testTag(WorkoutTestTags.TEMPO_SUGGESTION_LABEL),
+                            style = InstrumentType.caption,
+                            color = TextSecondary,
+                            maxLines = 1,
+                        )
+                        Text(
+                            detailLine,
+                            modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC),
+                            style = InstrumentType.bodyStrong,
+                            color = TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     tempoActions()
                 }
             }
