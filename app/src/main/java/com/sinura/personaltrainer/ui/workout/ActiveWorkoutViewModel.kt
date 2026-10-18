@@ -498,6 +498,7 @@ class ActiveWorkoutViewModel internal constructor(
         unit = { weightUnit.value },
         loadTypeOf = ::liftLoadType,
         onCheckpoint = ::publishPrivateEntry,
+        onOfferDiscarded = ::onRemovedLiftOfferDiscarded,
     )
 
     /** Every live undo offer, oldest first. The banner shows the last one. */
@@ -1311,6 +1312,23 @@ class ActiveWorkoutViewModel internal constructor(
         clocks.restoreStopwatchFor(exerciseId, resumeRunning = false)
     }
 
+    private fun pendingRemovedLiftExerciseIds(): Set<String> =
+        undo.entries.value.mapNotNull { entry ->
+            (entry.token as? FloorUndo.RemovedLift)?.removed?.item?.exerciseId
+        }.toSet()
+
+    /** Q4: only Undo reads the saved clock; once the offer is gone, drop the copy. */
+    private fun forgetRemovedLiftStopwatchWhenOfferEnded(exerciseId: String) {
+        if (exerciseId in pendingRemovedLiftExerciseIds()) return
+        clocks.forgetStopwatch(exerciseId)
+    }
+
+    private fun onRemovedLiftOfferDiscarded(token: FloorUndo) {
+        if (token is FloorUndo.RemovedLift) {
+            clocks.forgetStopwatch(token.removed.item.exerciseId)
+        }
+    }
+
     private fun liftDraft(exerciseId: String): WorkoutDraft? =
         WorkoutDraftRecovery.resolve(
             sessionId = sessionId,
@@ -1712,6 +1730,7 @@ class ActiveWorkoutViewModel internal constructor(
         } else {
             val current = container.workoutRepository.getSession(sessionId)
             if (current?.exercises?.none { it.exercise.id == exercise.id } != false) {
+                forgetRemovedLiftStopwatchWhenOfferEnded(exercise.id)
                 val goal = container.preferencesRepository.coachPreferences.first().goal
                 val defaults = AddDefaults.forExercise(exercise, goal = goal)
                 container.workoutRepository.addExerciseToSession(
@@ -2428,7 +2447,11 @@ class ActiveWorkoutViewModel internal constructor(
      * and the next offer underneath is revealed with a fresh dwell.
      */
     fun onUndoOfferExpired() {
-        undo.pop()
+        val entry = undo.pop() ?: return
+        when (val token = entry.token) {
+            is FloorUndo.RemovedLift -> clocks.forgetStopwatch(token.removed.item.exerciseId)
+            else -> Unit
+        }
     }
 
     private fun liftLoadType(exerciseId: String): LoadType? =
@@ -2831,9 +2854,14 @@ class ActiveWorkoutViewModel internal constructor(
             lifts = draftCache.all(sessionId), selectedExerciseId = selectedExerciseId.value,
             notes = sessionNotes.text.value.takeIf { sessionNotes.textKnown }, notesBase = current.notes.trim(),
             editingOriginal = editingOriginal,
-            clocks = clocks.checkpoint(workoutBoot).let { value -> value.copy(
-                stopwatches = value.stopwatches.filterKeys { id -> current.exercises.any { it.exercise.id == id } },
-            ) },
+            clocks = clocks.checkpoint(workoutBoot).let { value ->
+                val pendingRemoved = pendingRemovedLiftExerciseIds()
+                value.copy(
+                    stopwatches = value.stopwatches.filterKeys { id ->
+                        current.exercises.any { it.exercise.id == id } || id in pendingRemoved
+                    },
+                )
+            },
             numbers = numberEntries.value,
             undo = undo.checkpoint(), undoDwellMs = undo.dwellMs.value,
         )
