@@ -26,6 +26,7 @@ when_exhaustive = 48
 # F1: 18 annotated Compose slots now checked; one isolated test-store factory added.
 # Net reduction from the accepted ceiling of 62. Receiver slots remain out of scope.
 # 47 -> 46 in W2a, measured after the dead code went.
+# 46 -> 47 with P10 (#541): ExerciseHeader.kt:85 liftHeaderSwipe is the 47th declined site.
 lambda_arity_declined = 47
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
@@ -34,6 +35,10 @@ unbounded_waits = 0
 # `catch (Exception)` inside a suspend fun or a coroutine builder's lambda with no
 # CancellationException clause ahead of it: it eats the cancellation and carries on.
 cancellation_swallow = 0
+# Real-time Thread.sleep / SystemClock.sleep / TimeUnit.sleep in tests (allowlisted).
+real_time_sleeps = 28
+# delay() calls in test files with no virtual-time marker string (file-level heuristic).
+real_time_delays = 6
 
 [tokens]
 # Ratched 2026-09-05 so live test 21 / further packets have a green
