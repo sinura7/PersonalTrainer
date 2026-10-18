@@ -11,9 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import com.sinura.personaltrainer.testutil.awaitFirst
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -40,14 +39,12 @@ class UnlockHeadingTest {
                 ),
             )
             backup.requestFileRestore(Uri.fromFile(file))
-            withTimeout(timeMillis = 30_000) {
-                backup.uiState.first { it.pendingUnlock || it.error != null }
-            }
+            backup.uiState.awaitFirst { it.pendingUnlock || it.error != null }
             check(backup.uiState.value.pendingUnlock) { "restore never opened unlock: ${backup.uiState.value}" }
+            // unlockPending is dropped while a backup action is still marked busy.
+            backup.uiState.awaitFirst { !it.isBusy }
             backup.unlockPending("wrong-password")
-            val shown = withTimeout(timeMillis = 30_000) {
-                backup.uiState.first { !it.pendingUnlock && it.error != null }
-            }
+            val shown = backup.uiState.awaitFirst { !it.pendingUnlock && it.error != null }
             assertFalse(shown.pendingUnlock)
             assertEquals(BackupEnvelope.WRONG_PASSWORD, shown.error)
             assertEquals(BackupStageCopy.WRONG_PASSWORD, BackupStageCopy.titleFor(checkNotNull(shown.error)))
