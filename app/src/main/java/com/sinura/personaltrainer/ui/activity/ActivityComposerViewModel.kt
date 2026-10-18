@@ -442,7 +442,6 @@ class ActivityComposerViewModel internal constructor(
     fun save() {
         val started = error.mark()
         if (saving.value || pickerWrites.busy || _createdExercise.value != null) return
-        if (strength.value.isEmpty() && cardio.value.isEmpty()) return
         if (formRecovery?.status?.value?.ready == false || pickerRecovery?.create?.status?.value?.busy == true) return
         saving.value = true
         viewModelScope.launch {
