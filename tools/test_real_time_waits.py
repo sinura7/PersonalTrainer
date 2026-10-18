@@ -6,7 +6,7 @@ import importlib.util
 import io
 import sys
 import tempfile
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
@@ -25,9 +25,16 @@ def load(filename: str):
     return mod
 
 
-def write_allowlist(root: Path, rows: list[tuple[str, str, str]]) -> Path:
+def write_allowlist(root: Path, rows: list[tuple[str, str, str, str | None]]) -> Path:
     path = root / "real-time-waits-allowlist.txt"
-    lines = [f"{p} | {code} | {reason}" for p, code, reason in rows]
+    lines = []
+    for row in rows:
+        if len(row) == 3:
+            p, code, reason = row
+            lines.append(f"{p} | {code} | {reason}")
+        else:
+            p, code, reason, count = row
+            lines.append(f"{p} | {code} | {reason} | {count}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
 
@@ -37,13 +44,30 @@ def run_checker(
     allowlist: Path,
     test_root: Path,
     monkeypatch_allowlist: bool = True,
+    *,
+    sleep_ceiling: int | None = None,
+    delay_ceiling: int | None = None,
 ) -> tuple[int, str, str]:
     if monkeypatch_allowlist:
         mod.ALLOWLIST_PATH = str(allowlist)
+    real_report = mod.report_exact_count
+    if sleep_ceiling is not None or delay_ceiling is not None:
+        table = {
+            "skips": {
+                "real_time_sleeps": sleep_ceiling if sleep_ceiling is not None else 0,
+                "real_time_delays": delay_ceiling if delay_ceiling is not None else 0,
+            },
+        }
+
+        def _patched(group: str, key: str, actual: int, table_override=None):
+            return real_report(group, key, actual, table_override or table)
+
+        mod.report_exact_count = _patched
     buf_out, buf_err = io.StringIO(), io.StringIO()
     argv = ["check-real-time-waits.py", str(test_root)]
-    with redirect_stdout(buf_out):
+    with redirect_stdout(buf_out), redirect_stderr(buf_err):
         code = mod.main(argv)
+    mod.report_exact_count = real_report
     return code, buf_out.getvalue(), buf_err.getvalue()
 
 
@@ -72,7 +96,7 @@ def main() -> int:
     if len(hits) != 1:
         raise SystemExit(f"FAIL expected one sleep in fixture, got {hits}")
     code, out, _err = run_checker(mod, allowlist, root / "test", False)
-    if code == 0 or "real-time sleep not in allowlist" not in out:
+    if code == 0 or "allowlist missing" not in out:
         raise SystemExit(f"FAIL unlisted sleep should fail: code={code} out={out}")
     print("ok  unlisted Thread.sleep fails with path and line")
 
@@ -93,7 +117,9 @@ def main() -> int:
     )
     mod.REPO_ROOT = str(listed_root.resolve())
     mod.ALLOWLIST_PATH = str(allowlist)
-    code, out, _err = run_checker(mod, allowlist, listed_root / "test", False)
+    code, out, _err = run_checker(
+        mod, allowlist, listed_root / "test", False, sleep_ceiling=1, delay_ceiling=0,
+    )
     if code != 0 or "real-time sleep not in allowlist" in out:
         raise SystemExit(f"FAIL listed sleep should pass: {code} {out}")
     print("ok  allowlisted sleep passes")
@@ -117,9 +143,37 @@ def main() -> int:
         _line_no, code_text = hits[0]
         allowlist = write_allowlist(snippet_root, [(rel_p, code_text, "x")])
         mod.ALLOWLIST_PATH = str(allowlist)
-        if run_checker(mod, allowlist, snippet_root / "test", False)[0] != 0:
+        if (
+            run_checker(
+                mod, allowlist, snippet_root / "test", False, sleep_ceiling=1, delay_ceiling=0,
+            )[0]
+            != 0
+        ):
             raise SystemExit(f"FAIL {label} allowlisted run")
     print("ok  SystemClock and TimeUnit sleep forms are caught")
+
+    multiline_root = Path(tempfile.mkdtemp(prefix="real-time-waits-multiline-"))
+    multiline_dir = multiline_root / "test" / "com" / "example"
+    multiline_dir.mkdir(parents=True)
+    mod.REPO_ROOT = str(multiline_root.resolve())
+    multiline = multiline_dir / "MultilineTimeUnitTest.kt"
+    multiline.write_text(
+        """
+        class MultilineTimeUnitTest {
+            @Test fun x() {
+                TimeUnit
+                    .MILLISECONDS
+                    .sleep(4)
+            }
+        }
+        """.strip(),
+        encoding="utf-8",
+    )
+    rel_ml = str(multiline.relative_to(multiline_root))
+    stripped_ml = strip_comments_and_strings(multiline.read_text())
+    if not mod.find_sleeps(rel_ml, stripped_ml):
+        raise SystemExit("FAIL multiline TimeUnit.sleep not detected")
+    print("ok  TimeUnit.sleep matches across line breaks")
 
     comment_root = Path(tempfile.mkdtemp(prefix="real-time-waits-comment-"))
     comment_dir = comment_root / "test" / "com" / "example"
@@ -157,10 +211,10 @@ def main() -> int:
         ],
     )
     mod.ALLOWLIST_PATH = str(allowlist)
-    _code, out, _err = run_checker(mod, allowlist, stale_root / "test", False)
-    if "hint: allowlist entry has no matching sleep" not in out:
-        raise SystemExit(f"FAIL stale allowlist hint missing: {out}")
-    print("ok  stale allowlist entry emits ratchet hint")
+    code, out, _err = run_checker(mod, allowlist, stale_root / "test", False)
+    if code == 0 or "allowlist entry has no matching sleep" not in out:
+        raise SystemExit(f"FAIL stale allowlist should fail: code={code} out={out}")
+    print("ok  stale allowlist entry fails closed")
 
     delay_root = Path(tempfile.mkdtemp(prefix="real-time-waits-delay-"))
     delay_dir = delay_root / "test" / "com" / "example"
@@ -181,6 +235,23 @@ def main() -> int:
     if mod.count_delays(rel_v, raw, stripped) != 0:
         raise SystemExit("FAIL delay under runTest should not count")
     print("ok  delay in runTest file is not counted")
+
+    comment_marker = delay_dir / "CommentMarkerDelayTest.kt"
+    comment_marker.write_text(
+        """
+        class CommentMarkerDelayTest {
+            // runTest would hide this if we scanned raw text
+            @Test fun x() = runBlocking { delay(1) }
+        }
+        """.strip(),
+        encoding="utf-8",
+    )
+    rel_cm = str(comment_marker.relative_to(delay_root))
+    raw_cm = comment_marker.read_text()
+    stripped_cm = strip_comments_and_strings(raw_cm)
+    if mod.count_delays(rel_cm, raw_cm, stripped_cm) != 1:
+        raise SystemExit("FAIL delay counts when runTest only appears in comment")
+    print("ok  runTest in comment does not exempt delay()")
 
     real_delay = delay_dir / "RealDelayTest.kt"
     real_delay.write_text(
@@ -212,10 +283,79 @@ def main() -> int:
         "class MovedLineTest {\n\n    @Test fun x() { Thread.sleep(7) }\n}\n",
         encoding="utf-8",
     )
-    code, out, _err = run_checker(mod, allowlist, move_root / "test", False)
+    code, out, _err = run_checker(
+        mod, allowlist, move_root / "test", False, sleep_ceiling=1, delay_ceiling=0,
+    )
     if code != 0:
         raise SystemExit(f"FAIL allowlist matches by code text after line move: {out}")
     print("ok  allowlist matches by code text when line number shifts")
+
+    import_root = Path(tempfile.mkdtemp(prefix="real-time-waits-import-"))
+    import_dir = import_root / "test" / "com" / "example"
+    import_dir.mkdir(parents=True)
+    mod.REPO_ROOT = str(import_root.resolve())
+    for src, needle in [
+        ("import java.lang.Thread.sleep\nclass T { @Test fun x() { sleep(1) } }", "Thread.sleep"),
+        (
+            "import java.util.concurrent.TimeUnit.MILLISECONDS\n"
+            "class T { @Test fun x() { MILLISECONDS.sleep(1) } }",
+            "TimeUnit",
+        ),
+        (
+            "import kotlinx.coroutines.delay as wait\n"
+            "class T { @Test fun x() = runBlocking { wait(1) } }",
+            "delay as",
+        ),
+    ]:
+        path = import_dir / f"ImportTest_{needle.replace(' ', '_')}.kt"
+        path.write_text(src, encoding="utf-8")
+        allowlist = write_allowlist(import_root, [])
+        mod.ALLOWLIST_PATH = str(allowlist)
+        code, out, _err = run_checker(mod, allowlist, import_root / "test", False)
+        if code == 0 or "forbidden real-time import" not in out:
+            raise SystemExit(f"FAIL forbidden import ({needle}): {code} {out}")
+    print("ok  forbidden sleep/delay import forms fail")
+
+    count_root = Path(tempfile.mkdtemp(prefix="real-time-waits-count-"))
+    count_dir = count_root / "test" / "com" / "example"
+    count_dir.mkdir(parents=True)
+    mod.REPO_ROOT = str(count_root.resolve())
+    dup = count_dir / "DupSleepTest.kt"
+    dup.write_text(
+        "class DupSleepTest {\n"
+        "  @Test fun a() {\n"
+        "    Thread.sleep(2)\n"
+        "  }\n"
+        "  @Test fun b() {\n"
+        "    Thread.sleep(2)\n"
+        "  }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    rel_dup = str(dup.relative_to(count_root))
+    stripped_dup = strip_comments_and_strings(dup.read_text())
+    _ln, dup_code = mod.find_sleeps(rel_dup, stripped_dup)[0]
+    allowlist = write_allowlist(
+        count_root,
+        [(rel_dup, dup_code, "two sites", "2")],
+    )
+    mod.ALLOWLIST_PATH = str(allowlist)
+    if (
+        run_checker(
+            mod, allowlist, count_root / "test", False, sleep_ceiling=2, delay_ceiling=0,
+        )[0]
+        != 0
+    ):
+        raise SystemExit("FAIL allowlist site-count 2 should pass")
+    allowlist_short = write_allowlist(
+        count_root,
+        [(rel_dup, dup_code, "expects three", "3")],
+    )
+    mod.ALLOWLIST_PATH = str(allowlist_short)
+    code, out, _ = run_checker(mod, allowlist_short, count_root / "test", False)
+    if code == 0 or "under-covered" not in out:
+        raise SystemExit(f"FAIL under-covered allowlist count: {code} {out}")
+    print("ok  optional allowlist site-count pins duplicate line text")
 
     table = {"skips": {"real_time_sleeps": 2, "real_time_delays": 1}}
     equal = checker_baseline.report("skips", "real_time_sleeps", 2, table)
@@ -231,7 +371,12 @@ def main() -> int:
         raise SystemExit(f"FAIL below ceiling should not error: {below}")
     if "below" not in buf_below.getvalue():
         raise SystemExit(f"FAIL below ceiling hint missing: {buf_below.getvalue()}")
-    print("ok  ceiling equal, growth fails, drop hints")
+    print("ok  checker_baseline.report still hints below for other checkers")
+
+    strict = load("check-real-time-waits.py")
+    if strict.report_exact_count("skips", "real_time_sleeps", 1) is None:
+        raise SystemExit("FAIL report_exact_count should fail when below baseline")
+    print("ok  report_exact_count fails until baseline ratchets down")
 
     print("test_real_time_waits: all assertions passed")
     return 0
