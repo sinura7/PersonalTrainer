@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.workout.WorkoutCheckpointUnavailable
 import com.sinura.personaltrainer.workout.WorkoutDraftPersistence
 import com.sinura.personaltrainer.workout.WorkoutDraftRestore
 import com.sinura.personaltrainer.workout.WorkoutEntryCheckpoint
+import com.sinura.personaltrainer.workout.WorkoutUndoToken
 import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -412,15 +413,21 @@ internal class DurableWorkoutDrafts(
         Unit
     }
 
+    private fun pendingRemovedLiftExerciseIds(entry: WorkoutEntryCheckpoint?): Set<String> =
+        entry?.undo.orEmpty().mapNotNull { checkpoint ->
+            (checkpoint.token as? WorkoutUndoToken.LiftReceipt)?.exerciseId
+        }.toSet()
+
     private fun validOwner(entry: WorkoutEntryCheckpoint?, current: WorkoutSession): Boolean {
         if (entry == null) return true
         val ids = current.exercises.map { it.exercise.id }.toSet()
+        val pendingRemoved = pendingRemovedLiftExerciseIds(entry)
         return entry.sessionId == current.id && entry.startedAt == current.startedAt &&
             entry.lifts.all { (id, draft) -> id in ids && draft.exerciseId == id && draft.sessionId == current.id } &&
             (entry.selectedExerciseId == null || entry.selectedExerciseId in ids) &&
             entry.numbers.all { it.exerciseId == null || it.exerciseId in ids } &&
             (entry.clocks?.holdExerciseId == null || entry.clocks.holdExerciseId in ids) &&
-            entry.clocks?.stopwatches.orEmpty().keys.all { it in ids }
+            entry.clocks?.stopwatches.orEmpty().keys.all { it in ids || it in pendingRemoved }
     }
 
     private suspend fun load(sessionId: String): Handle {
