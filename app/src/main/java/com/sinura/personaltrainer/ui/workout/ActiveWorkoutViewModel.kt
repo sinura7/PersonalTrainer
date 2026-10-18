@@ -2163,11 +2163,11 @@ class ActiveWorkoutViewModel internal constructor(
     private fun retireRemovedEntry(exerciseId: String) {
         // Clearing selection first saves/stops its clock. Remove those copies afterwards so
         // applySelection cannot persist the released command's draft back into the checkpoint.
+        // Do not forget the lift's saved set clock here: Remove keeps it for Undo (TH6 / Q4).
         if (selectedExerciseId.value == exerciseId) clearLiftSelection()
         draftCache.removeLift(sessionId, exerciseId)
         savedDraft.removeLift(exerciseId)
         numberEntries.value = numberEntries.value.filterNot { it.exerciseId == exerciseId }
-        clocks.forgetStopwatch(exerciseId)
         if (pendingResumeDraft?.exerciseId == exerciseId) pendingResumeDraft = null
     }
 
