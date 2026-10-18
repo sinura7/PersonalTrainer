@@ -1889,6 +1889,37 @@
         "F12"
       ],
       "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX31",
+      "title": "Cut single-JVM unit suite wall time (hosted headroom)",
+      "priority": "P1",
+      "type": "Engineering / CI hygiene",
+      "observation": "After #542 removed forkEvery, one JVM runs ~4800 tests in about 16–17 minutes on hosted runners — too close to the former 20-minute step cap and leaving little room for lint, assembleDebug, and assembleDebugAndroidTest within a 30-minute job.",
+      "outcome": "Hosted gate job completes with comfortable margin without relying only on timeout raises.",
+      "requirements": [
+        "Identify and land suite-time reductions (flakes, redundant work, test parallelization policy) without reintroducing forkEvery-style multi-JVM churn unless measured.",
+        "Track progress against agent-local and hosted gate durations after each change."
+      ],
+      "acceptance": [
+        "Documented before/after unit-step duration on JDK 17 single-JVM gate with test counts.",
+        "Hosted Tests, lint, debug build job consistently finishes well under raised caps."
+      ],
+      "evidence": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 32
+        },
+        {
+          "path": "app/build.gradle.kts",
+          "line": 149
+        }
+      ],
+      "dependencies": [],
+      "decision": "Deferred engineering packet; CI caps raised first (Allen-approved)",
+      "status": "Open",
+      "fixtures": [],
+      "evidenceClass": "Hosted CI timing on P10 stack (39135917503 / 39135921063)"
     }
   ],
   "fixtures": [
@@ -5813,6 +5844,14 @@
         "independent": "N/A — tracking note only.",
         "adversarial": "N/A — tracking note only.",
         "cleanContext": "Documented on trunk-green #542; fix deferred to a later packet."
+      },
+      "edbc3e3f": {
+        "when": "2026-10-18",
+        "packet": "CI: raise hosted gate job and unit-test step timeouts (Allen-approved)",
+        "gate": "preflight.sh static half OK. .github/workflows/ci.yml only: verify job timeout-minutes 30→40; Unit tests step 20→25. Smoke job stays 45m non-blocking; no skipped steps. Why: post-#542 single-JVM unit step ~16–17m (too close to 20m); P10 stack run 39135917503 gate job passed in 29m23s after ~5.5m debug-build cache miss on app-code push; 39135921063 gate job cancelled at ~30m20s during instrumented compile. Hosted gate job must pass on this PR. UX31 tracks cutting suite time.",
+        "independent": "PENDING review.",
+        "adversarial": "PENDING review.",
+        "cleanContext": "Branch cursor/ci-job-timeout-ae41 off trunk 6ecf951b (#542). Parent 1efe09de."
       },
       "9cf9e2c4": {
         "when": "2026-10-17",
