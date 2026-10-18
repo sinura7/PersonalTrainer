@@ -409,7 +409,7 @@ class HomeViewModelTest {
         assertTrue("the reminder stays in the shade", reminderShown(occurrence.id))
 
         viewModel!!.resumeBlocked()
-        assertEquals(live, viewModel!!.navigateToSession.value)
+        assertEquals(live, viewModel!!.navigateToSession.awaitFirst { it == live })
         assertEquals(ReminderDeliveryStatus.PENDING.name, deliveryStatus(reminder))
         assertTrue(reminderShown(occurrence.id))
     }
