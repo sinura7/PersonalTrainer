@@ -445,9 +445,9 @@ class ActivityComposerViewModelTest {
         val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
         assertFalse(state.canSave)
         viewModel!!.save()
+        val refused = viewModel!!.uiState.awaitFirst { !it.saving && it.error != null }
         assertEquals(null, viewModel!!.savedId.value)
-        assertFalse(viewModel!!.uiState.value.saving)
-        assertEquals("Nothing to save.", viewModel!!.uiState.value.error)
+        assertEquals("Nothing to save.", refused.error)
         val lift = seedLift()
         viewModel!!.addStrength(lift, 40.0, 5)
         assertTrue(viewModel!!.uiState.value.canSave)
