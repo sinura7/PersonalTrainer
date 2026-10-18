@@ -37,8 +37,13 @@ class RestTimerCooldownExpiredCompletionTest {
 
     @After
     fun tearDown() {
+        RestTimerService.tickObserver = null
+        app.container.restTimerController.stop(fromService = true)
+        RestTimerOverlayController.release()
+        RestTimerAppForeground.setForegroundForTest(false)
         app.container.restTimerStatePersistence.clear()
         RestTimerCompletion.reset()
+        shadowOf(app.mainLooper).idle()
     }
 
     @Test
