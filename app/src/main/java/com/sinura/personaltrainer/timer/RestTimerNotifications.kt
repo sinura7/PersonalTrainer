@@ -223,7 +223,13 @@ object RestTimerNotifications {
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setContentIntent(lockScreenIntent(appContext, state.sessionId, finished = false))
-        if (!RestTimerMarkers.isCooldown(state)) {
+        if (RestTimerMarkers.isCooldown(state)) {
+            builder.addAction(
+                0,
+                "Skip",
+                serviceIntent(appContext, RestTimerService.ACTION_SKIP, 13, state.timerId),
+            )
+        } else {
             builder
                 .addAction(0, "−15s", serviceIntent(appContext, RestTimerService.ACTION_MINUS_15, 11))
                 .addAction(0, "+15s", serviceIntent(appContext, RestTimerService.ACTION_ADD_15, 12))

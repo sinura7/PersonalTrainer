@@ -24,6 +24,11 @@ object RestTimerAlerts {
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
 
+    internal val COOLDOWN_CUE_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .build()
+
     fun announce(
         context: Context,
         preferences: RestTimerPreferences,
@@ -37,17 +42,32 @@ object RestTimerAlerts {
         }
     }
 
-    /** One short cue at cool-down 0:00; sound and vibration still follow the live switches. */
+    /** One soft notification-stream tone at cool-down 0:00; never the rest_done alarm cue. */
     fun announceCooldown(
         context: Context,
         preferences: RestTimerPreferences,
-        createPlayer: (Context, Int, AudioAttributes) -> MediaPlayer? = ::createWithAttributes,
     ) {
         if (preferences.soundEnabled) {
-            playSound(context, createPlayer)
+            playCooldownTone(context)
         }
         if (preferences.vibrationEnabled) {
-            vibrate(context, VibrationEffect.createOneShot(COOLDOWN_VIBRATION_MS, VibrationEffect.DEFAULT_AMPLITUDE))
+            vibrate(
+                context,
+                VibrationEffect.createOneShot(COOLDOWN_VIBRATION_MS, VibrationEffect.DEFAULT_AMPLITUDE),
+                COOLDOWN_CUE_ATTRIBUTES,
+            )
+        }
+    }
+
+    private fun playCooldownTone(context: Context) {
+        try {
+            val tone = android.media.ToneGenerator(AudioManager.STREAM_NOTIFICATION, 55)
+            tone.startTone(android.media.ToneGenerator.TONE_PROP_ACK, 120)
+            android.os.Handler(context.mainLooper).postDelayed({
+                runCatching { tone.release() }
+            }, 160L)
+        } catch (_: Exception) {
+            // Sound is optional. Never fail the timer.
         }
     }
 
@@ -183,23 +203,26 @@ object RestTimerAlerts {
         ringtone.play()
     }
 
-    private fun vibrate(context: Context, effect: VibrationEffect) {
+    private fun vibrate(
+        context: Context,
+        effect: VibrationEffect,
+        audioAttributes: AudioAttributes = CUE_ATTRIBUTES,
+    ) {
         try {
             val vibrator = vibrator(context) ?: return
             if (Build.VERSION.SDK_INT >= 33) {
+                val usage = when (audioAttributes.usage) {
+                    AudioAttributes.USAGE_NOTIFICATION_EVENT -> VibrationAttributes.USAGE_NOTIFICATION
+                    else -> VibrationAttributes.USAGE_ALARM
+                }
                 vibrator.vibrate(
                     effect,
                     VibrationAttributes.Builder()
-                        .setUsage(VibrationAttributes.USAGE_ALARM)
+                        .setUsage(usage)
                         .build(),
                 )
             } else {
-                vibrator.vibrate(
-                    effect,
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .build(),
-                )
+                vibrator.vibrate(effect, audioAttributes)
             }
         } catch (_: Exception) {
             // Vibration is optional.

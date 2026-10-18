@@ -58,14 +58,17 @@ class RestTimerAlarmReceiver : BroadcastReceiver() {
         val expectedTimerId: String
         val deadline: Long
         val sessionId: String?
+        val isCooldown: Boolean
         if (snapshot != null && snapshot.running) {
             expectedTimerId = snapshot.timerId
             deadline = snapshot.endsAtElapsedRealtime
             sessionId = snapshot.sessionId
+            isCooldown = com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(snapshot)
         } else if (stored != null) {
             expectedTimerId = stored.timerId
             deadline = stored.endsAtElapsedRealtime
             sessionId = stored.sessionId
+            isCooldown = com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldownTag(stored.sourceTag)
         } else {
             // Neither live nor on disk: this rest was already completed and cleared by the
             // in-app path, and this is a cancelled alarm that was already in flight.
@@ -85,6 +88,7 @@ class RestTimerAlarmReceiver : BroadcastReceiver() {
                         deadlineElapsedRealtime = deadline,
                         sessionId = sessionId,
                         playCue = playCue,
+                        isCooldown = isCooldown,
                     )
                 }
             } catch (thrown: CancellationException) {

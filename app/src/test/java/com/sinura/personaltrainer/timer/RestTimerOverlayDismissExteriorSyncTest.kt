@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,9 +43,13 @@ class RestTimerOverlayDismissExteriorSyncTest {
             timerId = "timer-sync",
         )
         RestOverlayDismissStore.dismissForRest(context, state.timerId)
-        RestTimerOverlayController.sync(context, state)
+        RestTimerOverlayController.sync(context, state, fromService = false)
         shadowOf(context.mainLooper).idle()
         val started = shadowOf(context).nextStartedService
         assertEquals(RestTimerService.ACTION_EXTERIOR_SYNC, started?.action)
+        assertNull(started?.getStringExtra(RestTimerService.EXTRA_SESSION_ID))
+        RestTimerOverlayController.sync(context, state, fromService = true)
+        shadowOf(context.mainLooper).idle()
+        org.junit.Assert.assertNull(shadowOf(context).nextStartedService)
     }
 }

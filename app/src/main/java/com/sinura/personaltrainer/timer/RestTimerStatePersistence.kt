@@ -132,6 +132,7 @@ sealed interface RestTimerRehydration {
         val lateByMs: Long,
         val endsAtElapsedRealtime: Long,
         val timerId: String,
+        val sourceTag: String = "",
     ) : RestTimerRehydration {
         val playCue: Boolean
             get() = lateByMs <= RestTimerRehydrator.LATE_ALERT_GRACE_MS
@@ -199,6 +200,7 @@ object RestTimerRehydrator {
                 lateByMs = -remainingMs,
                 endsAtElapsedRealtime = stored.endsAtElapsedRealtime,
                 timerId = stored.timerId,
+                sourceTag = stored.sourceTag,
             )
         }
     }

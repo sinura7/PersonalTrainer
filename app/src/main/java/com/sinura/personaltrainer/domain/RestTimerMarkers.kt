@@ -5,7 +5,9 @@ object RestTimerMarkers {
     const val COOLDOWN = "cool-down"
     const val COOLDOWN_SECONDS = RestTimerPreferences.DEFAULT_SECONDS
 
-    fun isCooldown(snapshot: RestTimerSnapshot): Boolean = snapshot.sourceTag == COOLDOWN
+    fun isCooldown(snapshot: RestTimerSnapshot): Boolean = isCooldownTag(snapshot.sourceTag)
+
+    fun isCooldownTag(sourceTag: String): Boolean = sourceTag == COOLDOWN
 }
 
 object CooldownCopy {

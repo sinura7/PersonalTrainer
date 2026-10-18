@@ -103,10 +103,6 @@ fun WorkoutSummaryScreen(
     val activity = LocalContext.current.findActivity()
     LaunchedEffect(Unit) { viewModel.maybeAutoBackup(activity) }
 
-    // Back is Done. The workout behind this screen is finished and gone from the stack, so
-    // there is nowhere else back could sensibly lead.
-    BackHandler(enabled = !state.isLoading) { onDone() }
-
     WorkoutSummaryContent(
         state = state,
         unit = unit,
@@ -131,6 +127,10 @@ internal fun WorkoutSummaryContent(
     restRemaining: Flow<Int>? = null,
 ) {
     val summary = state.summary
+
+    // Back is Done. The workout behind this screen is finished and gone from the stack, so
+    // there is nowhere else back could sensibly lead.
+    BackHandler(enabled = !state.isLoading) { onDone() }
 
     Column(
         modifier = Modifier

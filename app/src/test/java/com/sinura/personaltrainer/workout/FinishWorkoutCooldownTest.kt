@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.workout
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
@@ -83,6 +84,31 @@ class FinishWorkoutCooldownTest {
             assertFalse(deps.restTimerStore.current().running)
         } finally {
             deps.workoutDraftCache.endFinish(fixture.session.id)
+        }
+    }
+
+    @Test
+    fun failedFinishSessionWriteDoesNotStartCooldown() = runBlocking {
+        val throwingDeps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            workoutDaoDecorator = { real ->
+                object : WorkoutDao by real {
+                    override suspend fun finishSession(
+                        id: String,
+                        notes: String,
+                        durationMinutes: Int,
+                        finishedAt: Long,
+                    ): Int = throw java.sql.SQLException("disk full")
+                }
+            },
+        )
+        try {
+            val fixture = seedTestWorkout(throwingDeps, loggedSets = listOf(TestSetInput(88.0, 5)))
+            val outcome = throwingDeps.finishWorkout(fixture.session.id)
+            assertTrue(outcome is FinishOutcome.Failed)
+            assertFalse(throwingDeps.restTimerStore.current().running)
+        } finally {
+            throwingDeps.close()
         }
     }
 

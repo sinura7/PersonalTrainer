@@ -57,6 +57,10 @@ class WorkoutCooldownFinishInstrumentedTest {
         compose.waitUntil(15_000) {
             runBlocking(Dispatchers.IO) { fixture.container.workoutRepository.getSession(fixture.sessionId)?.isFinished == true }
         }
+        compose.waitUntil(15_000) {
+            val snap = fixture.container.restTimerStore.current()
+            snap.running && RestTimerMarkers.isCooldown(snap)
+        }
         val snap = fixture.container.restTimerStore.current()
         assertTrue(snap.running)
         assertTrue(snap.sourceTag == RestTimerMarkers.COOLDOWN)

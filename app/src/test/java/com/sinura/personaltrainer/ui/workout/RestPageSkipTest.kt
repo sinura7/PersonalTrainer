@@ -111,10 +111,14 @@ class RestPageSkipTest {
     @Test
     fun aSkipDrawnJustBeforeAPlusFifteenStillEndsTheRest() {
         // To the owner a ±15 is the same rest, under a new id.
-        openThePageOnARunningRest()
+        val shown = openThePageOnARunningRest()
         val skip = drawnSkip()
 
         rest.adjust(15)
+        compose.waitUntil(5_000) {
+            deps.restTimerStore.current().running &&
+                deps.restTimerStore.isSameRest(shown.timerId, deps.restTimerStore.current().timerId)
+        }
         skip()
 
         assertFalse("the +15 of the rest shown ends", deps.restTimerStore.current().running)

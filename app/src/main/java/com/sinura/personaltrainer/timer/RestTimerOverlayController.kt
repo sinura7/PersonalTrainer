@@ -89,6 +89,7 @@ object RestTimerOverlayController {
     fun sync(
         context: Context,
         state: RestTimerSnapshot,
+        fromService: Boolean = false,
     ) {
         val wantsOverlay = state.running &&
             !RestTimerAppForeground.isInForeground &&
@@ -104,7 +105,7 @@ object RestTimerOverlayController {
             lastSnapshot = null
             mainHandler.post {
                 detachFromWindow(generation)
-                requestExteriorSync(context.applicationContext)
+                if (!fromService) requestExteriorSync(context.applicationContext)
             }
             return
         }
@@ -112,12 +113,12 @@ object RestTimerOverlayController {
             lastSnapshot = state
             mainHandler.post {
                 detachFromWindow(generation)
-                requestExteriorSync(context.applicationContext)
+                if (!fromService) requestExteriorSync(context.applicationContext)
             }
             return
         }
         lastSnapshot = state
-        mainHandler.post { attach(context.applicationContext, state, generation) }
+        mainHandler.post { attach(context.applicationContext, state, generation, fromService) }
     }
 
     fun release() {
@@ -160,7 +161,12 @@ object RestTimerOverlayController {
         }
     }
 
-    private fun attach(appContext: Context, state: RestTimerSnapshot, expectedGeneration: Int) {
+    private fun attach(
+        appContext: Context,
+        state: RestTimerSnapshot,
+        expectedGeneration: Int,
+        fromService: Boolean,
+    ) {
         if (expectedGeneration != syncGeneration) return
         if (RestOverlayDismissStore.isDismissedForRest(appContext, state.timerId)) {
             detachFromWindow(expectedGeneration)
@@ -203,7 +209,7 @@ object RestTimerOverlayController {
             runCatching {
                 if (view.isAttachedToWindow) wm.removeView(view)
             }
-            requestExteriorSync(appContext)
+            if (!fromService) requestExteriorSync(appContext)
         }
     }
 

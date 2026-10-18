@@ -60,6 +60,7 @@ object RestLockTags {
     const val MINUS = "rest-lock-minus"
     const val PLUS = "rest-lock-plus"
     const val BACK_TO_BAR = "rest-lock-back"
+    const val COOLDOWN_DONE = "rest-lock-cooldown-done"
     const val CLOSE = "rest-lock-close"
 }
 
@@ -315,7 +316,7 @@ internal fun RestLockScreen(
                     PrimaryGymButton(
                         text = CooldownCopy.DONE_BUTTON,
                         onClick = onClose,
-                        modifier = Modifier.testTag(RestLockTags.BACK_TO_BAR),
+                        modifier = Modifier.testTag(RestLockTags.COOLDOWN_DONE),
                     )
                 }
                 justFinished -> {

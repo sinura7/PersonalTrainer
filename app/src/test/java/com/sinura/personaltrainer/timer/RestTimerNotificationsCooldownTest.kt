@@ -5,8 +5,11 @@ import android.app.NotificationManager
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -18,6 +21,18 @@ import org.robolectric.shadows.ShadowSettings
 @Config(application = Application::class)
 class RestTimerNotificationsCooldownTest {
     private val context = ApplicationProvider.getApplicationContext<Application>()
+
+    @Before
+    fun resetOverlayState() {
+        RestTimerAppForeground.setForegroundForTest(false)
+    }
+
+    @After
+    fun tearDownOverlayState() {
+        ShadowSettings.reset()
+        RestTimerAppForeground.setForegroundForTest(false)
+        RestOverlayDismissStore.clear(context)
+    }
 
     @Test
     fun quietShadeUsesMinChannelWhenOverlayWouldShow() {
@@ -83,7 +98,7 @@ class RestTimerNotificationsCooldownTest {
     }
 
     @Test
-    fun cooldownRunningNotificationHasNoNudgeActions() {
+    fun cooldownRunningNotificationHasSkipWithoutNudgeActions() {
         RestTimerNotifications.ensureChannels(context)
         val notification = RestTimerNotifications.runningNotification(
             context = context,
@@ -99,6 +114,7 @@ class RestTimerNotificationsCooldownTest {
             nowElapsedRealtime = 0L,
         )
         val actions = notification.actions?.map { it.title }.orEmpty()
+        assertTrue(actions.contains("Skip"))
         assertFalse(actions.contains("+15s"))
         assertFalse(actions.contains("−15s"))
     }
