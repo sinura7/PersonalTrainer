@@ -374,6 +374,9 @@ class PlanRoutineActionsRenderTest {
         tap(compose.onNodeWithTag(PlanDayTags.block(occurrence.id)).performScrollTo())
         compose.awaitThat("routine editor loaded", editorVm.uiState::value) { !editorVm.uiState.value.isLoading }
         words(RoutineSaveCopy.SCOPE)
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithTag(RoutineEditorTags.SAVE).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag(RoutineEditorTags.SAVE).assertIsDisplayed()
         capture("routine-editor-scope")
         val beforeSwap = inventory()

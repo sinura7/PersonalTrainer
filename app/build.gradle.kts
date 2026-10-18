@@ -146,10 +146,9 @@ android {
                 it.jvmArgs(
                     "-XX:CompileCommand=exclude,androidx/room/driver/SupportSQLiteConnection.prepare",
                 )
-                // Landscape / large-font Compose render suites retain full window bitmaps;
-                // a fresh fork avoids heap creep without skipping any test class.
+                // Compose render evidence can retain large bitmaps; several capture helpers
+                // recycle them. Single-JVM runs stay under the hosted 20-minute unit-test step.
                 it.maxHeapSize = "2048m"
-                it.forkEvery = 25
             }
         }
     }

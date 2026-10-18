@@ -503,9 +503,13 @@ class ExerciseDetailThisWorkoutRenderTest {
             decor.draw(Canvas(out))
             out
         }
-        val out = File("build/screen-renders/w1d").apply { mkdirs() }
-        FileOutputStream(File(out, "$name.png")).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        assertTrue(bitmap.width > 0 && bitmap.height > 0)
+        try {
+            val out = File("build/screen-renders/w1d").apply { mkdirs() }
+            FileOutputStream(File(out, "$name.png")).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            assertTrue(bitmap.width > 0 && bitmap.height > 0)
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     private companion object {

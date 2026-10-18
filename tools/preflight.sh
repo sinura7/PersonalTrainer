@@ -188,7 +188,8 @@ for c in "check-internal-imports.py" \
          "test_kotlin_source.py" \
          "test_syntax_check.py" \
          "test_version_ratchet.py" \
-         "test_release_lane.py"; do
+         "test_release_lane.py" \
+         "test_ux_backlog_json.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"
@@ -218,6 +219,9 @@ step "test_domain_lane.sh"
 sh tools/test_domain_lane.sh || fail "test_domain_lane.sh"
 step "test_ci_instrumented.sh"
 sh tools/test_ci_instrumented.sh || fail "test_ci_instrumented.sh"
+
+step "check-ux-backlog-json.py"
+python3 tools/check-ux-backlog-json.py || fail "check-ux-backlog-json.py"
 
 # One run over every source set, not one per set. A root scanned alone is a false clean:
 # nothing outside it is in the declaration index, so every call into another source set is

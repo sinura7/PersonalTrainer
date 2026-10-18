@@ -5766,25 +5766,54 @@
         "adversarial": "APPROVE (carried from P8 branch review).",
         "cleanContext": "Squash merge to trunk as dae80bd8532c63a10ef351875b4e37b781063255. Remote branch cursor/p8-live-hero-rpe-hint-ae41 deleted."
       },
-<<<<<<< Updated upstream
-=======
       "5f01e6b5": {
         "when": "2026-10-17",
         "packet": "UX blueprint P9 merge head",
-        "gate": "Carried from cd51491f two-green safe gates (p9-gate-safe1.log, p9-gate-safe2.log).",
-        "independent": "APPROVE (carried from P9 branch review).",
-        "adversarial": "APPROVE (carried from P9 branch review).",
-        "cleanContext": "Squash merge to trunk as 5f01e6b53f0972cf57c284f66480dfac6057973f. Remote branch cursor/p9-tempo-cloud-mascot-ae41 deleted."
+        "gate": "INVALID merge evidence: hosted CI failed on 5f01e6b5; prior ledger cited agent-only logs not in repo. Squash-merge to trunk happened before P9 PR head CI finished. Superseded by trunk-green re-gate on PR #542.",
+        "independent": "WITHDRAWN pending trunk-green re-gate.",
+        "adversarial": "WITHDRAWN pending trunk-green re-gate.",
+        "cleanContext": "Squash merge to trunk as 5f01e6b53f0972cf57c284f66480dfac6057973f before cd51491f head CI completed. UX-Backlog conflict markers at merge fixed in trunk-green PR."
       },
       "cd51491f": {
         "when": "2026-10-17",
         "packet": "UX blueprint P9 Tempo cloud, mascot pulse, :tempo module (R6)",
-        "gate": "preflight.sh OK. Two consecutive full --rerun-tasks safe JVM gates on cd51491f (p9-gate-safe1.log BUILD SUCCESSFUL 18m 26s; p9-gate-safe2.log BUILD SUCCESSFUL 17m 55s): testDebugUnitTest, assembleDebug, lintDebug, assembleDebugAndroidTest, 135 tasks. GRADLE_OPTS -Xmx3072m, --no-daemon, org.gradle.parallel=false, workers.max=2, kotlin in-process. Unit test maxHeapSize 2048m forkEvery 25.",
-        "independent": "APPROVE. Zero Critical/High. Medium: dead TempoCoachShortcut; stale inline test names. Low: TEMPO_COACH_SHORTCUT unused.",
-        "adversarial": "APPROVE. Zero Critical/High. Reachability not weakened: assertFullyVisibleInWindow for dock Why/Apply; overlap safeBottom only when tempo covers content. Apply load-only unchanged. :tempo is source-set boundary via TempoEngine.recommend.",
-        "cleanContext": "Branch cursor/p9-tempo-cloud-mascot-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/540. Look B tempo_coach_avatar unchanged (#460)."
+        "gate": "WITHDRAWN on merge: cited p9-gate-safe*.log files were never in repo; hosted CI on #540 failed. Trunk squash-merge landed before this PR head CI finished. Post-merge trunk re-gate evidence lives on trunk-green #542, not on 5f01e6b5 trunk.",
+        "independent": "WITHDRAWN; P9 product code on trunk; gate honesty restored via #542.",
+        "adversarial": "WITHDRAWN; P9 product code on trunk; gate honesty restored via #542.",
+        "cleanContext": "Branch cursor/p9-tempo-cloud-mascot-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/540."
       },
->>>>>>> Stashed changes
+      "3123ff42": {
+        "when": "2026-10-18",
+        "packet": "Trunk green: valid UX-Backlog, remove forkEvery, unit-test flake fixes (PR #542)",
+        "gate": "Superseded by c55d93f1: first local green only; second run hit suite flakes fixed in 5381001e and c55d93f1.",
+        "independent": "Superseded by c55d93f1 entry.",
+        "adversarial": "Superseded by c55d93f1 entry.",
+        "cleanContext": "Branch cursor/trunk-green-ae41. Supersedes invalid trunk 1efe09de UX-Backlog markers and P9 forkEvery CI timeout."
+      },
+      "c55d93f1": {
+        "when": "2026-10-18",
+        "packet": "Trunk green: interim re-gate (superseded by 96ec4242 review pass)",
+        "gate": "Agent-local only (trunk-green-jdk17-pair-*.log): testDebugUnitTest + assembleDebug, not full four-task gate. Hosted workflow 39109237654: gate job passed; run cancelled at workflow level (non-blocking instrumented smoke hit 45m). Do not read as run success.",
+        "independent": "Superseded by 96ec4242 entry.",
+        "adversarial": "Superseded by 96ec4242 entry.",
+        "cleanContext": "Interim flake fixes before independent review REQUEST CHANGES. forkEvery=25 removal; hosted 20m step cap; forked suite ~22m was over cap, not under it."
+      },
+      "96ec4242": {
+        "when": "2026-10-18",
+        "packet": "Trunk green merge head after review fixes (PR #542)",
+        "gate": "preflight.sh static half OK (check-ux-backlog-json + test_ux_backlog_json.py). Agent-local JDK 17 full gates (--no-daemon, parallel=false, workers.max=2, GRADLE_OPTS -Xmx2560m): trunk542-full-gate-6.log and trunk542-full-gate-7.log — consecutive pair CONSECUTIVE_PAIR 6+7; each testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest --rerun-tasks, BUILD SUCCESSFUL ~13m44s and ~13m45s, 135 tasks. java -version OpenJDK 17.0.19 in logs. Intervening runs 2–5 hit single-JVM flakes (RestTimerViewModelTest, OwnedPickerRenderTest, HistoryPeriodViewModelTest); not counted as green pair. Hosted workflow 39124530611 on head 96ec4242: Tests, lint, debug build job 117666766446 passed; run may cancel at 45m (non-blocking instrumented smoke) — never call the workflow run success. Prior runs 39109237654, 39111444340, 39111612387: same pattern (gate job passed, run cancelled by smoke).",
+        "independent": "PENDING formal review on PR #542.",
+        "adversarial": "PENDING formal review on PR #542.",
+        "cleanContext": "Trunk failures on 1efe09de: WorkoutPrivateRecoveryTest swapSeed (entered/afterUntouchedSeed path); RemovedLiftObserverOrderingTest on 5f01e6b5. Only #540 hit 20m unit-test step cap (forkEvery). swapSeed restores afterUntouchedSeed latch. RemovedLift asserts removal cannot finish without Main gate hold. Follow-up debt (not this PR): BackupCoordinator.kt:887 runBackupAction drops unlockPending while isBusy."
+      },
+      "note542-smoke-instrumented": {
+        "when": "2026-10-18",
+        "packet": "Hosted CI instrumented smoke (non-blocking) — observed failures, no fix in #542",
+        "gate": "Non-blocking; not merge-blocking. Real failures seen in smoke: ConnectedWorkoutJourneyInstrumentedTest homeStart_manualResult_*; WorkoutEntryJourneyInstrumentedTest adaptiveTempoKeepsWhy*; WorkoutEntryLayoutInstrumentedTest entryAndCommitRemainReadableAndReachable (5x).",
+        "independent": "N/A — tracking note only.",
+        "adversarial": "N/A — tracking note only.",
+        "cleanContext": "Documented on trunk-green #542; fix deferred to a later packet."
+      },
       "9cf9e2c4": {
         "when": "2026-10-17",
         "packet": "UX blueprint P8 live hero steppers and RPE Last hint (R5 / L1)",

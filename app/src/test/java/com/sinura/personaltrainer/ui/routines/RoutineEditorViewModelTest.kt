@@ -639,6 +639,7 @@ class RoutineEditorViewModelTest {
         vm.setPickerVisible(true)
         vm.togglePicked(squat)
         vm.togglePicked(row)
+        vm.awaitState { !it.addingLifts && it.routine?.exercises?.size == 2 }
         awaitRoutine { it.exercises.size == 2 }
         vm.setPickerVisible(false)
 
@@ -883,6 +884,7 @@ class RoutineEditorViewModelTest {
             vm.togglePicked(squat)
             vm.togglePicked(bench)
             gate.complete(Unit)
+            vm.awaitState { !it.addingLifts && it.routine?.exercises?.map { row -> row.exercise.id } == listOf(bench.id) }
 
             // Three taps, one lift: the squat went on and came off again while its own
             // write was still queued, and the bench that followed it landed after both.

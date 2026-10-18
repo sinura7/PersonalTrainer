@@ -257,10 +257,16 @@ class WorkoutPrivateRecoveryTest {
             vm.numberEntry.put(WorkoutNumberDraft(fixture.exercise.id, WorkoutNumberField.WEIGHT, "82.", WeightUnit.KG, 3, 3, false))
             val replacement = insertTestExercise(deps, "replacement-seed", "Replacement seed")
             vm.requestSwap(); vm.addExercise(replacement)
-            assertTrue(entered.await(30, TimeUnit.SECONDS))
+            assertTrue(
+                "beforeUntouchedSeed never ran (prefill took keepDraft/dirty/save path or was superseded); see ActiveWorkoutViewModel.prefill pausingForTypedWeight",
+                entered.await(30, TimeUnit.SECONDS),
+            )
             vm.setWeight(42.5)
             release.countDown()
-            assertTrue(decided.await(30, TimeUnit.SECONDS))
+            assertTrue(
+                "afterUntouchedSeed never ran (untouched-seed write did not finish on the paused path)",
+                decided.await(30, TimeUnit.SECONDS),
+            )
             vm.setReps(12); vm.setRpe(8)
             vm.uiState.awaitFirst {
                 it.selectedExerciseId == replacement.id && !it.mutating && it.draft.weightKg == 42.5 && it.draft.reps == 12 && it.draft.rpe == 8

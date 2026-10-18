@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -20,6 +21,11 @@ import android.os.PowerManager
 @RunWith(RobolectricTestRunner::class)
 class RestTimerNotificationsTest {
     private val context: Application = ApplicationProvider.getApplicationContext()
+
+    @After
+    fun resetForeground() {
+        RestTimerAppForeground.setForegroundForTest(false)
+    }
 
     @Test
     fun runningChannelIsHighPublicAndReplacesLegacyIds() {
