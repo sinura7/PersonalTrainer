@@ -5,6 +5,10 @@
     <string name="rest_notification_title_cooldown">Cool-down</string>
     <string name="rest_overlay_kicker_cooldown">COOL-DOWN</string>
     <string name="lockscreen_cooldown_widget_kicker">COOL-DOWN</string>
+    <string name="rest_notification_cooldown_done_title">Cool-down done</string>
+    <string name="rest_notification_cooldown_done_body">Take a breath before the next session.</string>
+    <string name="rest_channel_quiet_name">Rest timer (quiet shade)</string>
+    <string name="rest_channel_quiet_description">Silent countdown while Temper is on screen or the rest dot is showing, including after a workout.</string>
     <string name="lockscreen_rest_widget_label">Temper · Rest (wide)</string>
     <string name="lockscreen_rest_widget_label_small">Temper · Rest (compact)</string>
     <string name="lockscreen_rest_widget_description">Live rest countdown on the lock screen while a rest runs.</string>

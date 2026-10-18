@@ -42,6 +42,9 @@ object RestTimerNotifications {
      */
     const val CHANNEL_DONE = "rest_timer_done_v3"
 
+    /** Cool-down done: no DND bypass, no full-screen intent. */
+    const val CHANNEL_COOLDOWN_DONE = "rest_timer_cooldown_done_v1"
+
     private const val LEGACY_CHANNEL_RUNNING = "rest_timer_running"
     private const val LEGACY_CHANNEL_RUNNING_V2 = "rest_timer_running_v2"
     private const val LEGACY_CHANNEL_RUNNING_IN_APP = "rest_timer_running_in_app"
@@ -91,16 +94,29 @@ object RestTimerNotifications {
             setShowBadge(false)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
+        val quietName = context.getString(R.string.rest_channel_quiet_name)
+        val quietDescription = context.getString(R.string.rest_channel_quiet_description)
         val inApp = NotificationChannel(
             CHANNEL_RUNNING_IN_APP,
-            "Rest timer (in app)",
+            quietName,
             NotificationManager.IMPORTANCE_MIN,
         ).apply {
-            description = "Silent while Temper is on screen"
+            description = quietDescription
             setSound(null, null)
             enableVibration(false)
             setShowBadge(false)
             lockscreenVisibility = Notification.VISIBILITY_SECRET
+        }
+        val cooldownDone = NotificationChannel(
+            CHANNEL_COOLDOWN_DONE,
+            context.getString(R.string.rest_notification_cooldown_done_title),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = context.getString(R.string.rest_notification_cooldown_done_body)
+            setSound(null, null)
+            enableVibration(false)
+            setBypassDnd(false)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         val done = NotificationChannel(
             CHANNEL_DONE,
@@ -115,28 +131,46 @@ object RestTimerNotifications {
         }
         manager.createNotificationChannel(running)
         manager.createNotificationChannel(inApp)
+        manager.createNotificationChannel(cooldownDone)
         manager.createNotificationChannel(done)
     }
 
-    fun showDone(context: Context, sessionId: String?) {
+    fun showDone(context: Context, sessionId: String?, isCooldown: Boolean = false) {
         val appContext = context.applicationContext
         ensureChannels(appContext)
         val manager = appContext.getSystemService(NotificationManager::class.java) ?: return
-        val builder = NotificationCompat.Builder(appContext, CHANNEL_DONE)
-            .setSmallIcon(R.drawable.ic_stat_timer)
-            .setContentTitle("Rest done")
-            .setContentText("Back to the bar.")
-            .setAutoCancel(true)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(openAppIntent(appContext, sessionId))
-        // On API 34+ the USE_FULL_SCREEN_INTENT special access is denied by
-        // default; attaching the intent anyway made the system silently
-        // degrade the lock-screen glance. Attach only when the gate is open —
-        // the heads-up path above is the honest fallback.
-        if (canUseFullScreenIntent(appContext)) {
-            builder.setFullScreenIntent(lockScreenIntent(appContext, sessionId, finished = true), true)
+        val builder = if (isCooldown) {
+            NotificationCompat.Builder(appContext, CHANNEL_COOLDOWN_DONE)
+                .setSmallIcon(R.drawable.ic_stat_timer)
+                .setContentTitle(appContext.getString(R.string.rest_notification_cooldown_done_title))
+                .setContentText(appContext.getString(R.string.rest_notification_cooldown_done_body))
+                .setAutoCancel(true)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(openAppIntent(appContext, sessionId))
+        } else {
+            NotificationCompat.Builder(appContext, CHANNEL_DONE)
+                .setSmallIcon(R.drawable.ic_stat_timer)
+                .setContentTitle("Rest done")
+                .setContentText("Back to the bar.")
+                .setAutoCancel(true)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(openAppIntent(appContext, sessionId))
+                .also { restBuilder ->
+                    // On API 34+ the USE_FULL_SCREEN_INTENT special access is denied by
+                    // default; attaching the intent anyway made the system silently
+                    // degrade the lock-screen glance. Attach only when the gate is open —
+                    // the heads-up path above is the honest fallback.
+                    if (canUseFullScreenIntent(appContext)) {
+                        restBuilder.setFullScreenIntent(
+                            lockScreenIntent(appContext, sessionId, finished = true),
+                            true,
+                        )
+                    }
+                }
         }
         val notification = builder.build()
         try {
@@ -189,9 +223,12 @@ object RestTimerNotifications {
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setContentIntent(lockScreenIntent(appContext, state.sessionId, finished = false))
-            .addAction(0, "−15s", serviceIntent(appContext, RestTimerService.ACTION_MINUS_15, 11))
-            .addAction(0, "+15s", serviceIntent(appContext, RestTimerService.ACTION_ADD_15, 12))
-            .addAction(0, "Skip", serviceIntent(appContext, RestTimerService.ACTION_SKIP, 13, state.timerId))
+        if (!RestTimerMarkers.isCooldown(state)) {
+            builder
+                .addAction(0, "−15s", serviceIntent(appContext, RestTimerService.ACTION_MINUS_15, 11))
+                .addAction(0, "+15s", serviceIntent(appContext, RestTimerService.ACTION_ADD_15, 12))
+                .addAction(0, "Skip", serviceIntent(appContext, RestTimerService.ACTION_SKIP, 13, state.timerId))
+        }
         when (presentation) {
             RestTimerRunningPresentation.FOREGROUND_IN_APP -> {
                 builder

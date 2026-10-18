@@ -57,6 +57,10 @@ class RestTimerNotificationsTest {
             manager.getNotificationChannel(RestTimerNotifications.CHANNEL_RUNNING_IN_APP),
         )
         assertEquals(NotificationManager.IMPORTANCE_MIN, inApp.importance)
+        assertEquals(
+            context.getString(com.sinura.personaltrainer.R.string.rest_channel_quiet_name),
+            inApp.name,
+        )
     }
 
     @Test

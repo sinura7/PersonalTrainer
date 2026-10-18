@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -256,11 +257,17 @@ internal fun RestFloorBody(
                 when {
                     // The dock card's three, in its order and words. Skip names the rest drawn
                     // here, not whatever runs when the tap is read (W2b-3).
-                    rest.running -> RestNudgeButtons(
-                        onNudge = onAdjust, onSkip = { onSkip(rest.timerId) },
-                        minusTag = RestFloorTags.MINUS, plusTag = RestFloorTags.PLUS, skipTag = RestFloorTags.SKIP,
-                        perRow = if (largeText) 2 else 3,
-                    )
+                    rest.running -> key(rest.timerId) {
+                        val shownTimerId = rest.timerId
+                        RestNudgeButtons(
+                            onNudge = onAdjust,
+                            onSkip = { onSkip(shownTimerId) },
+                            minusTag = RestFloorTags.MINUS,
+                            plusTag = RestFloorTags.PLUS,
+                            skipTag = RestFloorTags.SKIP,
+                            perRow = if (largeText) 2 else 3,
+                        )
+                    }
                     completed -> PrimaryGymButton(
                         text = "Return to workout", onClick = onBackToBar,
                         modifier = Modifier.testTag(RestFloorTags.BACK_TO_BAR),

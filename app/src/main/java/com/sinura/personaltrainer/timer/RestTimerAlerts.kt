@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 
 object RestTimerAlerts {
     private val COMPLETE_PATTERN = longArrayOf(0, 140, 90, 140, 90, 320)
+    private const val COOLDOWN_VIBRATION_MS = 120L
 
     internal val CUE_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_ALARM)
@@ -33,6 +34,20 @@ object RestTimerAlerts {
         }
         if (preferences.vibrationEnabled) {
             vibrate(context, VibrationEffect.createWaveform(COMPLETE_PATTERN, -1))
+        }
+    }
+
+    /** One short cue at cool-down 0:00; sound and vibration still follow the live switches. */
+    fun announceCooldown(
+        context: Context,
+        preferences: RestTimerPreferences,
+        createPlayer: (Context, Int, AudioAttributes) -> MediaPlayer? = ::createWithAttributes,
+    ) {
+        if (preferences.soundEnabled) {
+            playSound(context, createPlayer)
+        }
+        if (preferences.vibrationEnabled) {
+            vibrate(context, VibrationEffect.createOneShot(COOLDOWN_VIBRATION_MS, VibrationEffect.DEFAULT_AMPLITUDE))
         }
     }
 

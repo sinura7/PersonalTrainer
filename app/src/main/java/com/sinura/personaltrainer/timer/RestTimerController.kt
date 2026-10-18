@@ -45,8 +45,10 @@ class RestTimerController(
     private val _lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.FAILED)
     private val _exactAlarmAttempt = MutableStateFlow(alarms.currentAttempt())
     private val _lastCompletedTimerId = MutableStateFlow<String?>(null)
+    private val _lastCompletedWasCooldown = MutableStateFlow(false)
     private val _persistenceHealthy = MutableStateFlow(true)
     override val lastCompletedTimerId: StateFlow<String?> = _lastCompletedTimerId.asStateFlow()
+    override val lastCompletedWasCooldown: StateFlow<Boolean> = _lastCompletedWasCooldown.asStateFlow()
     override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule.asStateFlow()
     override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt.asStateFlow()
     override val persistenceHealthy: StateFlow<Boolean> = _persistenceHealthy.asStateFlow()
@@ -134,16 +136,22 @@ class RestTimerController(
 
     override fun start(totalSeconds: Int, sessionId: String?, sourceTag: String) {
         _lastCompletedTimerId.value = null
+        _lastCompletedWasCooldown.value = false
         store.start(totalSeconds, sessionId, SystemClock.elapsedRealtime(), sourceTag = sourceTag)
         persistThenArm(syncService = true)
     }
 
     override fun startCooldown() {
-        start(RestTimerMarkers.COOLDOWN_SECONDS, sessionId = null, sourceTag = RestTimerMarkers.COOLDOWN)
+        _lastCompletedTimerId.value = null
+        _lastCompletedWasCooldown.value = false
+        if (!store.startCooldownIfIdle(SystemClock.elapsedRealtime())) return
+        persistThenArm(syncService = true)
     }
 
     override fun stopIfCooldown(fromService: Boolean) {
-        if (RestTimerMarkers.isCooldown(store.current())) stop(fromService)
+        val current = store.current()
+        if (!RestTimerMarkers.isCooldown(current)) return
+        stopIfCurrent(current.timerId, fromService)
     }
 
     override fun adjust(deltaSeconds: Int) {
@@ -218,14 +226,17 @@ class RestTimerController(
             // After the check, a +15 replaced this timer, or a Skip emptied the store: nothing
             // finished. Take the completion back, unless something newer has been published.
             _lastCompletedTimerId.compareAndSet(timerId, null)
+            _lastCompletedWasCooldown.value = false
             return false
         }
+        _lastCompletedWasCooldown.value = RestTimerMarkers.isCooldown(cleared)
         afterHalt(wasRunning = cleared.running, fromService = fromService, timerId = cleared.timerId)
         return true
     }
 
     override fun stop(fromService: Boolean) {
         _lastCompletedTimerId.value = null
+        _lastCompletedWasCooldown.value = false
         halt(fromService)
     }
 

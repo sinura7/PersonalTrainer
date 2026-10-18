@@ -41,6 +41,10 @@ interface RestTimerGateway {
     /** Post-finish cool-down: no session link, marker [com.sinura.personaltrainer.domain.RestTimerMarkers.COOLDOWN]. */
     fun startCooldown() {}
 
+    /** True when [lastCompletedTimerId] names a cool-down that just finished. */
+    val lastCompletedWasCooldown: StateFlow<Boolean>
+        get() = ALWAYS_NOT_COOLDOWN
+
     /** Ends only a running cool-down; leaves a normal rest alone. */
     fun stopIfCooldown(fromService: Boolean = false) {}
 
@@ -99,5 +103,6 @@ interface RestTimerGateway {
 
     companion object {
         private val ALWAYS_HEALTHY: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
+        private val ALWAYS_NOT_COOLDOWN: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
     }
 }

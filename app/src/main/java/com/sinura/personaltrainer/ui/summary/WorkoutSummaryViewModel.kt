@@ -187,13 +187,6 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
      * only, never isLoading or missing: a Drive failure must not render "Nothing to
      * summarise" over a workout that happened.
      */
-    fun skipCooldown() {
-        val timerId = container.restTimerController.snapshot.value.timerId
-        if (timerId.isNotBlank()) {
-            container.restTimerController.skipIfShown(timerId)
-        }
-    }
-
     fun maybeAutoBackup(activity: Activity) {
         val backup = container.afterWorkoutBackup
         backup.start(sessionId, activity)
@@ -202,6 +195,13 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
             backup.status(sessionId).collect { line ->
                 _uiState.update { it.copy(autoBackup = line) }
             }
+        }
+    }
+
+    /** Ends the cool-down strip the summary drew as [timerId], not a newer rest. */
+    fun skipCooldown(timerId: String) {
+        if (timerId.isNotBlank()) {
+            container.restTimerController.skipIfShown(timerId)
         }
     }
 }

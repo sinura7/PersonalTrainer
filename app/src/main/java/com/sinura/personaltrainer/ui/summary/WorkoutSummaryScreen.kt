@@ -113,7 +113,7 @@ fun WorkoutSummaryScreen(
         onRetry = viewModel::retry,
         onOpenSession = onOpenSession,
         onDone = onDone,
-        onSkipCooldown = viewModel::skipCooldown,
+        onSkipCooldown = { timerId -> viewModel.skipCooldown(timerId) },
         restSnapshot = viewModel.restTimerSnapshot,
         restRemaining = viewModel.restRemainingSeconds,
     )
@@ -126,7 +126,7 @@ internal fun WorkoutSummaryContent(
     onRetry: () -> Unit,
     onOpenSession: (String) -> Unit,
     onDone: () -> Unit,
-    onSkipCooldown: () -> Unit = {},
+    onSkipCooldown: (String) -> Unit = {},
     restSnapshot: StateFlow<RestTimerSnapshot>? = null,
     restRemaining: Flow<Int>? = null,
 ) {
@@ -255,9 +255,10 @@ internal fun WorkoutSummaryContent(
 private fun SummaryCooldownStrip(
     restSnapshot: StateFlow<RestTimerSnapshot>,
     restRemaining: Flow<Int>,
-    onSkip: () -> Unit,
+    onSkip: (String) -> Unit,
 ) {
     val snapshot by restSnapshot.collectAsStateWithLifecycle()
+    val shownTimerId = snapshot.timerId
     if (!RestTimerMarkers.isCooldown(snapshot) || !snapshot.running) return
     val remaining by restRemaining.collectAsStateWithLifecycle(
         initialValue = snapshot.remainingSeconds(android.os.SystemClock.elapsedRealtime()),
@@ -287,7 +288,7 @@ private fun SummaryCooldownStrip(
             )
         }
         TextButton(
-            onClick = onSkip,
+            onClick = { onSkip(shownTimerId) },
             modifier = Modifier.testTag(SummaryTags.COOLDOWN_SKIP),
         ) {
             Text(CooldownCopy.SKIP, style = InstrumentType.bodyStrong, color = TextSecondary)

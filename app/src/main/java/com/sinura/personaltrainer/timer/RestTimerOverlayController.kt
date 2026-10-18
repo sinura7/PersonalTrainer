@@ -102,12 +102,18 @@ object RestTimerOverlayController {
         if (!canDrawOverlays(context)) {
             lastFailureReason = "Display over other apps is off for Temper"
             lastSnapshot = null
-            mainHandler.post { detachFromWindow(generation) }
+            mainHandler.post {
+                detachFromWindow(generation)
+                requestExteriorSync(context.applicationContext)
+            }
             return
         }
         if (RestOverlayDismissStore.isDismissedForRest(context, state.timerId)) {
             lastSnapshot = state
-            mainHandler.post { detachFromWindow(generation) }
+            mainHandler.post {
+                detachFromWindow(generation)
+                requestExteriorSync(context.applicationContext)
+            }
             return
         }
         lastSnapshot = state
@@ -197,6 +203,7 @@ object RestTimerOverlayController {
             runCatching {
                 if (view.isAttachedToWindow) wm.removeView(view)
             }
+            requestExteriorSync(appContext)
         }
     }
 
@@ -347,6 +354,21 @@ object RestTimerOverlayController {
         RestOverlayDismissStore.dismissForRest(appContext, timerId)
         ++syncGeneration
         detachFromWindow(syncGeneration)
+        requestExteriorSync(appContext)
+    }
+
+    private fun requestExteriorSync(appContext: Context) {
+        val intent = Intent(appContext, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_EXTERIOR_SYNC)
+        try {
+            appContext.startForegroundService(intent)
+        } catch (_: Exception) {
+            try {
+                appContext.startService(intent)
+            } catch (error: Exception) {
+                AppLog.w(TAG, "Could not sync rest exterior after overlay change", error)
+            }
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")

@@ -11,4 +11,8 @@ object RestTimerMarkers {
 object CooldownCopy {
     const val KICKER = "Cool-down"
     const val SKIP = "Skip"
+    const val LOCK_KICKER = "COOL-DOWN"
+    const val LOCK_TITLE = "Cool-down"
+    const val DONE_KICKER = "Cool-down complete"
+    const val DONE_BUTTON = "Done"
 }

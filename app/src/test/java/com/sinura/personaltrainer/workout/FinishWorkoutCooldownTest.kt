@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.domain.RestTimerMarkers
+import com.sinura.personaltrainer.domain.WorkoutSetSave
+import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.runBlocking
@@ -54,8 +56,51 @@ class FinishWorkoutCooldownTest {
         assertEquals(FinishOutcome.NothingLogged, deps.finishWorkout(empty.session.id))
         assertFalse(deps.restTimerStore.current().running)
 
-        val logged = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(50.0, 5)))
         assertEquals(FinishOutcome.SessionMissing, deps.finishWorkout("missing"))
+        assertFalse(deps.restTimerStore.current().running)
+    }
+
+    @Test
+    fun notesPendingDoesNotStartCooldown() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(70.0, 5)))
+        deps.workoutDraftCache.markNotesPending(
+            sessionId = fixture.session.id,
+            owner = "notes-test",
+            pending = true,
+            busy = true,
+            notes = "draft",
+        )
+        assertEquals(FinishOutcome.NotesPending, deps.finishWorkout(fixture.session.id))
+        assertFalse(deps.restTimerStore.current().running)
+    }
+
+    @Test
+    fun inProgressFinishDoesNotStartCooldown() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(75.0, 5)))
+        assertTrue(deps.workoutDraftCache.beginFinish(fixture.session.id))
+        try {
+            assertEquals(FinishOutcome.InProgress, deps.finishWorkout(fixture.session.id))
+            assertFalse(deps.restTimerStore.current().running)
+        } finally {
+            deps.workoutDraftCache.endFinish(fixture.session.id)
+        }
+    }
+
+    @Test
+    fun pendingSetFailedDoesNotStartCooldown() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(85.0, 5)))
+        val exerciseId = fixture.session.exercises.first().exercise.id
+        deps.workoutDraftCache.putPendingSave(
+            WorkoutSetSave(
+                sessionId = fixture.session.id,
+                exerciseId = exerciseId,
+                setId = "pending",
+                completedAt = 1_700_000_000_000L,
+                values = WorkoutSetValues(85.0, 5, 8, false, durationSeconds = null),
+            ),
+        )
+        val outcome = deps.finishWorkout(fixture.session.id)
+        assertTrue(outcome is FinishOutcome.Failed)
         assertFalse(deps.restTimerStore.current().running)
     }
 

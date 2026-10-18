@@ -19,10 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.PhoneCapability
-import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.PermissionsCopy
 import com.sinura.personaltrainer.domain.RestExteriorPermissionCopy
 import com.sinura.personaltrainer.domain.RestExteriorPermissions
@@ -39,14 +36,7 @@ internal val LocalRestExteriorAsk = compositionLocalOf {
     RestExteriorAsk(asked = true, markAsked = {})
 }
 
-@Composable
-private fun rememberRestCooldownActive(): Boolean {
-    val context = LocalContext.current
-    val app = context.applicationContext
-    if (app !is PersonalTrainerApp) return false
-    val restSnapshot by app.container.restTimerController.snapshot.collectAsStateWithLifecycle()
-    return RestTimerMarkers.isCooldown(restSnapshot)
-}
+internal val LocalRestCooldownActive = compositionLocalOf { false }
 
 /**
  * Rest-exterior permissions (shade, overlay, exact alarm) asked in context on the workout
@@ -55,9 +45,11 @@ private fun rememberRestCooldownActive(): Boolean {
  * Later / Not now still allows the in-app rest clock; only off-app surfaces need the grant.
  */
 @Composable
-internal fun RestExteriorPermissionGate(active: Boolean) {
+internal fun RestExteriorPermissionGate(
+    active: Boolean,
+    cooldownActive: Boolean = LocalRestCooldownActive.current,
+) {
     val context = LocalContext.current
-    val cooldownActive = rememberRestCooldownActive()
     val ask = LocalRestExteriorAsk.current
     val probe = remember { AndroidPhoneCapabilities(context) }
     val lifecycleOwner = LocalLifecycleOwner.current

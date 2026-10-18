@@ -33,9 +33,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
+import com.sinura.personaltrainer.domain.CooldownCopy
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestNudgeButtons
 import com.sinura.personaltrainer.ui.components.RestSweepRing
@@ -186,6 +188,13 @@ internal fun RestLockScreen(
     val shownTimerId = snapshot.timerId
     val remaining by controller.remainingSeconds.collectAsStateWithLifecycle(0)
     val completedTimerId by controller.lastCompletedTimerId.collectAsStateWithLifecycle()
+    val completedWasCooldown by controller.lastCompletedWasCooldown.collectAsStateWithLifecycle()
+    val cooldownUi = snapshot.running && RestTimerMarkers.isCooldown(snapshot) ||
+        (completedWasCooldown && RestFinishFlash.lockShowsFinished(
+            running = snapshot.running,
+            finishedLaunch = finishedLaunch,
+            completedTimerId = completedTimerId,
+        ))
     val justFinished = RestFinishFlash.lockShowsFinished(
         running = snapshot.running,
         finishedLaunch = finishedLaunch,
@@ -220,7 +229,9 @@ internal fun RestLockScreen(
     }
     val clock = RestTimer.formatClock(displaySeconds)
     val kicker = when {
+        justFinished && cooldownUi -> CooldownCopy.DONE_KICKER
         justFinished -> "Back to the bar"
+        snapshot.running && RestTimerMarkers.isCooldown(snapshot) -> CooldownCopy.LOCK_KICKER
         snapshot.running -> "REST"
         else -> RestIdleCopy.NOT_RUNNING
     }
@@ -277,12 +288,12 @@ internal fun RestLockScreen(
                 )
             }
             Text(
-                "Rest",
+                if (cooldownUi) CooldownCopy.LOCK_TITLE else "Rest",
                 style = InstrumentType.title,
                 color = TextSecondary,
             )
             when {
-                snapshot.running -> {
+                snapshot.running && !RestTimerMarkers.isCooldown(snapshot) -> {
                     // The dock card's three, in its order and words. Skip sat between the two
                     // here, so a thumb reaching for +15 on the lock screen could end rest.
                     RestNudgeButtons(
@@ -291,6 +302,20 @@ internal fun RestLockScreen(
                         minusTag = RestLockTags.MINUS,
                         plusTag = RestLockTags.PLUS,
                         skipTag = RestLockTags.SKIP,
+                    )
+                }
+                snapshot.running && RestTimerMarkers.isCooldown(snapshot) -> {
+                    PrimaryGymButton(
+                        text = CooldownCopy.SKIP,
+                        onClick = { onSkip(shownTimerId) },
+                        modifier = Modifier.testTag(RestLockTags.SKIP),
+                    )
+                }
+                justFinished && cooldownUi -> {
+                    PrimaryGymButton(
+                        text = CooldownCopy.DONE_BUTTON,
+                        onClick = onClose,
+                        modifier = Modifier.testTag(RestLockTags.BACK_TO_BAR),
                     )
                 }
                 justFinished -> {

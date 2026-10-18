@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.util.IdFactory
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +40,30 @@ class RestTimerStore(
     private val held = LinkedHashMap<String, String>()
 
     fun current(): RestTimerSnapshot = snapshotState.value
+
+    /**
+     * Starts post-finish cool-down only when nothing is running. A rest that started after
+     * the finish write (or an idempotent finish over an existing cool-down) is left alone.
+     */
+    fun startCooldownIfIdle(nowElapsedRealtime: Long): Boolean {
+        while (true) {
+            val current = snapshotState.value
+            if (current.running) return false
+            val safe = RestTimerMarkers.COOLDOWN_SECONDS.coerceAtLeast(1)
+            val next = RestTimerSnapshot(
+                running = true,
+                endsAtElapsedRealtime = nowElapsedRealtime + safe * 1000L,
+                totalSeconds = safe,
+                sessionId = null,
+                timerId = ids.newId(),
+                sourceTag = RestTimerMarkers.COOLDOWN,
+            )
+            if (snapshotState.compareAndSet(current, next)) {
+                remember(next.timerId)
+                return true
+            }
+        }
+    }
 
     fun start(
         totalSeconds: Int,

@@ -495,7 +495,7 @@ class WorkoutRepository(
         session: WorkoutSessionEntity,
         exercises: List<SessionExerciseEntity>,
     ): SessionInsert? {
-        return database.withTransaction {
+        val insert = database.withTransaction {
             workoutDao.getInProgressSession()?.id?.let {
                 return@withTransaction SessionInsert(it, inserted = false)
             }
@@ -506,6 +506,8 @@ class WorkoutRepository(
             }
             SessionInsert(session.id, inserted = true)
         }
+        if (insert?.inserted == true) onWorkoutSessionStarted()
+        return insert
     }
 
     private suspend fun startInserted(
@@ -514,9 +516,7 @@ class WorkoutRepository(
     ): StartSessionOutcome {
         val insert = insertSessionIfIdle(session, exercises)
             ?: return StartSessionOutcome.Unavailable("One live activity at a time.")
-        val outcome = materializeStart(insert)
-        if (insert.inserted) onWorkoutSessionStarted()
-        return outcome
+        return materializeStart(insert)
     }
 
     private data class SessionInsert(val sessionId: String, val inserted: Boolean)

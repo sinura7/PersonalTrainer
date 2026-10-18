@@ -92,22 +92,29 @@ class FinishWorkout(
         if (draftCache.pendingSave(sessionId) != null) return FinishOutcome.Failed("Return to the workout to resolve its pending set before finishing.")
         if (notes == null && draftCache.hasPendingNotes(sessionId)) return FinishOutcome.NotesPending
 
-        return runCatchingCancellable {
+        val outcome = runCatchingCancellable {
             val port = draftCache.persistence
             val finish: suspend (String) -> Unit = { intendedNotes ->
                 restTimer.stop()
                 workoutRepository.finishSession(sessionId, intendedNotes)
                 draftCache.finishConfirmed(sessionId)
             }
-            if (port == null) { finish(notes ?: session.notes); retirePrivateDraft(sessionId) }
-            else port.finishAtomically(sessionId, notes, finish)
-            restTimer.startCooldown()
+            if (port == null) {
+                finish(notes ?: session.notes)
+                retirePrivateDraft(sessionId)
+            } else {
+                port.finishAtomically(sessionId, notes, finish)
+            }
             FinishOutcome.Finished(sessionId)
         }.getOrElse { thrown ->
             if (thrown is WorkoutFinishRefused) return@getOrElse FinishOutcome.Failed(thrown.reason)
             AppLog.w(TAG, "Finishing the workout failed", thrown)
-            FinishOutcome.Failed("Could not finish this workout. Try again.")
+            return FinishOutcome.Failed("Could not finish this workout. Try again.")
         }
+        if (outcome is FinishOutcome.Finished) {
+            restTimer.startCooldown()
+        }
+        return outcome
     }
 
     private suspend fun retirePrivateDraft(sessionId: String) {
