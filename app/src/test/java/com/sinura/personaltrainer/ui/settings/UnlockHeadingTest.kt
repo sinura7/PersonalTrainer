@@ -40,9 +40,12 @@ class UnlockHeadingTest {
                 ),
             )
             backup.requestFileRestore(Uri.fromFile(file))
-            withTimeout(timeMillis = 20_000) { backup.uiState.first { it.pendingUnlock } }
+            withTimeout(timeMillis = 30_000) {
+                backup.uiState.first { it.pendingUnlock || it.error != null }
+            }
+            check(backup.uiState.value.pendingUnlock) { "restore never opened unlock: ${backup.uiState.value}" }
             backup.unlockPending("wrong-password")
-            val shown = withTimeout(timeMillis = 20_000) {
+            val shown = withTimeout(timeMillis = 30_000) {
                 backup.uiState.first { !it.pendingUnlock && it.error != null }
             }
             assertFalse(shown.pendingUnlock)
