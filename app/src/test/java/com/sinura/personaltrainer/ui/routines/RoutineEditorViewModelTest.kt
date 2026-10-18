@@ -639,6 +639,7 @@ class RoutineEditorViewModelTest {
         vm.setPickerVisible(true)
         vm.togglePicked(squat)
         vm.togglePicked(row)
+        vm.awaitState { !it.addingLifts && it.routine?.exercises?.size == 2 }
         awaitRoutine { it.exercises.size == 2 }
         vm.setPickerVisible(false)
 
