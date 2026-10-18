@@ -61,7 +61,17 @@ class RestTimerCooldownPersistenceTest {
             endsAtWallClockMillis = 2L,
             timerId = "rest-1",
         )
-        persistence.save(legacy)
+        val prefs = CooldownOwnPreferences(ApplicationProvider.getApplicationContext())
+            .getSharedPreferences("rest_timer_state", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putLong("ends_at_elapsed", legacy.endsAtElapsedRealtime)
+            .putInt("total_seconds", legacy.totalSeconds)
+            .putString("session_id", legacy.sessionId)
+            .putLong("boot_marker", legacy.bootMarker)
+            .putLong("ends_at_wall", legacy.endsAtWallClockMillis)
+            .putString("timer_id", legacy.timerId)
+            .putLong("boot_count", legacy.bootCount)
+            .commit()
         assertEquals("", checkNotNull(persistence.load()).sourceTag)
     }
 }

@@ -60,14 +60,20 @@ object RestTimerAlerts {
     }
 
     private fun playCooldownTone(context: Context) {
+        var tone: android.media.ToneGenerator? = null
         try {
-            val tone = android.media.ToneGenerator(AudioManager.STREAM_NOTIFICATION, 55)
+            tone = android.media.ToneGenerator(AudioManager.STREAM_NOTIFICATION, 55)
             tone.startTone(android.media.ToneGenerator.TONE_PROP_ACK, 120)
-            android.os.Handler(context.mainLooper).postDelayed({
-                runCatching { tone.release() }
-            }, 160L)
         } catch (_: Exception) {
             // Sound is optional. Never fail the timer.
+            return
+        } finally {
+            val toRelease = tone
+            if (toRelease != null) {
+                android.os.Handler(context.mainLooper).postDelayed({
+                    runCatching { toRelease.release() }
+                }, 160L)
+            }
         }
     }
 

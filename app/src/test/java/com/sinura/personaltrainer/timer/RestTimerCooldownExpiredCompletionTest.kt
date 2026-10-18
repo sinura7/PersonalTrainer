@@ -1,18 +1,23 @@
 package com.sinura.personaltrainer.timer
 
 import android.app.NotificationManager
+import android.content.Intent
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.RestTimerMarkers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -25,6 +30,7 @@ class RestTimerCooldownExpiredCompletionTest {
         app = ApplicationProvider.getApplicationContext()
         RestTimerCompletion.reset()
         app.container.restTimerController.stop(fromService = true)
+        app.container.restTimerStatePersistence.clear()
     }
 
     @After
@@ -34,34 +40,34 @@ class RestTimerCooldownExpiredCompletionTest {
     }
 
     @Test
-    fun expiredCooldownOnDiskCompletesAsCooldownDone() = runBlocking {
+    fun expiredCooldownRehydratePostsNonBypassDoneNotification() = runBlocking {
         val now = SystemClock.elapsedRealtime()
-        val stored = RestTimerRehydrator.toPersisted(
-            endsAtElapsedRealtime = now - 1_000L,
-            totalSeconds = RestTimerMarkers.COOLDOWN_SECONDS,
-            sessionId = null,
-            nowElapsedRealtime = now,
-            timerId = "expired-cd",
-            sourceTag = RestTimerMarkers.COOLDOWN,
-        )
-        val outcome = RestTimerRehydrator.rehydrate(
-            stored = stored,
-            nowElapsedRealtime = now,
-            nowWallClockMillis = System.currentTimeMillis(),
-            nowBootCount = com.sinura.personaltrainer.timer.BootSession.count(app),
-        )
-        val expired = outcome as RestTimerRehydration.Expired
-        assertTrue(RestTimerMarkers.isCooldownTag(expired.sourceTag))
+        val timerId = "expired-cd-rehydrate"
         assertTrue(
-            RestTimerCompletion.completeOnce(
-                context = app,
-                incomingTimerId = expired.timerId,
-                expectedTimerId = expired.timerId,
-                deadlineElapsedRealtime = expired.endsAtElapsedRealtime,
-                sessionId = expired.sessionId,
-                playCue = false,
-                isCooldown = RestTimerMarkers.isCooldownTag(expired.sourceTag),
+            app.container.restTimerStatePersistence.save(
+                RestTimerRehydrator.toPersisted(
+                    endsAtElapsedRealtime = now - 1_000L,
+                    totalSeconds = RestTimerMarkers.COOLDOWN_SECONDS,
+                    sessionId = null,
+                    nowElapsedRealtime = now,
+                    timerId = timerId,
+                    sourceTag = RestTimerMarkers.COOLDOWN,
+                ),
             ),
+        )
+        assertFalse(app.container.restTimerController.rehydrate())
+        delay(500)
+        shadowOf(app.mainLooper).idle()
+
+        val posted = app.getSystemService(NotificationManager::class.java)
+            .activeNotifications
+            .first { it.id == RestTimerNotifications.DONE_ID }
+            .notification
+        assertNull(posted.fullScreenIntent)
+        assertEquals(RestTimerNotifications.CHANNEL_COOLDOWN_DONE, posted.channelId)
+        assertEquals(
+            app.getString(com.sinura.personaltrainer.R.string.rest_notification_cooldown_done_title),
+            posted.extras.getString(android.app.Notification.EXTRA_TITLE),
         )
         RestTimerNotifications.ensureChannels(app)
         val channel = app.getSystemService(NotificationManager::class.java)
@@ -70,35 +76,38 @@ class RestTimerCooldownExpiredCompletionTest {
     }
 
     @Test
-    fun liveCooldownCompletionUsesNonBypassChannel() = runBlocking {
-        val store = app.container.restTimerStore
-        store.start(
-            totalSeconds = RestTimerMarkers.COOLDOWN_SECONDS,
-            sessionId = null,
-            nowElapsedRealtime = SystemClock.elapsedRealtime(),
-            sourceTag = RestTimerMarkers.COOLDOWN,
-        )
-        val snap = store.current()
+    fun alarmReceiverCompletesExpiredCooldownFromDiskRow() = runBlocking {
+        val now = SystemClock.elapsedRealtime()
+        val timerId = "expired-cd-alarm"
         assertTrue(
-            RestTimerCompletion.completeOnce(
-                context = app,
-                incomingTimerId = snap.timerId,
-                expectedTimerId = snap.timerId,
-                deadlineElapsedRealtime = snap.endsAtElapsedRealtime,
-                sessionId = snap.sessionId,
-                nowElapsedRealtime = snap.endsAtElapsedRealtime + 1L,
-                isCooldown = true,
+            app.container.restTimerStatePersistence.save(
+                RestTimerRehydrator.toPersisted(
+                    endsAtElapsedRealtime = now - 1_000L,
+                    totalSeconds = RestTimerMarkers.COOLDOWN_SECONDS,
+                    sessionId = null,
+                    nowElapsedRealtime = now,
+                    timerId = timerId,
+                    sourceTag = RestTimerMarkers.COOLDOWN,
+                ),
             ),
         )
-        RestTimerNotifications.ensureChannels(app)
-        val channel = app.getSystemService(NotificationManager::class.java)
-            .getNotificationChannel(RestTimerNotifications.CHANNEL_COOLDOWN_DONE)
-        assertFalse(channel.canBypassDnd())
-    }
+        val intent = Intent(app, RestTimerAlarmReceiver::class.java).apply {
+            action = RestTimerAlarmReceiver.ACTION_REST_COMPLETE
+            putExtra(RestTimerService.EXTRA_TIMER_ID, timerId)
+        }
+        RestTimerAlarmReceiver().onReceive(app, intent)
+        delay(500)
+        shadowOf(app.mainLooper).idle()
 
-    private fun shadowWait() {
-        org.robolectric.Shadows.shadowOf(app.mainLooper).idle()
-        Thread.sleep(50)
-        org.robolectric.Shadows.shadowOf(app.mainLooper).idle()
+        val posted = app.getSystemService(NotificationManager::class.java)
+            .activeNotifications
+            .first { it.id == RestTimerNotifications.DONE_ID }
+            .notification
+        assertNull(posted.fullScreenIntent)
+        assertEquals(RestTimerNotifications.CHANNEL_COOLDOWN_DONE, posted.channelId)
+        assertEquals(
+            app.getString(com.sinura.personaltrainer.R.string.rest_notification_cooldown_done_title),
+            posted.extras.getString(android.app.Notification.EXTRA_TITLE),
+        )
     }
 }

@@ -60,22 +60,29 @@ class RestTimerControllerTest {
     @Test
     fun aCompletionThatLosesTheRaceToAnAdjustLeavesTheReplacementRunning() {
         // ADR-012 decision 1: a completion for the old timer id cannot clear a replacement. The
-        // owner's +15 lands after the clear and before the completion id is published.
+        // owner's +15 lands between the completion's check and its clear — the moment the
+        // completion id is published, which a collector on Unconfined sees inline.
         val store = RestTimerStore()
         val controller = RestTimerController(context, store)
+        val scope = CoroutineScope(Dispatchers.Unconfined)
         try {
             controller.start(90, "session-1")
             val first = store.current().timerId
-            controller.betweenCompleteClearAndMark = { controller.start(90, "session-1") }
+            val racer = scope.launch {
+                controller.lastCompletedTimerId.collect { completed ->
+                    if (completed == first) controller.adjust(15)
+                }
+            }
 
             val completed = controller.completeIfCurrent(first, fromService = true)
+            racer.cancel()
 
             assertTrue("the +15 minted a replacement timer", store.current().running)
             assertFalse("the old id's completion must not claim it", completed)
             assertTrue(store.current().timerId != first)
             assertNull("no rest finished: the flash and glance must not show one", controller.lastCompletedTimerId.value)
         } finally {
-            controller.betweenCompleteClearAndMark = null
+            scope.cancel()
             controller.stop()
         }
     }
@@ -193,23 +200,23 @@ class RestTimerControllerTest {
 
     @Test
     fun aSkipLandingAsTheRestFinishesLeavesItSkipped() {
-        // The Skip lands after the clear and before the completion id is published.
+        // The Skip lands after the completion's check, the moment it publishes "rest done"
+        // (seen inline by a collector on Unconfined). The rest was skipped: nothing finishes.
         val store = RestTimerStore()
         val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        val scope = CoroutineScope(Dispatchers.Unconfined)
         try {
             controller.start(90, "session-1")
             val timerId = store.current().timerId
-            controller.betweenCompleteClearAndMark = {
-                controller.start(90, "session-1")
-            }
+            scope.launch { controller.lastCompletedTimerId.collect { if (it == timerId) controller.stop() } }
 
             val finished = controller.completeIfCurrent(timerId, fromService = true)
 
             assertFalse("no Rest done for a skipped rest", finished)
-            assertTrue(store.current().running)
+            assertFalse(store.current().running)
             assertNull(controller.lastCompletedTimerId.value)
         } finally {
-            controller.betweenCompleteClearAndMark = null
+            scope.cancel()
             controller.stop()
         }
     }
@@ -292,16 +299,22 @@ class RestTimerControllerTest {
     }
 
     @Test
-    fun completeIfCurrentPublishesTheIdAfterTheStoreClears() {
+    fun completeIfCurrentPublishesTheIdBeforeTheStoreClears() {
         val store = RestTimerStore()
         val controller = RestTimerController(context, store)
+        val order = mutableListOf<String>()
+        val scope = CoroutineScope(Dispatchers.Unconfined)
         try {
             controller.start(90, "session-1")
             val timerId = store.current().timerId
             assertTrue(timerId.isNotBlank())
             assertNull(controller.lastCompletedTimerId.value)
+            // The lock glance collects the two separately; both are seen inline here.
+            scope.launch { controller.lastCompletedTimerId.collect { if (it == timerId) order += "published" } }
+            scope.launch { store.snapshot.collect { if (!it.running) order += "cleared" } }
 
             assertTrue(controller.completeIfCurrent(timerId, fromService = true))
+            assertEquals(listOf("published", "cleared"), order)
             assertFalse(store.current().running)
             assertEquals(timerId, controller.lastCompletedTimerId.value)
             assertTrue(
@@ -312,6 +325,7 @@ class RestTimerControllerTest {
                 ),
             )
         } finally {
+            scope.cancel()
             controller.stop()
         }
     }

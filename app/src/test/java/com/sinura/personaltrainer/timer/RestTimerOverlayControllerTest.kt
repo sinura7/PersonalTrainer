@@ -45,6 +45,7 @@ class RestTimerOverlayControllerTest {
                 sessionId = "session",
                 timerId = "timer",
             ),
+            fromService = false,
         )
         shadowOf(context.mainLooper).idle()
         assertNull(RestTimerOverlayController.lastFailureReason)
@@ -61,6 +62,7 @@ class RestTimerOverlayControllerTest {
                 endsAtElapsedRealtime = SystemClock.elapsedRealtime() + 60_000L,
                 totalSeconds = 60,
             ),
+            fromService = false,
         )
         shadowOf(context.mainLooper).idle()
         RestTimerAppForeground.setForegroundForTest(false)
@@ -71,6 +73,7 @@ class RestTimerOverlayControllerTest {
                 endsAtElapsedRealtime = SystemClock.elapsedRealtime() + 60_000L,
                 totalSeconds = 60,
             ),
+            fromService = false,
         )
         shadowOf(context.mainLooper).idle()
         assertNull(RestTimerOverlayController.lastFailureReason)
@@ -87,6 +90,7 @@ class RestTimerOverlayControllerTest {
                 totalSeconds = 60,
                 timerId = "timer-dismissed",
             ),
+            fromService = false,
         )
         shadowOf(context.mainLooper).idle()
         assertNull(RestTimerOverlayController.lastFailureReason)

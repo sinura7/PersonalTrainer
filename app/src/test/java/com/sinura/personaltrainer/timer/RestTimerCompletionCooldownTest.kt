@@ -52,6 +52,7 @@ class RestTimerCompletionCooldownTest {
             .first { it.id == RestTimerNotifications.DONE_ID }
             .notification
         assertNull(posted.fullScreenIntent)
+        assertEquals(RestTimerNotifications.CHANNEL_COOLDOWN_DONE, posted.channelId)
         assertEquals(
             context.getString(com.sinura.personaltrainer.R.string.rest_notification_cooldown_done_title),
             posted.extras.getString(android.app.Notification.EXTRA_TITLE),

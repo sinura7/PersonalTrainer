@@ -98,8 +98,6 @@ class RestTimerController(
     @Volatile
     internal var betweenSkipReadAndClear: (() -> Unit)? = null
 
-    /** Test seam: after a successful [RestTimerStore.clearIfCurrent], before completion is published. */
-    internal var betweenCompleteClearAndMark: (() -> Unit)? = null
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
 
     /**
@@ -145,9 +143,9 @@ class RestTimerController(
     }
 
     override fun startCooldown() {
+        if (!store.startCooldownIfIdle(SystemClock.elapsedRealtime())) return
         _lastCompletedTimerId.value = null
         _lastCompletedWasCooldown.value = false
-        if (!store.startCooldownIfIdle(SystemClock.elapsedRealtime())) return
         persistThenArm(syncService = true)
     }
 
@@ -220,12 +218,19 @@ class RestTimerController(
         // finish. A process started after death has held nothing, so a rest that ran out while
         // it was dead still completes.
         if (!current.running && store.hasHeld(timerId)) return false
-        val cleared = store.clearIfCurrent(timerId) ?: return false
-        if (!cleared.running && store.hasHeld(timerId)) return false
-        betweenCompleteClearAndMark?.invoke()
-        if (store.current().running) return false
-        _lastCompletedWasCooldown.value = RestTimerMarkers.isCooldown(cleared)
+        // Publish before clearing running. The lock glance collects those
+        // two flows separately; stop-then-mark looks like a skip for one
+        // frame and dismisses the "Back to the bar" surface.
         markCompleted(timerId)
+        val cleared = store.clearIfCurrent(timerId)
+        if (cleared == null || (!cleared.running && store.hasHeld(timerId))) {
+            // After the check, a +15 replaced this timer, or a Skip emptied the store: nothing
+            // finished. Take the completion back, unless something newer has been published.
+            _lastCompletedTimerId.compareAndSet(timerId, null)
+            _lastCompletedWasCooldown.value = false
+            return false
+        }
+        _lastCompletedWasCooldown.value = RestTimerMarkers.isCooldown(cleared)
         afterHalt(wasRunning = cleared.running, fromService = fromService, timerId = cleared.timerId)
         return true
     }

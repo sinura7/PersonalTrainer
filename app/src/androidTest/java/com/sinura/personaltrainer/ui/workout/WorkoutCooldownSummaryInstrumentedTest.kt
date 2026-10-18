@@ -3,13 +3,11 @@ package com.sinura.personaltrainer.ui.workout
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.PersonalTrainerApp
-import com.sinura.personaltrainer.domain.CooldownCopy
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.ui.summary.SummaryTags
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
@@ -51,7 +49,7 @@ class WorkoutCooldownSummaryInstrumentedTest {
             fixture.container.restTimerStore.current().running &&
                 RestTimerMarkers.isCooldown(fixture.container.restTimerStore.current())
         }
-        compose.onNodeWithText(CooldownCopy.KICKER).assertIsDisplayed()
+        compose.onNodeWithTag(SummaryTags.COOLDOWN).assertIsDisplayed()
         compose.onNodeWithTag(SummaryTags.COOLDOWN_SKIP).performClick()
         compose.waitUntil(5_000) { !fixture.container.restTimerStore.current().running }
         assertFalse(fixture.container.restTimerStore.current().running)

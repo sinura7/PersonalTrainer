@@ -89,7 +89,7 @@ object RestTimerOverlayController {
     fun sync(
         context: Context,
         state: RestTimerSnapshot,
-        fromService: Boolean = false,
+        fromService: Boolean,
     ) {
         val wantsOverlay = state.running &&
             !RestTimerAppForeground.isInForeground &&
