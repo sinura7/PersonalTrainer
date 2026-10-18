@@ -219,6 +219,9 @@ sh tools/test_domain_lane.sh || fail "test_domain_lane.sh"
 step "test_ci_instrumented.sh"
 sh tools/test_ci_instrumented.sh || fail "test_ci_instrumented.sh"
 
+step "check-ux-backlog-json.py"
+python3 tools/check-ux-backlog-json.py || fail "check-ux-backlog-json.py"
+
 # One run over every source set, not one per set. A root scanned alone is a false clean:
 # nothing outside it is in the declaration index, so every call into another source set is
 # skipped — which for app/src/test and app/src/androidTest is most of them.

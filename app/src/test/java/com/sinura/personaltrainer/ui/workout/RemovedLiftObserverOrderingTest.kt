@@ -197,7 +197,8 @@ class RemovedLiftObserverOrderingTest {
         do {
             scheduler.runCurrent()
             if (predicate()) return
-            Thread.sleep(1)
+            Thread.yield()
+            Thread.sleep(5)
         } while (System.nanoTime() < deadline)
         throw AssertionError("$what did not arrive within ${TestWaits.FLOW_MS} ms; last=${last()}")
     }

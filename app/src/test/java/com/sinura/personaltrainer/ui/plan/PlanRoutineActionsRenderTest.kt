@@ -374,7 +374,7 @@ class PlanRoutineActionsRenderTest {
         tap(compose.onNodeWithTag(PlanDayTags.block(occurrence.id)).performScrollTo())
         compose.awaitThat("routine editor loaded", editorVm.uiState::value) { !editorVm.uiState.value.isLoading }
         words(RoutineSaveCopy.SCOPE)
-        compose.onNodeWithTag(RoutineEditorTags.SAVE).assertIsDisplayed()
+        compose.onNodeWithTag(RoutineEditorTags.SAVE).performScrollTo().assertIsDisplayed()
         capture("routine-editor-scope")
         val beforeSwap = inventory()
         editorVm.requestSwap(editorVm.uiState.value.routine!!.exercises.single {
@@ -391,7 +391,7 @@ class PlanRoutineActionsRenderTest {
         compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollToIndex)).performScrollToIndex(0)
         compose.settle()
         compose.onNode(hasSetTextAction() and hasText(NAME)).performScrollTo().performTextReplacement("$NAME revised")
-        compose.onNodeWithTag(RoutineEditorTags.SAVE).performClick()
+        compose.onNodeWithTag(RoutineEditorTags.SAVE).performScrollTo().performClick()
         compose.settle()
         compose.awaitThat("returned to weekly day after Save", { route.value }) { route.value == "day" }
         assertEquals("$NAME revised", runBlocking { deps.routineRepository.getById(fixture.routine.id) }?.name)

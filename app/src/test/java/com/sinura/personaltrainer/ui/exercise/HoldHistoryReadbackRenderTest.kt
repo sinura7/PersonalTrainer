@@ -207,8 +207,12 @@ class HoldHistoryReadbackRenderTest {
             Bitmap.createBitmap(view.width.coerceAtLeast(1), view.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
                 .also { view.draw(Canvas(it)) }
         }
-        frames.mkdirs()
-        FileOutputStream(File(frames, "$name.png")).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        try {
+            frames.mkdirs()
+            FileOutputStream(File(frames, "$name.png")).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        } finally {
+            bitmap.recycle()
+        }
     }
     private companion object {
         const val WAIT_MS = 20_000L

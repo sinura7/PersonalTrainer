@@ -243,15 +243,10 @@ class WorkoutPrivateRecoveryTest {
         val vm = active(); ready(vm)
         val entered = CountDownLatch(1)
         val release = CountDownLatch(1)
-        val decided = CountDownLatch(1)
         vm.beforeUntouchedSeed = {
             vm.beforeUntouchedSeed = null
             entered.countDown()
             check(release.await(30, TimeUnit.SECONDS)) { "The untouched-seed pause was not released" }
-        }
-        vm.afterUntouchedSeed = {
-            vm.afterUntouchedSeed = null
-            decided.countDown()
         }
         try {
             vm.numberEntry.put(WorkoutNumberDraft(fixture.exercise.id, WorkoutNumberField.WEIGHT, "82.", WeightUnit.KG, 3, 3, false))
@@ -260,7 +255,9 @@ class WorkoutPrivateRecoveryTest {
             assertTrue(entered.await(30, TimeUnit.SECONDS))
             vm.setWeight(42.5)
             release.countDown()
-            assertTrue(decided.await(30, TimeUnit.SECONDS))
+            vm.uiState.awaitFirst {
+                it.selectedExerciseId == replacement.id && !it.mutating && it.draft.weightKg == 42.5
+            }
             vm.setReps(12); vm.setRpe(8)
             vm.uiState.awaitFirst {
                 it.selectedExerciseId == replacement.id && !it.mutating && it.draft.weightKg == 42.5 && it.draft.reps == 12 && it.draft.rpe == 8

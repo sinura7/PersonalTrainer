@@ -175,8 +175,12 @@ class ExerciseTrendReadoutRenderTest {
                     }
                 }
         }
-        frames.mkdirs()
-        FileOutputStream(File(frames, "$name.png")).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        try {
+            frames.mkdirs()
+            FileOutputStream(File(frames, "$name.png")).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        } finally {
+            bitmap.recycle()
+        }
     }
     private companion object {
         const val LIST = "trend-test-list"
