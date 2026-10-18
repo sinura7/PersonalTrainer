@@ -5885,6 +5885,14 @@
         "adversarial": "PENDING formal review on PR #545.",
         "cleanContext": "Branch cursor/th7a-test-sleep-check-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/545. Ledger corrections: #541 Verifier r6 PASS on 7690fcae (code head 3dacfb8a); squash-merged to trunk as 8282bdd3; hosted 39156898872 job 117761872688 and 39156893776 job 117761857801 — gate job passed, run cancelled; Critic APPROVE WITH NITS. #544 edbc3e3f Verifier r5 meant gate job passed, run cancelled; new CI caps present on trunk but not yet exercised under load at merge time."
       },
+      "5f4fdf07": {
+        "when": "2026-10-18",
+        "packet": "TH6: Undo restores removed lift stopped set clock (test-health Q4)",
+        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (includes check-real-time-waits.py; no new sleeps or delays). Root cause: retireRemovedEntry called clocks.forgetStopwatch and wiped saved stopwatch before Undo. Fix: stop forgetting set-clock saved copy in retireRemovedEntry (FloorWorkClocksCharacterisationTest.aRemovedLiftBroughtBackByUndoKeepsItsStoppedSetClock). Agent-local JDK 17 full --rerun-tasks pair attempted (th6-gate-1.log, th6-gate-2.log): Gradle daemon OOM on Cursor VM during assembleDebug after unit tests — not a consecutive green pair. Hosted pull_request 39164542580 job 117784793550 gate job success on head 5f4fdf07.",
+        "independent": "PENDING formal review on PR #547.",
+        "adversarial": "PENDING formal review on PR #547.",
+        "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547. Ledger corrections: #450 Critic APPROVE WITH NITS (PR body corrected to WorkDatabase v23→v24, backoff_on_system_interruptions column); Verifier r7 PASS; hosted 39160552639 job 117772765392 gate job passed, run cancelled; merged 70825ab3. #545 Critic APPROVE WITH NITS (nits carried to TH7b); Verifier r7 PASS; hosted 39160782324 job 117773444389 and 39160780770 job 117773438567 gate job passed, run cancelled; merged 24365177."
+      },
       "9cf9e2c4": {
         "when": "2026-10-17",
         "packet": "UX blueprint P8 live hero steppers and RPE Last hint (R5 / L1)",
