@@ -5877,6 +5877,14 @@
         "adversarial": "Critic APPROVE WITH NITS (60343613 delta); Verifier r6: recorded in the next ledger entry.",
         "cleanContext": "Branch cursor/p10-swipe-lifts-ae41 rebased onto f8021f0e. tools/checker-baselines.toml lambda_arity_declined raised 46→47 by P10: check-lambda-arity.py on app/src/main/java reports 23 declined (was 22 on trunk f8021f0e); the +1 fully-qualified named-lambda site is app/src/main/java/com/sinura/personaltrainer/ui/workout/ExerciseHeader.kt:85 modifier.liftHeaderSwipe(...). Open flakes (diagnostics added, root cause open): WorkoutPrivateRecoveryTest.swapSeed entered/beforeUntouchedSeed; RemovedLiftObserverOrderingTest Main gate hold. FloorWorkClocksCharacterisationTest.aRemovedLiftBroughtBackByUndoKeepsItsStoppedSetClock remains an open flake, owned by TH6. No UX31/UX32 items on this PR (#544 merged UX31; TH2 owns UX32 at merge). PR https://github.com/sinura7/PersonalTrainer/pull/541."
       },
+      "0c237431": {
+        "when": "2026-10-18",
+        "packet": "TH7a: preflight gate for real-time sleeps and delays in tests",
+        "gate": "Rebased onto trunk f72322a3. PT_STATIC_ONLY=1 sh tools/preflight.sh OK: check-real-time-waits.py real_time_sleeps 28, real_time_delays 6; test_real_time_waits.py OK. Prior hosted on pre-rebase head fbc76884: run 39152391821 job 117748517422 gate job success.",
+        "independent": "PENDING formal review on PR #545.",
+        "adversarial": "PENDING formal review on PR #545.",
+        "cleanContext": "Branch cursor/th7a-test-sleep-check-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/545. Ledger corrections: #541 Verifier r6 PASS on 7690fcae (code head 3dacfb8a); squash-merged to trunk as 8282bdd3; hosted 39156898872 job 117761872688 and 39156893776 job 117761857801 — gate job passed, run cancelled; Critic APPROVE WITH NITS. #544 edbc3e3f Verifier r5 meant gate job passed, run cancelled; new CI caps present on trunk but not yet exercised under load at merge time."
+      },
       "9cf9e2c4": {
         "when": "2026-10-17",
         "packet": "UX blueprint P8 live hero steppers and RPE Last hint (R5 / L1)",
