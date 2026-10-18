@@ -5848,10 +5848,26 @@
       "edbc3e3f": {
         "when": "2026-10-18",
         "packet": "CI: raise hosted gate job and unit-test step timeouts (Allen-approved)",
-        "gate": "preflight.sh static half OK. .github/workflows/ci.yml only: verify job timeout-minutes 30→40; Unit tests step 20→25. Smoke job stays 45m non-blocking; no skipped steps. Why: post-#542 single-JVM unit step ~16–17m (too close to 20m); P10 stack run 39135917503 gate job passed in 29m23s after ~5.5m debug-build cache miss on app-code push; 39135921063 gate job cancelled at ~30m20s during instrumented compile. Hosted gate job must pass on this PR. UX31 tracks cutting suite time.",
-        "independent": "PENDING review.",
-        "adversarial": "PENDING review.",
-        "cleanContext": "Branch cursor/ci-job-timeout-ae41 off trunk 6ecf951b (#542). Parent 1efe09de."
+        "gate": "preflight.sh static half OK. .github/workflows/ci.yml only: verify job timeout-minutes 30→40; Unit tests step 20→25. Smoke job stays 45m non-blocking; no skipped steps. Why: post-#542 single-JVM unit step ~16–17m (too close to 20m); P10 stack run 39135917503 gate job passed in 29m23s after ~5.5m debug-build cache miss on app-code push; 39135921063 gate job cancelled at ~30m20s during instrumented compile. Hosted gate runs 39143796996 and 39143785231; merged as f8021f0e. UX31 tracks cutting suite time.",
+        "independent": "Critic APPROVE WITH NITS.",
+        "adversarial": "Verifier r5 PASS.",
+        "cleanContext": "Branch cursor/ci-job-timeout-ae41 off trunk 6ecf951b (#542). Parent 6ecf951b. Squash-merged to trunk as f8021f0e (#544)."
+      },
+      "751dec48": {
+        "when": "2026-10-17",
+        "packet": "UX blueprint P10 swipe lifts (pre-rebase interim)",
+        "gate": "Superseded by 888afab1 on trunk f8021f0e stack.",
+        "independent": "Superseded.",
+        "adversarial": "Superseded.",
+        "cleanContext": "590e47ed / pre-rebase hosted logs not on this PR."
+      },
+      "888afab1": {
+        "when": "2026-10-18",
+        "packet": "UX blueprint P10 swipe lifts, header Swap, Close label (R7 / L2) — on trunk f8021f0e",
+        "gate": "preflight.sh static half OK. Agent-local JDK 17 consecutive full gates on code head 888afab1: p541-rebase-gate-1.log and p541-rebase-gate-2.log (local, not independently verifiable) — BUILD SUCCESSFUL in 14m 42s and 14m 10s; CONSECUTIVE_PAIR 1+2; each testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest --rerun-tasks; 4808 tests 0 failures (XML sum). OpenJDK 17.0.19 in logs. Hosted pull_request run 39145311688; hosted push run 39145307344 — gate job passed, run cancelled when non-blocking instrumented smoke hits workflow cap (same pattern as #542).",
+        "independent": "PENDING formal review on PR #541.",
+        "adversarial": "PENDING formal review on PR #541.",
+        "cleanContext": "Branch cursor/p10-swipe-lifts-ae41 rebased onto f8021f0e. tools/checker-baselines.toml lambda_arity_declined raised 46→47 by P10 (one new declined named-lambda arity site in swipe/header instrumented coverage). FloorWorkClocksCharacterisationTest.aRemovedLiftBroughtBackByUndoKeepsItsStoppedSetClock remains an open flake, owned by TH6. No UX31/UX32 items on this PR (#544 merged UX31; TH2 owns UX32 at merge). PR https://github.com/sinura7/PersonalTrainer/pull/541."
       },
       "9cf9e2c4": {
         "when": "2026-10-17",
