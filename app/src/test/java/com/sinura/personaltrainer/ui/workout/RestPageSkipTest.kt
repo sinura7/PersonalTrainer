@@ -111,7 +111,7 @@ class RestPageSkipTest {
     @Test
     fun aSkipDrawnJustBeforeAPlusFifteenStillEndsTheRest() {
         // To the owner a ±15 is the same rest, under a new id.
-        val shown = openThePageOnARunningRest()
+        openThePageOnARunningRest()
         val skip = drawnSkip()
 
         rest.adjust(15)

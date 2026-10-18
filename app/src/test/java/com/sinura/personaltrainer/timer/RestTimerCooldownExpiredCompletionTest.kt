@@ -6,8 +6,10 @@ import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.RestTimerMarkers
+import android.content.Context
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -56,8 +58,7 @@ class RestTimerCooldownExpiredCompletionTest {
             ),
         )
         assertFalse(app.container.restTimerController.rehydrate())
-        delay(500)
-        shadowOf(app.mainLooper).idle()
+        awaitDoneNotification(app)
 
         val posted = app.getSystemService(NotificationManager::class.java)
             .activeNotifications
@@ -96,8 +97,7 @@ class RestTimerCooldownExpiredCompletionTest {
             putExtra(RestTimerService.EXTRA_TIMER_ID, timerId)
         }
         RestTimerAlarmReceiver().onReceive(app, intent)
-        delay(500)
-        shadowOf(app.mainLooper).idle()
+        awaitDoneNotification(app)
 
         val posted = app.getSystemService(NotificationManager::class.java)
             .activeNotifications
@@ -109,5 +109,15 @@ class RestTimerCooldownExpiredCompletionTest {
             app.getString(com.sinura.personaltrainer.R.string.rest_notification_cooldown_done_title),
             posted.extras.getString(android.app.Notification.EXTRA_TITLE),
         )
+    }
+
+    private suspend fun awaitDoneNotification(context: Context, timeoutMs: Long = 5_000) {
+        withTimeout(timeoutMs) {
+            val manager = context.getSystemService(NotificationManager::class.java)
+            while (manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID }) {
+                shadowOf(context.mainLooper).idle()
+                delay(25)
+            }
+        }
     }
 }

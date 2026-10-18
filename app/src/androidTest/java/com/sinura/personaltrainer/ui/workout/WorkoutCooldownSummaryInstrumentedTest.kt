@@ -1,20 +1,25 @@
 package com.sinura.personaltrainer.ui.workout
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.printToLog
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.RestTimerMarkers
+import com.sinura.personaltrainer.timer.RestTimerOverlayController
 import com.sinura.personaltrainer.ui.summary.SummaryTags
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryViewModel
 import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,13 +30,22 @@ class WorkoutCooldownSummaryInstrumentedTest {
     private val fixture = WorkoutEntryFixture()
     private val app = ApplicationProvider.getApplicationContext<PersonalTrainerApp>()
 
-    @After fun cleanup() = fixture.close()
+    @Before
+    fun releaseExteriorFromPriorTests() {
+        fixture.container.restTimerController.stop(fromService = true)
+        RestTimerOverlayController.release()
+    }
+
+    @After fun cleanup() {
+        RestTimerOverlayController.release()
+        fixture.close()
+    }
 
     @Test
     fun summaryScreenSkipAndBackUseDoneNotHistory() {
         fixture.seed(targetSets = 1)
         runBlockingFinishSession()
-        fixture.container.restTimerController.startCooldown()
+        fixture.armCooldownWithoutRestService()
         var done = false
         val summaryVm = WorkoutSummaryViewModel(
             application = app,
@@ -49,6 +63,8 @@ class WorkoutCooldownSummaryInstrumentedTest {
             fixture.container.restTimerStore.current().running &&
                 RestTimerMarkers.isCooldown(fixture.container.restTimerStore.current())
         }
+        compose.onRoot(useUnmergedTree = true).printToLog("SUMMARY_COOLDOWN")
+        compose.onNodeWithTag(SummaryTags.COOLDOWN, useUnmergedTree = true).assertExists()
         compose.onNodeWithTag(SummaryTags.COOLDOWN).assertIsDisplayed()
         compose.onNodeWithTag(SummaryTags.COOLDOWN_SKIP).performClick()
         compose.waitUntil(5_000) { !fixture.container.restTimerStore.current().running }

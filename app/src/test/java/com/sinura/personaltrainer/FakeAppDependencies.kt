@@ -475,15 +475,17 @@ private class InMemoryRestTimerGateway(
         val current = store.current()
         if (current.running && current.timerId != timerId) return false
         if (!current.running && store.hasHeld(timerId)) return false
+        val completingCooldown =
+            com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(current)
         markCompleted(timerId)
         val cleared = store.clearIfCurrent(timerId)
         if (cleared == null || (!cleared.running && store.hasHeld(timerId))) {
-            _lastCompletedTimerId.compareAndSet(timerId, null)
-            _lastCompletedWasCooldown.value = false
+            if (_lastCompletedTimerId.compareAndSet(timerId, null)) {
+                _lastCompletedWasCooldown.value = false
+            }
             return false
         }
-        _lastCompletedWasCooldown.value =
-            com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(cleared)
+        _lastCompletedWasCooldown.value = completingCooldown
         return true
     }
 

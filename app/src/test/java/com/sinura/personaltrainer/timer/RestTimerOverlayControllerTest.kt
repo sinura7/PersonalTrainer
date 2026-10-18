@@ -29,6 +29,7 @@ class RestTimerOverlayControllerTest {
 
     @After
     fun tearDown() {
+        RestTimerAppForeground.setForegroundForTest(false)
         RestTimerOverlayController.release()
         shadowOf(context.mainLooper).idle()
     }
