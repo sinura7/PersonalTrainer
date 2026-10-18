@@ -5887,9 +5887,17 @@
       },
       "5f4fdf07": {
         "when": "2026-10-18",
-        "packet": "TH6: Undo restores removed lift stopped set clock (test-health Q4)",
-        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (includes check-real-time-waits.py; no new sleeps or delays). Root cause: retireRemovedEntry called clocks.forgetStopwatch and wiped saved stopwatch before Undo. Fix: stop forgetting set-clock saved copy in retireRemovedEntry (FloorWorkClocksCharacterisationTest.aRemovedLiftBroughtBackByUndoKeepsItsStoppedSetClock). Agent-local JDK 17 full --rerun-tasks pair attempted (th6-gate-1.log, th6-gate-2.log): Gradle daemon OOM on Cursor VM during assembleDebug after unit tests — not a consecutive green pair. Hosted pull_request 39164542580 job 117784793550 gate job success on head 5f4fdf07.",
-        "independent": "PENDING formal review on PR #547.",
+        "packet": "TH6: interim undo clock fix (superseded by bcb8c997)",
+        "gate": "Superseded by bcb8c997 Critic fold.",
+        "independent": "Superseded.",
+        "adversarial": "Superseded.",
+        "cleanContext": "First retireRemovedEntry-only fix; stale clock after offer expiry without lifecycle."
+      },
+      "bcb8c997": {
+        "when": "2026-10-18",
+        "packet": "TH6: Q4 undo stopwatch lifecycle (Critic #547 @13c8d703)",
+        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (check-real-time-waits.py 28/6 unchanged). Root cause: clocks.forgetStopwatch in retireRemovedEntry ran when the session observer saw the lift gone before removeSelectedLift resumed (race), wiping the saved stopped clock before Undo. Fix: stop forgetting in retireRemovedEntry; forget on RemovedLift offer expiry, UndoQueue eviction, and fresh add without pending undo; private checkpoint + validOwner keep stopwatches for pending RemovedLift offers.",
+        "independent": "Critic APPROVE WITH NITS (#547 @13c8d703 delta folded on bcb8c997); formal review pending on PR #547.",
         "adversarial": "PENDING formal review on PR #547.",
         "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547. Ledger corrections: #450 Critic APPROVE WITH NITS (PR body corrected to WorkDatabase v23→v24, backoff_on_system_interruptions column); Verifier r7 PASS; hosted 39160552639 job 117772765392 gate job passed, run cancelled; merged 70825ab3. #545 Critic APPROVE WITH NITS (nits carried to TH7b); Verifier r7 PASS; hosted 39160782324 job 117773444389 and 39160780770 job 117773438567 gate job passed, run cancelled; merged 24365177."
       },
