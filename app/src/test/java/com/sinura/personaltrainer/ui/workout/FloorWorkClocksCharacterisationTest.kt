@@ -228,10 +228,7 @@ class FloorWorkClocksCharacterisationTest {
 
         val revived = viewModel(handle)
 
-<<<<<<< HEAD
         // Same race as the set-clock twin: the hold is restored when the session read arrives.
-=======
->>>>>>> 07605b1b (PR #543 review: cool-down done path, CAS start/stop, and tests)
         assertTrue(
             "the hold comes back running",
             revived.holdTimer.awaitFirst { it.running }.running,
