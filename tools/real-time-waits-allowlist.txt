@@ -1,0 +1,28 @@
+# Family 1 allowlist: path | stripped line text | reason
+# One row can cover multiple call sites when the stripped line text matches.
+
+app/src/test/java/com/sinura/personaltrainer/PlannedDayReminderWhileTrainingTest.kt | Thread.sleep(10) | bounded poll while reminder state settles on real threads
+app/src/test/java/com/sinura/personaltrainer/ui/workout/RemovedLiftObserverOrderingTest.kt | Thread.sleep(1) | bounded pumpUntil poll on Robolectric scheduler; candidate for virtual-time hold (TH3)
+app/src/test/java/com/sinura/personaltrainer/timer/RestTimerControllerTest.kt | Thread.sleep(10) | short poll waiting for service/controller wiring on real threads
+app/src/test/java/com/sinura/personaltrainer/timer/RestTimerControllerTest.kt | Thread.sleep(5) | short poll for overlay sync; unreviewed; candidate for removal
+app/src/test/java/com/sinura/personaltrainer/timer/RestTimerRecoveryTest.kt | Thread.sleep(10) | poll until recovery snapshot visible; real Room threads
+app/src/test/java/com/sinura/personaltrainer/timer/RestTimerServiceTest.kt | Thread.sleep(10) | poll for tick observer / service lifecycle; two sites same line shape
+app/src/test/java/com/sinura/personaltrainer/update/DebugInstallAnswerTest.kt | Thread.sleep(10) | poll install callback on background thread
+app/src/androidTest/java/com/sinura/personaltrainer/ui/history/HistoryPeriodRecoveryInstrumentedTest.kt | SystemClock.sleep(50) | bounded poll until history UI ready on device
+app/src/androidTest/java/com/sinura/personaltrainer/ui/components/FrontendControlsInstrumentedTest.kt | android.os.SystemClock.sleep(750) | fixed settle before screenshot; candidate for removal
+app/src/androidTest/java/com/sinura/personaltrainer/ui/components/FrontendControlsInstrumentedTest.kt | android.os.SystemClock.sleep(25) | bounded poll in spinner loop
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutJourneyInstrumentedTest.kt | Thread.sleep(50) | bounded poll for journey step on device
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutJourneyInstrumentedTest.kt | SystemClock.sleep(750) | fixed settle before layout read; candidate for removal
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/ConnectedWorkoutJourneyInstrumentedTest.kt | SystemClock.sleep(750) | fixed settle before hero read; candidate for removal
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/ConnectedWorkoutJourneyInstrumentedTest.kt | SystemClock.sleep(50) | bounded poll loops (two call sites); candidate for idle/sync API
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutCompletionJourneyInstrumentedTest.kt | SystemClock.sleep(android.view.ViewConfiguration.getDoubleTapTimeout().toLong() + 20) | double-tap spacing; two journeys same pattern
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutCompletionLayoutInstrumentedTest.kt | SystemClock.sleep(750) | fixed settle before screenshot
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutEntryJourneyInstrumentedTest.kt | while (resources.configuration.fontScale != expected && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(50) | bounded fontScale poll with deadline
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutEntryJourneyInstrumentedTest.kt | SystemClock.sleep(android.view.ViewConfiguration.getDoubleTapTimeout().toLong() + 20) | double-tap spacing
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutEntryJourneyInstrumentedTest.kt | SystemClock.sleep(750) | fixed settle before screenshot
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutEntryLayoutInstrumentedTest.kt | SystemClock.sleep(750) | await catalog still decode; comment in source
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutTruthInstrumentedTest.kt | SystemClock.sleep(250) | fixed settle before font/keyboard checks
+app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutTruthInstrumentedTest.kt | while (fixture.app.resources.configuration.fontScale != expected && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(50) | bounded fontScale poll inside loop
+app/src/androidTest/java/com/sinura/personaltrainer/ui/home/HomeDayPickerInstrumentedTest.kt | SystemClock.sleep(50) | bounded poll until picker state stable
+app/src/androidTest/java/com/sinura/personaltrainer/timer/ExactAlarmCapabilityInstrumentedTest.kt | Thread.sleep(50) | bounded poll for alarm capability callback
+app/src/androidTest/java/com/sinura/personaltrainer/testutil/GoldenCapture.kt | SystemClock.sleep(400L * (attempt + 1)) | golden capture retry backoff on device

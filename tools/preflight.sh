@@ -177,12 +177,14 @@ for c in "check-internal-imports.py" \
          "check-release-lane.py" \
          "check-still-pack.py" \
          "check-unbounded-waits.py" \
+         "check-real-time-waits.py" \
          "check-cancellation.py" \
          "test_policy_move.py" \
          "test_checker_skips.py" \
          "test_when_exhaustive.py" \
          "test_lambda_arity.py" \
          "test_unbounded_waits.py" \
+         "test_real_time_waits.py" \
          "test_cancellation.py" \
          "test_debug_drop.py" \
          "test_kotlin_source.py" \
