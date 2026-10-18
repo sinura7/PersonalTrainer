@@ -97,6 +97,9 @@ class RestTimerController(
      */
     @Volatile
     internal var betweenSkipReadAndClear: (() -> Unit)? = null
+
+    /** Test seam: after a successful [RestTimerStore.clearIfCurrent], before completion is published. */
+    internal var betweenCompleteClearAndMark: (() -> Unit)? = null
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
 
     /**
@@ -217,10 +220,10 @@ class RestTimerController(
         // finish. A process started after death has held nothing, so a rest that ran out while
         // it was dead still completes.
         if (!current.running && store.hasHeld(timerId)) return false
-        val cleared = store.clearIfCurrent(timerId)
-        if (cleared == null || (!cleared.running && store.hasHeld(timerId))) {
-            return false
-        }
+        val cleared = store.clearIfCurrent(timerId) ?: return false
+        if (!cleared.running && store.hasHeld(timerId)) return false
+        betweenCompleteClearAndMark?.invoke()
+        if (store.current().running) return false
         _lastCompletedWasCooldown.value = RestTimerMarkers.isCooldown(cleared)
         markCompleted(timerId)
         afterHalt(wasRunning = cleared.running, fromService = fromService, timerId = cleared.timerId)
