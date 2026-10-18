@@ -360,7 +360,9 @@ class AppContainer(context: Context) : AppDependencies {
             restTimerStore,
             restTimerStatePersistence,
             ioDispatcher = ioDispatcher,
-        )
+        ).also { controller ->
+            workoutRepository.onWorkoutSessionStarted = { controller.stopIfCooldown() }
+        }
     override val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache().also {
         it.persistence = durableWorkoutDrafts
     }
@@ -423,6 +425,7 @@ class AppContainer(context: Context) : AppDependencies {
     override val startLiveCardio: StartLiveCardio = StartLiveCardio(
         startLiveActivity = startLiveActivity,
         cardioTimerPersistence = cardioTimerPersistence,
+        onSessionStarted = { restTimerController.stopIfCooldown() },
     )
     override val startOccurrence: StartOccurrence = StartOccurrence(
         plannerRepository = plannerRepository,

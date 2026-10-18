@@ -19,6 +19,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.overlay.OVERLAY_VOLT_COLOR
@@ -73,6 +74,16 @@ object RestTimerOverlayController {
         val appContext = context.applicationContext
         if (Settings.canDrawOverlays(appContext)) return true
         return appOpsAllowsOverlay(appContext)
+    }
+
+    /** True when the draggable dot would be on screen; pairs with the quiet MIN notification. */
+    fun prefersQuietShade(context: Context, state: RestTimerSnapshot): Boolean {
+        if (!state.running) return false
+        if (RestTimerAppForeground.isInForeground) return false
+        if (RestTimerLockGlance.shouldAutoPresentRunning(context)) return false
+        if (!canDrawOverlays(context)) return false
+        if (RestOverlayDismissStore.isDismissedForRest(context, state.timerId)) return false
+        return true
     }
 
     fun sync(
@@ -215,10 +226,15 @@ object RestTimerOverlayController {
         val time = view.findViewById<TextView>(R.id.rest_overlay_time)
         val kicker = view.findViewById<TextView>(R.id.rest_overlay_kicker)
         val appContext = view.context.applicationContext
+        val runningKicker = if (RestTimerMarkers.isCooldown(state)) {
+            R.string.rest_overlay_kicker_cooldown
+        } else {
+            R.string.lockscreen_rest_widget_kicker
+        }
         val model = RestExteriorDisplay.model(
             state = state,
             nowElapsedRealtime = SystemClock.elapsedRealtime(),
-            kickerRunning = appContext.getString(R.string.lockscreen_rest_widget_kicker),
+            kickerRunning = appContext.getString(runningKicker),
             kickerDone = appContext.getString(R.string.rest_exterior_done_kicker),
         )
         ring.progress = model.progressLevel.toFloat() / RestExteriorDisplay.PROGRESS_MAX

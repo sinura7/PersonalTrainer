@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,7 +49,13 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.CooldownCopy
+import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.RestTimerMarkers
+import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.SummaryCopy
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import com.sinura.personaltrainer.domain.SummaryHeadline
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -106,6 +113,9 @@ fun WorkoutSummaryScreen(
         onRetry = viewModel::retry,
         onOpenSession = onOpenSession,
         onDone = onDone,
+        onSkipCooldown = viewModel::skipCooldown,
+        restSnapshot = viewModel.restTimerSnapshot,
+        restRemaining = viewModel.restRemainingSeconds,
     )
 }
 
@@ -116,6 +126,9 @@ internal fun WorkoutSummaryContent(
     onRetry: () -> Unit,
     onOpenSession: (String) -> Unit,
     onDone: () -> Unit,
+    onSkipCooldown: () -> Unit = {},
+    restSnapshot: StateFlow<RestTimerSnapshot>? = null,
+    restRemaining: Flow<Int>? = null,
 ) {
     val summary = state.summary
 
@@ -221,12 +234,63 @@ internal fun WorkoutSummaryContent(
                     }
                 }
 
+                if (restSnapshot != null && restRemaining != null) {
+                    SummaryCooldownStrip(
+                        restSnapshot = restSnapshot,
+                        restRemaining = restRemaining,
+                        onSkip = onSkipCooldown,
+                    )
+                }
                 HairlineDivider(startIndent = 0.dp)
                 SummaryActions(
                     onDone = onDone,
                     onOpenSession = { onOpenSession(summary.sessionId) },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SummaryCooldownStrip(
+    restSnapshot: StateFlow<RestTimerSnapshot>,
+    restRemaining: Flow<Int>,
+    onSkip: () -> Unit,
+) {
+    val snapshot by restSnapshot.collectAsStateWithLifecycle()
+    if (!RestTimerMarkers.isCooldown(snapshot) || !snapshot.running) return
+    val remaining by restRemaining.collectAsStateWithLifecycle(
+        initialValue = snapshot.remainingSeconds(android.os.SystemClock.elapsedRealtime()),
+    )
+    val reducedMotion = LocalReducedMotion.current
+    val shownSeconds = if (reducedMotion) {
+        remaining
+    } else {
+        val animated by animateIntAsState(remaining, animationSpec = instrumentTween(Motion.DRAW), label = "cooldown")
+        animated
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SummaryTags.COOLDOWN)
+            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+            Kicker(CooldownCopy.KICKER)
+            Text(
+                RestTimer.formatClock(shownSeconds),
+                style = InstrumentType.title,
+                color = TextPrimary,
+                modifier = Modifier.testTag(SummaryTags.COOLDOWN_CLOCK),
+            )
+        }
+        TextButton(
+            onClick = onSkip,
+            modifier = Modifier.testTag(SummaryTags.COOLDOWN_SKIP),
+        ) {
+            Text(CooldownCopy.SKIP, style = InstrumentType.bodyStrong, color = TextSecondary)
         }
     }
 }
@@ -568,6 +632,9 @@ object SummaryTags {
     const val DURATION = "summary-duration"
     const val HEADLINE = "summary-headline"
     const val BODYWEIGHT_REPS = "summary-bodyweight-reps"
+    const val COOLDOWN = "summary-cooldown"
+    const val COOLDOWN_CLOCK = "summary-cooldown-clock"
+    const val COOLDOWN_SKIP = "summary-cooldown-skip"
     const val DONE = "summary-done"
     const val OPEN_SESSION = "summary-open-session"
     const val RETRY = "summary-retry"

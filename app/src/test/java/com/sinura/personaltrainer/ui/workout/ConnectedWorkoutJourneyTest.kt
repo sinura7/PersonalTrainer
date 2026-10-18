@@ -232,7 +232,7 @@ class ConnectedWorkoutJourneyTest {
         assertNotNull(finished.finishedAt)
         assertSet(finished.sets.single(), sessionId, original.id, 80.0, 11, 9)
         assertNull(runBlocking { deps.workoutRepository.getInProgress() })
-        assertFalse(deps.restTimerStore.current().running)
+        assertTrue(com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(deps.restTimerStore.current()))
         val summaryState = summary.uiState.value
         assertTrue(summaryState.savedConfirmed)
         assertFalse(summaryState.failed)

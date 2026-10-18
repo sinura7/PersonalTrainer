@@ -442,6 +442,20 @@ private class InMemoryRestTimerGateway(
         store.start(totalSeconds, sessionId, elapsedRealtimeMs, sourceTag = sourceTag)
     }
 
+    override fun startCooldown() {
+        start(
+            com.sinura.personaltrainer.domain.RestTimerMarkers.COOLDOWN_SECONDS,
+            sessionId = null,
+            sourceTag = com.sinura.personaltrainer.domain.RestTimerMarkers.COOLDOWN,
+        )
+    }
+
+    override fun stopIfCooldown(fromService: Boolean) {
+        if (store.current().sourceTag == com.sinura.personaltrainer.domain.RestTimerMarkers.COOLDOWN) {
+            stop(fromService)
+        }
+    }
+
     override fun adjust(deltaSeconds: Int) {
         store.adjust(deltaSeconds, elapsedRealtimeMs)
     }

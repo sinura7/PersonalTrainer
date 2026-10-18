@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.SystemClock
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.recoverWith
@@ -135,6 +136,14 @@ class RestTimerController(
         _lastCompletedTimerId.value = null
         store.start(totalSeconds, sessionId, SystemClock.elapsedRealtime(), sourceTag = sourceTag)
         persistThenArm(syncService = true)
+    }
+
+    override fun startCooldown() {
+        start(RestTimerMarkers.COOLDOWN_SECONDS, sessionId = null, sourceTag = RestTimerMarkers.COOLDOWN)
+    }
+
+    override fun stopIfCooldown(fromService: Boolean) {
+        if (RestTimerMarkers.isCooldown(store.current())) stop(fromService)
     }
 
     override fun adjust(deltaSeconds: Int) {
@@ -276,6 +285,7 @@ class RestTimerController(
                     sessionId = outcome.sessionId,
                     nowElapsedRealtime = SystemClock.elapsedRealtime(),
                     timerId = outcome.timerId,
+                    sourceTag = outcome.sourceTag,
                 )
                 persistThenArm(syncService = true)
                 true
@@ -395,6 +405,7 @@ class RestTimerController(
                     totalSeconds = snap.totalSeconds,
                     sessionId = snap.sessionId,
                     timerId = snap.timerId,
+                    sourceTag = snap.sourceTag,
                 ),
             )
         }

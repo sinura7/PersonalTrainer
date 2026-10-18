@@ -8,7 +8,9 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.WorkoutSummary
+import kotlinx.coroutines.flow.Flow
 import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -67,6 +69,9 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
     /** Watches the automatic backup's line; the copy itself belongs to the app. */
     private var autoBackupWatch: Job? = null
     val uiState: StateFlow<WorkoutSummaryUiState> = _uiState.asStateFlow()
+
+    val restTimerSnapshot: StateFlow<RestTimerSnapshot> = container.restTimerController.snapshot
+    val restRemainingSeconds: Flow<Int> = container.restTimerController.remainingSeconds
 
     private var loading: Job? = null
 
@@ -182,6 +187,13 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
      * only, never isLoading or missing: a Drive failure must not render "Nothing to
      * summarise" over a workout that happened.
      */
+    fun skipCooldown() {
+        val timerId = container.restTimerController.snapshot.value.timerId
+        if (timerId.isNotBlank()) {
+            container.restTimerController.skipIfShown(timerId)
+        }
+    }
+
     fun maybeAutoBackup(activity: Activity) {
         val backup = container.afterWorkoutBackup
         backup.start(sessionId, activity)

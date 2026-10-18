@@ -101,6 +101,7 @@ class FinishWorkout(
             }
             if (port == null) { finish(notes ?: session.notes); retirePrivateDraft(sessionId) }
             else port.finishAtomically(sessionId, notes, finish)
+            restTimer.startCooldown()
             FinishOutcome.Finished(sessionId)
         }.getOrElse { thrown ->
             if (thrown is WorkoutFinishRefused) return@getOrElse FinishOutcome.Failed(thrown.reason)

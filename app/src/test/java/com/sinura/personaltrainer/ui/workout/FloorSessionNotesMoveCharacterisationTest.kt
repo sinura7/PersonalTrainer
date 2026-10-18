@@ -460,7 +460,7 @@ class FloorSessionNotesMoveCharacterisationTest {
             assertEquals(before.sets, finished.sets)
             assertEquals(before.startedAt, finished.startedAt)
             assertTrue(finished.isFinished)
-            assertFalse(deps.restTimerStore.current().running)
+            assertTrue(com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(deps.restTimerStore.current()))
             assertNull(deps.workoutDraftCache.sessionNotes(sessionId))
         } finally {
             val job = checkNotNull(bar.viewModelScope.coroutineContext[Job])
@@ -535,7 +535,7 @@ class FloorSessionNotesMoveCharacterisationTest {
         assertEquals(before.sets, finished.sets)
         assertEquals(before.startedAt, finished.startedAt)
         assertTrue(finished.isFinished)
-        assertFalse(deps.restTimerStore.current().running)
+        assertTrue(com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(deps.restTimerStore.current()))
         assertNull(deps.workoutDraftCache.sessionNotes(sessionId))
         vm.setNotes("late row emission")
         pauseTyping()

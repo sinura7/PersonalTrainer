@@ -108,6 +108,7 @@ class RestTimerStore(
         nowElapsedRealtime: Long,
         nowWallClockMillis: Long = System.currentTimeMillis(),
         timerId: String,
+        sourceTag: String = "",
     ) {
         publish(
             RestTimerSnapshot(
@@ -116,6 +117,7 @@ class RestTimerStore(
                 totalSeconds = totalSeconds.coerceAtLeast(1),
                 sessionId = sessionId,
                 timerId = timerId,
+                sourceTag = sourceTag,
             ),
         )
     }

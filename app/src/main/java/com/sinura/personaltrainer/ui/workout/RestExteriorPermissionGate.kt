@@ -19,7 +19,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.PhoneCapability
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.PermissionsCopy
 import com.sinura.personaltrainer.domain.RestExteriorPermissionCopy
 import com.sinura.personaltrainer.domain.RestExteriorPermissions
@@ -36,6 +39,15 @@ internal val LocalRestExteriorAsk = compositionLocalOf {
     RestExteriorAsk(asked = true, markAsked = {})
 }
 
+@Composable
+private fun rememberRestCooldownActive(): Boolean {
+    val context = LocalContext.current
+    val app = context.applicationContext
+    if (app !is PersonalTrainerApp) return false
+    val restSnapshot by app.container.restTimerController.snapshot.collectAsStateWithLifecycle()
+    return RestTimerMarkers.isCooldown(restSnapshot)
+}
+
 /**
  * Rest-exterior permissions (shade, overlay, exact alarm) asked in context on the workout
  * floor when rest is relevant — not as a root-level block on every app resume.
@@ -45,6 +57,7 @@ internal val LocalRestExteriorAsk = compositionLocalOf {
 @Composable
 internal fun RestExteriorPermissionGate(active: Boolean) {
     val context = LocalContext.current
+    val cooldownActive = rememberRestCooldownActive()
     val ask = LocalRestExteriorAsk.current
     val probe = remember { AndroidPhoneCapabilities(context) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -63,8 +76,8 @@ internal fun RestExteriorPermissionGate(active: Boolean) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(active, ask.asked, snapshot) {
-        if (!active || ask.asked == true || decided) {
+    LaunchedEffect(active, cooldownActive, ask.asked, snapshot) {
+        if (!active || cooldownActive || ask.asked == true || decided) {
             show = false
             return@LaunchedEffect
         }

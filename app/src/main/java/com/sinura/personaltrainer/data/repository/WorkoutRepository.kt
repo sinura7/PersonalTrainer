@@ -109,6 +109,9 @@ class WorkoutRepository(
 ) {
     /** Private draft fences precede destructive changes; no portable/schema contract changes. */
     internal var beforeWorkoutDestruction: suspend (String) -> Unit = {}
+
+    /** Fired when a new strength session row is inserted (not when blocked by an in-progress one). */
+    internal var onWorkoutSessionStarted: () -> Unit = {}
     private suspend fun fenceWorkoutDrafts() {
         kotlin.coroutines.coroutineContext[com.sinura.personaltrainer.workout.WorkoutMutationPermit]?.requireAllowed()
         beforeWorkoutDestruction("workout-change:${java.util.UUID.randomUUID()}")
@@ -511,7 +514,9 @@ class WorkoutRepository(
     ): StartSessionOutcome {
         val insert = insertSessionIfIdle(session, exercises)
             ?: return StartSessionOutcome.Unavailable("One live activity at a time.")
-        return materializeStart(insert)
+        val outcome = materializeStart(insert)
+        if (insert.inserted) onWorkoutSessionStarted()
+        return outcome
     }
 
     private data class SessionInsert(val sessionId: String, val inserted: Boolean)

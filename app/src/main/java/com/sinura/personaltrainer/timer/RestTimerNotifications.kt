@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 
 /**
@@ -179,15 +180,10 @@ object RestTimerNotifications {
             remainingSeconds = remaining,
             nowElapsedRealtime = nowElapsedRealtime,
         )
-        val channelId = when (presentation) {
-            RestTimerRunningPresentation.FOREGROUND_IN_APP -> CHANNEL_RUNNING_IN_APP
-            RestTimerRunningPresentation.BACKGROUND_UNLOCKED,
-            RestTimerRunningPresentation.LOCKED,
-            -> CHANNEL_RUNNING
-        }
+        val channelId = runningChannelId(appContext, state, presentation)
         val builder = NotificationCompat.Builder(appContext, channelId)
             .setSmallIcon(R.drawable.ic_stat_timer)
-            .setContentTitle("Rest")
+            .setContentTitle(runningTitle(appContext, state))
             .setContentText(RestTimer.remainingCopy(remaining))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -205,14 +201,21 @@ object RestTimerNotifications {
                     .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_DEFERRED)
             }
             RestTimerRunningPresentation.BACKGROUND_UNLOCKED -> {
-                // Do not setSilent: lock path needs public cards; here we only need shade.
-                builder
-                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                    .setCustomContentView(compact)
-                    .setCustomBigContentView(expanded)
-                    .setStyle(NotificationCompat.DecoratedCustomViewStyle())
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                if (RestTimerOverlayController.prefersQuietShade(appContext, state)) {
+                    builder
+                        .setSilent(true)
+                        .setPriority(NotificationCompat.PRIORITY_MIN)
+                        .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+                        .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_DEFERRED)
+                } else {
+                    builder
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                        .setCustomContentView(compact)
+                        .setCustomBigContentView(expanded)
+                        .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                        .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                }
             }
             RestTimerRunningPresentation.LOCKED -> {
                 // Debug 114 lock path — unchanged until owner picks a new lock UX.
@@ -293,6 +296,34 @@ object RestTimerNotifications {
         } catch (_: Exception) {
             false
         }
+    }
+
+    fun runningTitle(context: Context, state: RestTimerSnapshot): String {
+        val res = if (RestTimerMarkers.isCooldown(state)) {
+            R.string.rest_notification_title_cooldown
+        } else {
+            R.string.rest_notification_title_rest
+        }
+        return context.getString(res)
+    }
+
+    /**
+     * MIN channel while Temper is foreground or while the floating dot would show (overlay on,
+     * not dismissed). Lock glance keeps the public HIGH running channel.
+     */
+    fun runningChannelId(
+        context: Context,
+        state: RestTimerSnapshot,
+        presentation: RestTimerRunningPresentation,
+    ): String = when (presentation) {
+        RestTimerRunningPresentation.FOREGROUND_IN_APP -> CHANNEL_RUNNING_IN_APP
+        RestTimerRunningPresentation.BACKGROUND_UNLOCKED ->
+            if (RestTimerOverlayController.prefersQuietShade(context, state)) {
+                CHANNEL_RUNNING_IN_APP
+            } else {
+                CHANNEL_RUNNING
+            }
+        RestTimerRunningPresentation.LOCKED -> CHANNEL_RUNNING
     }
 
     fun isRestDoneChannelEnabled(context: Context): Boolean {

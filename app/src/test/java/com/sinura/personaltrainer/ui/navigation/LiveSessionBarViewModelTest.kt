@@ -130,7 +130,7 @@ class LiveSessionBarViewModelTest {
         val saved = checkNotNull(deps.workoutRepository.getSession(fixture.session.id))
         assertEquals("keep this", saved.notes)
         assertTrue(saved.isFinished)
-        assertFalse(deps.restTimerStore.current().running)
+        assertTrue(com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(deps.restTimerStore.current()))
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
 
         vm.onFinishNavigationHandled()

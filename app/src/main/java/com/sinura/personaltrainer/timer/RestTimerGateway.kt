@@ -37,6 +37,13 @@ interface RestTimerGateway {
         get() = ALWAYS_HEALTHY
 
     fun start(totalSeconds: Int, sessionId: String?, sourceTag: String = "")
+
+    /** Post-finish cool-down: no session link, marker [com.sinura.personaltrainer.domain.RestTimerMarkers.COOLDOWN]. */
+    fun startCooldown() {}
+
+    /** Ends only a running cool-down; leaves a normal rest alone. */
+    fun stopIfCooldown(fromService: Boolean = false) {}
+
     fun adjust(deltaSeconds: Int)
     fun stop(fromService: Boolean = false)
 
