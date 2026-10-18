@@ -5845,7 +5845,7 @@
         "adversarial": "N/A — tracking note only.",
         "cleanContext": "Documented on trunk-green #542; fix deferred to a later packet."
       },
-      "11d0712a": {
+      "edbc3e3f": {
         "when": "2026-10-18",
         "packet": "CI: raise hosted gate job and unit-test step timeouts (Allen-approved)",
         "gate": "preflight.sh static half OK. .github/workflows/ci.yml only: verify job timeout-minutes 30→40; Unit tests step 20→25. Smoke job stays 45m non-blocking; no skipped steps. Why: post-#542 single-JVM unit step ~16–17m (too close to 20m); P10 stack run 39135917503 gate job passed in 29m23s after ~5.5m debug-build cache miss on app-code push; 39135921063 gate job cancelled at ~30m20s during instrumented compile. Hosted gate job must pass on this PR. UX31 tracks cutting suite time.",
