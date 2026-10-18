@@ -198,7 +198,7 @@ class HomeDayContinuityInstrumentedTest {
         }
         val live = read { checkNotNull(container.workoutRepository.getSession(checkNotNull(sessionId))) }
         assertEquals(LocalDate.ofEpochDay(today), Instant.ofEpochMilli(live.startedAt).atZone(ZoneId.systemDefault()).toLocalDate())
-        compose.onNodeWithContentDescription("Exit workout").assertIsDisplayed().performClick()
+        compose.onNodeWithContentDescription("Close").assertIsDisplayed().performClick()
         await(LiveSessionBarTestTags.ROOT)
         assertDate(selected)
         compose.onNodeWithTag(HomeTags.START).assertDoesNotExist()

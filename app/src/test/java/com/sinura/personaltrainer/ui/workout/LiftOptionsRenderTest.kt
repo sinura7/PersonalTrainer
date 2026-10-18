@@ -98,7 +98,8 @@ class LiftOptionsRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = floorSets(1))
         compose.showWorkoutScreen(vm)
         openOptions()
-        compose.onNode(hasText(SWAP, substring = true) and hasClickAction()).assertIsDisplayed().assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWAP).assertIsDisplayed().assertIsNotEnabled()
+        compose.onAllNodes(hasText(SWAP, substring = true) and hasClickAction()).assertCountEquals(2)
         compose.onNode(hasText(REMOVE, substring = true) and hasClickAction()).assertIsDisplayed().assertIsNotEnabled()
         // Said under each, in words, rather than a control that silently vanished.
         compose.onAllNodesWithText(BLOCKED, useUnmergedTree = true).assertCountEquals(2)
@@ -112,7 +113,8 @@ class LiftOptionsRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = emptyList(), withNextLift = true)
         compose.showWorkoutScreen(vm)
         openOptions()
-        compose.onNode(hasText(SWAP, substring = true) and hasClickAction()).assertIsEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWAP).assertIsEnabled()
+        compose.onAllNodes(hasText(SWAP, substring = true) and hasClickAction()).assertCountEquals(2)
         compose.onAllNodesWithText(BLOCKED, useUnmergedTree = true).assertCountEquals(0)
         compose.onNode(hasText(REMOVE, substring = true) and hasClickAction()).assertIsEnabled().performClick()
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.undoEntries.value.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
@@ -177,6 +179,7 @@ class LiftOptionsRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = emptyList(), withNextLift = true)
         compose.showWorkoutScreen(vm)
         openOptions()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWAP).assertIsDisplayed()
         listOf(
             CurrentLiftCopy.SWITCH,
             CurrentLiftCopy.DETAILS_SPOKEN,
@@ -186,7 +189,6 @@ class LiftOptionsRenderTest {
             CurrentLiftCopy.SWAP,
             CurrentLiftCopy.REMOVE,
         ).forEach { label ->
-            compose.onNodeWithText(label, substring = true).assertIsDisplayed()
             compose.onNodeWithTag(InstrumentMenuTags.leadingIcon(label), useUnmergedTree = true).assertIsDisplayed()
         }
     }

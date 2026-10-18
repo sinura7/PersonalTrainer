@@ -75,15 +75,39 @@ internal fun ExerciseHeader(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     focused: Boolean = false,
+    onSwipePrevious: (() -> Unit)? = null,
+    onSwipeNext: (() -> Unit)? = null,
+    canSwipePrevious: Boolean = false,
+    canSwipeNext: Boolean = false,
+    onSwap: (() -> Unit)? = null,
+    canSwap: Boolean = false,
 ) {
+    val swipeModifier = modifier.liftHeaderSwipe(
+        enabled = enabled && total > 1 && onSwipePrevious != null && onSwipeNext != null,
+        canPrevious = canSwipePrevious,
+        canNext = canSwipeNext,
+        onPrevious = { onSwipePrevious?.invoke() },
+        onNext = { onSwipeNext?.invoke() },
+    )
     if (focused) {
-        FocusExerciseIdentity(lift, number, total, setContext, onOpenSwitcher, onDetails, modifier, enabled)
+        FocusExerciseIdentity(
+            lift,
+            number,
+            total,
+            setContext,
+            onOpenSwitcher,
+            onDetails,
+            swipeModifier,
+            enabled,
+            onSwap,
+            canSwap,
+        )
         return
     }
     val meaning = LoadClass.of(lift.exercise.loadType).weightMeaning
     val equipment = CurrentLiftCopy.secondaryLine(lift.exercise.equipment.label, meaning)
     Box(
-        modifier = modifier
+        modifier = swipeModifier
             .fillMaxWidth()
             .testTag(WorkoutTestTags.CURRENT_LIFT),
     ) {
@@ -138,6 +162,9 @@ internal fun ExerciseHeader(
                 warmup = draftWarmup,
                 onWarmup = onWarmup,
             )
+            if (onSwap != null) {
+                HeaderSwapLink(enabled = enabled && canSwap, onSwap = onSwap)
+            }
         }
     }
 }
@@ -153,8 +180,13 @@ private fun FocusExerciseIdentity(
     onDetails: () -> Unit,
     modifier: Modifier,
     enabled: Boolean,
+    onSwap: (() -> Unit)?,
+    canSwap: Boolean,
 ) {
-    Box(modifier.fillMaxWidth().testTag(WorkoutTestTags.CURRENT_LIFT)) {
+    Column(
+        modifier = modifier.fillMaxWidth().testTag(WorkoutTestTags.CURRENT_LIFT),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
     Row(
         modifier = Modifier.fillMaxWidth()
             .testTag(WorkoutTestTags.liftCard(lift.exercise.id)).semantics { isTraversalGroup = true },
@@ -196,7 +228,25 @@ private fun FocusExerciseIdentity(
             }
         }
     }
+    if (onSwap != null) {
+        HeaderSwapLink(enabled = enabled && canSwap, onSwap = onSwap)
     }
+    }
+}
+
+@Composable
+private fun HeaderSwapLink(
+    enabled: Boolean,
+    onSwap: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    QuietButton(
+        text = CurrentLiftCopy.SWAP,
+        onClick = onSwap,
+        enabled = enabled,
+        modifier = modifier.testTag(WorkoutTestTags.LIFT_SWAP),
+        onClickLabel = CurrentLiftCopy.SWAP,
+    )
 }
 
 /**

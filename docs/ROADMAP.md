@@ -33,6 +33,10 @@
 > beside the other Gson-only backup sources so `tools/preflight.sh` compiles
 > `BackupStageCopyTest` on trunk.
 >
+> 17 Oct 2026 — UX blueprint P10 (R7): horizontal swipe on the lift header
+> for previous/next in session order, header Swap link, workout Close label.
+> Lift counter tap still opens the full switcher.
+>
 > 16 Oct 2026 — P19 residuals: the week strip's three calendar checks
 > stay as automated evidence. Screen reader walks, landscape keyboard
 > touch, the old Swap opening, and Close / Another set stay open.
