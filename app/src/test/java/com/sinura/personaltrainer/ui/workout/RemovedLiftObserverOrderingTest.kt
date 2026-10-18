@@ -124,7 +124,17 @@ class RemovedLiftObserverOrderingTest {
         mainGate.arm(removalJob)
 
         try {
-            pumpUntil("Room's removal return is held", { mainGate.isHeld }) { mainGate.isHeld }
+            pumpUntil(
+                "Room's removal return is held on Main",
+                { "held=${mainGate.isHeld} removalComplete=${removalJob.isCompleted}" },
+            ) {
+                if (removalJob.isCompleted && !mainGate.isHeld) {
+                    throw AssertionError(
+                        "removal finished without a held Main dispatch (OneJobResumeGate never captured the Room return)",
+                    )
+                }
+                mainGate.isHeld
+            }
             val committed = checkNotNull(runBlocking { unheld.getSession(sessionId) })
             assertEquals(
                 "the actual committed Room row contains only the survivor",
@@ -197,8 +207,7 @@ class RemovedLiftObserverOrderingTest {
         do {
             scheduler.runCurrent()
             if (predicate()) return
-            Thread.yield()
-            Thread.sleep(5)
+            Thread.sleep(1)
         } while (System.nanoTime() < deadline)
         throw AssertionError("$what did not arrive within ${TestWaits.FLOW_MS} ms; last=${last()}")
     }

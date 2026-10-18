@@ -188,7 +188,8 @@ for c in "check-internal-imports.py" \
          "test_kotlin_source.py" \
          "test_syntax_check.py" \
          "test_version_ratchet.py" \
-         "test_release_lane.py"; do
+         "test_release_lane.py" \
+         "test_ux_backlog_json.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"

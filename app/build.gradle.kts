@@ -146,8 +146,8 @@ android {
                 it.jvmArgs(
                     "-XX:CompileCommand=exclude,androidx/room/driver/SupportSQLiteConnection.prepare",
                 )
-                // Landscape / large-font Compose render suites can retain window bitmaps;
-                // capture helpers recycle them. One JVM keeps CI under the 20-minute step cap.
+                // Compose render evidence can retain large bitmaps; several capture helpers
+                // recycle them. Single-JVM runs stay under the hosted 20-minute unit-test step.
                 it.maxHeapSize = "2048m"
             }
         }

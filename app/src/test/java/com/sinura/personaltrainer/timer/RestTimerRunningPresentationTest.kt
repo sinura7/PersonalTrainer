@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.KeyguardManager
 import android.os.PowerManager
 import androidx.test.core.app.ApplicationProvider
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,6 +14,11 @@ import org.robolectric.Shadows.shadowOf
 @RunWith(RobolectricTestRunner::class)
 class RestTimerRunningPresentationTest {
     private val context: Application = ApplicationProvider.getApplicationContext()
+
+    @After
+    fun resetForeground() {
+        RestTimerAppForeground.setForegroundForTest(false)
+    }
 
     @Test
     fun foregroundWhileUnlockedUsesInAppPresentation() {
