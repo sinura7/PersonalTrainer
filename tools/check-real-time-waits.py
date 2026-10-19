@@ -105,10 +105,14 @@ def normalize_line(line: str) -> str:
 
 
 def normalize_allowlist_path(path_part: str) -> str:
+    if os.path.isabs(path_part):
+        raise SystemExit(f"allowlist path must be repo-relative, got absolute path {path_part!r}")
     normalized = os.path.normpath(path_part).replace("\\", "/")
-    if normalized.startswith("../"):
+    if os.path.isabs(normalized):
+        raise SystemExit(f"allowlist path must be repo-relative, got absolute path {path_part!r}")
+    if normalized.startswith("../") or normalized == "..":
         raise SystemExit(f"allowlist path must be repo-relative, got {path_part!r}")
-    return normalized.lstrip("./")
+    return normalized
 
 
 def is_test_source_set_name(name: str) -> bool:
@@ -140,7 +144,10 @@ def load_allowlist(path: str) -> list[tuple[str, str, str, int]]:
                     f"{path}:{line_no}: expected path | code | reason | count, got {len(parts)} fields",
                 )
             path_part, code_part, reason, count_text = parts
-            path_part = normalize_allowlist_path(path_part)
+            try:
+                path_part = normalize_allowlist_path(path_part)
+            except SystemExit as exc:
+                raise SystemExit(f"{path}:{line_no}: {exc}") from None
             if not reason:
                 raise SystemExit(f"{path}:{line_no}: allowlist reason must be non-empty")
             if not ASCII_DIGITS.fullmatch(count_text):
@@ -279,6 +286,24 @@ def reconcile_allowlist(
     return unlisted, stale
 
 
+DISCOVERY_SKIP_DIRS = frozenset({".git", ".gradle", ".idea", ".kotlin", "node_modules", "build"})
+
+
+def _prune_discovery_dirnames(dirnames: list[str], inside_test_set: bool) -> None:
+    for name in list(dirnames):
+        if name in DISCOVERY_SKIP_DIRS or name.startswith("."):
+            dirnames.remove(name)
+    if inside_test_set and "src" in dirnames:
+        dirnames.remove("src")
+
+
+def _inside_known_test_set(rel_dir: str, known_roots: set[str]) -> bool:
+    for root in known_roots:
+        if rel_dir == root or rel_dir.startswith(f"{root}/"):
+            return True
+    return False
+
+
 def discover_test_source_roots(repo_root: str) -> list[str]:
     """Every module src/<set> tree whose set name is a Gradle test source set."""
     repo_root = os.path.abspath(repo_root)
@@ -286,24 +311,28 @@ def discover_test_source_roots(repo_root: str) -> list[str]:
     seen_rel: set[str] = set()
 
     for dirpath, dirnames, _filenames in os.walk(repo_root):
-        rel_parts = os.path.relpath(dirpath, repo_root).replace("\\", "/").split("/")
-        if "build" in rel_parts:
-            dirnames.clear()
-            continue
-        if len(rel_parts) < 2 or rel_parts[-2] != "src":
+        rel_dir = os.path.relpath(dirpath, repo_root).replace("\\", "/")
+        if rel_dir == ".":
+            rel_parts: list[str] = []
+        else:
+            rel_parts = rel_dir.split("/")
+        inside = _inside_known_test_set(rel_dir, seen_rel)
+        _prune_discovery_dirnames(dirnames, inside)
+        if len(rel_parts) < 3 or rel_parts[-2] != "src":
             continue
         set_name = rel_parts[-1]
         if not is_test_source_set_name(set_name):
             continue
         module_rel = "/".join(rel_parts[:-2])
         module_dir = os.path.join(repo_root, module_rel) if module_rel else repo_root
+        rel_set = rel_dir
         if module_build_file(module_dir) is None:
-            rel_set = os.path.relpath(dirpath, repo_root).replace("\\", "/")
-            raise SystemExit(
-                f"{rel_set}: test source set is not under a recognised Gradle module "
-                f"(expected build.gradle or build.gradle.kts in {module_rel or '.'})",
-            )
-        rel_set = os.path.relpath(dirpath, repo_root).replace("\\", "/")
+            if len(rel_parts) == 3:
+                raise SystemExit(
+                    f"{rel_set}: test source set is not under a recognised Gradle module "
+                    f"(expected build.gradle or build.gradle.kts in {module_rel or '.'})",
+                )
+            continue
         if rel_set not in seen_rel:
             seen_rel.add(rel_set)
             roots.append(rel_set)

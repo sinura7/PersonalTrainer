@@ -504,6 +504,8 @@ def main() -> int:
         encoding="utf-8",
     )
     expect_allowlist_systemexit(mod, bad_path, "duplicate allowlist row")
+    bad_path.write_text("/etc/passwd | Thread.sleep(1) | abs | 1\n", encoding="utf-8")
+    expect_allowlist_systemexit(mod, bad_path, "absolute path")
     ok("allowlist | N validation rejects bad rows with path:line")
 
     alias_root = Path(tempfile.mkdtemp(prefix="real-time-waits-alias-"))
@@ -704,6 +706,24 @@ def main() -> int:
     if scan_code != 0:
         raise SystemExit(f"FAIL discovered test source roots scan: {buf.getvalue()}")
     ok("discovered test source set directories are scanned")
+
+    fp_root = Path(tempfile.mkdtemp(prefix="real-time-waits-fp-"))
+    app_fp = fp_root / "app"
+    app_fp.mkdir(parents=True)
+    (app_fp / "build.gradle.kts").write_text("", encoding="utf-8")
+    gradle_trap = fp_root / ".gradle" / "src" / "test" / "Trap.kt"
+    gradle_trap.parent.mkdir(parents=True, exist_ok=True)
+    gradle_trap.write_text("class Trap { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
+    main_trap = app_fp / "src" / "main" / "src" / "test" / "MainTrap.kt"
+    main_trap.parent.mkdir(parents=True, exist_ok=True)
+    main_trap.write_text("class MainTrap { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
+    legit = app_fp / "src" / "test" / "kotlin" / "Legit.kt"
+    legit.parent.mkdir(parents=True, exist_ok=True)
+    legit.write_text("class Legit { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
+    fp_roots = mod.discover_test_source_roots(str(fp_root))
+    if fp_roots != ["app/src/test"]:
+        raise SystemExit(f"FAIL discovery false positives included: {fp_roots}")
+    ok("discovery ignores .gradle and nested src/test under main")
 
     count = len(FIXTURE_CASES)
     print(f"test_real_time_waits: all assertions passed ({count} fixture cases)")
