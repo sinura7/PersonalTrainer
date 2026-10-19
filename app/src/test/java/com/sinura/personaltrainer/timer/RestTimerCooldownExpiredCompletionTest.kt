@@ -99,8 +99,9 @@ class RestTimerCooldownExpiredCompletionTest {
             action = RestTimerAlarmReceiver.ACTION_REST_COMPLETE
             putExtra(RestTimerService.EXTRA_TIMER_ID, timerId)
         }
-        RestTimerAlarmReceiver().onReceive(app, intent)
+        app.sendBroadcast(intent)
         awaitDoneNotification(app)
+        repeat(20) { shadowOf(app.mainLooper).idle() }
 
         val posted = app.getSystemService(NotificationManager::class.java)
             .activeNotifications
@@ -124,4 +125,5 @@ class RestTimerCooldownExpiredCompletionTest {
             shadowOf(context.mainLooper).idle()
         }
     }
+
 }
