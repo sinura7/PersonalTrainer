@@ -23,7 +23,6 @@ import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -62,19 +61,6 @@ class A00P12CooldownFinishInstrumentedTest {
         compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.rpe == 8 }
     }
 
-    private fun clearRestBeforeFinish() {
-        runBlocking(Dispatchers.Main) {
-            val snap = fixture.container.restTimerStore.current()
-            if (snap.running) {
-                if (!fixture.container.restTimerController.skipIfShown(snap.timerId)) {
-                    fixture.container.restTimerController.stop(fromService = false)
-                }
-            }
-        }
-        compose.waitUntil(15_000) { !fixture.container.restTimerStore.current().running }
-        compose.waitForIdle()
-    }
-
     @Test
     fun finishStartsCooldownInTheStore() {
         fixture.seed(targetSets = 1)
@@ -98,21 +84,16 @@ class A00P12CooldownFinishInstrumentedTest {
         pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
-        clearRestBeforeFinish()
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed().performClick()
-        compose.waitUntil(30_000) {
+        compose.waitUntil(15_000) {
             compose.onAllNodes(hasTestTag(EndWorkoutTags.SAVE), useUnmergedTree = true)
                 .fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(EndWorkoutTags.SAVE, useUnmergedTree = true).assertIsDisplayed().performClick()
-        runBlocking(Dispatchers.IO) {
-            withTimeout(60_000) {
-                while (true) {
-                    val finished = fixture.container.workoutRepository.getSession(fixture.sessionId)?.isFinished == true
-                    val snap = fixture.container.restTimerStore.current()
-                    if (finished && snap.running && RestTimerMarkers.isCooldown(snap)) break
-                }
-            }
+        compose.waitUntil(15_000) { session().isFinished }
+        compose.waitUntil(15_000) {
+            val snap = fixture.container.restTimerStore.current()
+            snap.running && RestTimerMarkers.isCooldown(snap)
         }
         val snap = fixture.container.restTimerStore.current()
         assertTrue(snap.running)
