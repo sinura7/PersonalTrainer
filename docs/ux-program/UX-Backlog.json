@@ -1920,6 +1920,37 @@
       "status": "Open",
       "fixtures": [],
       "evidenceClass": "Hosted CI timing on P10 stack (39135917503 / 39135921063)"
+    },
+    {
+      "id": "UX32",
+      "title": "History progress key must include scoped summaries identity",
+      "priority": "P0",
+      "type": "Correctness",
+      "observation": "HistoryPeriodViewModel keyed horizon progress on range, unit, revision and retry attempt. A set edit could change scoped totals before the revision flow emitted, so distinctUntilChanged kept a stale READY readout on the new request.",
+      "outcome": "HorizonProgressKey includes a stable fingerprint of scoped summaries so content changes restart progress with LOADING until a fresh READY.",
+      "requirements": [
+        "Fingerprint scoped summaries once per period request without hashing on every uiState emission.",
+        "Preserve existing HistoryPeriodViewModelTest assertions; add coverage for unchanged summaries not flashing LOADING."
+      ],
+      "acceptance": [
+        "aDelayedCorrectionRecorderExposesTheUnacknowledgedPendingTrace passes 50 consecutive local runs.",
+        "Hosted gate green on the TH2 merge head with two fresh unit runs."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryViewModel.kt",
+          "line": 374
+        },
+        {
+          "path": "app/src/test/java/com/sinura/personaltrainer/ui/history/HistoryPeriodViewModelTest.kt",
+          "line": 436
+        }
+      ],
+      "dependencies": [],
+      "decision": "TH2 lane B packet",
+      "status": "In progress",
+      "fixtures": [],
+      "evidenceClass": "HistoryPeriodViewModelTest failure on hosted run 9a5b7458"
     }
   ],
   "fixtures": [

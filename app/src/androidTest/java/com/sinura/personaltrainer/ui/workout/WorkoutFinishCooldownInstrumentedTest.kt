@@ -31,7 +31,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class A00P12CooldownFinishInstrumentedTest {
+class WorkoutFinishCooldownInstrumentedTest {
     @get:Rule val compose = createComposeRule()
     private val fixture = WorkoutEntryFixture()
 
