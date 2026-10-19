@@ -104,6 +104,28 @@ def normalize_line(line: str) -> str:
     return " ".join(line.split())
 
 
+def normalize_allowlist_path(path_part: str) -> str:
+    normalized = os.path.normpath(path_part).replace("\\", "/")
+    if normalized.startswith("../"):
+        raise SystemExit(f"allowlist path must be repo-relative, got {path_part!r}")
+    return normalized.lstrip("./")
+
+
+def is_test_source_set_name(name: str) -> bool:
+    return (
+        name.startswith("test")
+        or name.startswith("androidTest")
+        or name.endswith("Test")
+    )
+
+
+def module_build_file(module_dir: str) -> str | None:
+    for filename in ("build.gradle.kts", "build.gradle"):
+        if os.path.isfile(os.path.join(module_dir, filename)):
+            return filename
+    return None
+
+
 def load_allowlist(path: str) -> list[tuple[str, str, str, int]]:
     rows: list[tuple[str, str, str, int]] = []
     seen: set[tuple[str, str]] = set()
@@ -118,6 +140,7 @@ def load_allowlist(path: str) -> list[tuple[str, str, str, int]]:
                     f"{path}:{line_no}: expected path | code | reason | count, got {len(parts)} fields",
                 )
             path_part, code_part, reason, count_text = parts
+            path_part = normalize_allowlist_path(path_part)
             if not reason:
                 raise SystemExit(f"{path}:{line_no}: allowlist reason must be non-empty")
             if not ASCII_DIGITS.fullmatch(count_text):
@@ -258,25 +281,32 @@ def reconcile_allowlist(
 
 def discover_test_source_roots(repo_root: str) -> list[str]:
     """Every module src/<set> tree whose set name is a Gradle test source set."""
+    repo_root = os.path.abspath(repo_root)
     roots: list[str] = []
-    for name in sorted(os.listdir(repo_root)):
-        mod = os.path.join(repo_root, name)
-        if not os.path.isdir(mod) or not os.path.isfile(os.path.join(mod, "build.gradle.kts")):
+    seen_rel: set[str] = set()
+
+    for dirpath, dirnames, _filenames in os.walk(repo_root):
+        rel_parts = os.path.relpath(dirpath, repo_root).replace("\\", "/").split("/")
+        if "build" in rel_parts:
+            dirnames.clear()
             continue
-        src = os.path.join(mod, "src")
-        if not os.path.isdir(src):
+        if len(rel_parts) < 2 or rel_parts[-2] != "src":
             continue
-        for set_name in sorted(os.listdir(src)):
-            set_path = os.path.join(src, set_name)
-            if not os.path.isdir(set_path):
-                continue
-            if (
-                set_name.startswith("test")
-                or set_name.startswith("androidTest")
-                or set_name.endswith("Test")
-                or set_name.endswith("testFixtures")
-            ):
-                roots.append(os.path.relpath(set_path, repo_root).replace("\\", "/"))
+        set_name = rel_parts[-1]
+        if not is_test_source_set_name(set_name):
+            continue
+        module_rel = "/".join(rel_parts[:-2])
+        module_dir = os.path.join(repo_root, module_rel) if module_rel else repo_root
+        if module_build_file(module_dir) is None:
+            rel_set = os.path.relpath(dirpath, repo_root).replace("\\", "/")
+            raise SystemExit(
+                f"{rel_set}: test source set is not under a recognised Gradle module "
+                f"(expected build.gradle or build.gradle.kts in {module_rel or '.'})",
+            )
+        rel_set = os.path.relpath(dirpath, repo_root).replace("\\", "/")
+        if rel_set not in seen_rel:
+            seen_rel.add(rel_set)
+            roots.append(rel_set)
     return sorted(roots)
 
 

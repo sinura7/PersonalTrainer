@@ -494,8 +494,16 @@ def main() -> int:
     expect_allowlist_systemexit(mod, bad_path, "duplicate allowlist row")
     bad_path.write_bytes("\ufeffx.kt | Thread.sleep(1) | bom | 1\n".encode("utf-8"))
     rows = mod.load_allowlist(str(bad_path))
-    if len(rows) != 1 or rows[0][2] != "bom":
-        raise SystemExit("FAIL utf-8-sig BOM allowlist row")
+    if len(rows) != 1 or rows[0][0] != "x.kt" or rows[0][2] != "bom":
+        raise SystemExit(f"FAIL utf-8-sig BOM allowlist row: {rows}")
+    bad_path.write_text("x.kt | Thread.sleep(1) | reason | \u0661\n", encoding="utf-8")
+    expect_allowlist_systemexit(mod, bad_path, "ASCII digits")
+    bad_path.write_text(
+        "./app/a.kt | Thread.sleep(1) | r1 | 1\n"
+        "app/a.kt | Thread.sleep(1) | r2 | 1\n",
+        encoding="utf-8",
+    )
+    expect_allowlist_systemexit(mod, bad_path, "duplicate allowlist row")
     ok("allowlist | N validation rejects bad rows with path:line")
 
     alias_root = Path(tempfile.mkdtemp(prefix="real-time-waits-alias-"))
@@ -613,16 +621,19 @@ def main() -> int:
     ok(".kts files under test roots are scanned")
 
     repo = TOOLS.parent
-    discovered = mod.discover_test_source_roots(str(repo))
-    for must in (
-        "app/src/test",
+    mod.REPO_ROOT = str(repo.resolve())
+    roots = mod.default_roots()
+    expected_roots = [
         "app/src/androidTest",
         "app/src/sharedTest",
+        "app/src/test",
         "tempo/src/test",
-    ):
-        if must not in discovered:
-            raise SystemExit(f"FAIL discover_test_source_roots missing {must}: {discovered}")
-    ok("default_roots discovers tempo and sharedTest on the real repo")
+    ]
+    if sorted(roots) != expected_roots:
+        raise SystemExit(f"FAIL default_roots exact set: {roots}")
+    if "tempo/src/test" not in roots or "app/src/sharedTest" not in roots:
+        raise SystemExit(f"FAIL default_roots missing tempo or sharedTest: {roots}")
+    ok("default_roots() discovers exactly the four repo test trees")
 
     disc_root = Path(tempfile.mkdtemp(prefix="real-time-waits-discover-"))
     app_mod = disc_root / "app"
@@ -631,6 +642,7 @@ def main() -> int:
     set_paths = {
         "app/src/test/kotlin/T.kt": "test",
         "app/src/androidTest/kotlin/A.kt": "androidTest",
+        "app/src/androidTestDebug/kotlin/D.kt": "androidTestDebug",
         "app/src/sharedTest/java/S.kt": "sharedTest",
         "app/src/testFixtures/kotlin/F.kt": "testFixtures",
     }
@@ -640,6 +652,12 @@ def main() -> int:
         path.write_text("class X { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
     (disc_root / "tempo").mkdir(parents=True)
     (disc_root / "tempo" / "build.gradle.kts").write_text("", encoding="utf-8")
+    legacy = disc_root / "legacy"
+    legacy.mkdir(parents=True)
+    (legacy / "build.gradle").write_text("", encoding="utf-8")
+    legacy_test = legacy / "src" / "test" / "kotlin" / "Legacy.kt"
+    legacy_test.parent.mkdir(parents=True, exist_ok=True)
+    legacy_test.write_text("class X { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
     tempo_java = disc_root / "tempo" / "src" / "test" / "java" / "T.kt"
     tempo_java.parent.mkdir(parents=True, exist_ok=True)
     tempo_java.write_text("class X { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
@@ -648,14 +666,26 @@ def main() -> int:
     for need in (
         "app/src/test",
         "app/src/androidTest",
+        "app/src/androidTestDebug",
         "app/src/sharedTest",
         "app/src/testFixtures",
         "tempo/src/test",
+        "legacy/src/test",
     ):
         if need not in found_roots:
             raise SystemExit(f"FAIL discovery fixture missing {need}: {found_roots}")
+    orphan = disc_root / "nested" / "src" / "test" / "Orphan.kt"
+    orphan.parent.mkdir(parents=True, exist_ok=True)
+    orphan.write_text("class O { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
+    try:
+        mod.discover_test_source_roots(str(disc_root))
+    except SystemExit as exc:
+        if "nested/src/test" not in str(exc) or "recognised Gradle module" not in str(exc):
+            raise SystemExit(f"FAIL orphan test set message: {exc}") from exc
+    else:
+        raise SystemExit("FAIL orphan test source set should exit")
     allow_rows = []
-    for rel in list(set_paths) + ["tempo/src/test/java/T.kt"]:
+    for rel in list(set_paths) + ["tempo/src/test/java/T.kt", "legacy/src/test/kotlin/Legacy.kt"]:
         p = disc_root / rel
         stripped = strip_comments_and_strings(p.read_text())
         _ln, code_text, _span = mod.find_sleeps(rel, stripped)[0]
@@ -664,7 +694,7 @@ def main() -> int:
     mod.ALLOWLIST_PATH = str(allowlist)
     real_report = mod.report_exact_count
     mod.report_exact_count = lambda g, k, a, t=None: real_report(
-        g, k, a, {"skips": {"real_time_sleeps": 5, "real_time_delays": 0}},
+        g, k, a, {"skips": {"real_time_sleeps": 7, "real_time_delays": 0}},
     )
     abs_roots = [str(disc_root / r) for r in found_roots]
     buf = io.StringIO()
