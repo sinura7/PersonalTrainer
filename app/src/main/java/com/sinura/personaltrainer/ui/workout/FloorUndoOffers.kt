@@ -46,6 +46,8 @@ internal class FloorUndoOffers(
     private val unit: () -> WeightUnit,
     private val loadTypeOf: (String) -> LoadType?,
     private val onCheckpoint: () -> Unit = {},
+    /** Oldest offer dropped when the queue is full ([UndoQueue.MAX_DEPTH]). */
+    private val onOfferDiscarded: (FloorUndo) -> Unit = {},
 ) {
     private val _entries = MutableStateFlow<List<UndoEntry>>(emptyList())
     private var sequence = 0L
@@ -90,12 +92,15 @@ internal class FloorUndoOffers(
 
     /** Offers [token] on top of the queue, with a fresh dwell, and saves the queue. */
     fun push(token: FloorUndo) {
+        val current = _entries.value
+        val evicted = if (current.size >= UndoQueue.MAX_DEPTH) current.first().token else null
         val offer = token.toOffer(
             sequence = sequence++,
             unit = unit(),
             loadTypeOf = loadTypeOf,
         )
-        _entries.value = UndoQueue.push(_entries.value, UndoEntry(token, offer))
+        _entries.value = UndoQueue.push(current, UndoEntry(token, offer))
+        if (evicted != null) onOfferDiscarded(evicted)
         refreshDwell()
         persist()
     }

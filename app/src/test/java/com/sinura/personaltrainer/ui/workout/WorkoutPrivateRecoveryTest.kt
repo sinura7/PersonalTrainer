@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.draft.DurableDraftStore
 import com.sinura.personaltrainer.data.draft.DurableWorkoutDrafts
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSetSave
+import com.sinura.personaltrainer.testutil.ControllableTimePort
 import com.sinura.personaltrainer.testutil.TestWorkoutFixture
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
@@ -52,6 +53,8 @@ import org.robolectric.annotation.Config
 class WorkoutPrivateRecoveryTest {
     @get:Rule val temporary = TemporaryFolder()
     private val dispatcher = UnconfinedTestDispatcher()
+    /** Frozen by default; only tests that call [tickStopwatch] advance it. */
+    private val clock = ControllableTimePort()
     private lateinit var deps: FakeAppDependencies
     private lateinit var fixture: TestWorkoutFixture
     private lateinit var store: DurableDraftStore
@@ -60,7 +63,11 @@ class WorkoutPrivateRecoveryTest {
 
     @Before fun setUp() = runBlocking {
         Dispatchers.setMain(dispatcher)
-        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher)
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            time = clock,
+        )
         fixture = seedTestWorkout(deps, targetSets = 12)
         deps.workoutRepository.updateSessionNotes(fixture.session.id, "Existing notes")
         store = DurableDraftStore(directory = temporary.newFolder("private"), files = files)
@@ -354,6 +361,32 @@ class WorkoutPrivateRecoveryTest {
         assertFalse(reopened.setStopwatch.value.running)
         assertEquals(1, reopened.undoEntries.value.size)
         assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.exercises.isEmpty())
+    }
+
+    @Test fun reopenedSavedEntryUndoRemoveLiftRestoresStoppedSetSeconds() = runBlocking {
+        val vm = active(); ready(vm)
+        vm.startSetStopwatch()
+        tickStopwatch(7_000)
+        vm.stopSetStopwatch()
+        vm.removeSelectedLift()
+        vm.uiState.awaitFirst { !it.mutating && it.session?.exercises?.isEmpty() == true && vm.undoEntries.value.isNotEmpty() }
+        vm.requestNotesExit(); vm.exitRequested.awaitFirst { it == WorkoutExit.Kept }
+        forget(vm)
+        val reopened = active()
+        reopened.privateRecovery.awaitFirst { it.phase == WorkoutPrivatePhase.READY }
+        assertEquals(1, reopened.undoEntries.value.size)
+        reopened.undoRemoveLift()
+        reopened.uiState.awaitFirst { !it.mutating && it.session?.exercises?.isNotEmpty() == true }
+        val watch = reopened.setStopwatch.awaitFirst {
+            it.exerciseId == fixture.exercise.id && it.used && !it.running && it.elapsedSeconds == 7
+        }
+        assertEquals("Undo after reopen keeps the stopped seconds", 7, watch.elapsedSeconds)
+    }
+
+    private fun tickStopwatch(elapsedMs: Long) {
+        clock.advance(elapsedMs)
+        dispatcher.scheduler.advanceTimeBy(250)
+        dispatcher.scheduler.runCurrent()
     }
 
     @Test fun releasedRemovedCommandKeepsSurvivorValuesAndCanCloseAndReopen() = runBlocking {

@@ -33,8 +33,9 @@ private const val TIMED_TICK_MS = 250L
  *
  * What a start or a stop means for the rest of the floor is the ViewModel's: the entry gate, the
  * rest timer (a start stops it, and so does a clock that comes back running), the prompt that
- * holds up a lift switch while a clock runs, and when a log, a correction, a removal or a rest
- * ends the clocks. So this class takes the saved state, the ViewModel's scope (the tickers live
+ * holds up a lift switch while a clock runs, and when a log, a correction, a rest or a hold
+ * ends the clocks. Remove keeps a lift's saved set clock until its undo offer ends (Undo alone
+ * brings those seconds back). So this class takes the saved state, the ViewModel's scope (the tickers live
  * and die with the screen, and tests wake them on its clock), its clock read, the selected lift
  * (read at every save, never once), the sound setting (read when a hold reaches its target) and
  * the cancel of the rest a logged set is still waiting to start, which every generation bump ends
