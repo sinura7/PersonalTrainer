@@ -5936,10 +5936,10 @@
       "70ea0115": {
         "when": "2026-10-19",
         "packet": "TH7b part 1: real-time-waits checker hardening (Critic #545 carry-over)",
-        "gate": "Parent trunk c4a88ca6. PT_STATIC_ONLY=1 sh tools/preflight.sh OK: check-real-time-waits.py real_time_sleeps 28, real_time_delays 6 unchanged; test_real_time_waits.py OK. Hosted pending on push.",
-        "independent": "PENDING formal review on PR (draft).",
-        "adversarial": "PENDING formal review on PR (draft).",
-        "cleanContext": "Branch cursor/th7b-checker-harden-ae41. tools/ and test fixtures only; no app/src/main. Ledger corrections: 5f4fdf07 row hosted 39164542580 and 39164538728 were gate job passed, run cancelled, not gate job success. 5bdf0056 row called 39185418522 run cancelled before cancel (gate pass 21:51:51 ET, cancel 21:55:17 ET on that push); final state matches cancelled. Forge Critic review APPROVE WITH NITS (#547 @ca7a8f94) is an agent review, not a GitHub review. #547 merged as c4a88ca6 (head 5bdf0056). Verifier r8 counted four fresh green gate jobs on #547: 117846813117, 117849911513, 117852974658, 117860440047."
+        "gate": "Parent trunk c4a88ca6. PT_STATIC_ONLY=1 sh tools/preflight.sh OK: check-real-time-waits.py real_time_sleeps 28, real_time_delays 6 unchanged; test_real_time_waits.py OK. Hosted pull_request 39198138930 job 117885254484 gate job passed on tip b2cda9dd (code head 70ea0115). Hosted push 39198129202 job 117885224330 gate job passed.",
+        "independent": "PENDING formal review on PR #548 (draft).",
+        "adversarial": "PENDING formal review on PR #548 (draft).",
+        "cleanContext": "Branch cursor/th7b-checker-harden-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/548. tools/ and test fixtures only; no app/src/main. Ledger corrections: 5f4fdf07 row hosted 39164542580 and 39164538728 were gate job passed, run cancelled, not gate job success. 5bdf0056 row called 39185418522 run cancelled before cancel (gate pass 21:51:51 ET, cancel 21:55:17 ET on that push); final state matches cancelled. Forge Critic review APPROVE WITH NITS (#547 @ca7a8f94) is an agent review, not a GitHub review. #547 merged as c4a88ca6 (head 5bdf0056). Verifier r8 counted four fresh green gate jobs on #547: 117846813117, 117849911513, 117852974658, 117860440047."
       },
       "2e192938": {
         "when": "2026-10-19",
