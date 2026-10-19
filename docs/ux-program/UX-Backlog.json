@@ -6059,6 +6059,14 @@
         "independent": "PENDING formal review on PR #543 (draft). Forge Critic emulator blocker may remain until A00 smoke shows both tests passed.",
         "adversarial": "PENDING formal review on PR #543.",
         "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Rebased onto 28e48f33. Finish instrumented: overlay release, EndWorkoutTags.SAVE, IO poll without delay()."
+      },
+      "a6296afd": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 finish cooldown root cause (overlay blocks end-save)",
+        "gate": "Parent trunk 28e48f33 (trunk ledger row 21593448 unchanged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Agent-local ./gradlew testDebugUnitTest assembleDebug BUILD SUCCESSFUL (local, not independently verifiable). Two fresh hosted gate jobs on a6296afd: push run 39311252827 job 118263777031 Tests, lint, debug build success, testDebugUnitTest 4855 tests, 0 failures (reports artifact); pull_request run 39311260564 job 118261377691 gate job success, testDebugUnitTest 4855 tests, 0 failures (reports artifact). Workflow runs 39311252827 and 39311260564 gate job passed, run cancelled (smoke hit 45m cap). Non-blocking smoke push job 118263776480: tests 126/315 and 133/315 completed (0 failed) bracket A00 methods 128 to 129; no FAILED line for A00P12CooldownFinishInstrumentedTest or A00P12CooldownSummaryInstrumentedTest. Smoke pull_request job 118261378275: tests 121/315 and 132/315 completed (0 failed) bracket 128 to 129; no A00 FAILED lines. Root cause quote on 807a4733 job 118097708403: A00P12CooldownFinishInstrumentedTest finishStartsCooldownInTheStore FAILED ComposeTimeoutException after 30000 ms waiting for workout-end-save after Finish tap (end sheet absent). Not same as ActiveWorkoutJourneyInstrumentedTest on 3dee0195 job 118217388267: No node found TestTag workout-micro-rec-why in scrollable container. Fix: @Before RestTimerOverlayController.release and rest stop; journey-style 15s condition waits for EndWorkoutTags.SAVE and cooldown store.",
+        "independent": "PENDING formal review on PR #543 (draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Code head a6296afd. No instrumented-reports artifact on smoke (cancelled at 45m)."
       }
     }
   }
