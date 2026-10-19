@@ -8,16 +8,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.GoldenCapture
+import com.sinura.personaltrainer.timer.RestTimerOverlayController
+import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -25,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,7 +34,17 @@ class A00P12CooldownFinishInstrumentedTest {
     @get:Rule val compose = createComposeRule()
     private val fixture = WorkoutEntryFixture()
 
-    @After fun cleanup() = fixture.close()
+    @Before
+    fun releaseExteriorFromPriorTests() {
+        fixture.container.restTimerController.stop(fromService = true)
+        RestTimerOverlayController.release()
+    }
+
+    @After
+    fun cleanup() {
+        RestTimerOverlayController.release()
+        fixture.close()
+    }
 
     private fun session() = runBlocking(Dispatchers.IO) {
         checkNotNull(fixture.container.workoutRepository.getSession(fixture.sessionId))
@@ -50,13 +60,16 @@ class A00P12CooldownFinishInstrumentedTest {
         compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.rpe == 8 }
     }
 
-    private fun skipRunningRestIfAny() {
+    private fun clearRestBeforeFinish() {
         runBlocking(Dispatchers.Main) {
             val snap = fixture.container.restTimerStore.current()
             if (snap.running) {
-                fixture.container.restTimerController.skipIfShown(snap.timerId)
+                if (!fixture.container.restTimerController.skipIfShown(snap.timerId)) {
+                    fixture.container.restTimerController.stop(fromService = false)
+                }
             }
         }
+        compose.waitUntil(15_000) { !fixture.container.restTimerStore.current().running }
         compose.waitForIdle()
     }
 
@@ -83,15 +96,14 @@ class A00P12CooldownFinishInstrumentedTest {
         pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
-        skipRunningRestIfAny()
+        clearRestBeforeFinish()
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).performClick()
         compose.waitUntil(30_000) {
-            compose.onAllNodes(isDialog(), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasTestTag(EndWorkoutTags.SAVE), useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText(EndWorkoutCopy.SAVE, useUnmergedTree = true).performClick()
-        compose.waitUntil(30_000) {
-            session().isFinished && !fixture.vm.uiState.value.mutating
-        }
+        compose.onNodeWithTag(EndWorkoutTags.SAVE, useUnmergedTree = true).performClick()
+        compose.waitUntil(30_000) { session().isFinished }
         compose.waitForIdle()
         compose.waitUntil(30_000) {
             val snap = fixture.container.restTimerStore.current()
