@@ -6043,6 +6043,14 @@
         "independent": "PENDING formal review on PR #543 (draft). Forge Critic emulator blocker open.",
         "adversarial": "PENDING formal review on PR #543.",
         "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Product head moves to 22d9d342 with IO polling for cooldown store after save tap."
+      },
+      "248dd71a": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 ledger only (807a4733 and 2fc2025a rows)",
+        "gate": "Parent trunk 28e48f33. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable). Hosted pull_request run 39279566563 job 118152704946 and push run 39279561020 job 118168633977 on 248dd71a: gate job failed at Static checks (tools/preflight.sh); real_time_delays 7 baseline 6 (delay() in A00P12CooldownFinishInstrumentedTest IO poll from 22d9d342); testDebugUnitTest skipped. Smoke jobs cancelled; A00 P12 tests not confirmed.",
+        "independent": "PENDING formal review on PR #543 (draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Fix on 08dae0cc removes delay()."
       }
     }
   }
