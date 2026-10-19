@@ -8,18 +8,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.ui.components.EndWorkoutTags
+import com.sinura.personaltrainer.testutil.GoldenCapture
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import com.sinura.personaltrainer.testutil.GoldenCapture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -49,6 +51,16 @@ class WorkoutCooldownFinishInstrumentedTest {
         compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.rpe == 8 }
     }
 
+    private fun skipRunningRestIfAny() {
+        runBlocking(Dispatchers.Main) {
+            val snap = fixture.container.restTimerStore.current()
+            if (snap.running) {
+                fixture.container.restTimerController.skipIfShown(snap.timerId)
+            }
+        }
+        compose.waitForIdle()
+    }
+
     @Test
     fun finishStartsCooldownInTheStore() {
         fixture.seed(targetSets = 1)
@@ -72,11 +84,12 @@ class WorkoutCooldownFinishInstrumentedTest {
         pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
+        skipRunningRestIfAny()
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).performClick()
         compose.waitUntil(15_000) {
-            compose.onAllNodes(hasTestTag(EndWorkoutTags.SAVE)).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(isDialog(), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
+        compose.onNodeWithText(EndWorkoutCopy.SAVE, useUnmergedTree = true).performClick()
         compose.waitUntil(15_000) { session().isFinished }
         compose.waitUntil(15_000) {
             val snap = fixture.container.restTimerStore.current()
