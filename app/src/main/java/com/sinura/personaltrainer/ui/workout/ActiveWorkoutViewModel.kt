@@ -464,6 +464,10 @@ class ActiveWorkoutViewModel internal constructor(
     /** Fires after that same decision has been applied or refused. Production leaves it null. */
     @VisibleForTesting
     internal var afterUntouchedSeed: (() -> Unit)? = null
+
+    /** When true, the next [settleSwapEntry] throws once so tests can drive [retryPersistedSwap]. */
+    @VisibleForTesting
+    internal var throwOnceOnSettleSwapForTest: Boolean = false
     private var prefillGeneration = 0
     private val wantAnotherSet = MutableStateFlow(false)
     private val tempoTipDismissed = MutableStateFlow(false)
@@ -1842,6 +1846,10 @@ class ActiveWorkoutViewModel internal constructor(
     }
 
     private suspend fun settleSwapEntry(command: WorkoutPickerSwap) {
+        if (throwOnceOnSettleSwapForTest) {
+            throwOnceOnSettleSwapForTest = false
+            throw IllegalStateException("Synthetic settle failure for test")
+        }
         clocks.forgetStopwatch(command.after.exerciseId)
         clocks.restoreStopwatchFor(command.after.exerciseId, resumeRunning = false)
         selectExerciseInternal(command.after.exerciseId)

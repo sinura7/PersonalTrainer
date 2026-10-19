@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.content.Intent
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
@@ -7,6 +8,7 @@ import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import org.junit.After
+import org.junit.Rule
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -20,6 +22,7 @@ import org.robolectric.shadows.ShadowSettings
 @RunWith(RobolectricTestRunner::class)
 @Config(application = PersonalTrainerApp::class)
 class RestTimerExteriorSyncLoopTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private lateinit var app: PersonalTrainerApp
 
     @Before

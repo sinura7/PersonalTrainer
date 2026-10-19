@@ -1,8 +1,10 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import org.junit.After
+import org.junit.Rule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -12,6 +14,7 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class RestOverlayDismissStoreTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private val context: Application = ApplicationProvider.getApplicationContext()
 
     @Before

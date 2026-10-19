@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import android.graphics.Color
 import android.view.View
@@ -12,6 +13,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -36,6 +38,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 class RestNotificationContrastTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private val context: Application = ApplicationProvider.getApplicationContext()
 
     @Test

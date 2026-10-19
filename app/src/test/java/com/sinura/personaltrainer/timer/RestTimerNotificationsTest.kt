@@ -1,11 +1,13 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -22,6 +24,7 @@ import org.junit.Before
 
 @RunWith(RobolectricTestRunner::class)
 class RestTimerNotificationsTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private val context: Application = ApplicationProvider.getApplicationContext()
 
     @Before

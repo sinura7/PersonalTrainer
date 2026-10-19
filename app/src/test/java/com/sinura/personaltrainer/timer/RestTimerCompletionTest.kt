@@ -1,11 +1,13 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import android.app.NotificationManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,6 +17,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestTimerCompletionTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun aFiveMinuteLateClaimPostsRestDoneWithoutPlayingTheCue() {
         RestTimerCompletion.reset()

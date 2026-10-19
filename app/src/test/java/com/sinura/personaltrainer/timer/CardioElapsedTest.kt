@@ -1,9 +1,12 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Test
 
 class CardioElapsedTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun sameBootUsesElapsedRealtime() {
         val persisted = PersistedCardioTimer(

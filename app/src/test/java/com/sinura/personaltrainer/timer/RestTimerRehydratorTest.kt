@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -9,6 +11,7 @@ import org.junit.Test
  * silently cancel rest on an OEM swipe-kill.
  */
 class RestTimerRehydratorTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private fun stored(
         endsAtElapsed: Long,
         total: Int = 90,

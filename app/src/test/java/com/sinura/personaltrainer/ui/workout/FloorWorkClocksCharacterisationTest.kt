@@ -653,10 +653,60 @@ class FloorWorkClocksCharacterisationTest {
             5,
             savedRow!!.elapsedSeconds,
         )
+        assertEquals(
+            "a refused swap keeps Squat selected with its live clock",
+            SetStopwatchUiState(exerciseId = SQUAT),
+            vm.setStopwatch.value,
+        )
+        assertEquals(SQUAT, vm.uiState.value.selectedExerciseId)
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && !it.entryLocked }
+        val liveRow = vm.setStopwatch.awaitFirst {
+            it.exerciseId == ROW && it.used && !it.running && it.elapsedSeconds == 5
+        }
+        assertEquals(5, liveRow.elapsedSeconds)
     }
 
     @Test
-    fun persistedSwapSettleRestoreShowsCleanStopwatchForSwapTarget() = runBlocking {
+    fun durableSwapRetryAfterSettleFailureShowsCleanStopwatchForSwapTarget() = runBlocking {
+        val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
+        val handle = handleFor(sessionId)
+        val swapPersistence = installDurableSwapPersistence()
+        val vm = viewModelWithSwaps(handle, swapPersistence.swaps, swapPersistence.contexts, swapPersistence.custom)
+        val row = checkNotNull(deps.exerciseRepository.getById(ROW))
+        vm.privateRecovery.awaitFirst { it.phase == WorkoutPrivatePhase.READY }
+        vm.ready()
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && it.draft.weightKg == 80.0 }
+        vm.startSetStopwatch()
+        tick(6_000)
+        vm.stopSetStopwatch()
+        vm.removeSelectedLift()
+        deps.workoutRepository.awaitSession(sessionId) { session -> session.exercises.none { it.exercise.id == ROW } }
+        vm.undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
+        vm.awaitEntryUnlocked()
+
+        vm.selectExercise(SQUAT)
+        vm.awaitState { it.selectedExerciseId == SQUAT && it.canLog }
+        vm.requestSwap()
+        openPickerView(vm)
+        vm.throwOnceOnSettleSwapForTest = true
+        vm.addExercise(row)
+        vm.uiState.awaitFirst { it.pickerProgress.canRetry && !it.mutating }
+        vm.setStopwatch.awaitFirst {
+            it.exerciseId == ROW && it.used && !it.running && it.elapsedSeconds == 6
+        }
+        vm.retryPicker()
+        vm.uiState.awaitFirst { !it.showExercisePicker && !it.mutating && it.selectedExerciseId == ROW }
+        assertEquals(
+            "retryPersistedSwap settle shows a clean clock for the swap target",
+            SetStopwatchUiState(exerciseId = ROW),
+            vm.setStopwatch.value,
+        )
+    }
+
+    @Test
+    fun durableSwapSettleRestoreShowsCleanStopwatchForSwapTarget() = runBlocking {
         val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
         val handle = handleFor(sessionId)
         val swapPersistence = installDurableSwapPersistence()
@@ -754,6 +804,7 @@ class FloorWorkClocksCharacterisationTest {
         vm.removeSelectedLift()
         vm.undoEntries.awaitFirst { it.size == 2 && it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
         vm.awaitEntryUnlocked()
+        val newerRowOfferToken = vm.undoEntries.value.last().token as FloorUndo.RemovedLift
 
         vm.selectExercise(SQUAT)
         vm.awaitState { it.selectedExerciseId == SQUAT && it.canLog && it.logCommitReady }
@@ -761,9 +812,7 @@ class FloorWorkClocksCharacterisationTest {
         pushOneDeletedSetOffer(vm)
         vm.undoEntries.awaitFirst { entries ->
             entries.size == UndoQueue.MAX_DEPTH &&
-                entries.any { entry ->
-                    (entry.token as? FloorUndo.RemovedLift)?.removed?.item?.exerciseId == ROW
-                }
+                entries.any { entry -> entry.token == newerRowOfferToken }
         }
         val savedAfterEviction = SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis())
         assertNotNull(
@@ -931,6 +980,14 @@ class FloorWorkClocksCharacterisationTest {
             it.exerciseId == ROW && it.used && !it.running && it.elapsedSeconds == 9
         }
         assertEquals("Undo on the remaining offer brings Row back stopped at nine seconds", 9, watch.elapsedSeconds)
+        assertTrue(
+            "no undo offer names Row after Undo restores the lift",
+            vm.undoEntries.value.none { (it.token as? FloorUndo.RemovedLift)?.removed?.item?.exerciseId == ROW },
+        )
+        val savedAfterUndo = SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis())
+        assertNotNull("the saved copy matches the live clock after Undo", savedAfterUndo)
+        assertEquals(9, savedAfterUndo!!.elapsedSeconds)
+        assertEquals(9, watch.elapsedSeconds)
     }
 
     @Test

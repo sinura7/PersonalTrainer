@@ -1,16 +1,19 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import android.widget.RemoteViews
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import org.junit.Assert.assertNotNull
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class RestLockScreenWidgetViewsTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private val context: Application = ApplicationProvider.getApplicationContext()
 
     @Test

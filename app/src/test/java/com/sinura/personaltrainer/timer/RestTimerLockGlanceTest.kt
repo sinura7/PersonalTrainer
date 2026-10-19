@@ -1,10 +1,12 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import android.app.KeyguardManager
 import android.os.PowerManager
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertFalse
+import org.junit.Rule
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,6 +15,7 @@ import org.robolectric.Shadows.shadowOf
 
 @RunWith(RobolectricTestRunner::class)
 class RestTimerLockGlanceTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private val context: Application = ApplicationProvider.getApplicationContext()
 
     @Test

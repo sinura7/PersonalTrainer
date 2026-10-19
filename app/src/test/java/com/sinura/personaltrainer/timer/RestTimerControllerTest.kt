@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.AlarmManager
 import android.app.Application
 import android.app.PendingIntent
@@ -23,6 +24,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -42,6 +44,7 @@ import org.robolectric.Shadows.shadowOf
  */
 @RunWith(RobolectricTestRunner::class)
 class RestTimerControllerTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val alarmManager: AlarmManager = context.getSystemService(AlarmManager::class.java)
     private val logged = java.util.Collections.synchronizedList(mutableListOf<String>())

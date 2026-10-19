@@ -27,6 +27,16 @@ object RestTimerAppForeground {
         isInForeground = foreground
     }
 
+    /** Resets process-wide foreground bookkeeping between JVM unit tests. */
+    internal fun resetForTest() {
+        isInForeground = false
+        startedActivities = 0
+        listeners.clear()
+    }
+
+    internal fun isCleanForTest(): Boolean =
+        !isInForeground && startedActivities == 0 && listeners.isEmpty()
+
     fun install(app: Application) {
         application = app
         app.registerActivityLifecycleCallbacks(

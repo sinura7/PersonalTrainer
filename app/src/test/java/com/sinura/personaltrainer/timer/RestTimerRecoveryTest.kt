@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.NotificationManager
 import android.os.Looper
 import android.os.SystemClock
@@ -8,6 +9,7 @@ import com.sinura.personaltrainer.PersonalTrainerApp
 import java.time.Duration
 import kotlinx.coroutines.Dispatchers
 import org.junit.After
+import org.junit.Rule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -30,6 +32,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = PersonalTrainerApp::class)
 class RestTimerRecoveryTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private lateinit var app: PersonalTrainerApp
     private val persistence = RowInMemory()
     private lateinit var controller: RestTimerController

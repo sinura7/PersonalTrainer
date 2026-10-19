@@ -1,11 +1,13 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import android.app.NotificationManager
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -18,6 +20,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = com.sinura.personaltrainer.PersonalTrainerApp::class)
 class RestTimerCompletionCooldownTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private val context = ApplicationProvider.getApplicationContext<com.sinura.personaltrainer.PersonalTrainerApp>()
 
     @Before

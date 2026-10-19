@@ -1,11 +1,14 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Test
 
 class RestAlarmPlanTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun missingManagerOrDeadlineOrIntentIsFail() {
         assertEquals(

@@ -121,6 +121,35 @@ object RestTimerOverlayController {
         mainHandler.post { attach(context.applicationContext, state, generation, fromService) }
     }
 
+    /** Synchronous reset for JVM unit tests; production teardown uses [release]. */
+    internal fun resetForTest() {
+        ++syncGeneration
+        mainHandler.removeCallbacksAndMessages(null)
+        stopRefresh()
+        windowManager = null
+        pillView = null
+        dismissZoneView = null
+        layoutParams = null
+        dismissZoneParams = null
+        dismissZoneBounds = AndroidRect()
+        dismissZoneHot = false
+        cardSizePx = 0
+        dragOffsetX = 0f
+        dragOffsetY = 0f
+        dragMoved = false
+        resizeStartSizePx = 0
+        resizeStartRawX = 0f
+        resizeStartRawY = 0f
+        lastSnapshot = null
+        lastFailureReason = null
+    }
+
+    internal fun isCleanForTest(): Boolean =
+        lastSnapshot == null &&
+            lastFailureReason == null &&
+            pillView == null &&
+            windowManager == null
+
     fun release() {
         ++syncGeneration
         mainHandler.post {

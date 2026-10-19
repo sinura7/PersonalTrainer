@@ -1,13 +1,16 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import com.sinura.personaltrainer.util.IdFactory
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RestTimerStoreTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun anAdjustThatLosesTheRaceToACompletionLeavesTheRestFinished() {
         // The alarm's completion clears the store on its own thread. If it lands between adjust
