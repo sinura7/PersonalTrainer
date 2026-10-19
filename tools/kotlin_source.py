@@ -117,8 +117,18 @@ def strip_comments_and_strings(src: str) -> str:
             i = j
             continue
         if src.startswith("/*", i):
-            j = src.find("*/", i + 2)
-            j = n if j < 0 else j + 2
+            depth = 1
+            j = i + 2
+            while j < n and depth > 0:
+                if src.startswith("/*", j):
+                    depth += 1
+                    j += 2
+                    continue
+                if src.startswith("*/", j):
+                    depth -= 1
+                    j += 2
+                    continue
+                j += 1
             blank(i, j)
             i = j
             continue
@@ -147,13 +157,13 @@ def kotlin_files(root: str) -> list:
     found = []
     for dirpath, _, names in os.walk(root):
         for name in sorted(names):
-            if name.endswith(".kt"):
+            if name.endswith(".kt") or name.endswith(".kts"):
                 found.append(os.path.join(dirpath, name))
     return found
 
 
 def kotlin_files_in(roots: list[str]) -> list:
-    """Every .kt under every root, refusing a root that is not there.
+    """Every .kt and .kts under every root, refusing a root that is not there.
 
     A checker that silently skips a missing directory reports "0 findings across 0 files"
     and reads exactly like a clean run. Every multi-root checker here hard-codes its default
