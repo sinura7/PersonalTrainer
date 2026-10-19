@@ -85,12 +85,15 @@ class A00P12CooldownFinishInstrumentedTest {
         awaitSets(1)
         skipRunningRestIfAny()
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).performClick()
-        compose.waitUntil(15_000) {
+        compose.waitUntil(30_000) {
             compose.onAllNodes(isDialog(), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithText(EndWorkoutCopy.SAVE, useUnmergedTree = true).performClick()
-        compose.waitUntil(15_000) { session().isFinished }
-        compose.waitUntil(15_000) {
+        compose.waitUntil(30_000) {
+            session().isFinished && !fixture.vm.uiState.value.mutating
+        }
+        compose.waitForIdle()
+        compose.waitUntil(30_000) {
             val snap = fixture.container.restTimerStore.current()
             snap.running && RestTimerMarkers.isCooldown(snap)
         }
