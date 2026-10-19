@@ -11,7 +11,7 @@ TimeUnit sleeps, and delay() in files with no virtual-time marker.
 Family 1, real_time_sleeps
 --------------------------
 Thread.sleep(, SystemClock.sleep( (with or without android.os.), TimeUnit.<UNIT>.sleep(,
-Thread::sleep and SystemClock::sleep method references.
+Thread::sleep, SystemClock::sleep, and TimeUnit.*::sleep method references.
 Whitespace may appear around dots; TimeUnit chains may break across lines.
 Every hit must match an allowlist row: relative path, stripped source line text, reason,
 and site count (fourth field, required). An unlisted hit prints
@@ -57,7 +57,10 @@ SLEEP_RES = [
     re.compile(r"\b(?:android\.os\.)?SystemClock\s*\.\s*sleep\s*\(", _DOTALL),
     re.compile(r"\bTimeUnit(?:\s*\.\s*[A-Z_]+)+\s*\.\s*sleep\s*\(", _DOTALL),
 ]
-METHOD_REF_SLEEP_RE = re.compile(r"\b(Thread|SystemClock)\s*::\s*sleep\b", _DOTALL)
+METHOD_REF_SLEEP_RES = [
+    re.compile(r"\b(Thread|SystemClock)\s*::\s*sleep\b", _DOTALL),
+    re.compile(r"\bTimeUnit(?:\s*\.\s*[A-Z_]+)+\s*::\s*sleep\b", _DOTALL),
+]
 DELAY_RE = re.compile(r"\bdelay\s*\(")
 IMPORT_LINE_RE = re.compile(r"^\s*import\b")
 VIRTUAL_MARKER_RES = [
@@ -82,6 +85,7 @@ FORBIDDEN_IMPORT_RES: list[tuple[re.Pattern[str], str]] = [
         "TimeUnit import alias",
     ),
 ]
+ASCII_DIGITS = re.compile(r"^[0-9]+$")
 
 
 def repo_relative(path: str) -> str:
@@ -102,7 +106,8 @@ def normalize_line(line: str) -> str:
 
 def load_allowlist(path: str) -> list[tuple[str, str, str, int]]:
     rows: list[tuple[str, str, str, int]] = []
-    with open(path, encoding="utf-8") as handle:
+    seen: set[tuple[str, str]] = set()
+    with open(path, encoding="utf-8-sig") as handle:
         for line_no, raw in enumerate(handle, 1):
             line = raw.strip()
             if not line or line.startswith("#"):
@@ -113,16 +118,22 @@ def load_allowlist(path: str) -> list[tuple[str, str, str, int]]:
                     f"{path}:{line_no}: expected path | code | reason | count, got {len(parts)} fields",
                 )
             path_part, code_part, reason, count_text = parts
-            if not re.fullmatch(r"\d+", count_text):
+            if not reason:
+                raise SystemExit(f"{path}:{line_no}: allowlist reason must be non-empty")
+            if not ASCII_DIGITS.fullmatch(count_text):
                 raise SystemExit(
-                    f"{path}:{line_no}: site count must be digits only, got {count_text!r}",
+                    f"{path}:{line_no}: site count must be ASCII digits only, got {count_text!r}",
                 )
             site_count = int(count_text)
             if site_count < 1:
                 raise SystemExit(
                     f"{path}:{line_no}: site count must be >= 1, got {site_count}",
                 )
-            rows.append((path_part, normalize_line(code_part), reason, site_count))
+            key = (path_part, normalize_line(code_part))
+            if key in seen:
+                raise SystemExit(f"{path}:{line_no}: duplicate allowlist row for {path_part!r}")
+            seen.add(key)
+            rows.append((path_part, key[1], reason, site_count))
     return rows
 
 
@@ -147,9 +158,10 @@ def find_sleeps(path: str, body: str) -> list[tuple[int, str, str]]:
 
 def find_method_ref_sleeps(body: str) -> list[tuple[int, str]]:
     found: list[tuple[int, str]] = []
-    for match in METHOD_REF_SLEEP_RE.finditer(body):
-        line_no = body.count("\n", 0, match.start()) + 1
-        found.append((line_no, normalize_line(match.group(0))))
+    for pattern in METHOD_REF_SLEEP_RES:
+        for match in pattern.finditer(body):
+            line_no = body.count("\n", 0, match.start()) + 1
+            found.append((line_no, normalize_line(match.group(0))))
     return found
 
 
@@ -209,6 +221,7 @@ def reconcile_allowlist(
         hit_lines.setdefault((rel, code), []).append((line_no, span))
 
     stale = False
+    unlisted = False
     for path, code, _reason, need in allowlist:
         key = (path, code)
         have = remaining[key]
@@ -222,10 +235,17 @@ def reconcile_allowlist(
                 f"allowlist entry under-covered ({have} of {need} sites): {path} | {code}",
             )
             stale = True
+            remaining[key] = 0
+        elif have > need:
+            for line_no, span in hit_lines.get(key, []):
+                print(
+                    f"{path}:{line_no}: allowlist allows {need} site(s), {have} found: {span}",
+                )
+            unlisted = True
+            remaining[key] = 0
         else:
             remaining[key] -= need
 
-    unlisted = False
     for (rel, code), left in remaining.items():
         if left <= 0:
             continue
@@ -236,14 +256,32 @@ def reconcile_allowlist(
     return unlisted, stale
 
 
+def discover_test_source_roots(repo_root: str) -> list[str]:
+    """Every module src/<set> tree whose set name is a Gradle test source set."""
+    roots: list[str] = []
+    for name in sorted(os.listdir(repo_root)):
+        mod = os.path.join(repo_root, name)
+        if not os.path.isdir(mod) or not os.path.isfile(os.path.join(mod, "build.gradle.kts")):
+            continue
+        src = os.path.join(mod, "src")
+        if not os.path.isdir(src):
+            continue
+        for set_name in sorted(os.listdir(src)):
+            set_path = os.path.join(src, set_name)
+            if not os.path.isdir(set_path):
+                continue
+            if (
+                set_name.startswith("test")
+                or set_name.startswith("androidTest")
+                or set_name.endswith("Test")
+                or set_name.endswith("testFixtures")
+            ):
+                roots.append(os.path.relpath(set_path, repo_root).replace("\\", "/"))
+    return sorted(roots)
+
+
 def default_roots() -> list[str]:
-    """Every JVM/instrumented test source root wired in app/build.gradle.kts."""
-    return [
-        "app/src/test/java",
-        "app/src/androidTest/java",
-        "app/src/sharedTest/java",
-        "tempo/src/test/kotlin",
-    ]
+    return discover_test_source_roots(REPO_ROOT)
 
 
 def main(argv: list[str]) -> int:
