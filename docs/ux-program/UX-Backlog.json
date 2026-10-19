@@ -5965,6 +5965,14 @@
         "adversarial": "PENDING formal review on PR #543.",
         "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Round-4 product/test fixes: publish-before-clear completion and post-CAS startCooldown clear; M2 summary strip via store-only armCooldownWithoutRestService (FGS/overlay was covering summary); RestTimerNotificationsTest quiet-shade hygiene after @After foreground reset; expired-cooldown tests use sendBroadcast + looper idle (no leaking goAsync NPE); instrumented finish test uses waitForIdle not SystemClock.sleep; awaitDoneNotification polls without real-time delay."
       },
+      "b58db83b": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 rebase onto trunk 9c701a6c (#548 TH7b checker hardening)",
+        "gate": "Parent trunk 9c701a6c (#548 merged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (real_time_sleeps 28, real_time_delays 6; hardened checker scans all module test source sets for orphan test sets). Product code head b58db83b (same P12 patch as pre-rebase stack ending 42d0b968). Hosted pull_request run 39220391776 job 117954071719 Tests, lint, debug build success on push head 35cd7b2b (ledger-only tip over b58db83b): testDebugUnitTest 4850 tests, 0 failures (reports artifact). Hosted push run 39220387079 job 117954056548 failed unit step on same SHA (single-JVM flake; not the merge gate). Non-blocking instrumented smoke on PR run 39220391776: gate job passed, run cancelled at workflow level when smoke hits cap — not run success.",
+        "independent": "PENDING formal review on PR #543 (draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Prior ledger row 42d0b968 retained unchanged (c4a88ca6 rebase evidence). This row is the post-#548 rebase gate only."
+      },
       "251dc30b": {
         "when": "2026-10-16",
         "packet": "P20 phone checklist",
