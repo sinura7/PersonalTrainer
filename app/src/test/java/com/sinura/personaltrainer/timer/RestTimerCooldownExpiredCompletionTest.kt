@@ -7,9 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import android.content.Context
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -116,13 +114,14 @@ class RestTimerCooldownExpiredCompletionTest {
         )
     }
 
-    private suspend fun awaitDoneNotification(context: Context, timeoutMs: Long = 5_000) {
-        withTimeout(timeoutMs) {
-            val manager = context.getSystemService(NotificationManager::class.java)
-            while (manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID }) {
-                shadowOf(context.mainLooper).idle()
-                delay(25)
+    private fun awaitDoneNotification(context: Context, timeoutMs: Long = 5_000) {
+        val deadlineNanos = System.nanoTime() + timeoutMs * 1_000_000L
+        val manager = context.getSystemService(NotificationManager::class.java)
+        while (manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID }) {
+            check(System.nanoTime() < deadlineNanos) {
+                "Timed out waiting for cool-down done notification"
             }
+            shadowOf(context.mainLooper).idle()
         }
     }
 }
