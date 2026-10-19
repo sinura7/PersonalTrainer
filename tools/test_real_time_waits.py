@@ -25,16 +25,9 @@ def load(filename: str):
     return mod
 
 
-def write_allowlist(root: Path, rows: list[tuple[str, str, str, str | None]]) -> Path:
+def write_allowlist(root: Path, rows: list[tuple[str, str, str, str]]) -> Path:
     path = root / "real-time-waits-allowlist.txt"
-    lines = []
-    for row in rows:
-        if len(row) == 3:
-            p, code, reason = row
-            lines.append(f"{p} | {code} | {reason}")
-        else:
-            p, code, reason, count = row
-            lines.append(f"{p} | {code} | {reason} | {count}")
+    lines = [f"{p} | {code} | {reason} | {count}" for p, code, reason, count in rows]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
 
@@ -96,9 +89,9 @@ def main() -> int:
     if len(hits) != 1:
         raise SystemExit(f"FAIL expected one sleep in fixture, got {hits}")
     code, out, _err = run_checker(mod, allowlist, root / "test", False)
-    if code == 0 or "allowlist missing" not in out:
+    if code == 0 or "real-time sleep not in allowlist" not in out or ":2:" not in out:
         raise SystemExit(f"FAIL unlisted sleep should fail: code={code} out={out}")
-    print("ok  unlisted Thread.sleep fails with path and line")
+    print("ok  unlisted Thread.sleep fails with path:line and span")
 
     listed_root = Path(tempfile.mkdtemp(prefix="real-time-waits-listed-"))
     listed_dir = listed_root / "test" / "com" / "example"
@@ -110,10 +103,10 @@ def main() -> int:
     )
     rel_listed = str(listed.relative_to(listed_root))
     stripped_listed = strip_comments_and_strings(listed.read_text())
-    _ln, line_text = mod.find_sleeps(rel_listed, stripped_listed)[0]
+    _ln, line_text, _span = mod.find_sleeps(rel_listed, stripped_listed)[0]
     allowlist = write_allowlist(
         listed_root,
-        [(rel_listed, line_text, "fixture")],
+        [(rel_listed, line_text, "fixture", "1")],
     )
     mod.REPO_ROOT = str(listed_root.resolve())
     mod.ALLOWLIST_PATH = str(allowlist)
@@ -140,8 +133,8 @@ def main() -> int:
         hits = mod.find_sleeps(rel_p, stripped)
         if not hits:
             raise SystemExit(f"FAIL {label} not detected")
-        _line_no, code_text = hits[0]
-        allowlist = write_allowlist(snippet_root, [(rel_p, code_text, "x")])
+        _line_no, code_text, _span = hits[0]
+        allowlist = write_allowlist(snippet_root, [(rel_p, code_text, "x", "1")])
         mod.ALLOWLIST_PATH = str(allowlist)
         if (
             run_checker(
@@ -207,6 +200,7 @@ def main() -> int:
                 str(stale_path.relative_to(stale_root)),
                 "Thread.sleep(1)",
                 "removed sleep",
+                "1",
             ),
         ],
     )
@@ -276,8 +270,8 @@ def main() -> int:
     )
     rel_m = str(moved.relative_to(move_root))
     stripped_before = strip_comments_and_strings(moved.read_text())
-    _ln, line_text = mod.find_sleeps(rel_m, stripped_before)[0]
-    allowlist = write_allowlist(move_root, [(rel_m, line_text, "moved")])
+    _ln, line_text, _span = mod.find_sleeps(rel_m, stripped_before)[0]
+    allowlist = write_allowlist(move_root, [(rel_m, line_text, "moved", "1")])
     mod.ALLOWLIST_PATH = str(allowlist)
     moved.write_text(
         "class MovedLineTest {\n\n    @Test fun x() { Thread.sleep(7) }\n}\n",
@@ -334,7 +328,7 @@ def main() -> int:
     )
     rel_dup = str(dup.relative_to(count_root))
     stripped_dup = strip_comments_and_strings(dup.read_text())
-    _ln, dup_code = mod.find_sleeps(rel_dup, stripped_dup)[0]
+    _ln, dup_code, _span = mod.find_sleeps(rel_dup, stripped_dup)[0]
     allowlist = write_allowlist(
         count_root,
         [(rel_dup, dup_code, "two sites", "2")],
@@ -377,6 +371,184 @@ def main() -> int:
     if strict.report_exact_count("skips", "real_time_sleeps", 1) is None:
         raise SystemExit("FAIL report_exact_count should fail when below baseline")
     print("ok  report_exact_count fails until baseline ratchets down")
+
+    nested_root = Path(tempfile.mkdtemp(prefix="real-time-waits-nested-comment-"))
+    nested_dir = nested_root / "test" / "com" / "example"
+    nested_dir.mkdir(parents=True)
+    nested = nested_dir / "NestedCommentSleepTest.kt"
+    nested.write_text(
+        """
+        class NestedCommentSleepTest {
+            /*
+             * outer /* inner Thread.sleep(99) */ still comment
+             */
+            @Test fun x() { Thread.sleep(3) }
+        }
+        """.strip(),
+        encoding="utf-8",
+    )
+    rel_n = str(nested.relative_to(nested_root))
+    stripped_n = strip_comments_and_strings(nested.read_text())
+    hits_n = mod.find_sleeps(rel_n, stripped_n)
+    if len(hits_n) != 1:
+        raise SystemExit(f"FAIL nested block comment hid inner sleep only: {hits_n}")
+    print("ok  nested block comments keep outer comment text blanked")
+
+    split_root = Path(tempfile.mkdtemp(prefix="real-time-waits-thread-split-"))
+    split_dir = split_root / "test" / "com" / "example"
+    split_dir.mkdir(parents=True)
+    mod.REPO_ROOT = str(split_root.resolve())
+    split = split_dir / "SplitThreadSleepTest.kt"
+    split.write_text(
+        """
+        class SplitThreadSleepTest {
+            @Test fun x() {
+                Thread
+                    .sleep(6)
+            }
+        }
+        """.strip(),
+        encoding="utf-8",
+    )
+    rel_s = str(split.relative_to(split_root))
+    stripped_s = strip_comments_and_strings(split.read_text())
+    if not mod.find_sleeps(rel_s, stripped_s):
+        raise SystemExit("FAIL Thread.sleep split across lines not detected")
+    print("ok  Thread.sleep split across lines is caught")
+
+    tempo_root = Path(tempfile.mkdtemp(prefix="real-time-waits-tempo-root-"))
+    tempo_dir = tempo_root / "tempo" / "src" / "test" / "kotlin" / "com" / "example"
+    tempo_dir.mkdir(parents=True)
+    tempo_file = tempo_dir / "TempoSleepTest.kt"
+    tempo_file.write_text("class TempoSleepTest { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
+    mod.REPO_ROOT = str(tempo_root.resolve())
+    rel_t = str(tempo_file.relative_to(tempo_root))
+    _ln, line_text, _span = mod.find_sleeps(
+        rel_t, strip_comments_and_strings(tempo_file.read_text()),
+    )[0]
+    allowlist = write_allowlist(tempo_root, [(rel_t, line_text, "tempo fixture", "1")])
+    mod.ALLOWLIST_PATH = str(allowlist)
+    if (
+        run_checker(
+            mod,
+            allowlist,
+            str(tempo_root / "tempo" / "src" / "test" / "kotlin"),
+            False,
+            sleep_ceiling=1,
+            delay_ceiling=0,
+        )[0]
+        != 0
+    ):
+        raise SystemExit("FAIL tempo test source root scan")
+    print("ok  tempo/src/test/kotlin root is scannable")
+
+    bad_allow_root = Path(tempfile.mkdtemp(prefix="real-time-waits-bad-allow-"))
+    bad_path = bad_allow_root / "real-time-waits-allowlist.txt"
+    bad_path.write_text("x.kt | Thread.sleep(1) | reason | 0\n", encoding="utf-8")
+    mod.ALLOWLIST_PATH = str(bad_path)
+    try:
+        mod.load_allowlist(str(bad_path))
+    except SystemExit:
+        pass
+    else:
+        raise SystemExit("FAIL | 0 allowlist row should exit")
+    bad_path.write_text("x.kt | Thread.sleep(1) | reason | abc\n", encoding="utf-8")
+    try:
+        mod.load_allowlist(str(bad_path))
+    except SystemExit:
+        pass
+    else:
+        raise SystemExit("FAIL non-digit allowlist count should exit")
+    bad_path.write_text("x.kt | Thread.sleep(1) | reason | 1 | extra\n", encoding="utf-8")
+    try:
+        mod.load_allowlist(str(bad_path))
+    except SystemExit:
+        pass
+    else:
+        raise SystemExit("FAIL extra allowlist field should exit")
+    bad_path.write_text("x.kt | Thread.sleep(1) | reason\n", encoding="utf-8")
+    try:
+        mod.load_allowlist(str(bad_path))
+    except SystemExit:
+        pass
+    else:
+        raise SystemExit("FAIL missing allowlist count should exit")
+    print("ok  allowlist | N validation rejects bad rows with path:line")
+
+    alias_root = Path(tempfile.mkdtemp(prefix="real-time-waits-alias-"))
+    alias_dir = alias_root / "test" / "com" / "example"
+    alias_dir.mkdir(parents=True)
+    mod.REPO_ROOT = str(alias_root.resolve())
+    alias_file = alias_dir / "AliasThreadTest.kt"
+    alias_file.write_text(
+        "import java.lang.Thread as Sleeper\nclass T { @Test fun x() { Sleeper.sleep(1) } }",
+        encoding="utf-8",
+    )
+    allowlist = write_allowlist(alias_root, [])
+    mod.ALLOWLIST_PATH = str(allowlist)
+    code, out, _ = run_checker(mod, allowlist, alias_root / "test", False)
+    if code == 0 or "Thread import alias" not in out:
+        raise SystemExit(f"FAIL Thread import alias: {code} {out}")
+    print("ok  Thread import alias fails")
+
+    mref_root = Path(tempfile.mkdtemp(prefix="real-time-waits-mref-"))
+    mref_dir = mref_root / "test" / "com" / "example"
+    mref_dir.mkdir(parents=True)
+    mod.REPO_ROOT = str(mref_root.resolve())
+    mref = mref_dir / "MethodRefSleepTest.kt"
+    mref.write_text("class T { @Test fun x() { SystemClock::sleep(1) } }", encoding="utf-8")
+    allowlist = write_allowlist(mref_root, [])
+    mod.ALLOWLIST_PATH = str(allowlist)
+    code, out, _ = run_checker(mod, allowlist, mref_root / "test", False)
+    if code == 0 or "forbidden real-time sleep reference" not in out:
+        raise SystemExit(f"FAIL SystemClock::sleep: {code} {out}")
+    print("ok  SystemClock::sleep method reference fails")
+
+    import_runtest = delay_dir / "ImportRunTestOnlyDelayTest.kt"
+    import_runtest.write_text(
+        """
+        import kotlinx.coroutines.test.runTest
+        class ImportRunTestOnlyDelayTest {
+            @Test fun x() = runBlocking { delay(1) }
+        }
+        """.strip(),
+        encoding="utf-8",
+    )
+    rel_ir = str(import_runtest.relative_to(delay_root))
+    raw_ir = import_runtest.read_text()
+    stripped_ir = strip_comments_and_strings(raw_ir)
+    if mod.count_delays(rel_ir, raw_ir, stripped_ir) != 1:
+        raise SystemExit("FAIL runTest on import line must not exempt delay()")
+    print("ok  runTest on import line does not exempt delay()")
+
+    boundary = delay_dir / "NotRunTestMarkerDelayTest.kt"
+    boundary.write_text(
+        "class NotRunTestMarkerDelayTest { @Test fun x() = runBlocking { delay(1) } }",
+        encoding="utf-8",
+    )
+    rel_b = str(boundary.relative_to(delay_root))
+    raw_b = boundary.read_text()
+    stripped_b = strip_comments_and_strings(raw_b + "\nfun notRunTestHook() {}")
+    if mod.count_delays(rel_b, raw_b, stripped_b) != 1:
+        raise SystemExit("FAIL notRunTest substring must not count as runTest marker")
+    print("ok  runTest marker uses word boundaries")
+
+    kts_root = Path(tempfile.mkdtemp(prefix="real-time-waits-kts-"))
+    kts_dir = kts_root / "test" / "com" / "example"
+    kts_dir.mkdir(parents=True)
+    mod.REPO_ROOT = str(kts_root.resolve())
+    kts = kts_dir / "SleepScript.kts"
+    kts.write_text("Thread.sleep(8)", encoding="utf-8")
+    rel_k = str(kts.relative_to(kts_root))
+    _ln, kts_code, _span = mod.find_sleeps(rel_k, strip_comments_and_strings(kts.read_text()))[0]
+    allowlist = write_allowlist(kts_root, [(rel_k, kts_code, "kts", "1")])
+    mod.ALLOWLIST_PATH = str(allowlist)
+    if (
+        run_checker(mod, allowlist, kts_root / "test", False, sleep_ceiling=1, delay_ceiling=0)[0]
+        != 0
+    ):
+        raise SystemExit("FAIL .kts test sources should scan")
+    print("ok  .kts files under test roots are scanned")
 
     print("test_real_time_waits: all assertions passed")
     return 0
