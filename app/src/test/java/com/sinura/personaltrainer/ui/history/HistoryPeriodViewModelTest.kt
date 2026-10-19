@@ -433,6 +433,35 @@ class HistoryPeriodViewModelTest {
     }
 
     @Test
+    fun scopedSummariesChangeClearsReadyProgressWhileRevisionIsUnchanged() = runBlocking {
+        seedProgress()
+        withModel { model ->
+            awaitReady(model)
+            val correction = trace(model).size
+            deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
+            val pending = awaitState(model) { it.horizonTotals?.volumeKg == 950.0 }
+            assertTrue(pending.progressLoading)
+            assertNull(pending.horizonProgress)
+            assertPendingEmissions(model, correction) { it.horizonTotals?.volumeKg == 950.0 }
+            assertEquals(950.0, awaitReady(model).horizonTotals!!.volumeKg, 0.0)
+        }
+    }
+
+    @Test
+    fun unchangedScopedSummariesReuseReadyProgressWithoutLoadingFlash() = runBlocking {
+        seedProgress()
+        withModel { model ->
+            val first = awaitReady(model)
+            val mid = trace(model).size
+            val second = awaitReady(model)
+            assertEquals(first.horizonProgress!!.recordsBroken, second.horizonProgress!!.recordsBroken)
+            trace(model).drop(mid).forEach { state ->
+                assertFalse("unexpected loading flash on unchanged summaries", state.progressLoading)
+            }
+        }
+    }
+
+    @Test
     fun aDelayedCorrectionRecorderExposesTheUnacknowledgedPendingTrace() = runBlocking {
         seedProgress()
         val recorderEntered = CompletableDeferred<Unit>()

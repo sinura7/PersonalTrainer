@@ -371,7 +371,15 @@ class HistoryViewModel internal constructor(
             projections = DailyProjectionBuilder.project(scoped),
             unit = unit,
             attempt = attempt,
-            key = range?.let { HorizonProgressKey(it, unit, cat.revision, attempt) },
+            key = range?.let {
+                HorizonProgressKey(
+                    range = it,
+                    unit = unit,
+                    revision = cat.revision,
+                    attempt = attempt,
+                    summariesIdentity = scopedSummariesIdentity(scoped),
+                )
+            },
         )
     }
         .flowOn(container.computeDispatcher)
@@ -624,9 +632,10 @@ class HistoryViewModel internal constructor(
     }
 
     /**
-     * What decides whether the horizon readout is recomputed. The revision replaces the old
-     * session count and newest id: those never moved for an edit, and a longer key that
-     * still ignored content would have been the same bug with more fields.
+     * What decides whether the horizon readout is recomputed. Revision alone missed edits
+     * that changed scoped totals before the revision flow caught up; summariesIdentity
+     * fingerprints the scoped list so a content change restarts progress even when revision
+     * is unchanged.
      */
     private data class HorizonProgressKey(
         val range: HistoryPeriodRange,
@@ -634,7 +643,22 @@ class HistoryViewModel internal constructor(
         val revision: String,
         /** Retry reads the period again, even when nothing it keys on moved. */
         val attempt: Int,
+        val summariesIdentity: Int,
     )
+
+    /** Stable fingerprint of scoped summaries for progress keys; hash once per request. */
+    private fun scopedSummariesIdentity(summaries: List<SessionSummary>): Int =
+        summaries.asSequence()
+            .sortedBy { it.id }
+            .fold(1) { acc, summary ->
+                var hash = acc
+                hash = 31 * hash + summary.id.hashCode()
+                hash = 31 * hash + (summary.finishedAt?.hashCode() ?: 0)
+                hash = 31 * hash + summary.volumeKg.hashCode()
+                hash = 31 * hash + summary.workingSets
+                hash = 31 * hash + summary.localEpochDay.hashCode()
+                hash
+            }
 
     private data class HistoryReads(
         val health: DataHealth<List<SessionSummary>>,
