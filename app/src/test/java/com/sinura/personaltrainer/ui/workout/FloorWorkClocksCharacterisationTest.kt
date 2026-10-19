@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.testutil.ControllableTimePort
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.ui.theme.Motion
+import com.sinura.personaltrainer.workout.FloorUndo
 import com.sinura.personaltrainer.workout.SavedStateFloorTimer
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
@@ -558,7 +559,8 @@ class FloorWorkClocksCharacterisationTest {
 
     @Test
     fun aRemovedLiftOfferExpiryClearsSavedStopwatch() = runBlocking {
-        val handle = handleFor(seed(SQUAT_LIFT, ROW_LIFT))
+        val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
+        val handle = handleFor(sessionId)
         val vm = viewModel(handle)
         vm.ready()
         vm.selectExercise(ROW)
@@ -568,6 +570,8 @@ class FloorWorkClocksCharacterisationTest {
         vm.stopSetStopwatch()
 
         vm.removeSelectedLift()
+        deps.workoutRepository.awaitSession(sessionId) { session -> session.exercises.none { it.exercise.id == ROW } }
+        vm.awaitState { it.session?.exercises?.none { exercise -> exercise.exercise.id == ROW } == true }
         vm.undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
         vm.awaitEntryUnlocked()
         assertNotNull(
@@ -578,6 +582,152 @@ class FloorWorkClocksCharacterisationTest {
         vm.onUndoOfferExpired()
         assertNull(
             "expiring the offer forgets the saved copy",
+            SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis()),
+        )
+    }
+
+    @Test
+    fun reAddingALiftWhileRemoveOfferStillShowsStartsWithCleanClock() = runBlocking {
+        val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
+        val handle = handleFor(sessionId)
+        val vm = viewModel(handle)
+        val row = checkNotNull(deps.exerciseRepository.getById(ROW))
+        vm.ready()
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && it.draft.weightKg == 80.0 }
+        vm.startSetStopwatch()
+        tick(6_000)
+        vm.stopSetStopwatch()
+
+        vm.removeSelectedLift()
+        deps.workoutRepository.awaitSession(sessionId) { session -> session.exercises.none { it.exercise.id == ROW } }
+        vm.undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
+        vm.awaitEntryUnlocked()
+        assertNotNull(
+            "the offer still names the removed lift",
+            SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis()),
+        )
+
+        vm.addExercise(row)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && !it.entryLocked }
+        assertEquals(
+            "a fresh add while the offer shows starts with a clean clock",
+            SetStopwatchUiState(exerciseId = ROW),
+            vm.setStopwatch.value,
+        )
+    }
+
+    @Test
+    fun swappingToALiftWhileRemoveOfferStillShowsStartsWithCleanClock() = runBlocking {
+        val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
+        val handle = handleFor(sessionId)
+        val vm = viewModel(handle)
+        val row = checkNotNull(deps.exerciseRepository.getById(ROW))
+        vm.ready()
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && it.draft.weightKg == 80.0 }
+        vm.startSetStopwatch()
+        tick(6_000)
+        vm.stopSetStopwatch()
+
+        vm.removeSelectedLift()
+        deps.workoutRepository.awaitSession(sessionId) { session -> session.exercises.none { it.exercise.id == ROW } }
+        vm.undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
+        vm.awaitEntryUnlocked()
+
+        vm.selectExercise(SQUAT)
+        vm.awaitState { it.selectedExerciseId == SQUAT && it.canLog }
+        vm.requestSwap()
+        vm.addExercise(row)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && !it.entryLocked }
+        assertEquals(
+            "a swap target while the offer shows starts with a clean clock",
+            SetStopwatchUiState(exerciseId = ROW),
+            vm.setStopwatch.value,
+        )
+    }
+
+    @Test
+    fun expiringAnOldRemoveOfferWhileTheLiftIsLiveKeepsItsRunningClock() = runBlocking {
+        val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
+        val handle = handleFor(sessionId)
+        val vm = viewModel(handle)
+        val row = checkNotNull(deps.exerciseRepository.getById(ROW))
+        vm.ready()
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && it.draft.weightKg == 80.0 }
+        vm.startSetStopwatch()
+        tick(6_000)
+        vm.stopSetStopwatch()
+
+        vm.removeSelectedLift()
+        vm.undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
+        vm.awaitEntryUnlocked()
+
+        vm.addExercise(row)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && !it.entryLocked }
+        vm.startSetStopwatch()
+        tick(4_000)
+
+        vm.onUndoOfferExpired()
+        vm.undoEntries.awaitFirst { it.isEmpty() }
+        assertEquals(
+            "expiring the old offer does not wipe the live lift's clock",
+            4,
+            vm.setStopwatch.value.elapsedSeconds,
+        )
+        assertTrue("the clock still runs", vm.setStopwatch.value.running)
+    }
+
+    @Test
+    fun twoRemovalsOfTheSameLiftKeepTheNewerOffersClockWhenTheOlderOfferEnds() = runBlocking {
+        val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
+        val handle = handleFor(sessionId)
+        val vm = viewModel(handle)
+        val row = checkNotNull(deps.exerciseRepository.getById(ROW))
+        vm.ready()
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && it.draft.weightKg == 80.0 }
+        vm.startSetStopwatch()
+        tick(6_000)
+        vm.stopSetStopwatch()
+
+        vm.removeSelectedLift()
+        deps.workoutRepository.awaitSession(sessionId) { session -> session.exercises.none { it.exercise.id == ROW } }
+        vm.undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
+        vm.awaitEntryUnlocked()
+
+        vm.addExercise(row)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && !it.entryLocked }
+        vm.startSetStopwatch()
+        tick(9_000)
+        vm.stopSetStopwatch()
+
+        vm.removeSelectedLift()
+        deps.workoutRepository.awaitSession(sessionId) { session -> session.exercises.none { it.exercise.id == ROW } }
+        vm.undoEntries.awaitFirst { it.size == 2 && it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
+        vm.awaitEntryUnlocked()
+        assertNotNull(
+            "the second remove keeps a saved clock",
+            SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis()),
+        )
+
+        vm.onUndoOfferExpired()
+        assertEquals(
+            "expiring the newer offer leaves the older one while the saved clock stays",
+            1,
+            vm.undoEntries.value.size,
+        )
+        assertNotNull(
+            "the newer offer's clock stays until every offer for that lift ends",
+            SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis()),
+        )
+
+        vm.awaitState { it.session?.exercises?.none { exercise -> exercise.exercise.id == ROW } == true }
+        vm.onUndoOfferExpired()
+        vm.undoEntries.awaitFirst { it.isEmpty() }
+        assertNull(
+            "once every offer ends the saved copy is gone",
             SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis()),
         )
     }

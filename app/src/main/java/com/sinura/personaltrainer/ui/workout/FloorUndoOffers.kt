@@ -93,15 +93,14 @@ internal class FloorUndoOffers(
     /** Offers [token] on top of the queue, with a fresh dwell, and saves the queue. */
     fun push(token: FloorUndo) {
         val current = _entries.value
-        if (current.size >= UndoQueue.MAX_DEPTH) {
-            onOfferDiscarded(current.first().token)
-        }
+        val evicted = if (current.size >= UndoQueue.MAX_DEPTH) current.first().token else null
         val offer = token.toOffer(
             sequence = sequence++,
             unit = unit(),
             loadTypeOf = loadTypeOf,
         )
         _entries.value = UndoQueue.push(current, UndoEntry(token, offer))
+        if (evicted != null) onOfferDiscarded(evicted)
         refreshDwell()
         persist()
     }

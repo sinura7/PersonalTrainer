@@ -1317,15 +1317,19 @@ class ActiveWorkoutViewModel internal constructor(
             (entry.token as? FloorUndo.RemovedLift)?.removed?.item?.exerciseId
         }.toSet()
 
-    /** Q4: only Undo reads the saved clock; once the offer is gone, drop the copy. */
-    private fun forgetRemovedLiftStopwatchWhenOfferEnded(exerciseId: String) {
+    /**
+     * Drops a removed lift's saved set clock when no undo offer names it and it is not live.
+     * Call only after the queue has been updated (pop / eviction).
+     */
+    private fun forgetRemovedLiftStopwatchIfOfferFullyEnded(exerciseId: String) {
+        if (session.value?.exercises?.any { it.exercise.id == exerciseId } == true) return
         if (exerciseId in pendingRemovedLiftExerciseIds()) return
         clocks.forgetStopwatch(exerciseId)
     }
 
     private fun onRemovedLiftOfferDiscarded(token: FloorUndo) {
         if (token is FloorUndo.RemovedLift) {
-            clocks.forgetStopwatch(token.removed.item.exerciseId)
+            forgetRemovedLiftStopwatchIfOfferFullyEnded(token.removed.item.exerciseId)
         }
     }
 
@@ -1725,12 +1729,13 @@ class ActiveWorkoutViewModel internal constructor(
         check(sessionId.isNotBlank()) { "This workout is no longer available." }
         val replaced = swapTarget?.let { target -> container.workoutRepository.getSession(sessionId)?.exercises?.firstOrNull { it.id == target }?.exercise?.id }
         if (swapTarget != null) {
+            clocks.forgetStopwatch(exercise.id)
             container.workoutRepository.swapExerciseInSession(sessionId, swapTarget, exercise)
             if (swapTargetItemId.value == swapTarget) swapTargetItemId.value = null
         } else {
             val current = container.workoutRepository.getSession(sessionId)
             if (current?.exercises?.none { it.exercise.id == exercise.id } != false) {
-                forgetRemovedLiftStopwatchWhenOfferEnded(exercise.id)
+                clocks.forgetStopwatch(exercise.id)
                 val goal = container.preferencesRepository.coachPreferences.first().goal
                 val defaults = AddDefaults.forExercise(exercise, goal = goal)
                 container.workoutRepository.addExerciseToSession(
@@ -1837,6 +1842,7 @@ class ActiveWorkoutViewModel internal constructor(
     }
 
     private suspend fun settleSwapEntry(command: WorkoutPickerSwap) {
+        clocks.forgetStopwatch(command.after.exerciseId)
         selectExerciseInternal(command.after.exerciseId)
         val replaced = command.before.exerciseId
         draftCache.removeLift(sessionId, replaced)
@@ -2449,7 +2455,7 @@ class ActiveWorkoutViewModel internal constructor(
     fun onUndoOfferExpired() {
         val entry = undo.pop() ?: return
         when (val token = entry.token) {
-            is FloorUndo.RemovedLift -> clocks.forgetStopwatch(token.removed.item.exerciseId)
+            is FloorUndo.RemovedLift -> forgetRemovedLiftStopwatchIfOfferFullyEnded(token.removed.item.exerciseId)
             else -> Unit
         }
     }
