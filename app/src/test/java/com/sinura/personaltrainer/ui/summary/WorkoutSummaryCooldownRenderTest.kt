@@ -75,4 +75,75 @@ class WorkoutSummaryCooldownRenderTest {
         compose.onNodeWithTag(SummaryTags.COOLDOWN_SKIP).assertIsDisplayed()
         compose.onNode(hasTestTag(SummaryTags.DONE)).assertIsDisplayed()
     }
+
+    @Test
+    fun cooldownStripShowsOnWarmupsOnlySummary() {
+        deps.restTimerController.startCooldown()
+        val snapshotFlow = deps.restTimerController.snapshot
+        compose.setContent {
+            PersonalTrainerTheme {
+                CompositionLocalProvider(
+                    LocalWeightUnit provides WeightUnit.KG,
+                    LocalReducedMotion provides true,
+                ) {
+                    Box(Modifier.fillMaxSize()) {
+                        WorkoutSummaryContent(
+                            state = WorkoutSummaryUiState(
+                                isLoading = false,
+                                savedConfirmed = true,
+                                summary = WorkoutSummary(
+                                    sessionId = "s1",
+                                    title = "Push",
+                                    workingSets = 0,
+                                ),
+                            ),
+                            unit = WeightUnit.KG,
+                            onRetry = {},
+                            onOpenSession = {},
+                            onDone = {},
+                            onSkipCooldown = { deps.restTimerController.skipIfShown(snapshotFlow.value.timerId) },
+                            restSnapshot = snapshotFlow,
+                            restRemaining = deps.restTimerController.remainingSeconds,
+                        )
+                    }
+                }
+            }
+        }
+        compose.onNodeWithTag(SummaryTags.COOLDOWN).assertIsDisplayed()
+        compose.onNodeWithTag(SummaryTags.COOLDOWN_SKIP).assertIsDisplayed()
+    }
+
+    @Test
+    fun cooldownStripShowsWhenSummaryReadFailedButWorkoutSaved() {
+        deps.restTimerController.startCooldown()
+        val snapshotFlow = deps.restTimerController.snapshot
+        compose.setContent {
+            PersonalTrainerTheme {
+                CompositionLocalProvider(
+                    LocalWeightUnit provides WeightUnit.KG,
+                    LocalReducedMotion provides true,
+                ) {
+                    Box(Modifier.fillMaxSize()) {
+                        WorkoutSummaryContent(
+                            state = WorkoutSummaryUiState(
+                                isLoading = false,
+                                failed = true,
+                                savedConfirmed = true,
+                                sessionId = "s1",
+                            ),
+                            unit = WeightUnit.KG,
+                            onRetry = {},
+                            onOpenSession = {},
+                            onDone = {},
+                            onSkipCooldown = { deps.restTimerController.skipIfShown(snapshotFlow.value.timerId) },
+                            restSnapshot = snapshotFlow,
+                            restRemaining = deps.restTimerController.remainingSeconds,
+                        )
+                    }
+                }
+            }
+        }
+        compose.onNodeWithTag(SummaryTags.COOLDOWN).assertIsDisplayed()
+        compose.onNodeWithTag(SummaryTags.COOLDOWN_SKIP).assertIsDisplayed()
+    }
 }

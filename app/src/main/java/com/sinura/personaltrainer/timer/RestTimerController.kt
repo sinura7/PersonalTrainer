@@ -98,6 +98,9 @@ class RestTimerController(
     @Volatile
     internal var betweenSkipReadAndClear: (() -> Unit)? = null
 
+    /** Test seam: runs after completion is published and before the store clear attempt. */
+    internal var betweenMarkCompletedAndClear: (() -> Unit)? = null
+
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
 
     /**
@@ -219,10 +222,13 @@ class RestTimerController(
         // it was dead still completes.
         if (!current.running && store.hasHeld(timerId)) return false
         val completingCooldown = RestTimerMarkers.isCooldown(current)
-        // Publish before clearing running. The lock glance collects those
-        // two flows separately; stop-then-mark looks like a skip for one
-        // frame and dismisses the "Back to the bar" surface.
+        // Publish cooldown with the id. The lock glance collects id and cooldown separately;
+        // marking id before cooldown looked like a non-cool-down finish for one frame.
+        _lastCompletedWasCooldown.value = completingCooldown
+        // Publish before clearing running. stop-then-mark looks like a skip for one frame and
+        // dismisses the "Back to the bar" surface.
         markCompleted(timerId)
+        betweenMarkCompletedAndClear?.invoke()
         val cleared = store.clearIfCurrent(timerId)
         if (cleared == null || (!cleared.running && store.hasHeld(timerId))) {
             // After the check, a +15 replaced this timer, or a Skip emptied the store: nothing
@@ -232,7 +238,6 @@ class RestTimerController(
             }
             return false
         }
-        _lastCompletedWasCooldown.value = completingCooldown
         afterHalt(wasRunning = cleared.running, fromService = fromService, timerId = cleared.timerId)
         return true
     }

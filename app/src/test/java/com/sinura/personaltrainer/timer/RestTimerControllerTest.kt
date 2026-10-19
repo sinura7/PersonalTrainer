@@ -358,7 +358,6 @@ class RestTimerControllerTest {
     fun aCompletionRollbackClearsCooldownFlagOnlyWhenTheIdIsTakenBack() {
         val store = RestTimerStore()
         val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
-        val scope = CoroutineScope(Dispatchers.Unconfined)
         try {
             store.start(
                 totalSeconds = RestTimerMarkers.COOLDOWN_SECONDS,
@@ -367,16 +366,38 @@ class RestTimerControllerTest {
                 sourceTag = RestTimerMarkers.COOLDOWN,
             )
             val timerId = store.current().timerId
-            scope.launch {
-                controller.lastCompletedTimerId.collect { id ->
-                    if (id == timerId) controller.stop()
-                }
-            }
+            controller.betweenMarkCompletedAndClear = { store.clear() }
             assertFalse(controller.completeIfCurrent(timerId, fromService = true))
             assertNull(controller.lastCompletedTimerId.value)
             assertFalse(controller.lastCompletedWasCooldown.value)
         } finally {
-            scope.cancel()
+            controller.betweenMarkCompletedAndClear = null
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aCompletionRollbackKeepsCooldownFlagWhenANewerCompletionIsPublished() {
+        val store = RestTimerStore()
+        val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        try {
+            store.start(
+                totalSeconds = RestTimerMarkers.COOLDOWN_SECONDS,
+                sessionId = null,
+                nowElapsedRealtime = SystemClock.elapsedRealtime(),
+                sourceTag = RestTimerMarkers.COOLDOWN,
+            )
+            val timerId = store.current().timerId
+            val newerId = "newer-completion"
+            controller.betweenMarkCompletedAndClear = {
+                store.clear()
+                controller.markCompleted(newerId)
+            }
+            assertFalse(controller.completeIfCurrent(timerId, fromService = true))
+            assertEquals(newerId, controller.lastCompletedTimerId.value)
+            assertTrue(controller.lastCompletedWasCooldown.value)
+        } finally {
+            controller.betweenMarkCompletedAndClear = null
             controller.stop()
         }
     }

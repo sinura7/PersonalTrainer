@@ -8,6 +8,8 @@ import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import android.content.Context
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -19,6 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import android.os.Looper
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = PersonalTrainerApp::class)
@@ -115,14 +118,13 @@ class RestTimerCooldownExpiredCompletionTest {
         )
     }
 
-    private fun awaitDoneNotification(context: Context, timeoutMs: Long = 5_000) {
-        val deadlineNanos = System.nanoTime() + timeoutMs * 1_000_000L
+    private fun awaitDoneNotification(context: Context) = runBlocking {
         val manager = context.getSystemService(NotificationManager::class.java)
-        while (manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID }) {
-            check(System.nanoTime() < deadlineNanos) {
-                "Timed out waiting for cool-down done notification"
+        withTimeout(5_000) {
+            while (manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID }) {
+                shadowOf(Looper.getMainLooper()).idle()
+                yield()
             }
-            shadowOf(context.mainLooper).idle()
         }
     }
 

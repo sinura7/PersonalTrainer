@@ -79,6 +79,21 @@ internal class WorkoutEntryFixture {
      * path — on emulator that exterior layer covered the summary cool-down strip (node existed but
      * [assertIsDisplayed] failed).
      */
+    fun logOneWorkingSet(rpe: Int = 8, reps: Int = 8) {
+        runBlocking(Dispatchers.IO) {
+            val session = checkNotNull(container.workoutRepository.getSession(sessionId))
+            val exerciseId = session.exercises.first().exercise.id
+            container.workoutRepository.logSet(
+                sessionId = sessionId,
+                exerciseId = exerciseId,
+                weightKg = expectedWeightKg,
+                reps = reps,
+                rpe = rpe,
+                isWarmup = false,
+            )
+        }
+    }
+
     fun armCooldownWithoutRestService() {
         runBlocking(Dispatchers.Main) {
             val elapsed = android.os.SystemClock.elapsedRealtime()

@@ -43,6 +43,7 @@ class WorkoutCooldownSummaryInstrumentedTest {
     @Test
     fun summaryScreenSkipAndBackUseDoneNotHistory() {
         fixture.seed(targetSets = 1)
+        fixture.logOneWorkingSet()
         runBlockingFinishSession()
         fixture.armCooldownWithoutRestService()
         var done = false

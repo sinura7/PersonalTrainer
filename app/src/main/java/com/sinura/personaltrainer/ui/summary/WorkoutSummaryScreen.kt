@@ -137,8 +137,15 @@ internal fun WorkoutSummaryContent(
             .fillMaxSize()
             .background(Pit),
     ) {
+        val scrollBodyModifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            .testTag(SummaryTags.CONTENT)
+            .verticalScroll(rememberScrollState())
+            .padding(Metrics.gutter)
+
         when {
-            state.isLoading -> ScreenLoading()
+            state.isLoading -> ScreenLoading(modifier = Modifier.weight(1f))
 
             // Before the missing branch on purpose: a failed read also has no summary, and it
             // must not be shown as a deleted session — nor, unless the row was read, as a saved
@@ -148,6 +155,7 @@ internal fun WorkoutSummaryContent(
                 onRetry = onRetry,
                 onOpenSession = { onOpenSession(state.sessionId) },
                 onDone = onDone,
+                modifier = scrollBodyModifier,
             )
 
             state.missing -> EmptyState(
@@ -157,8 +165,7 @@ internal fun WorkoutSummaryContent(
                 actionLabel = SummaryCopy.DONE,
                 onAction = onDone,
                 actionTag = SummaryTags.DONE,
-                modifier = Modifier.testTag(SummaryTags.CONTENT)
-                    .verticalScroll(rememberScrollState()).padding(Metrics.gutter),
+                modifier = scrollBodyModifier,
             )
 
             !summary.hasWork -> {
@@ -172,81 +179,80 @@ internal fun WorkoutSummaryContent(
                     actionLabel = SummaryCopy.DONE,
                     onAction = onDone,
                     actionTag = SummaryTags.DONE,
-                    modifier = Modifier.testTag(SummaryTags.CONTENT)
-                        .verticalScroll(rememberScrollState()).padding(Metrics.gutter),
+                    modifier = scrollBodyModifier,
                 )
             }
 
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.weight(1f).testTag(SummaryTags.CONTENT),
-                    contentPadding = PaddingValues(
-                        start = Metrics.gutter,
-                        end = Metrics.gutter,
-                        top = Metrics.space4,
-                        bottom = Metrics.space6,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space4),
-                ) {
-                    item(key = "receipt") {
-                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
-                            SummaryHeading(summary)
-                            SummaryFacts(summary, unit)
-                        }
-                    }
-
-                    if (summary.recordCount > 0) {
-                        item(key = "records") {
-                            PersonalRecordPanel(summary = summary, exercises = state.highlightExercises)
-                        }
-                    }
-
-                    item(key = "lifts-label") {
-                        GymSectionHeader(
-                            title = "Lifts",
-                            modifier = Modifier.padding(top = Metrics.space2),
-                        )
-                    }
-                    item(key = "lifts") {
-                        LiftBreakdown(summary = summary, unit = unit, exercises = state.highlightExercises)
-                    }
-
-                    if (summary.notes.isNotBlank()) {
-                        item(key = "notes") {
-                            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                                HairlineDivider(startIndent = 0.dp)
-                                Kicker("Notes")
-                                Text(summary.notes, style = InstrumentType.body, color = TextSecondary)
-                            }
-                        }
-                    }
-
-                    // A caption, not a card: an automatic copy is housekeeping, and the
-                    // records above are the only thing on this screen allowed to be an event.
-                    state.autoBackup?.let { line ->
-                        item(key = "auto-backup") {
-                            Text(
-                                text = line,
-                                style = InstrumentType.caption,
-                                color = TextTertiary,
-                            )
-                        }
+            else -> LazyColumn(
+                modifier = Modifier.weight(1f).testTag(SummaryTags.CONTENT),
+                contentPadding = PaddingValues(
+                    start = Metrics.gutter,
+                    end = Metrics.gutter,
+                    top = Metrics.space4,
+                    bottom = Metrics.space6,
+                ),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+            ) {
+                item(key = "receipt") {
+                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                        SummaryHeading(summary)
+                        SummaryFacts(summary, unit)
                     }
                 }
 
-                if (restSnapshot != null && restRemaining != null) {
-                    SummaryCooldownStrip(
-                        restSnapshot = restSnapshot,
-                        restRemaining = restRemaining,
-                        onSkip = onSkipCooldown,
+                if (summary.recordCount > 0) {
+                    item(key = "records") {
+                        PersonalRecordPanel(summary = summary, exercises = state.highlightExercises)
+                    }
+                }
+
+                item(key = "lifts-label") {
+                    GymSectionHeader(
+                        title = "Lifts",
+                        modifier = Modifier.padding(top = Metrics.space2),
                     )
                 }
-                HairlineDivider(startIndent = 0.dp)
-                SummaryActions(
-                    onDone = onDone,
-                    onOpenSession = { onOpenSession(summary.sessionId) },
-                )
+                item(key = "lifts") {
+                    LiftBreakdown(summary = summary, unit = unit, exercises = state.highlightExercises)
+                }
+
+                if (summary.notes.isNotBlank()) {
+                    item(key = "notes") {
+                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                            HairlineDivider(startIndent = 0.dp)
+                            Kicker("Notes")
+                            Text(summary.notes, style = InstrumentType.body, color = TextSecondary)
+                        }
+                    }
+                }
+
+                // A caption, not a card: an automatic copy is housekeeping, and the
+                // records above are the only thing on this screen allowed to be an event.
+                state.autoBackup?.let { line ->
+                    item(key = "auto-backup") {
+                        Text(
+                            text = line,
+                            style = InstrumentType.caption,
+                            color = TextTertiary,
+                        )
+                    }
+                }
             }
+        }
+
+        if (!state.isLoading && restSnapshot != null && restRemaining != null) {
+            SummaryCooldownStrip(
+                restSnapshot = restSnapshot,
+                restRemaining = restRemaining,
+                onSkip = onSkipCooldown,
+            )
+        }
+        if (summary.hasWork && !state.isLoading && !state.failed && !state.missing) {
+            HairlineDivider(startIndent = 0.dp)
+            SummaryActions(
+                onDone = onDone,
+                onOpenSession = { onOpenSession(summary.sessionId) },
+            )
         }
     }
 }
@@ -393,13 +399,10 @@ private fun SummaryUnavailable(
     onRetry: () -> Unit,
     onOpenSession: () -> Unit,
     onDone: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag(SummaryTags.CONTENT)
-            .verticalScroll(rememberScrollState())
-            .padding(Metrics.gutter),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
         EmptyState(
