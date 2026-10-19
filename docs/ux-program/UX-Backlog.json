@@ -5904,7 +5904,7 @@
       "3a11257e": {
         "when": "2026-10-18",
         "packet": "TH6: Q4 undo clock lifecycle (Critic #547 nits)",
-        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (28/6). Hosted pull_request 39172092921 and push 39172088983 failed: WorkoutPrivateRecoveryTest.removedLiftCannotLeaveOrphanedKeypadOrClockInReopenedEntry — DurableWorkoutDrafts.validOwner rejected stopwatch keys for pending RemovedLift undo tokens (owner conflict). FloorWorkClocksCharacterisationTest.aRunningSetClockComesBackRunningAfterProcessDeath failed once on 39172088983 (expected 9, was 7); open flake on trunk since #542, owned by TH2 — not fixed in TH6.",
+        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (28/6). Hosted pull_request 39172092921 job 117807113992 and push 39172088983 job 117809303895 failed: WorkoutPrivateRecoveryTest.removedLiftCannotLeaveOrphanedKeypadOrClockInReopenedEntry — DurableWorkoutDrafts.validOwner rejected stopwatch keys for pending RemovedLift undo tokens (owner conflict). FloorWorkClocksCharacterisationTest.aRunningSetClockComesBackRunningAfterProcessDeath failed once on 3a11257e (push 39172088983, job 117809303895), a #547 commit that changed FloorWorkClocks.kt; it passed on every later #547 commit and in all 324 earlier hosted runs since Oct 12 (Critic artifact scan); cause unknown; watched under TH2.",
         "independent": "Superseded by bcb8c997 validOwner fix; Critic REQUEST CHANGES on later heads.",
         "adversarial": "PENDING formal review on PR #547.",
         "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547."
@@ -5912,26 +5912,34 @@
       "bcb8c997": {
         "when": "2026-10-18",
         "packet": "TH6: Q4 clock lifecycle + durable checkpoint (validOwner)",
-        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (check-real-time-waits.py 28/6 unchanged). Root cause: clocks.forgetStopwatch in retireRemovedEntry ran when the session observer saw the lift gone before removeSelectedLift resumed (race), wiping the saved stopped clock before Undo. Fix: stop forgetting in retireRemovedEntry; forget on RemovedLift offer expiry, UndoQueue eviction, and fresh add/swap; private checkpoint + validOwner keep stopwatches for pending RemovedLift offers. Hosted pull_request 39176486121 job 117820113354 gate job success on head bcb8c997, 4811 tests. Prior head 3a11257e red runs 39172092921 and 39172088983 (validOwner owner conflict; see 3a11257e row).",
+        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (check-real-time-waits.py 28/6 unchanged). Root cause: clocks.forgetStopwatch in retireRemovedEntry ran when the session observer saw the lift gone before removeSelectedLift resumed (race), wiping the saved stopped clock before Undo. Fix: stop forgetting in retireRemovedEntry; forget on RemovedLift offer expiry, UndoQueue eviction, and fresh add/swap; private checkpoint + validOwner keep stopwatches for pending RemovedLift offers. Hosted pull_request 39176486121 job 117820113354 gate job passed, run cancelled on head bcb8c997, 4811 tests. Prior head 3a11257e red runs 39172092921 job 117807113992 and 39172088983 job 117809303895 (validOwner owner conflict; see 3a11257e row).",
         "independent": "Critic APPROVE WITH NITS applies to 13c8d703 only; formal review pending on lifecycle revisions after bcb8c997.",
-        "adversarial": "Critic REQUEST CHANGES (#547 @a5cac298 on code bcb8c997); addressed on 9d930931.",
-        "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547. Open flake (TH2): FloorWorkClocksCharacterisationTest.aRunningSetClockComesBackRunningAfterProcessDeath (39172088983 expected 9 was 7; predates TH6 on trunk #542). Ledger corrections: #450 / #545 unchanged on merged rows."
+        "adversarial": "Critic REQUEST CHANGES (#547 @a5cac298 on code bcb8c997); fix pushed in 9d930931, review pending.",
+        "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547. Ledger corrections: #450 / #545 unchanged on merged rows."
       },
       "9d930931": {
         "when": "2026-10-19",
         "packet": "TH6: Q4 clock rule — fresh add/swap clean, offer end respects live lift (Critic #547 @a5cac298)",
-        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (28/6). Rule: always forgetStopwatch on fresh add and swap target; on RemovedLift expiry/eviction call forget only when lift not live and no other pending RemovedLift names it (queue checked after update). FloorWorkClocksCharacterisationTest + WorkoutPrivateRecoveryTest locally green. Hosted pull_request 39180500154 job 117832240875 gate job success on tip f46bb7e0.",
-        "independent": "Critic REQUEST CHANGES (@a5cac298) folded; formal re-review pending on PR #547.",
-        "adversarial": "PENDING formal re-review on PR #547.",
+        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (28/6). Rule: always forgetStopwatch on fresh add and swap target; on RemovedLift expiry/eviction call forget only when lift not live and no other pending RemovedLift names it (queue checked after update). Agent-local FloorWorkClocksCharacterisationTest + WorkoutPrivateRecoveryTest (th6-nits-local-gate.log, local, not independently verifiable): 57 tests, 0 failures. Hosted pull_request 39180500154 job 117832240875 gate job passed, run cancelled on tip f46bb7e0. Hosted on ledger tip a5cac298: pull_request 39178155778 and push 39178151709 gate job passed, run cancelled.",
+        "independent": "Critic APPROVE WITH NITS (#547 @ca7a8f94 on code 9d930931); nits folded on later code head.",
+        "adversarial": "Critic APPROVE WITH NITS (#547 @ca7a8f94); formal re-review pending after nits fold.",
         "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547."
       },
-      "f46bb7e0": {
+      "ca7a8f94": {
         "when": "2026-10-19",
-        "packet": "TH6: UX-Backlog ledger rows for 13c8d703 / 5f4fdf07 / 3a11257e (tip)",
-        "gate": "Ledger-only on code head 9d930931. Hosted pull_request 39180500154 job 117832240875 gate job success on head f46bb7e0.",
-        "independent": "Same as 9d930931.",
+        "packet": "TH6: UX-Backlog hosted 39180500154 on f46bb7e0",
+        "gate": "Ledger-only on code head 9d930931. Hosted pull_request 39180500154 job 117832240875 gate job passed, run cancelled on head f46bb7e0. Hosted on a5cac298: pull_request 39178155778 and push 39178151709 gate job passed, run cancelled.",
+        "independent": "Critic APPROVE WITH NITS (#547 @ca7a8f94 on code 9d930931); nits folded on 2e192938.",
         "adversarial": "Same as 9d930931.",
         "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547."
+      },
+      "2e192938": {
+        "when": "2026-10-19",
+        "packet": "TH6: Critic/Verifier nits fold (#547 @ca7a8f94 on 9d930931)",
+        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (28/6). Agent-local th6-nits-local-gate.log (local, not independently verifiable): FloorWorkClocksCharacterisationTest 38 + WorkoutPrivateRecoveryTest 19, 0 failures. expiringAnOldRemoveOfferWhileTheLiftIsLiveKeepsItsRunningClock fails with VM forgetRemovedLiftStopwatchIfOfferFullyEnded guard reverted (th6-expire-live-guard-revert.log, local, not independently verifiable). Hosted pending on push.",
+        "independent": "Critic APPROVE WITH NITS (#547 @ca7a8f94) nits folded; formal re-review pending on PR #547.",
+        "adversarial": "Critic APPROVE WITH NITS (#547 @ca7a8f94) nits folded; formal re-review pending on PR #547.",
+        "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547. WorkoutPrivateRecoveryTest uses ControllableTimePort class-wide (frozen until tickStopwatch); all 19 class tests green in th6-nits-local-gate.log."
       },
       "9cf9e2c4": {
         "when": "2026-10-17",
