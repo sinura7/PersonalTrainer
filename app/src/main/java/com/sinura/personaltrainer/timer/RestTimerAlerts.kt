@@ -17,9 +17,15 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 
 object RestTimerAlerts {
     private val COMPLETE_PATTERN = longArrayOf(0, 140, 90, 140, 90, 320)
+    private const val COOLDOWN_VIBRATION_MS = 120L
 
     internal val CUE_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_ALARM)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .build()
+
+    internal val COOLDOWN_CUE_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
 
@@ -33,6 +39,41 @@ object RestTimerAlerts {
         }
         if (preferences.vibrationEnabled) {
             vibrate(context, VibrationEffect.createWaveform(COMPLETE_PATTERN, -1))
+        }
+    }
+
+    /** One soft notification-stream tone at cool-down 0:00; never the rest_done alarm cue. */
+    fun announceCooldown(
+        context: Context,
+        preferences: RestTimerPreferences,
+    ) {
+        if (preferences.soundEnabled) {
+            playCooldownTone(context)
+        }
+        if (preferences.vibrationEnabled) {
+            vibrate(
+                context,
+                VibrationEffect.createOneShot(COOLDOWN_VIBRATION_MS, VibrationEffect.DEFAULT_AMPLITUDE),
+                COOLDOWN_CUE_ATTRIBUTES,
+            )
+        }
+    }
+
+    private fun playCooldownTone(context: Context) {
+        var tone: android.media.ToneGenerator? = null
+        try {
+            tone = android.media.ToneGenerator(AudioManager.STREAM_NOTIFICATION, 55)
+            tone.startTone(android.media.ToneGenerator.TONE_PROP_ACK, 120)
+        } catch (_: Exception) {
+            // Sound is optional. Never fail the timer.
+            return
+        } finally {
+            val toRelease = tone
+            if (toRelease != null) {
+                android.os.Handler(context.mainLooper).postDelayed({
+                    runCatching { toRelease.release() }
+                }, 160L)
+            }
         }
     }
 
@@ -168,23 +209,26 @@ object RestTimerAlerts {
         ringtone.play()
     }
 
-    private fun vibrate(context: Context, effect: VibrationEffect) {
+    private fun vibrate(
+        context: Context,
+        effect: VibrationEffect,
+        audioAttributes: AudioAttributes = CUE_ATTRIBUTES,
+    ) {
         try {
             val vibrator = vibrator(context) ?: return
             if (Build.VERSION.SDK_INT >= 33) {
+                val usage = when (audioAttributes.usage) {
+                    AudioAttributes.USAGE_NOTIFICATION_EVENT -> VibrationAttributes.USAGE_NOTIFICATION
+                    else -> VibrationAttributes.USAGE_ALARM
+                }
                 vibrator.vibrate(
                     effect,
                     VibrationAttributes.Builder()
-                        .setUsage(VibrationAttributes.USAGE_ALARM)
+                        .setUsage(usage)
                         .build(),
                 )
             } else {
-                vibrator.vibrate(
-                    effect,
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .build(),
-                )
+                vibrator.vibrate(effect, audioAttributes)
             }
         } catch (_: Exception) {
             // Vibration is optional.

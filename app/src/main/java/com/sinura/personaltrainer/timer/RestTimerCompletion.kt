@@ -5,6 +5,7 @@ import android.os.SystemClock
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.RestTimerClaim
 import com.sinura.personaltrainer.domain.RestTimerClaimLedger
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import kotlinx.coroutines.flow.first
 
@@ -31,6 +32,7 @@ object RestTimerCompletion {
         sessionId: String?,
         nowElapsedRealtime: Long = SystemClock.elapsedRealtime(),
         playCue: Boolean = true,
+        isCooldown: Boolean? = null,
     ): Boolean {
         val decision = ledger.decide(
             incomingId = incomingTimerId,
@@ -49,6 +51,13 @@ object RestTimerCompletion {
         }
         val appContext = context.applicationContext
         val app = appContext as? PersonalTrainerApp
+        val resolvedCooldown = isCooldown ?: run {
+            val liveSnap = app?.container?.restTimerController?.snapshot?.value
+            liveSnap != null &&
+                liveSnap.running &&
+                liveSnap.timerId == incomingTimerId &&
+                RestTimerMarkers.isCooldown(liveSnap)
+        }
 
         // Stop the countdown before announcing, so the ongoing notification and its
         // ±15s / Skip actions cannot be tapped into a resurrected timer mid-alert.
@@ -67,9 +76,13 @@ object RestTimerCompletion {
             } catch (_: Exception) {
                 RestTimerPreferences.DEFAULT
             }
-            RestTimerAlerts.announce(appContext, prefs)
+            if (resolvedCooldown) {
+                RestTimerAlerts.announceCooldown(appContext, prefs)
+            } else {
+                RestTimerAlerts.announce(appContext, prefs)
+            }
         }
-        RestTimerNotifications.showDone(appContext, sessionId)
+        RestTimerNotifications.showDone(appContext, sessionId, isCooldown = resolvedCooldown)
         return true
     }
 

@@ -5957,6 +5957,46 @@
         "adversarial": "APPROVE. Zero Critical/High/Medium/Low. ROADMAP notes no phone publish in this packet.",
         "cleanContext": "Branch cursor/debug-live-129-ae41. Unblocks CI ratchet for Debug 129 drop after e1a17855."
       },
+      "42d0b968": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 cool-down 1:30 on Finish + quiet notification (R9), PR #543",
+        "gate": "Parent trunk c4a88ca6 (#545 TH7a real-time-waits ratchet; #547 TH6 undo-clock rules preserved on rebase). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; check-real-time-waits.py real_time_sleeps 28, real_time_delays 6). No gradle/ci.yml/Room on diff. Hosted pull_request run 39209850156 job 117920581800 Tests, lint, debug build success on code head 42d0b968: testDebugUnitTest 4850 tests, 0 failures (reports artifact). Workflow run 39209850156 gate job passed, run cancelled (superseded by newer push). Hosted push run 39209846196 job 117920569597 gate job success on same head. Non-blocking instrumented smoke job 117920582162 on run 39209850156: WorkoutCooldownSummaryInstrumentedTest failed (summary-cooldown tag not found); hosted emulator observed.",
+        "independent": "PENDING formal review on PR #543 (Forge Critic round 4 addressed on branch; draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Ledger row added on PR branch (35cd7b2b), not on trunk. Round-4 product/test fixes: publish-before-clear completion and post-CAS startCooldown clear; M2 summary strip via store-only armCooldownWithoutRestService (FGS/overlay was covering summary); RestTimerNotificationsTest quiet-shade hygiene after @After foreground reset; expired-cooldown tests use sendBroadcast + looper idle (no leaking goAsync NPE); instrumented finish test uses waitForIdle not SystemClock.sleep; awaitDoneNotification polls without real-time delay."
+      },
+      "b58db83b": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 rebase onto trunk 9c701a6c (#548 TH7b checker hardening)",
+        "gate": "Parent trunk 9c701a6c (#548 merged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6; hardened checker scans all module test source sets for orphan test sets). Product code head b58db83b (same P12 patch as pre-rebase stack ending 42d0b968). Hosted pull_request run 39220391776 job 117954071719 Tests, lint, debug build success on push head 35cd7b2b (ledger-only tip over b58db83b): testDebugUnitTest 4850 tests, 0 failures (reports artifact). Workflow run 39220391776 gate job passed, run cancelled (superseded by newer push). Hosted push run 39220387079 job 117954056548 unit step failed 1/4850 in OwnedPickerRenderTest > small20 (SetText on picker-search, :203 via :115), failed in 0.404s, not root-caused here, P12 does not touch the picker. Non-blocking instrumented smoke job 117954072173 on run 39220391776: WorkoutCooldownSummaryInstrumentedTest and WorkoutCooldownFinishInstrumentedTest failed on hosted emulator.",
+        "independent": "PENDING formal review on PR #543 (draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Ledger row added on PR branch (35cd7b2b), not on trunk. Post-#548 rebase gate on code head b58db83b; rows 42d0b968 and b58db83b are PR-branch ledger only."
+      },
+      "4dcf5fbf": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 Forge Critic round 5 (instrumented seed/UI, summary strip on all summary branches, completion cooldown flag order, idempotent finish test)",
+        "gate": "Parent trunk 9c701a6c. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Product code head 4dcf5fbf. No e8ea7a17 gate carryover. Two fresh hosted gate jobs on 4dcf5fbf: pull_request run 39227193068 job 117976655725 Tests, lint, debug build success, testDebugUnitTest 4854 tests, 0 failures (reports artifact); push run 39227187576 job 117989819644 gate job success, testDebugUnitTest 4854 tests, 0 failures (reports artifact). Workflow run 39227193068 gate job passed, run cancelled (superseded). Non-blocking instrumented smoke job 117989820067 on run 39227187576: WorkoutCooldownSummaryInstrumentedTest and WorkoutCooldownFinishInstrumentedTest failed in log before job cancelled at workflow cap; run 39227187576 cancelled after gate success, not a full smoke pass.",
+        "independent": "PENDING formal review on PR #543 (Forge Critic round 5 on branch; draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Sixteen commits since trunk 9c701a6c on branch (Verifier r14 chain count). Ledger corrections (Verifier r14): rows 42d0b968 and b58db83b are PR-branch rows from 35cd7b2b, edited in place here; superseded runs 39209850156 and 39220391776 were not smoke-capped; push job 117954056548 picker failure wording per #542 pre-existing list, not claimed as flake."
+      },
+      "a28059f6": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 instrumented waits (summary loaded, finish dialog tag)",
+        "gate": "Parent trunk 9c701a6c. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Product code head a28059f6. Hosted pull_request run 39237482940 job 118010442210 failed static checks (check-missing-imports.py onAllNodes imports); unit tests skipped. Superseded by product head 135dec70 import fix. Two fresh green gate jobs required on final product head before merge (no e8ea7a17 carryover).",
+        "independent": "PENDING formal review on PR #543 (draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Follows 4dcf5fbf round-5 code; ledger rows 42d0b968 and b58db83b corrected in place (Verifier r14)."
+      },
+      "135dec70": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 onAllNodes import fix (preflight gate unblock)",
+        "gate": "Parent trunk 9c701a6c. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Product code head 135dec70 (includes a28059f6 instrumented waits). Hosted gate jobs pending on push; two fresh green gate jobs required on this head. Prior 4dcf5fbf hosted gate pair 4854/0 does not carry to this head.",
+        "independent": "PENDING formal review on PR #543 (draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Follow-up to CI watch on 4dcf5fbf: PR smoke run 39227193068 job 117976655277 cancelled before report; push run 39227187576 logged cooldown instrumented failures before cap."
+      },
       "251dc30b": {
         "when": "2026-10-16",
         "packet": "P20 phone checklist",
@@ -5979,6 +6019,54 @@
         "independent": "Formal GitHub review pending on PR #550 (draft). Forge Critic/Verifier not yet run on TH6b packet.",
         "adversarial": "Formal GitHub review pending on PR #550 (draft). Forge Critic/Verifier not yet run on TH6b packet.",
         "cleanContext": "Branch cursor/th6b-floor-undo-tests-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/550. Tests only in FloorWorkClocksCharacterisationTest.kt; no timer/ main, RestTimer, FakeAppDependencies, ci.yml, tools, or baselines. Ledger corrections: (a) class-wide ControllableTimePort on WorkoutPrivateRecoveryTest landed in code head 9d930931 (#547). (b) merged TH6 row f46bb7e0 was rekeyed to ca7a8f94 (merge note only; merged rows not edited here). (c) 5f4fdf07 row hosted 39164542580 and 39164538728 should read gate job passed, run cancelled, not gate job success; 5bdf0056 row called hosted pull_request 39185418522 (#547, tip eaa6ab4f) run cancelled before cancel happened. (d) #548 row 1e59ca67: round 5 PENDING resolved to Forge Critic round 5 APPROVE WITH NITS at 1e59ca67 (agent review, not on GitHub); Verifier r13 FAIL minor (two double spaces before Hosted in gate text); hosted pull_request 39218917022 job 117949486675 and push 39218910311 job 117950301174 on cb41e98f gate job passed, testDebugUnitTest FROM-CACHE; #548 merged as 9c701a6c."
+      },
+      "13692b9c": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 rebase onto trunk 28e48f33 (#550 TH6b); emulator blocker fix",
+        "gate": "Parent trunk 28e48f33 (#550 merged; trunk ledger row 21593448 unchanged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Product code head 13692b9c (pre-stabilize finish wait). Two fresh hosted gate jobs on 13692b9c: pull_request run 39256541066 job 118073144868 Tests, lint, debug build success, testDebugUnitTest 4855 tests, 0 failures (reports artifact); push run 39256535720 job 118073127538 gate job success, testDebugUnitTest 4855 tests, 0 failures (reports artifact). Workflow runs 39256541066 and 39256535720 gate job passed, run cancelled (smoke hit 45m cap). Hosted smoke suite order: runner expands parameterized classes to 315 tests; three expanded classes before A00 add 54 slots so A00 methods are index 182 finishStartsCooldownInTheStore and 183 summaryScreenSkipAndBackUseDoneNotHistory (not 128 to 129). Gradle prints FAILED lines live but never names passing tests. Non-blocking smoke job 118073127069 on push run 39256535720: indices 182 and 183 completed with no FAILED line (A00 smoke 2 of 2 on push). Smoke job 118073143998 on pull_request run 39256541066: index 183 no FAILED line; index 182 A00P12CooldownFinishInstrumentedTest finishStartsCooldownInTheStore FAILED ComposeTimeoutException (Condition still not satisfied after 15000 ms) (A00 smoke 1 of 2 on PR). A00 hosted smoke on this head: 1 of 2 methods failed across push and PR jobs. Prior blocker run 39227187576 job 117989820067 quoted failures: Finish (TestTag workout-end-save not found); Summary (TestTag summary-cooldown not found). Product/test deltas on this head: finishWorkout() on summary path; end-workout save with unmerged dialog; skip post-log rest; A00 class name prefix (dex-scan ordering artifact, not a documented contract; rename is follow-up).",
+        "independent": "PENDING formal GitHub review on PR #543 (draft).",
+        "adversarial": "PENDING formal GitHub review on PR #543 (draft).",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Rebased onto 28e48f33; P12 ledger rows 42d0b968 through 135dec70 remain above trunk row 21593448 in file order from earlier commits; this row is the post-rebase product head. Finish instrumented 30s waits land on the commit after 13692b9c."
+      },
+      "807a4733": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 finish instrumented 30s waits (post-rebase)",
+        "gate": "Parent trunk 28e48f33 (trunk ledger row 21593448 unchanged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable). Two fresh hosted gate jobs on 807a4733: pull_request run 39263711985 job 118097730323 Tests, lint, debug build success, testDebugUnitTest 4855 tests, 0 failures (reports artifact); push run 39263705679 job 118097708954 gate job success, testDebugUnitTest 4855 tests, 0 failures (reports artifact). Workflow runs gate job passed, run cancelled (smoke hit 45m cap). Non-blocking smoke: push job 118097708403 A00P12CooldownFinishInstrumentedTest failed ComposeTimeoutException after 30000 ms; pull_request job 118097730722 same finish failure; summary test not reached in log before cancel.",
+        "independent": "PENDING formal review on PR #543 (draft). Forge Critic emulator blocker open.",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543."
+      },
+      "2fc2025a": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 finish instrumented overlay release and workout-end-save tag",
+        "gate": "Parent trunk 28e48f33. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable). Two fresh hosted gate jobs on 2fc2025a: pull_request run 39271266039 job 118123870516 Tests, lint, debug build success, testDebugUnitTest 4855 tests, 0 failures; push run 39271247461 job 118123803681 gate job success, testDebugUnitTest 4855 tests, 0 failures. Workflow runs gate job passed, run cancelled (smoke 45m cap). Smoke push job 118123804859: A00P12CooldownFinishInstrumentedTest failed ComposeTimeoutException after 30000 ms; summary test not logged before cancel. Smoke pull_request job 118123869803: finish test outcome not confirmed in log; summary not logged before cancel.",
+        "independent": "PENDING formal review on PR #543 (draft). Forge Critic emulator blocker open.",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Product head moves to 22d9d342 with IO polling for cooldown store after save tap."
+      },
+      "248dd71a": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 ledger only (807a4733 and 2fc2025a rows)",
+        "gate": "Parent trunk 28e48f33. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable). Hosted pull_request run 39279566563 job 118152704946 and push run 39279561020 job 118168633977 on 248dd71a: gate job failed at Static checks (tools/preflight.sh); real_time_delays 7 baseline 6 (delay() in A00P12CooldownFinishInstrumentedTest IO poll from 22d9d342); testDebugUnitTest skipped. Smoke jobs cancelled; A00 P12 tests not confirmed.",
+        "independent": "PENDING formal review on PR #543 (draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Fix on 08dae0cc removes delay()."
+      },
+      "3dee0195": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 tip after preflight ratchet fix (app code 08dae0cc)",
+        "gate": "Parent trunk 28e48f33 (trunk ledger row 21593448 unchanged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_delays 6). Agent-local ./gradlew testDebugUnitTest assembleDebug BUILD SUCCESSFUL (local, not independently verifiable). Two fresh hosted gate jobs on app-equivalent head: push run 39292150344 job 118195279919 on 08dae0cc Tests, lint, debug build success, testDebugUnitTest step success (reports artifact; 4855 tests 0 failures per prior branch gate pattern); pull_request run 39292188878 job 118196087542 on 3dee0195 gate job success, testDebugUnitTest step success. Push run 39292180729 job 118217387789 on 3dee0195 also gate job success (third green gate). Workflow runs gate job passed; smoke jobs cancelled at 45m cap (A00 P12 pass or fail not confirmed from agent log access).",
+        "independent": "PENDING formal review on PR #543 (draft). Forge Critic emulator blocker may remain until A00 smoke shows both tests passed.",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Rebased onto 28e48f33. Finish instrumented: overlay release, EndWorkoutTags.SAVE, IO poll without delay()."
+      },
+      "a6296afd": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 finish cooldown (Forge Critic APPROVE WITH NITS)",
+        "gate": "Parent trunk 28e48f33 (trunk ledger row 21593448 unchanged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Agent-local ./gradlew testDebugUnitTest assembleDebug BUILD SUCCESSFUL (local, not independently verifiable). Two fresh hosted gate jobs on a6296afd: push run 39311252827 job 118263777031 Tests, lint, debug build success, testDebugUnitTest 4855 tests, 0 failures (reports artifact); pull_request run 39311260564 job 118261377691 gate job success, testDebugUnitTest 4855 tests, 0 failures (reports artifact). Workflow runs 39311252827 and 39311260564 gate job passed, run cancelled (smoke hit 45m cap). Hosted smoke suite order: runner expands parameterized classes to 315 tests; three expanded classes before A00 add 54 slots so A00 methods are index 182 finishStartsCooldownInTheStore and 183 summaryScreenSkipAndBackUseDoneNotHistory. Gradle prints FAILED lines live but never names passing tests. Non-blocking smoke push job 118263776480 (instrumented step done 3:46 PM ET): indices 182 and 183 completed with no FAILED line and 0 skipped; workflow run cancelled at cap about 4:18 PM ET (~30 min later). Smoke pull_request job 118261378275 (instrumented step done 3:40 PM ET): indices 182 and 183 completed with no FAILED line and 0 skipped; run cancelled at cap about 4:14 PM ET (~30 min later). A00 smoke on a6296afd: 2 of 2 passed (log evidence only). Root cause for historic finish timeouts: inferred, unconfirmed (overlay blocking end sheet not confirmed). Job 118097708403 on 807a4733 quoted only: ComposeTimeoutException: Condition still not satisfied after 30000 ms at waitUntil; at 807a4733 the first waitUntil in finishStartsCooldownInTheStore was isDialog() (workout-end-save is inference only). @Before RestTimerOverlayController.release landed in 2fc2025a; finish still failed there. A00 finish/summary smoke pass-fail by code head (each job counts one method): 13692b9c 1 of 2 failed; 807a4733 2 of 2 failed; 2fc2025a 1 of 2 failed; 22d9d342 passed; 248dd71a 1 of 2 failed; 08dae0cc tree 5 of 5 passed; a6296afd 2 of 2 passed. a6296afd kept A00 smoke passing; did not newly fix a confirmed root cause. Not same failure as ActiveWorkoutJourneyInstrumentedTest workout-micro-rec-why on other smokes.",
+        "independent": "Forge Critic (agent review, not on GitHub): APPROVE WITH NITS at a6296afd on PR #543. Formal GitHub review pending (draft).",
+        "adversarial": "Forge Critic (agent review, not on GitHub): APPROVE WITH NITS at a6296afd on PR #543. Formal GitHub review pending (draft).",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Code head a6296afd (unchanged). No instrumented-reports artifact on smoke (cancelled at 45m). A00 class-name ordering is dex-scan artifact; rename follow-up."
       }
     }
   }

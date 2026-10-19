@@ -9,6 +9,7 @@ import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.RestFinishFlash
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.IdFactory
 import java.util.concurrent.CountDownLatch
@@ -326,6 +327,77 @@ class RestTimerControllerTest {
             )
         } finally {
             scope.cancel()
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun refusedStartCooldownLeavesLastCompletedTimerIdUnchanged() {
+        val store = RestTimerStore()
+        val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        try {
+            controller.start(90, "session-1")
+            val finished = store.current().timerId
+            assertTrue(controller.completeIfCurrent(finished, fromService = true))
+            assertEquals(finished, controller.lastCompletedTimerId.value)
+            store.start(
+                totalSeconds = 60,
+                sessionId = "session-1",
+                nowElapsedRealtime = SystemClock.elapsedRealtime(),
+                sourceTag = "Routine",
+            )
+            controller.startCooldown()
+            assertEquals("a running rest blocks cool-down", finished, controller.lastCompletedTimerId.value)
+            assertTrue(store.current().running)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aCompletionRollbackClearsCooldownFlagOnlyWhenTheIdIsTakenBack() {
+        val store = RestTimerStore()
+        val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        try {
+            store.start(
+                totalSeconds = RestTimerMarkers.COOLDOWN_SECONDS,
+                sessionId = null,
+                nowElapsedRealtime = SystemClock.elapsedRealtime(),
+                sourceTag = RestTimerMarkers.COOLDOWN,
+            )
+            val timerId = store.current().timerId
+            controller.betweenMarkCompletedAndClear = { store.clear() }
+            assertFalse(controller.completeIfCurrent(timerId, fromService = true))
+            assertNull(controller.lastCompletedTimerId.value)
+            assertFalse(controller.lastCompletedWasCooldown.value)
+        } finally {
+            controller.betweenMarkCompletedAndClear = null
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aCompletionRollbackKeepsCooldownFlagWhenANewerCompletionIsPublished() {
+        val store = RestTimerStore()
+        val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        try {
+            store.start(
+                totalSeconds = RestTimerMarkers.COOLDOWN_SECONDS,
+                sessionId = null,
+                nowElapsedRealtime = SystemClock.elapsedRealtime(),
+                sourceTag = RestTimerMarkers.COOLDOWN,
+            )
+            val timerId = store.current().timerId
+            val newerId = "newer-completion"
+            controller.betweenMarkCompletedAndClear = {
+                store.clear()
+                controller.markCompleted(newerId)
+            }
+            assertFalse(controller.completeIfCurrent(timerId, fromService = true))
+            assertEquals(newerId, controller.lastCompletedTimerId.value)
+            assertTrue(controller.lastCompletedWasCooldown.value)
+        } finally {
+            controller.betweenMarkCompletedAndClear = null
             controller.stop()
         }
     }

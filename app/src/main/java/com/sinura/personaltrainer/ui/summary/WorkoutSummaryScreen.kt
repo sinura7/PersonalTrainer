@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,7 +49,13 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.CooldownCopy
+import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.RestTimerMarkers
+import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.SummaryCopy
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import com.sinura.personaltrainer.domain.SummaryHeadline
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -96,16 +103,15 @@ fun WorkoutSummaryScreen(
     val activity = LocalContext.current.findActivity()
     LaunchedEffect(Unit) { viewModel.maybeAutoBackup(activity) }
 
-    // Back is Done. The workout behind this screen is finished and gone from the stack, so
-    // there is nowhere else back could sensibly lead.
-    BackHandler(enabled = !state.isLoading) { onDone() }
-
     WorkoutSummaryContent(
         state = state,
         unit = unit,
         onRetry = viewModel::retry,
         onOpenSession = onOpenSession,
         onDone = onDone,
+        onSkipCooldown = { timerId -> viewModel.skipCooldown(timerId) },
+        restSnapshot = viewModel.restTimerSnapshot,
+        restRemaining = viewModel.restRemainingSeconds,
     )
 }
 
@@ -116,16 +122,30 @@ internal fun WorkoutSummaryContent(
     onRetry: () -> Unit,
     onOpenSession: (String) -> Unit,
     onDone: () -> Unit,
+    onSkipCooldown: (String) -> Unit = {},
+    restSnapshot: StateFlow<RestTimerSnapshot>? = null,
+    restRemaining: Flow<Int>? = null,
 ) {
     val summary = state.summary
+
+    // Back is Done. The workout behind this screen is finished and gone from the stack, so
+    // there is nowhere else back could sensibly lead.
+    BackHandler(enabled = !state.isLoading) { onDone() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Pit),
     ) {
+        val scrollBodyModifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            .testTag(SummaryTags.CONTENT)
+            .verticalScroll(rememberScrollState())
+            .padding(Metrics.gutter)
+
         when {
-            state.isLoading -> ScreenLoading()
+            state.isLoading -> ScreenLoading(modifier = Modifier.weight(1f))
 
             // Before the missing branch on purpose: a failed read also has no summary, and it
             // must not be shown as a deleted session — nor, unless the row was read, as a saved
@@ -135,6 +155,7 @@ internal fun WorkoutSummaryContent(
                 onRetry = onRetry,
                 onOpenSession = { onOpenSession(state.sessionId) },
                 onDone = onDone,
+                modifier = scrollBodyModifier,
             )
 
             state.missing -> EmptyState(
@@ -144,8 +165,7 @@ internal fun WorkoutSummaryContent(
                 actionLabel = SummaryCopy.DONE,
                 onAction = onDone,
                 actionTag = SummaryTags.DONE,
-                modifier = Modifier.testTag(SummaryTags.CONTENT)
-                    .verticalScroll(rememberScrollState()).padding(Metrics.gutter),
+                modifier = scrollBodyModifier,
             )
 
             !summary.hasWork -> {
@@ -159,74 +179,125 @@ internal fun WorkoutSummaryContent(
                     actionLabel = SummaryCopy.DONE,
                     onAction = onDone,
                     actionTag = SummaryTags.DONE,
-                    modifier = Modifier.testTag(SummaryTags.CONTENT)
-                        .verticalScroll(rememberScrollState()).padding(Metrics.gutter),
+                    modifier = scrollBodyModifier,
                 )
             }
 
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.weight(1f).testTag(SummaryTags.CONTENT),
-                    contentPadding = PaddingValues(
-                        start = Metrics.gutter,
-                        end = Metrics.gutter,
-                        top = Metrics.space4,
-                        bottom = Metrics.space6,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space4),
-                ) {
-                    item(key = "receipt") {
-                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
-                            SummaryHeading(summary)
-                            SummaryFacts(summary, unit)
-                        }
+            else -> LazyColumn(
+                modifier = Modifier.weight(1f).testTag(SummaryTags.CONTENT),
+                contentPadding = PaddingValues(
+                    start = Metrics.gutter,
+                    end = Metrics.gutter,
+                    top = Metrics.space4,
+                    bottom = Metrics.space6,
+                ),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+            ) {
+                item(key = "receipt") {
+                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                        SummaryHeading(summary)
+                        SummaryFacts(summary, unit)
                     }
+                }
 
-                    if (summary.recordCount > 0) {
-                        item(key = "records") {
-                            PersonalRecordPanel(summary = summary, exercises = state.highlightExercises)
-                        }
+                if (summary.recordCount > 0) {
+                    item(key = "records") {
+                        PersonalRecordPanel(summary = summary, exercises = state.highlightExercises)
                     }
+                }
 
-                    item(key = "lifts-label") {
-                        GymSectionHeader(
-                            title = "Lifts",
-                            modifier = Modifier.padding(top = Metrics.space2),
-                        )
-                    }
-                    item(key = "lifts") {
-                        LiftBreakdown(summary = summary, unit = unit, exercises = state.highlightExercises)
-                    }
+                item(key = "lifts-label") {
+                    GymSectionHeader(
+                        title = "Lifts",
+                        modifier = Modifier.padding(top = Metrics.space2),
+                    )
+                }
+                item(key = "lifts") {
+                    LiftBreakdown(summary = summary, unit = unit, exercises = state.highlightExercises)
+                }
 
-                    if (summary.notes.isNotBlank()) {
-                        item(key = "notes") {
-                            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                                HairlineDivider(startIndent = 0.dp)
-                                Kicker("Notes")
-                                Text(summary.notes, style = InstrumentType.body, color = TextSecondary)
-                            }
-                        }
-                    }
-
-                    // A caption, not a card: an automatic copy is housekeeping, and the
-                    // records above are the only thing on this screen allowed to be an event.
-                    state.autoBackup?.let { line ->
-                        item(key = "auto-backup") {
-                            Text(
-                                text = line,
-                                style = InstrumentType.caption,
-                                color = TextTertiary,
-                            )
+                if (summary.notes.isNotBlank()) {
+                    item(key = "notes") {
+                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                            HairlineDivider(startIndent = 0.dp)
+                            Kicker("Notes")
+                            Text(summary.notes, style = InstrumentType.body, color = TextSecondary)
                         }
                     }
                 }
 
-                HairlineDivider(startIndent = 0.dp)
-                SummaryActions(
-                    onDone = onDone,
-                    onOpenSession = { onOpenSession(summary.sessionId) },
-                )
+                // A caption, not a card: an automatic copy is housekeeping, and the
+                // records above are the only thing on this screen allowed to be an event.
+                state.autoBackup?.let { line ->
+                    item(key = "auto-backup") {
+                        Text(
+                            text = line,
+                            style = InstrumentType.caption,
+                            color = TextTertiary,
+                        )
+                    }
+                }
             }
+        }
+
+        if (!state.isLoading && restSnapshot != null && restRemaining != null) {
+            SummaryCooldownStrip(
+                restSnapshot = restSnapshot,
+                restRemaining = restRemaining,
+                onSkip = onSkipCooldown,
+            )
+        }
+        if (summary.hasWork && !state.isLoading && !state.failed && !state.missing) {
+            HairlineDivider(startIndent = 0.dp)
+            SummaryActions(
+                onDone = onDone,
+                onOpenSession = { onOpenSession(summary.sessionId) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryCooldownStrip(
+    restSnapshot: StateFlow<RestTimerSnapshot>,
+    restRemaining: Flow<Int>,
+    onSkip: (String) -> Unit,
+) {
+    val snapshot by restSnapshot.collectAsStateWithLifecycle()
+    val shownTimerId = snapshot.timerId
+    if (!RestTimerMarkers.isCooldown(snapshot) || !snapshot.running) return
+    val remaining by restRemaining.collectAsStateWithLifecycle(
+        initialValue = snapshot.remainingSeconds(android.os.SystemClock.elapsedRealtime()),
+    )
+    val reducedMotion = LocalReducedMotion.current
+    val shownSeconds = if (reducedMotion) {
+        remaining
+    } else {
+        val animated by animateIntAsState(remaining, animationSpec = instrumentTween(Motion.DRAW), label = "cooldown")
+        animated
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SummaryTags.COOLDOWN)
+            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+            Kicker(CooldownCopy.KICKER)
+            Text(
+                RestTimer.formatClock(shownSeconds),
+                style = InstrumentType.title,
+                color = TextPrimary,
+                modifier = Modifier.testTag(SummaryTags.COOLDOWN_CLOCK),
+            )
+        }
+        TextButton(
+            onClick = { onSkip(shownTimerId) },
+            modifier = Modifier.testTag(SummaryTags.COOLDOWN_SKIP),
+        ) {
+            Text(CooldownCopy.SKIP, style = InstrumentType.bodyStrong, color = TextSecondary)
         }
     }
 }
@@ -328,13 +399,10 @@ private fun SummaryUnavailable(
     onRetry: () -> Unit,
     onOpenSession: () -> Unit,
     onDone: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag(SummaryTags.CONTENT)
-            .verticalScroll(rememberScrollState())
-            .padding(Metrics.gutter),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
         EmptyState(
@@ -568,6 +636,9 @@ object SummaryTags {
     const val DURATION = "summary-duration"
     const val HEADLINE = "summary-headline"
     const val BODYWEIGHT_REPS = "summary-bodyweight-reps"
+    const val COOLDOWN = "summary-cooldown"
+    const val COOLDOWN_CLOCK = "summary-cooldown-clock"
+    const val COOLDOWN_SKIP = "summary-cooldown-skip"
     const val DONE = "summary-done"
     const val OPEN_SESSION = "summary-open-session"
     const val RETRY = "summary-retry"

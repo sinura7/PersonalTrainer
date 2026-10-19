@@ -28,6 +28,7 @@ class StartLiveCardio(
     private val startLiveActivity: StartLiveActivity,
     private val cardioTimerPersistence: CardioTimerPersistence,
     private val ids: IdPort = IdFactory.Uuid,
+    private val onSessionStarted: () -> Unit = {},
 ) {
     suspend operator fun invoke(
         type: CardioType,
@@ -66,6 +67,7 @@ class StartLiveCardio(
                     // counts from the session's own start.
                     AppLog.w(TAG, "Cardio timer row did not commit at start")
                 }
+                onSessionStarted()
                 StartCardioOutcome.Open(write.session.id)
             }
             is ActivityWrite.Rejected -> StartCardioOutcome.Rejected(write.reason)

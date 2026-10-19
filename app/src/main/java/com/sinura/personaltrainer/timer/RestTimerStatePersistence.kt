@@ -27,6 +27,8 @@ data class PersistedRestTimer(
     val bootMarker: Long,
     val endsAtWallClockMillis: Long,
     val timerId: String = "",
+    /** [com.sinura.personaltrainer.domain.RestTimerMarkers.COOLDOWN] survives process death. */
+    val sourceTag: String = "",
     /**
      * [BootSession] counter at save time; [BootSession.UNKNOWN] when the row
      * predates the stamp. Definitive same-boot evidence where the two clock
@@ -72,6 +74,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
             .putLong(KEY_BOOT_MARKER, state.bootMarker)
             .putLong(KEY_ENDS_AT_WALL, state.endsAtWallClockMillis)
             .putString(KEY_TIMER_ID, state.timerId)
+            .putString(KEY_SOURCE_TAG, state.sourceTag)
             .putLong(KEY_BOOT_COUNT, bootCount)
             .commit()
     }
@@ -85,6 +88,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
             bootMarker = prefs.getLong(KEY_BOOT_MARKER, 0L),
             endsAtWallClockMillis = prefs.getLong(KEY_ENDS_AT_WALL, 0L),
             timerId = prefs.getString(KEY_TIMER_ID, "").orEmpty(),
+            sourceTag = prefs.getString(KEY_SOURCE_TAG, "").orEmpty(),
             bootCount = prefs.getLong(KEY_BOOT_COUNT, BootSession.UNKNOWN),
         )
     }
@@ -99,6 +103,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
         const val KEY_BOOT_MARKER = "boot_marker"
         const val KEY_ENDS_AT_WALL = "ends_at_wall"
         const val KEY_TIMER_ID = "timer_id"
+        const val KEY_SOURCE_TAG = "source_tag"
         const val KEY_BOOT_COUNT = "boot_count"
     }
 }
@@ -114,6 +119,7 @@ sealed interface RestTimerRehydration {
         val totalSeconds: Int,
         val sessionId: String?,
         val timerId: String,
+        val sourceTag: String = "",
     ) : RestTimerRehydration
 
     /**
@@ -126,6 +132,7 @@ sealed interface RestTimerRehydration {
         val lateByMs: Long,
         val endsAtElapsedRealtime: Long,
         val timerId: String,
+        val sourceTag: String = "",
     ) : RestTimerRehydration {
         val playCue: Boolean
             get() = lateByMs <= RestTimerRehydrator.LATE_ALERT_GRACE_MS
@@ -186,12 +193,14 @@ object RestTimerRehydrator {
                 totalSeconds = stored.totalSeconds,
                 sessionId = stored.sessionId,
                 timerId = stored.timerId,
+                sourceTag = stored.sourceTag,
             )
             else -> RestTimerRehydration.Expired(
                 sessionId = stored.sessionId,
                 lateByMs = -remainingMs,
                 endsAtElapsedRealtime = stored.endsAtElapsedRealtime,
                 timerId = stored.timerId,
+                sourceTag = stored.sourceTag,
             )
         }
     }
@@ -203,6 +212,7 @@ object RestTimerRehydrator {
         nowElapsedRealtime: Long = SystemClock.elapsedRealtime(),
         nowWallClockMillis: Long = System.currentTimeMillis(),
         timerId: String = "",
+        sourceTag: String = "",
     ): PersistedRestTimer = PersistedRestTimer(
         endsAtElapsedRealtime = endsAtElapsedRealtime,
         totalSeconds = totalSeconds,
@@ -210,5 +220,6 @@ object RestTimerRehydrator {
         bootMarker = nowWallClockMillis - nowElapsedRealtime,
         endsAtWallClockMillis = nowWallClockMillis + (endsAtElapsedRealtime - nowElapsedRealtime),
         timerId = timerId,
+        sourceTag = sourceTag,
     )
 }

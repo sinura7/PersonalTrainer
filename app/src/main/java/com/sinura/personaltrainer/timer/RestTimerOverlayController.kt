@@ -19,6 +19,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.overlay.OVERLAY_VOLT_COLOR
@@ -75,9 +76,20 @@ object RestTimerOverlayController {
         return appOpsAllowsOverlay(appContext)
     }
 
+    /** True when the draggable dot would be on screen; pairs with the quiet MIN notification. */
+    fun prefersQuietShade(context: Context, state: RestTimerSnapshot): Boolean {
+        if (!state.running) return false
+        if (RestTimerAppForeground.isInForeground) return false
+        if (RestTimerLockGlance.shouldAutoPresentRunning(context)) return false
+        if (!canDrawOverlays(context)) return false
+        if (RestOverlayDismissStore.isDismissedForRest(context, state.timerId)) return false
+        return true
+    }
+
     fun sync(
         context: Context,
         state: RestTimerSnapshot,
+        fromService: Boolean,
     ) {
         val wantsOverlay = state.running &&
             !RestTimerAppForeground.isInForeground &&
@@ -91,16 +103,22 @@ object RestTimerOverlayController {
         if (!canDrawOverlays(context)) {
             lastFailureReason = "Display over other apps is off for Temper"
             lastSnapshot = null
-            mainHandler.post { detachFromWindow(generation) }
+            mainHandler.post {
+                detachFromWindow(generation)
+                if (!fromService) requestExteriorSync(context.applicationContext)
+            }
             return
         }
         if (RestOverlayDismissStore.isDismissedForRest(context, state.timerId)) {
             lastSnapshot = state
-            mainHandler.post { detachFromWindow(generation) }
+            mainHandler.post {
+                detachFromWindow(generation)
+                if (!fromService) requestExteriorSync(context.applicationContext)
+            }
             return
         }
         lastSnapshot = state
-        mainHandler.post { attach(context.applicationContext, state, generation) }
+        mainHandler.post { attach(context.applicationContext, state, generation, fromService) }
     }
 
     fun release() {
@@ -143,7 +161,12 @@ object RestTimerOverlayController {
         }
     }
 
-    private fun attach(appContext: Context, state: RestTimerSnapshot, expectedGeneration: Int) {
+    private fun attach(
+        appContext: Context,
+        state: RestTimerSnapshot,
+        expectedGeneration: Int,
+        fromService: Boolean,
+    ) {
         if (expectedGeneration != syncGeneration) return
         if (RestOverlayDismissStore.isDismissedForRest(appContext, state.timerId)) {
             detachFromWindow(expectedGeneration)
@@ -186,6 +209,7 @@ object RestTimerOverlayController {
             runCatching {
                 if (view.isAttachedToWindow) wm.removeView(view)
             }
+            if (!fromService) requestExteriorSync(appContext)
         }
     }
 
@@ -215,10 +239,15 @@ object RestTimerOverlayController {
         val time = view.findViewById<TextView>(R.id.rest_overlay_time)
         val kicker = view.findViewById<TextView>(R.id.rest_overlay_kicker)
         val appContext = view.context.applicationContext
+        val runningKicker = if (RestTimerMarkers.isCooldown(state)) {
+            R.string.rest_overlay_kicker_cooldown
+        } else {
+            R.string.lockscreen_rest_widget_kicker
+        }
         val model = RestExteriorDisplay.model(
             state = state,
             nowElapsedRealtime = SystemClock.elapsedRealtime(),
-            kickerRunning = appContext.getString(R.string.lockscreen_rest_widget_kicker),
+            kickerRunning = appContext.getString(runningKicker),
             kickerDone = appContext.getString(R.string.rest_exterior_done_kicker),
         )
         ring.progress = model.progressLevel.toFloat() / RestExteriorDisplay.PROGRESS_MAX
@@ -331,6 +360,21 @@ object RestTimerOverlayController {
         RestOverlayDismissStore.dismissForRest(appContext, timerId)
         ++syncGeneration
         detachFromWindow(syncGeneration)
+        requestExteriorSync(appContext)
+    }
+
+    private fun requestExteriorSync(appContext: Context) {
+        val intent = Intent(appContext, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_EXTERIOR_SYNC)
+        try {
+            appContext.startForegroundService(intent)
+        } catch (_: Exception) {
+            try {
+                appContext.startService(intent)
+            } catch (error: Exception) {
+                AppLog.w(TAG, "Could not sync rest exterior after overlay change", error)
+            }
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")

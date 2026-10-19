@@ -8,11 +8,13 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,6 +69,9 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
     /** Watches the automatic backup's line; the copy itself belongs to the app. */
     private var autoBackupWatch: Job? = null
     val uiState: StateFlow<WorkoutSummaryUiState> = _uiState.asStateFlow()
+
+    val restTimerSnapshot: StateFlow<RestTimerSnapshot> = container.restTimerController.snapshot
+    val restRemainingSeconds: Flow<Int> = container.restTimerController.remainingSeconds
 
     private var loading: Job? = null
 
@@ -190,6 +195,13 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
             backup.status(sessionId).collect { line ->
                 _uiState.update { it.copy(autoBackup = line) }
             }
+        }
+    }
+
+    /** Ends the cool-down strip the summary drew as [timerId], not a newer rest. */
+    fun skipCooldown(timerId: String) {
+        if (timerId.isNotBlank()) {
+            container.restTimerController.skipIfShown(timerId)
         }
     }
 }

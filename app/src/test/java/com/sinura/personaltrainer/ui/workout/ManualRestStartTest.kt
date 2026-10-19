@@ -99,7 +99,14 @@ class ManualRestStartTest {
         terminalGate!!.complete(Unit)
         vm.exitRequested.awaitFirst { it != null }
         vm.startSelectedRest()
-        assertFalse("Terminal workout cannot restart rest", deps.restTimerStore.current().running)
+        if (discard) {
+            assertFalse("Discarded workout leaves no timer running", deps.restTimerStore.current().running)
+        } else {
+            assertTrue(
+                "Terminal workout leaves cool-down, not a live rest",
+                com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(deps.restTimerStore.current()),
+            )
+        }
     }
 
     private fun activeScenario(timeSet: Boolean) = runBlocking {

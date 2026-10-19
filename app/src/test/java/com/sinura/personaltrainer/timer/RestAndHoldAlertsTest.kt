@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.timer
 
 import android.app.Application
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.ToneGenerator
 import android.os.VibratorManager
 import androidx.test.core.app.ApplicationProvider
@@ -56,6 +57,37 @@ class RestAndHoldAlertsTest {
     @Test
     fun aHoldThatReachesItsTargetStaysSilentWhenSoundIsOff() {
         RestTimerAlerts.holdTargetTone(context, soundEnabled = false)
+        assertTrue(ShadowToneGenerator.getPlayedTones().isEmpty())
+    }
+
+    @Test
+    fun cooldownDonePlaysOneNotificationToneWhenSoundIsOn() {
+        val prefs = RestTimerPreferences(soundEnabled = true, vibrationEnabled = false)
+        RestTimerAlerts.announceCooldown(context, prefs)
+        assertEquals(
+            listOf(ToneGenerator.TONE_PROP_ACK),
+            ShadowToneGenerator.getPlayedTones().map { it.type() },
+        )
+    }
+
+    @Test
+    fun cooldownDoneStaysSilentWhenSoundIsOff() {
+        val prefs = RestTimerPreferences(soundEnabled = false, vibrationEnabled = false)
+        RestTimerAlerts.announceCooldown(context, prefs)
+        assertTrue(ShadowToneGenerator.getPlayedTones().isEmpty())
+    }
+
+    @Test
+    fun restDoneUsesAlarmCueNotNotificationTone() {
+        var capturedUsage = -1
+        RestTimerAlerts.announce(
+            context,
+            RestTimerPreferences(soundEnabled = true, vibrationEnabled = false),
+        ) { _, _, attributes ->
+            capturedUsage = attributes.usage
+            null
+        }
+        assertEquals(AudioAttributes.USAGE_ALARM, capturedUsage)
         assertTrue(ShadowToneGenerator.getPlayedTones().isEmpty())
     }
 }

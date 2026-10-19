@@ -257,8 +257,11 @@ internal fun RestFloorBody(
                     // The dock card's three, in its order and words. Skip names the rest drawn
                     // here, not whatever runs when the tap is read (W2b-3).
                     rest.running -> RestNudgeButtons(
-                        onNudge = onAdjust, onSkip = { onSkip(rest.timerId) },
-                        minusTag = RestFloorTags.MINUS, plusTag = RestFloorTags.PLUS, skipTag = RestFloorTags.SKIP,
+                        onNudge = onAdjust,
+                        onSkip = { onSkip(rest.timerId) },
+                        minusTag = RestFloorTags.MINUS,
+                        plusTag = RestFloorTags.PLUS,
+                        skipTag = RestFloorTags.SKIP,
                         perRow = if (largeText) 2 else 3,
                     )
                     completed -> PrimaryGymButton(

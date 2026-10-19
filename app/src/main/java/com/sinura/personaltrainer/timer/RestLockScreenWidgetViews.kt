@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.widget.RemoteViews
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.ui.overlay.OVERLAY_VOLT_COLOR
 
@@ -34,7 +35,10 @@ object RestLockScreenWidgetViews {
         wide: Boolean,
     ): RemoteViews {
         val views = RemoteViews(context.packageName, layoutId)
-        val kickerRunning = context.getString(R.string.lockscreen_rest_widget_kicker)
+        val kickerRunning = context.getString(
+            if (RestTimerMarkers.isCooldown(state)) R.string.lockscreen_cooldown_widget_kicker
+            else R.string.lockscreen_rest_widget_kicker,
+        )
         val kickerDone = context.getString(R.string.rest_exterior_done_kicker)
         val model = RestExteriorDisplay.model(
             state = state,

@@ -277,6 +277,10 @@ class FakeAppDependencies(
     private val inMemoryRestTimer = InMemoryRestTimerGateway(restTimerStore)
     override val restTimerController: RestTimerGateway = inMemoryRestTimer
 
+    init {
+        workoutRepository.onWorkoutSessionStarted = { restTimerController.stopIfCooldown() }
+    }
+
     fun setExactAlarmAttempt(attempt: ExactAlarmAttempt) {
         inMemoryRestTimer.setAttempt(attempt)
     }
@@ -419,7 +423,9 @@ private class InMemoryRestTimerGateway(
         .map { state -> state.sessionId.takeIf { state.running } }
         .distinctUntilChanged()
     private val _lastCompletedTimerId = MutableStateFlow<String?>(null)
+    private val _lastCompletedWasCooldown = MutableStateFlow(false)
     override val lastCompletedTimerId: StateFlow<String?> = _lastCompletedTimerId
+    override val lastCompletedWasCooldown: StateFlow<Boolean> = _lastCompletedWasCooldown
     override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule
     override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt
     override val persistenceHealthy: StateFlow<Boolean> = _persistenceHealthy
@@ -439,7 +445,20 @@ private class InMemoryRestTimerGateway(
 
     override fun start(totalSeconds: Int, sessionId: String?, sourceTag: String) {
         _lastCompletedTimerId.value = null
+        _lastCompletedWasCooldown.value = false
         store.start(totalSeconds, sessionId, elapsedRealtimeMs, sourceTag = sourceTag)
+    }
+
+    override fun startCooldown() {
+        if (!store.startCooldownIfIdle(elapsedRealtimeMs)) return
+        _lastCompletedTimerId.value = null
+        _lastCompletedWasCooldown.value = false
+    }
+
+    override fun stopIfCooldown(fromService: Boolean) {
+        val current = store.current()
+        if (current.sourceTag != com.sinura.personaltrainer.domain.RestTimerMarkers.COOLDOWN) return
+        stopIfCurrent(current.timerId, fromService)
     }
 
     override fun adjust(deltaSeconds: Int) {
@@ -448,7 +467,26 @@ private class InMemoryRestTimerGateway(
 
     override fun stop(fromService: Boolean) {
         _lastCompletedTimerId.value = null
+        _lastCompletedWasCooldown.value = false
         store.clear()
+    }
+
+    override fun completeIfCurrent(timerId: String, fromService: Boolean): Boolean {
+        val current = store.current()
+        if (current.running && current.timerId != timerId) return false
+        if (!current.running && store.hasHeld(timerId)) return false
+        val completingCooldown =
+            com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(current)
+        _lastCompletedWasCooldown.value = completingCooldown
+        markCompleted(timerId)
+        val cleared = store.clearIfCurrent(timerId)
+        if (cleared == null || (!cleared.running && store.hasHeld(timerId))) {
+            if (_lastCompletedTimerId.compareAndSet(timerId, null)) {
+                _lastCompletedWasCooldown.value = false
+            }
+            return false
+        }
+        return true
     }
 
     /**

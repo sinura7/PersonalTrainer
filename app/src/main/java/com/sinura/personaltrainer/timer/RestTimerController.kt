@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.SystemClock
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.recoverWith
@@ -44,8 +45,10 @@ class RestTimerController(
     private val _lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.FAILED)
     private val _exactAlarmAttempt = MutableStateFlow(alarms.currentAttempt())
     private val _lastCompletedTimerId = MutableStateFlow<String?>(null)
+    private val _lastCompletedWasCooldown = MutableStateFlow(false)
     private val _persistenceHealthy = MutableStateFlow(true)
     override val lastCompletedTimerId: StateFlow<String?> = _lastCompletedTimerId.asStateFlow()
+    override val lastCompletedWasCooldown: StateFlow<Boolean> = _lastCompletedWasCooldown.asStateFlow()
     override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule.asStateFlow()
     override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt.asStateFlow()
     override val persistenceHealthy: StateFlow<Boolean> = _persistenceHealthy.asStateFlow()
@@ -94,6 +97,10 @@ class RestTimerController(
      */
     @Volatile
     internal var betweenSkipReadAndClear: (() -> Unit)? = null
+
+    /** Test seam: runs after completion is published and before the store clear attempt. */
+    internal var betweenMarkCompletedAndClear: (() -> Unit)? = null
+
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
 
     /**
@@ -133,8 +140,22 @@ class RestTimerController(
 
     override fun start(totalSeconds: Int, sessionId: String?, sourceTag: String) {
         _lastCompletedTimerId.value = null
+        _lastCompletedWasCooldown.value = false
         store.start(totalSeconds, sessionId, SystemClock.elapsedRealtime(), sourceTag = sourceTag)
         persistThenArm(syncService = true)
+    }
+
+    override fun startCooldown() {
+        if (!store.startCooldownIfIdle(SystemClock.elapsedRealtime())) return
+        _lastCompletedTimerId.value = null
+        _lastCompletedWasCooldown.value = false
+        persistThenArm(syncService = true)
+    }
+
+    override fun stopIfCooldown(fromService: Boolean) {
+        val current = store.current()
+        if (!RestTimerMarkers.isCooldown(current)) return
+        stopIfCurrent(current.timerId, fromService)
     }
 
     override fun adjust(deltaSeconds: Int) {
@@ -200,15 +221,21 @@ class RestTimerController(
         // finish. A process started after death has held nothing, so a rest that ran out while
         // it was dead still completes.
         if (!current.running && store.hasHeld(timerId)) return false
-        // Publish before clearing running. The lock glance collects those
-        // two flows separately; stop-then-mark looks like a skip for one
-        // frame and dismisses the "Back to the bar" surface.
+        val completingCooldown = RestTimerMarkers.isCooldown(current)
+        // Publish cooldown with the id. The lock glance collects id and cooldown separately;
+        // marking id before cooldown looked like a non-cool-down finish for one frame.
+        _lastCompletedWasCooldown.value = completingCooldown
+        // Publish before clearing running. stop-then-mark looks like a skip for one frame and
+        // dismisses the "Back to the bar" surface.
         markCompleted(timerId)
+        betweenMarkCompletedAndClear?.invoke()
         val cleared = store.clearIfCurrent(timerId)
         if (cleared == null || (!cleared.running && store.hasHeld(timerId))) {
             // After the check, a +15 replaced this timer, or a Skip emptied the store: nothing
             // finished. Take the completion back, unless something newer has been published.
-            _lastCompletedTimerId.compareAndSet(timerId, null)
+            if (_lastCompletedTimerId.compareAndSet(timerId, null)) {
+                _lastCompletedWasCooldown.value = false
+            }
             return false
         }
         afterHalt(wasRunning = cleared.running, fromService = fromService, timerId = cleared.timerId)
@@ -217,6 +244,7 @@ class RestTimerController(
 
     override fun stop(fromService: Boolean) {
         _lastCompletedTimerId.value = null
+        _lastCompletedWasCooldown.value = false
         halt(fromService)
     }
 
@@ -276,6 +304,7 @@ class RestTimerController(
                     sessionId = outcome.sessionId,
                     nowElapsedRealtime = SystemClock.elapsedRealtime(),
                     timerId = outcome.timerId,
+                    sourceTag = outcome.sourceTag,
                 )
                 persistThenArm(syncService = true)
                 true
@@ -292,6 +321,7 @@ class RestTimerController(
                         deadlineElapsedRealtime = outcome.endsAtElapsedRealtime,
                         sessionId = outcome.sessionId,
                         playCue = outcome.playCue,
+                        isCooldown = RestTimerMarkers.isCooldownTag(outcome.sourceTag),
                     )
                 }
                 false
@@ -395,6 +425,7 @@ class RestTimerController(
                     totalSeconds = snap.totalSeconds,
                     sessionId = snap.sessionId,
                     timerId = snap.timerId,
+                    sourceTag = snap.sourceTag,
                 ),
             )
         }

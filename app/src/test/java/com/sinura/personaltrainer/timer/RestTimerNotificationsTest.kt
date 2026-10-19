@@ -15,16 +15,26 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.shadows.ShadowSettings
 import android.app.KeyguardManager
 import android.os.PowerManager
+import org.junit.Before
 
 @RunWith(RobolectricTestRunner::class)
 class RestTimerNotificationsTest {
     private val context: Application = ApplicationProvider.getApplicationContext()
 
+    @Before
+    fun resetExteriorDefaults() {
+        RestTimerAppForeground.setForegroundForTest(false)
+        ShadowSettings.setCanDrawOverlays(false)
+        RestOverlayDismissStore.clear(context)
+    }
+
     @After
     fun resetForeground() {
         RestTimerAppForeground.setForegroundForTest(false)
+        ShadowSettings.reset()
     }
 
     @Test
@@ -57,6 +67,10 @@ class RestTimerNotificationsTest {
             manager.getNotificationChannel(RestTimerNotifications.CHANNEL_RUNNING_IN_APP),
         )
         assertEquals(NotificationManager.IMPORTANCE_MIN, inApp.importance)
+        assertEquals(
+            context.getString(com.sinura.personaltrainer.R.string.rest_channel_quiet_name),
+            inApp.name,
+        )
     }
 
     @Test
@@ -85,6 +99,9 @@ class RestTimerNotificationsTest {
     @Test
     fun runningNotificationCountsDownOnTheLockScreen() {
         RestTimerNotifications.ensureChannels(context)
+        val timerId = "timer-1"
+        // High/public running card: not the quiet MIN path used when the dot would show.
+        RestOverlayDismissStore.dismissForRest(context, timerId)
         val notification = RestTimerNotifications.runningNotification(
             context = context,
             presentation = RestTimerRunningPresentation.BACKGROUND_UNLOCKED,
@@ -93,7 +110,7 @@ class RestTimerNotificationsTest {
                 endsAtElapsedRealtime = 90_000L,
                 totalSeconds = 90,
                 sessionId = "session-1",
-                timerId = "timer-1",
+                timerId = timerId,
             ),
             nowElapsedRealtime = 0L,
             nowWallClockMillis = 1_000L,
@@ -206,6 +223,7 @@ class RestTimerNotificationsTest {
         shadowOf(context.getSystemService(KeyguardManager::class.java)).setKeyguardLocked(false)
         shadowOf(context.getSystemService(PowerManager::class.java)).setIsInteractive(true)
         RestTimerNotifications.ensureChannels(context)
+        RestOverlayDismissStore.dismissForRest(context, "timer-1")
         val notification = sampleRunningCard(RestTimerRunningPresentation.BACKGROUND_UNLOCKED)
         assertNull(notification.fullScreenIntent)
         assertNull(notification.headsUpContentView)

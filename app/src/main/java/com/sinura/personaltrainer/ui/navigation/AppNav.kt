@@ -76,6 +76,7 @@ import androidx.navigation.navArgument
 import com.sinura.personaltrainer.UsedReminder
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.LiveBarKind
+import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.CustomWeekLaunch
 import com.sinura.personaltrainer.domain.DataHealthCopy
@@ -128,6 +129,7 @@ import com.sinura.personaltrainer.ui.activity.ActivityDetailScreen
 import com.sinura.personaltrainer.ui.activity.LiveCardioScreen
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
 import com.sinura.personaltrainer.ui.workout.LocalRestAlertsAsk
+import com.sinura.personaltrainer.ui.workout.LocalRestCooldownActive
 import com.sinura.personaltrainer.ui.workout.LocalRestExteriorAsk
 import com.sinura.personaltrainer.ui.workout.RestAlertsAsk
 import com.sinura.personaltrainer.ui.workout.RestExteriorAsk
@@ -522,6 +524,8 @@ fun PersonalTrainerNav(
     )
 
     val todayEpochDay = rememberTodayEpochDay(container.time)
+    val restSnapshot by container.restTimerController.snapshot.collectAsStateWithLifecycle()
+    val restCooldownActive = RestTimerMarkers.isCooldown(restSnapshot)
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
     val openPermissionsSettings = {
         settingsViewModel.requestSettingsSubpage(SettingsPage.PERMISSIONS)
@@ -533,6 +537,7 @@ fun PersonalTrainerNav(
         LocalTodayEpochDay provides todayEpochDay,
         LocalRestAlertsAsk provides restAlertsAsk,
         LocalRestExteriorAsk provides restExteriorAsk,
+        LocalRestCooldownActive provides restCooldownActive,
         LocalOpenPermissionsSettings provides openPermissionsSettings,
     ) {
         Scaffold(

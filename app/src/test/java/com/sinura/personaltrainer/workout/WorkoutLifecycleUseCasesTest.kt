@@ -59,7 +59,10 @@ class WorkoutLifecycleUseCasesTest {
         val saved = checkNotNull(deps.workoutRepository.getSession(fixture.session.id))
         assertEquals("keep", saved.notes)
         assertTrue(saved.isFinished)
-        assertFalse(deps.restTimerStore.current().running)
+        val after = deps.restTimerStore.current()
+        assertTrue(after.running)
+        assertEquals(com.sinura.personaltrainer.domain.RestTimerMarkers.COOLDOWN, after.sourceTag)
+        assertNull(after.sessionId)
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
     }
 

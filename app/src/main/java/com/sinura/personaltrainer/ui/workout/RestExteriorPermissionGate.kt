@@ -36,6 +36,8 @@ internal val LocalRestExteriorAsk = compositionLocalOf {
     RestExteriorAsk(asked = true, markAsked = {})
 }
 
+internal val LocalRestCooldownActive = compositionLocalOf { false }
+
 /**
  * Rest-exterior permissions (shade, overlay, exact alarm) asked in context on the workout
  * floor when rest is relevant — not as a root-level block on every app resume.
@@ -43,7 +45,10 @@ internal val LocalRestExteriorAsk = compositionLocalOf {
  * Later / Not now still allows the in-app rest clock; only off-app surfaces need the grant.
  */
 @Composable
-internal fun RestExteriorPermissionGate(active: Boolean) {
+internal fun RestExteriorPermissionGate(
+    active: Boolean,
+    cooldownActive: Boolean = LocalRestCooldownActive.current,
+) {
     val context = LocalContext.current
     val ask = LocalRestExteriorAsk.current
     val probe = remember { AndroidPhoneCapabilities(context) }
@@ -63,8 +68,8 @@ internal fun RestExteriorPermissionGate(active: Boolean) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(active, ask.asked, snapshot) {
-        if (!active || ask.asked == true || decided) {
+    LaunchedEffect(active, cooldownActive, ask.asked, snapshot) {
+        if (!active || cooldownActive || ask.asked == true || decided) {
             show = false
             return@LaunchedEffect
         }

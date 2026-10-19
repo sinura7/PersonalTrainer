@@ -209,7 +209,7 @@ class RestTimerService : Service() {
                 if (snap.running && startedForeground) {
                     publishRunning(snap, force = true)
                 } else if (snap.running) {
-                    RestTimerOverlayController.sync(this, snap)
+                    RestTimerOverlayController.sync(this, snap, fromService = true)
                     RestLockScreenWidgetUpdater.updateAll(this, snap)
                 } else {
                     // A foreground/background transition can start this service while no
@@ -262,7 +262,11 @@ class RestTimerService : Service() {
         handler.postDelayed(completeRunnable, delayMs)
         // Loaded now, at the start of the rest, so the first tick is not the one that decodes.
         if (tickPlayer == null) tickPlayer = RestTickPlayer(this)
-        scheduleTick(state)
+        if (!com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(state)) {
+            scheduleTick(state)
+        } else {
+            handler.removeCallbacks(tickRunnable)
+        }
         scheduleLockWidgetRefresh()
     }
 
@@ -299,6 +303,7 @@ class RestTimerService : Service() {
     private fun handleTick() {
         val state = controller.snapshot.value
         if (!state.running || completing) return
+        if (com.sinura.personaltrainer.domain.RestTimerMarkers.isCooldown(state)) return
         val second = pendingTick
         if (!RestTick.isDue(state.endsAtElapsedRealtime, second, SystemClock.elapsedRealtime())) {
             scheduleTick(state)
@@ -372,7 +377,7 @@ class RestTimerService : Service() {
     }
 
     private fun syncExterior(state: RestTimerSnapshot, presentation: RestTimerRunningPresentation) {
-        RestTimerOverlayController.sync(this, state)
+        RestTimerOverlayController.sync(this, state, fromService = true)
         RestLockScreenWidgetUpdater.updateAll(this, state)
     }
 
