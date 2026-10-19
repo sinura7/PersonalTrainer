@@ -1729,8 +1729,8 @@ class ActiveWorkoutViewModel internal constructor(
         check(sessionId.isNotBlank()) { "This workout is no longer available." }
         val replaced = swapTarget?.let { target -> container.workoutRepository.getSession(sessionId)?.exercises?.firstOrNull { it.id == target }?.exercise?.id }
         if (swapTarget != null) {
-            clocks.forgetStopwatch(exercise.id)
             container.workoutRepository.swapExerciseInSession(sessionId, swapTarget, exercise)
+            clocks.forgetStopwatch(exercise.id)
             if (swapTargetItemId.value == swapTarget) swapTargetItemId.value = null
         } else {
             val current = container.workoutRepository.getSession(sessionId)
@@ -1843,6 +1843,7 @@ class ActiveWorkoutViewModel internal constructor(
 
     private suspend fun settleSwapEntry(command: WorkoutPickerSwap) {
         clocks.forgetStopwatch(command.after.exerciseId)
+        clocks.restoreStopwatchFor(command.after.exerciseId, resumeRunning = false)
         selectExerciseInternal(command.after.exerciseId)
         val replaced = command.before.exerciseId
         draftCache.removeLift(sessionId, replaced)

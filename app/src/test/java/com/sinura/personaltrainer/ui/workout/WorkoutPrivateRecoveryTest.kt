@@ -53,6 +53,7 @@ import org.robolectric.annotation.Config
 class WorkoutPrivateRecoveryTest {
     @get:Rule val temporary = TemporaryFolder()
     private val dispatcher = UnconfinedTestDispatcher()
+    /** Frozen by default; only tests that call [tickStopwatch] advance it. */
     private val clock = ControllableTimePort()
     private lateinit var deps: FakeAppDependencies
     private lateinit var fixture: TestWorkoutFixture
@@ -373,8 +374,9 @@ class WorkoutPrivateRecoveryTest {
         forget(vm)
         val reopened = active()
         reopened.privateRecovery.awaitFirst { it.phase == WorkoutPrivatePhase.READY }
+        assertEquals(1, reopened.undoEntries.value.size)
         reopened.undoRemoveLift()
-        reopened.uiState.awaitFirst { !it.mutating && reopened.uiState.value.session?.exercises?.isNotEmpty() == true }
+        reopened.uiState.awaitFirst { !it.mutating && it.session?.exercises?.isNotEmpty() == true }
         val watch = reopened.setStopwatch.awaitFirst {
             it.exerciseId == fixture.exercise.id && it.used && !it.running && it.elapsedSeconds == 7
         }
