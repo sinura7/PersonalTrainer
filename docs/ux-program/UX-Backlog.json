@@ -5957,6 +5957,14 @@
         "adversarial": "APPROVE. Zero Critical/High/Medium/Low. ROADMAP notes no phone publish in this packet.",
         "cleanContext": "Branch cursor/debug-live-129-ae41. Unblocks CI ratchet for Debug 129 drop after e1a17855."
       },
+      "42d0b968": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 cool-down 1:30 on Finish + quiet notification (R9) — PR #543",
+        "gate": "Parent trunk c4a88ca6 (#545 TH7a real-time-waits ratchet; #547 TH6 undo-clock rules preserved on rebase). sh tools/preflight.sh OK (check-real-time-waits.py real_time_sleeps 28, real_time_delays 6). No gradle/ci.yml/Room on diff. Hosted pull_request run 39209850156 job 117920581800 Tests, lint, debug build success on code head 42d0b968: testDebugUnitTest 4850 tests, 0 failures (reports artifact, ~12m unit step). Hosted push run 39209846196 job 117920569597 gate job success on same head. Non-blocking instrumented smoke jobs on those runs: gate job passed, run cancelled at workflow level when smoke hits cap — not run success. WorkoutCooldownSummaryInstrumentedTest: compile path only here; physical emulator unobserved.",
+        "independent": "PENDING formal review on PR #543 (Forge Critic round 4 addressed on branch; draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Round-4 product/test fixes: publish-before-clear completion and post-CAS startCooldown clear; M2 summary strip via store-only armCooldownWithoutRestService (FGS/overlay was covering summary); RestTimerNotificationsTest quiet-shade hygiene after @After foreground reset; expired-cooldown tests use sendBroadcast + looper idle (no leaking goAsync NPE); instrumented finish test uses waitForIdle not SystemClock.sleep; awaitDoneNotification polls without real-time delay."
+      },
       "251dc30b": {
         "when": "2026-10-16",
         "packet": "P20 phone checklist",
