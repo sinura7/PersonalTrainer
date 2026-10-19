@@ -506,6 +506,11 @@ def main() -> int:
     expect_allowlist_systemexit(mod, bad_path, "duplicate allowlist row")
     bad_path.write_text("/etc/passwd | Thread.sleep(1) | abs | 1\n", encoding="utf-8")
     expect_allowlist_systemexit(mod, bad_path, "absolute path")
+    bad_path.write_text(".hidden/x.kt | Thread.sleep(1) | hide | 1\n", encoding="utf-8")
+    hidden_rows = mod.load_allowlist(str(bad_path))
+    if len(hidden_rows) != 1 or hidden_rows[0][0] != ".hidden/x.kt":
+        raise SystemExit(f"FAIL allowlist path must keep leading dot segment: {hidden_rows}")
+    ok("allowlist path keeps .hidden/x.kt without lstrip")
     ok("allowlist | N validation rejects bad rows with path:line")
 
     alias_root = Path(tempfile.mkdtemp(prefix="real-time-waits-alias-"))
@@ -724,6 +729,34 @@ def main() -> int:
     if fp_roots != ["app/src/test"]:
         raise SystemExit(f"FAIL discovery false positives included: {fp_roots}")
     ok("discovery ignores .gradle and nested src/test under main")
+
+    lib_orphan_root = Path(tempfile.mkdtemp(prefix="real-time-waits-lib-orphan-"))
+    lib_test = lib_orphan_root / "libs" / "core" / "src" / "test" / "kotlin" / "Orphan.kt"
+    lib_test.parent.mkdir(parents=True, exist_ok=True)
+    lib_test.write_text("class O { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
+    mod.REPO_ROOT = str(lib_orphan_root.resolve())
+    try:
+        mod.discover_test_source_roots(str(lib_orphan_root))
+    except SystemExit as exc:
+        if "libs/core/src/test" not in str(exc) or "recognised Gradle module" not in str(exc):
+            raise SystemExit(f"FAIL libs/core/src/test orphan message: {exc}") from exc
+    else:
+        raise SystemExit("FAIL libs/core/src/test without Gradle module should exit")
+    ok("discovery rejects libs/core/src/test without Gradle module")
+
+    root_orphan_root = Path(tempfile.mkdtemp(prefix="real-time-waits-root-orphan-"))
+    root_test = root_orphan_root / "src" / "test" / "kotlin" / "Root.kt"
+    root_test.parent.mkdir(parents=True, exist_ok=True)
+    root_test.write_text("class R { @Test fun x() { Thread.sleep(1) } }", encoding="utf-8")
+    mod.REPO_ROOT = str(root_orphan_root.resolve())
+    try:
+        mod.discover_test_source_roots(str(root_orphan_root))
+    except SystemExit as exc:
+        if "src/test" not in str(exc) or "recognised Gradle module" not in str(exc):
+            raise SystemExit(f"FAIL root src/test orphan message: {exc}") from exc
+    else:
+        raise SystemExit("FAIL root src/test without Gradle module should exit")
+    ok("discovery rejects root src/test without Gradle module")
 
     count = len(FIXTURE_CASES)
     print(f"test_real_time_waits: all assertions passed ({count} fixture cases)")

@@ -304,6 +304,14 @@ def _inside_known_test_set(rel_dir: str, known_roots: set[str]) -> bool:
     return False
 
 
+def _nested_src_under_main_source_set(rel_parts: list[str]) -> bool:
+    """Ignore nested src/<set> trees under a module's main source set (not Gradle test roots)."""
+    for idx in range(len(rel_parts) - 2):
+        if rel_parts[idx + 1] == "src" and rel_parts[idx + 2] == "main":
+            return True
+    return False
+
+
 def discover_test_source_roots(repo_root: str) -> list[str]:
     """Every module src/<set> tree whose set name is a Gradle test source set."""
     repo_root = os.path.abspath(repo_root)
@@ -318,7 +326,7 @@ def discover_test_source_roots(repo_root: str) -> list[str]:
             rel_parts = rel_dir.split("/")
         inside = _inside_known_test_set(rel_dir, seen_rel)
         _prune_discovery_dirnames(dirnames, inside)
-        if len(rel_parts) < 3 or rel_parts[-2] != "src":
+        if len(rel_parts) < 2 or rel_parts[-2] != "src":
             continue
         set_name = rel_parts[-1]
         if not is_test_source_set_name(set_name):
@@ -327,12 +335,12 @@ def discover_test_source_roots(repo_root: str) -> list[str]:
         module_dir = os.path.join(repo_root, module_rel) if module_rel else repo_root
         rel_set = rel_dir
         if module_build_file(module_dir) is None:
-            if len(rel_parts) == 3:
-                raise SystemExit(
-                    f"{rel_set}: test source set is not under a recognised Gradle module "
-                    f"(expected build.gradle or build.gradle.kts in {module_rel or '.'})",
-                )
-            continue
+            if inside or _nested_src_under_main_source_set(rel_parts):
+                continue
+            raise SystemExit(
+                f"{rel_set}: test source set is not under a recognised Gradle module "
+                f"(expected build.gradle or build.gradle.kts in {module_rel or '.'})",
+            )
         if rel_set not in seen_rel:
             seen_rel.add(rel_set)
             roots.append(rel_set)
