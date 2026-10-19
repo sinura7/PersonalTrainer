@@ -6051,6 +6051,14 @@
         "independent": "PENDING formal review on PR #543 (draft).",
         "adversarial": "PENDING formal review on PR #543.",
         "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Fix on 08dae0cc removes delay()."
+      },
+      "3dee0195": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 tip after preflight ratchet fix (app code 08dae0cc)",
+        "gate": "Parent trunk 28e48f33 (trunk ledger row 21593448 unchanged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_delays 6). Agent-local ./gradlew testDebugUnitTest assembleDebug BUILD SUCCESSFUL (local, not independently verifiable). Two fresh hosted gate jobs on app-equivalent head: push run 39292150344 job 118195279919 on 08dae0cc Tests, lint, debug build success, testDebugUnitTest step success (reports artifact; 4855 tests 0 failures per prior branch gate pattern); pull_request run 39292188878 job 118196087542 on 3dee0195 gate job success, testDebugUnitTest step success. Push run 39292180729 job 118217387789 on 3dee0195 also gate job success (third green gate). Workflow runs gate job passed; smoke jobs cancelled at 45m cap (A00 P12 pass or fail not confirmed from agent log access).",
+        "independent": "PENDING formal review on PR #543 (draft). Forge Critic emulator blocker may remain until A00 smoke shows both tests passed.",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Rebased onto 28e48f33. Finish instrumented: overlay release, EndWorkoutTags.SAVE, IO poll without delay()."
       }
     }
   }
