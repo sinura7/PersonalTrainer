@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.ui.workout
 
-import android.os.SystemClock
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -51,7 +50,7 @@ class WorkoutCooldownFinishInstrumentedTest {
         compose.waitUntil(15_000) {
             runBlocking(Dispatchers.IO) { fixture.container.workoutRepository.getSession(fixture.sessionId)?.sets?.size == 1 }
         }
-        SystemClock.sleep(400)
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).performClick()
         compose.onNodeWithText("Save as is").performClick()
         compose.waitUntil(15_000) {
