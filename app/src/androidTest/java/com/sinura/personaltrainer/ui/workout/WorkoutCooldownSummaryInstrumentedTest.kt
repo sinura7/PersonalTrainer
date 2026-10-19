@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.ui.workout
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -62,6 +64,13 @@ class WorkoutCooldownSummaryInstrumentedTest {
         compose.waitUntil(15_000) {
             fixture.container.restTimerStore.current().running &&
                 RestTimerMarkers.isCooldown(fixture.container.restTimerStore.current())
+        }
+        compose.waitUntil(15_000) {
+            !summaryVm.uiState.value.isLoading && summaryVm.uiState.value.summary.workingSets > 0
+        }
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(SummaryTags.COOLDOWN), useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty()
         }
         compose.onRoot(useUnmergedTree = true).printToLog("SUMMARY_COOLDOWN")
         compose.onNodeWithTag(SummaryTags.COOLDOWN, useUnmergedTree = true).assertExists()

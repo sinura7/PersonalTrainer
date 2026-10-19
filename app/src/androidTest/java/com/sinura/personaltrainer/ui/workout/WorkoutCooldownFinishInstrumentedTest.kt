@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -71,6 +73,9 @@ class WorkoutCooldownFinishInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(EndWorkoutTags.SAVE)).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
         compose.waitUntil(15_000) { session().isFinished }
         compose.waitUntil(15_000) {
