@@ -5885,21 +5885,37 @@
         "adversarial": "PENDING formal review on PR #545.",
         "cleanContext": "Branch cursor/th7a-test-sleep-check-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/545. Ledger corrections: #541 Verifier r6 PASS on 7690fcae (code head 3dacfb8a); squash-merged to trunk as 8282bdd3; hosted 39156898872 job 117761872688 and 39156893776 job 117761857801 — gate job passed, run cancelled; Critic APPROVE WITH NITS. #544 edbc3e3f Verifier r5 meant gate job passed, run cancelled; new CI caps present on trunk but not yet exercised under load at merge time."
       },
+      "13c8d703": {
+        "when": "2026-10-18",
+        "packet": "TH6: UX-Backlog ledger on 5f4fdf07 (parent 24365177)",
+        "gate": "Ledger-only on code head 5f4fdf07; gate evidence recorded on 5f4fdf07 row.",
+        "independent": "Critic APPROVE WITH NITS (#547 @13c8d703); review of later lifecycle code pending.",
+        "adversarial": "PENDING formal review on PR #547.",
+        "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547."
+      },
       "5f4fdf07": {
         "when": "2026-10-18",
-        "packet": "TH6: interim undo clock fix (superseded by bcb8c997)",
-        "gate": "Superseded by bcb8c997 Critic fold.",
-        "independent": "Superseded.",
+        "packet": "TH6: Undo restores removed lift stopped set clock (test-health Q4)",
+        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (includes check-real-time-waits.py; no new sleeps or delays). Root cause: retireRemovedEntry called clocks.forgetStopwatch and wiped saved stopwatch before Undo. Fix: stop forgetting set-clock saved copy in retireRemovedEntry (FloorWorkClocksCharacterisationTest.aRemovedLiftBroughtBackByUndoKeepsItsStoppedSetClock). Agent-local JDK 17 full --rerun-tasks pair attempted (th6-gate-1.log, th6-gate-2.log): Gradle build daemon disappeared unexpectedly, OOM inferred on Cursor VM during assembleDebug after unit tests — not a consecutive green pair. Hosted pull_request 39164542580 job 117784793550 and hosted push 39164538728 gate job success on head 5f4fdf07.",
+        "independent": "Superseded by lifecycle commits 3a11257e / bcb8c997; Critic APPROVE WITH NITS recorded on 13c8d703.",
         "adversarial": "Superseded.",
-        "cleanContext": "First retireRemovedEntry-only fix; stale clock after offer expiry without lifecycle."
+        "cleanContext": "First retireRemovedEntry-only fix; stale clock after offer expiry without full lifecycle (addressed on later heads)."
+      },
+      "3a11257e": {
+        "when": "2026-10-18",
+        "packet": "TH6: Q4 undo clock lifecycle (Critic #547 nits)",
+        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (28/6). Hosted pull_request 39172092921 and push 39172088983 failed: WorkoutPrivateRecoveryTest.removedLiftCannotLeaveOrphanedKeypadOrClockInReopenedEntry — DurableWorkoutDrafts.validOwner rejected stopwatch keys for pending RemovedLift undo tokens (owner conflict). FloorWorkClocksCharacterisationTest.aRunningSetClockComesBackRunningAfterProcessDeath failed once on 39172088983 (expected 9, was 7); open flake on trunk since #542, owned by TH2 — not fixed in TH6.",
+        "independent": "Superseded by bcb8c997 validOwner fix; Critic REQUEST CHANGES on later heads.",
+        "adversarial": "PENDING formal review on PR #547.",
+        "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547."
       },
       "bcb8c997": {
         "when": "2026-10-18",
-        "packet": "TH6: Q4 undo stopwatch lifecycle (Critic #547 @13c8d703)",
-        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (check-real-time-waits.py 28/6 unchanged). Root cause: clocks.forgetStopwatch in retireRemovedEntry ran when the session observer saw the lift gone before removeSelectedLift resumed (race), wiping the saved stopped clock before Undo. Fix: stop forgetting in retireRemovedEntry; forget on RemovedLift offer expiry, UndoQueue eviction, and fresh add without pending undo; private checkpoint + validOwner keep stopwatches for pending RemovedLift offers.",
-        "independent": "Critic APPROVE WITH NITS (#547 @13c8d703 delta folded on bcb8c997); formal review pending on PR #547.",
-        "adversarial": "PENDING formal review on PR #547.",
-        "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547. Ledger corrections: #450 Critic APPROVE WITH NITS (PR body corrected to WorkDatabase v23→v24, backoff_on_system_interruptions column); Verifier r7 PASS; hosted 39160552639 job 117772765392 gate job passed, run cancelled; merged 70825ab3. #545 Critic APPROVE WITH NITS (nits carried to TH7b); Verifier r7 PASS; hosted 39160782324 job 117773444389 and 39160780770 job 117773438567 gate job passed, run cancelled; merged 24365177."
+        "packet": "TH6: Q4 clock lifecycle + durable checkpoint (validOwner)",
+        "gate": "Parent trunk 24365177. sh tools/preflight.sh OK (check-real-time-waits.py 28/6 unchanged). Root cause: clocks.forgetStopwatch in retireRemovedEntry ran when the session observer saw the lift gone before removeSelectedLift resumed (race), wiping the saved stopped clock before Undo. Fix: stop forgetting in retireRemovedEntry; forget on RemovedLift offer expiry, UndoQueue eviction, and fresh add/swap; private checkpoint + validOwner keep stopwatches for pending RemovedLift offers. Hosted pull_request 39176486121 job 117820113354 gate job success on head bcb8c997, 4811 tests. Prior head 3a11257e red runs 39172092921 and 39172088983 (validOwner owner conflict; see 3a11257e row).",
+        "independent": "Critic APPROVE WITH NITS applies to 13c8d703 only; formal review pending on lifecycle revisions after bcb8c997.",
+        "adversarial": "Critic REQUEST CHANGES (#547 @a5cac298 on code bcb8c997); revision pending.",
+        "cleanContext": "Branch cursor/th6-floor-clock-undo-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/547. Open flake (TH2): FloorWorkClocksCharacterisationTest.aRunningSetClockComesBackRunningAfterProcessDeath (39172088983 expected 9 was 7; predates TH6 on trunk #542). Ledger corrections: #450 / #545 unchanged on merged rows."
       },
       "9cf9e2c4": {
         "when": "2026-10-17",
