@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -21,7 +22,9 @@ import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -97,17 +100,21 @@ class A00P12CooldownFinishInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
         clearRestBeforeFinish()
-        compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed().performClick()
         compose.waitUntil(30_000) {
             compose.onAllNodes(hasTestTag(EndWorkoutTags.SAVE), useUnmergedTree = true)
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag(EndWorkoutTags.SAVE, useUnmergedTree = true).performClick()
-        compose.waitUntil(30_000) { session().isFinished }
-        compose.waitForIdle()
-        compose.waitUntil(30_000) {
-            val snap = fixture.container.restTimerStore.current()
-            snap.running && RestTimerMarkers.isCooldown(snap)
+        compose.onNodeWithTag(EndWorkoutTags.SAVE, useUnmergedTree = true).assertIsDisplayed().performClick()
+        runBlocking(Dispatchers.IO) {
+            withTimeout(60_000) {
+                while (true) {
+                    val finished = fixture.container.workoutRepository.getSession(fixture.sessionId)?.isFinished == true
+                    val snap = fixture.container.restTimerStore.current()
+                    if (finished && snap.running && RestTimerMarkers.isCooldown(snap)) break
+                    delay(100)
+                }
+            }
         }
         val snap = fixture.container.restTimerStore.current()
         assertTrue(snap.running)
