@@ -361,6 +361,7 @@ class HistoryViewModel internal constructor(
             completedEpochDays = completedEpochDays,
         )
         val scoped = if (range == null) emptyList() else cat.summaries.filter { it.localEpochDay in range }
+        val summariesIdentity = ScopedSummariesIdentity.from(scoped)
         PeriodRequest(
             catalog = cat,
             selection = selection,
@@ -371,7 +372,9 @@ class HistoryViewModel internal constructor(
             projections = DailyProjectionBuilder.project(scoped),
             unit = unit,
             attempt = attempt,
-            key = range?.let { HorizonProgressKey(it, unit, cat.revision, attempt) },
+            key = range?.let {
+                HorizonProgressKey(it, unit, cat.revision, attempt, summariesIdentity)
+            },
         )
     }
         .flowOn(container.computeDispatcher)
@@ -626,7 +629,9 @@ class HistoryViewModel internal constructor(
     /**
      * What decides whether the horizon readout is recomputed. The revision replaces the old
      * session count and newest id: those never moved for an edit, and a longer key that
-     * still ignored content would have been the same bug with more fields.
+     * still ignored content would have been the same bug with more fields. [summariesIdentity]
+     * closes the race where scoped totals changed before [revision] emitted: without it,
+     * distinctUntilChanged kept a stale READY result for the new request.
      */
     private data class HorizonProgressKey(
         val range: HistoryPeriodRange,
@@ -634,7 +639,34 @@ class HistoryViewModel internal constructor(
         val revision: String,
         /** Retry reads the period again, even when nothing it keys on moved. */
         val attempt: Int,
+        val summariesIdentity: ScopedSummariesIdentity,
     )
+
+    /**
+     * Cheap fingerprint of the scoped summaries (stills excluded — images do not move progress).
+     * Built once per [periodRequest] emission, not per uiState.
+     */
+    private data class ScopedSummariesIdentity(
+        val count: Int,
+        val fingerprint: Int,
+    ) {
+        companion object {
+            fun from(summaries: List<SessionSummary>): ScopedSummariesIdentity {
+                var hash = summaries.size
+                for (summary in summaries.sortedBy { it.id }) {
+                    hash = 31 * hash + summary.id.hashCode()
+                    hash = 31 * hash + (summary.finishedAt?.hashCode() ?: 0)
+                    hash = 31 * hash + summary.localEpochDay.hashCode()
+                    hash = 31 * hash + summary.workingSets
+                    hash = 31 * hash + summary.volumeKg.hashCode()
+                    hash = 31 * hash + summary.cardioSeconds.hashCode()
+                    hash = 31 * hash + (summary.cardioDistanceMeters?.hashCode() ?: 0)
+                    hash = 31 * hash + summary.kind.hashCode()
+                }
+                return ScopedSummariesIdentity(summaries.size, hash)
+            }
+        }
+    }
 
     private data class HistoryReads(
         val health: DataHealth<List<SessionSummary>>,
