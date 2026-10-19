@@ -5981,6 +5981,14 @@
         "adversarial": "PENDING formal review on PR #543.",
         "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Sixteen commits since trunk 9c701a6c on branch (Verifier r14 chain count). Ledger corrections (Verifier r14): rows 42d0b968 and b58db83b are PR-branch rows from 35cd7b2b, edited in place here; superseded runs 39209850156 and 39220391776 were not smoke-capped; push job 117954056548 picker failure wording per #542 pre-existing list, not claimed as flake."
       },
+      "a28059f6": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 instrumented waits (summary loaded, finish dialog tag)",
+        "gate": "Parent trunk 9c701a6c. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Product code head a28059f6. Hosted gate jobs pending on push; prior 4dcf5fbf smoke failures addressed in this head. Two fresh green gate jobs required on this head before merge (no e8ea7a17 carryover).",
+        "independent": "PENDING formal review on PR #543 (draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Follows 4dcf5fbf round-5 code; ledger rows 42d0b968 and b58db83b corrected in place (Verifier r14)."
+      },
       "251dc30b": {
         "when": "2026-10-16",
         "packet": "P20 phone checklist",
