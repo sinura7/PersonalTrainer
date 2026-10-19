@@ -5984,10 +5984,18 @@
       "a28059f6": {
         "when": "2026-10-19",
         "packet": "UX blueprint P12 #543 instrumented waits (summary loaded, finish dialog tag)",
-        "gate": "Parent trunk 9c701a6c. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Product code head a28059f6. Hosted gate jobs pending on push; prior 4dcf5fbf smoke failures addressed in this head. Two fresh green gate jobs required on this head before merge (no e8ea7a17 carryover).",
+        "gate": "Parent trunk 9c701a6c. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Product code head a28059f6. Hosted pull_request run 39237482940 job 118010442210 failed static checks (check-missing-imports.py onAllNodes imports); unit tests skipped. Superseded by product head 135dec70 import fix. Two fresh green gate jobs required on final product head before merge (no e8ea7a17 carryover).",
         "independent": "PENDING formal review on PR #543 (draft).",
         "adversarial": "PENDING formal review on PR #543.",
         "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Follows 4dcf5fbf round-5 code; ledger rows 42d0b968 and b58db83b corrected in place (Verifier r14)."
+      },
+      "135dec70": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 onAllNodes import fix (preflight gate unblock)",
+        "gate": "Parent trunk 9c701a6c. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6). Product code head 135dec70 (includes a28059f6 instrumented waits). Hosted gate jobs pending on push; two fresh green gate jobs required on this head. Prior 4dcf5fbf hosted gate pair 4854/0 does not carry to this head.",
+        "independent": "PENDING formal review on PR #543 (draft).",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Follow-up to CI watch on 4dcf5fbf: PR smoke run 39227193068 job 117976655277 cancelled before report; push run 39227187576 logged cooldown instrumented failures before cap."
       },
       "251dc30b": {
         "when": "2026-10-16",
