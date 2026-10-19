@@ -6027,6 +6027,22 @@
         "independent": "PENDING formal review on PR #543 (draft).",
         "adversarial": "PENDING formal review on PR #543.",
         "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Rebased onto 28e48f33; P12 ledger rows 42d0b968 through 135dec70 remain above trunk row 21593448 in file order from earlier commits; this row is the post-rebase product head. Finish instrumented 30s waits land on the commit after 13692b9c."
+      },
+      "807a4733": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 finish instrumented 30s waits (post-rebase)",
+        "gate": "Parent trunk 28e48f33 (trunk ledger row 21593448 unchanged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable). Two fresh hosted gate jobs on 807a4733: pull_request run 39263711985 job 118097730323 Tests, lint, debug build success, testDebugUnitTest 4855 tests, 0 failures (reports artifact); push run 39263705679 job 118097708954 gate job success, testDebugUnitTest 4855 tests, 0 failures (reports artifact). Workflow runs gate job passed, run cancelled (smoke hit 45m cap). Non-blocking smoke: push job 118097708403 A00P12CooldownFinishInstrumentedTest failed ComposeTimeoutException after 30000 ms; pull_request job 118097730722 same finish failure; summary test not reached in log before cancel.",
+        "independent": "PENDING formal review on PR #543 (draft). Forge Critic emulator blocker open.",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543."
+      },
+      "2fc2025a": {
+        "when": "2026-10-19",
+        "packet": "UX blueprint P12 #543 finish instrumented overlay release and workout-end-save tag",
+        "gate": "Parent trunk 28e48f33. PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable). Two fresh hosted gate jobs on 2fc2025a: pull_request run 39271266039 job 118123870516 Tests, lint, debug build success, testDebugUnitTest 4855 tests, 0 failures; push run 39271247461 job 118123803681 gate job success, testDebugUnitTest 4855 tests, 0 failures. Workflow runs gate job passed, run cancelled (smoke 45m cap). Smoke push job 118123804859: A00P12CooldownFinishInstrumentedTest failed ComposeTimeoutException after 30000 ms; summary test not logged before cancel. Smoke pull_request job 118123869803: finish test outcome not confirmed in log; summary not logged before cancel.",
+        "independent": "PENDING formal review on PR #543 (draft). Forge Critic emulator blocker open.",
+        "adversarial": "PENDING formal review on PR #543.",
+        "cleanContext": "Branch cursor/p12-cooldown-finish-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/543. Product head moves to 22d9d342 with IO polling for cooldown store after save tap."
       }
     }
   }
