@@ -22,7 +22,6 @@ import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
@@ -112,7 +111,6 @@ class A00P12CooldownFinishInstrumentedTest {
                     val finished = fixture.container.workoutRepository.getSession(fixture.sessionId)?.isFinished == true
                     val snap = fixture.container.restTimerStore.current()
                     if (finished && snap.running && RestTimerMarkers.isCooldown(snap)) break
-                    delay(100)
                 }
             }
         }
