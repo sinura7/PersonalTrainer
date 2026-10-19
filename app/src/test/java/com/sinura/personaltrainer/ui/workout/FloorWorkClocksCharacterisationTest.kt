@@ -630,21 +630,68 @@ class FloorWorkClocksCharacterisationTest {
     @Test
     fun swapRefusedWhenReplacementAlreadyPresentKeepsIncomingClock() = runBlocking {
         val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
-        val vm = viewModel(handleFor(sessionId))
+        val handle = handleFor(sessionId)
+        val vm = viewModel(handle)
         val row = checkNotNull(deps.exerciseRepository.getById(ROW))
         vm.ready()
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && it.draft.weightKg == 80.0 }
         vm.startSetStopwatch()
         tick(5_000)
+        vm.stopSetStopwatch()
+
+        vm.selectExercise(SQUAT)
+        vm.awaitState { it.selectedExerciseId == SQUAT && it.canLog }
         vm.requestSwap()
         vm.addExercise(row)
         vm.uiState.awaitFirst { !it.mutating && it.error != null }
         assertEquals(2, deps.workoutRepository.getSession(sessionId)!!.exercises.size)
+        val savedRow = SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis())
+        assertNotNull("a refused swap leaves Row's saved clock in state", savedRow)
         assertEquals(
             "a refused swap does not clear the target lift's saved clock",
             5,
-            vm.setStopwatch.value.elapsedSeconds,
+            savedRow!!.elapsedSeconds,
         )
-        assertTrue(vm.setStopwatch.value.used)
+    }
+
+    @Test
+    fun persistedSwapSettleRestoreShowsCleanStopwatchForSwapTarget() = runBlocking {
+        val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
+        val handle = handleFor(sessionId)
+        val swapPersistence = installDurableSwapPersistence()
+        val vm = viewModelWithSwaps(handle, swapPersistence.swaps, swapPersistence.contexts, swapPersistence.custom)
+        val row = checkNotNull(deps.exerciseRepository.getById(ROW))
+        vm.privateRecovery.awaitFirst { it.phase == WorkoutPrivatePhase.READY }
+        vm.ready()
+        vm.selectExercise(SQUAT)
+        vm.awaitState { it.selectedExerciseId == SQUAT && it.canLog }
+        vm.startSetStopwatch()
+        tick(7_000)
+        vm.stopSetStopwatch()
+        assertEquals(7, vm.setStopwatch.value.elapsedSeconds)
+
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && it.draft.weightKg == 80.0 }
+        vm.startSetStopwatch()
+        tick(6_000)
+        vm.stopSetStopwatch()
+        vm.removeSelectedLift()
+        deps.workoutRepository.awaitSession(sessionId) { session -> session.exercises.none { it.exercise.id == ROW } }
+        vm.undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
+        vm.awaitEntryUnlocked()
+
+        vm.selectExercise(SQUAT)
+        vm.awaitState { it.selectedExerciseId == SQUAT && it.canLog }
+        vm.requestSwap()
+        openPickerView(vm)
+        vm.addExercise(row)
+        vm.awaitState { it.selectedExerciseId == ROW && it.canLog && !it.entryLocked }
+        assertEquals(
+            "settleSwapEntry restoreStopwatchFor shows a clean clock for the swap target",
+            SetStopwatchUiState(exerciseId = ROW),
+            vm.setStopwatch.value,
+        )
     }
 
     @Test
@@ -718,9 +765,15 @@ class FloorWorkClocksCharacterisationTest {
                     (entry.token as? FloorUndo.RemovedLift)?.removed?.item?.exerciseId == ROW
                 }
         }
+        val savedAfterEviction = SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis())
         assertNotNull(
             "evicting the older offer keeps the newer remove's saved clock",
-            SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis()),
+            savedAfterEviction,
+        )
+        assertEquals(
+            "the newer remove's saved clock stays at nine seconds",
+            9,
+            savedAfterEviction!!.elapsedSeconds,
         )
     }
 
@@ -788,7 +841,7 @@ class FloorWorkClocksCharacterisationTest {
     }
 
     @Test
-    fun expiringAnOldRemoveOfferWhileTheLiftIsLiveKeepsItsRunningClock() = runBlocking {
+    fun expiringOldRemoveOfferKeepsStoppedSetClockWhenLiveLiftIsReselected() = runBlocking {
         val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
         val handle = handleFor(sessionId)
         val vm = viewModel(handle)
@@ -821,9 +874,9 @@ class FloorWorkClocksCharacterisationTest {
 
         vm.selectExercise(ROW)
         val watch = vm.setStopwatch.awaitFirst {
-            it.exerciseId == ROW && it.used && it.elapsedSeconds == 4
+            it.exerciseId == ROW && it.used && !it.running && it.elapsedSeconds == 4
         }
-        assertEquals("expiring the old offer does not wipe the live lift's clock", 4, watch.elapsedSeconds)
+        assertEquals("expiring the old offer does not wipe the stopped set clock", 4, watch.elapsedSeconds)
         assertNotNull(
             "the saved copy survives while the lift stays live",
             SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis()),
@@ -831,7 +884,7 @@ class FloorWorkClocksCharacterisationTest {
     }
 
     @Test
-    fun twoRemovalsOfTheSameLiftKeepTheNewerOffersClockWhenTheOlderOfferEnds() = runBlocking {
+    fun expiringNewerRemoveOfferKeepsOlderOfferAndNineSecondSavedClock() = runBlocking {
         val sessionId = seed(SQUAT_LIFT, ROW_LIFT)
         val handle = handleFor(sessionId)
         val vm = viewModel(handle)
