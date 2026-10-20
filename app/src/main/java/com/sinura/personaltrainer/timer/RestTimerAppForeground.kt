@@ -21,21 +21,41 @@ object RestTimerAppForeground {
     private var application: Application? = null
     private var startedActivities = 0
     private val listeners = mutableSetOf<() -> Unit>()
+    private var processLifecycleObserver: DefaultLifecycleObserver? = null
 
     /** Robolectric tests; production uses [install]. */
     internal fun setForegroundForTest(foreground: Boolean) {
         isInForeground = foreground
     }
 
+    internal fun setStartedActivitiesForTest(count: Int) {
+        startedActivities = count
+    }
+
+    internal fun setApplicationForTest(app: Application?) {
+        application = app
+    }
+
+    internal fun startedActivitiesForTest(): Int = startedActivities
+
+    internal fun listenersForTest(): Set<() -> Unit> = listeners.toSet()
+
+    internal fun applicationForTest(): Application? = application
+
     /** Resets process-wide foreground bookkeeping between JVM unit tests. */
     internal fun resetForTest() {
         isInForeground = false
         startedActivities = 0
         listeners.clear()
+        processLifecycleObserver?.let { observer ->
+            runCatching { ProcessLifecycleOwner.get().lifecycle.removeObserver(observer) }
+        }
+        processLifecycleObserver = null
+        application = null
     }
 
     internal fun isCleanForTest(): Boolean =
-        !isInForeground && startedActivities == 0 && listeners.isEmpty()
+        !isInForeground && startedActivities == 0 && listeners.isEmpty() && application == null
 
     fun install(app: Application) {
         application = app
@@ -58,17 +78,19 @@ object RestTimerAppForeground {
                 override fun onActivityDestroyed(activity: Activity) = Unit
             },
         )
-        ProcessLifecycleOwner.get().lifecycle.addObserver(
-            object : DefaultLifecycleObserver {
-                override fun onStart(owner: LifecycleOwner) {
-                    setForeground(true)
-                }
+        if (processLifecycleObserver == null) {
+            processLifecycleObserver =
+                object : DefaultLifecycleObserver {
+                    override fun onStart(owner: LifecycleOwner) {
+                        setForeground(true)
+                    }
 
-                override fun onStop(owner: LifecycleOwner) {
-                    setForeground(false)
+                    override fun onStop(owner: LifecycleOwner) {
+                        setForeground(false)
+                    }
                 }
-            },
-        )
+            ProcessLifecycleOwner.get().lifecycle.addObserver(processLifecycleObserver!!)
+        }
     }
 
     fun addListener(listener: () -> Unit) {

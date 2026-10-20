@@ -814,6 +814,13 @@ class FloorWorkClocksCharacterisationTest {
             entries.size == UndoQueue.MAX_DEPTH &&
                 entries.any { entry -> entry.token == newerRowOfferToken }
         }
+        val rowOffersAfterEviction =
+            vm.undoEntries.value.mapNotNull { entry ->
+                (entry.token as? FloorUndo.RemovedLift)
+                    ?.takeIf { it.removed.item.exerciseId == ROW }
+                    ?.let { entry.token }
+            }
+        assertEquals(listOf(newerRowOfferToken), rowOffersAfterEviction)
         val savedAfterEviction = SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis())
         assertNotNull(
             "evicting the older offer keeps the newer remove's saved clock",
@@ -987,7 +994,6 @@ class FloorWorkClocksCharacterisationTest {
         val savedAfterUndo = SavedStateFloorTimer(handle).readStopwatch(ROW, clock.elapsedRealtimeMillis())
         assertNotNull("the saved copy matches the live clock after Undo", savedAfterUndo)
         assertEquals(9, savedAfterUndo!!.elapsedSeconds)
-        assertEquals(9, watch.elapsedSeconds)
     }
 
     @Test

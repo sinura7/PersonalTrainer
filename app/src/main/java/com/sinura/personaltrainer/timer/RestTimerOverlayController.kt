@@ -144,6 +144,12 @@ object RestTimerOverlayController {
         lastFailureReason = null
     }
 
+    internal fun lastSnapshotForTest(): RestTimerSnapshot? = lastSnapshot
+
+    internal fun setLastSnapshotForTest(snapshot: RestTimerSnapshot?) {
+        lastSnapshot = snapshot
+    }
+
     internal fun isCleanForTest(): Boolean =
         lastSnapshot == null &&
             lastFailureReason == null &&
