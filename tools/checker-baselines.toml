@@ -11,7 +11,7 @@ state_members = 1
 # 182 -> 181 in W2a: NumeralWell's compact branch (its `Kicker(label, asHeading = false)`) went
 # with SetEntryPanel's unused compact path.
 # Compact History uses fully named metric/layout arguments, reducing skipped calls.
-required_args_mixed = 181
+required_args_mixed = 180
 required_args_lambda = 46
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
@@ -36,6 +36,7 @@ unbounded_waits = 0
 # CancellationException clause ahead of it: it eats the cancellation and carries on.
 cancellation_swallow = 0
 # Real-time Thread.sleep / SystemClock.sleep / TimeUnit.sleep in tests (allowlisted).
+# 28 -> 27 with TH3: RemovedLiftObserverOrderingTest pumpUntil no longer uses Thread.sleep(1).
 real_time_sleeps = 27
 # delay() calls in test files with no virtual-time marker string (file-level heuristic).
 real_time_delays = 6

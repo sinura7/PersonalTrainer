@@ -2207,7 +2207,7 @@ class ActiveWorkoutViewModel internal constructor(
 
     private fun restoreSaveDraft(command: WorkoutSetSave) {
         val current = sessionReader.observations.value.session
-        if (current?.exercises?.none { it.exercise.id == command.exerciseId } != false) {
+        if (current != null && current.exercises.none { it.exercise.id == command.exerciseId }) {
             reconcileSelectionAfterSave()
             return
         }

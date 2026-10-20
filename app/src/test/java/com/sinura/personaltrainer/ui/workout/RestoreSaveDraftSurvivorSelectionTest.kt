@@ -91,7 +91,16 @@ class RestoreSaveDraftSurvivorSelectionTest {
         val survivor = insertTestExercise(deps, "survivor-restore-draft", "Surviving row").also {
             deps.workoutRepository.addExerciseToSession(fixture.session.id, it, 3, 8, 40.0, 90)
             SavedStateWorkoutDraft(handle).write(
-                WorkoutDraft(fixture.session.id, it.id, 44.5, 11, null, false, "Existing notes", dirty = true),
+                WorkoutDraft(
+                    sessionId = fixture.session.id,
+                    exerciseId = it.id,
+                    weightKg = 44.5,
+                    reps = 11,
+                    rpe = null,
+                    isWarmup = false,
+                    notes = "Existing notes",
+                    dirty = true,
+                ),
                 null,
             )
         }
