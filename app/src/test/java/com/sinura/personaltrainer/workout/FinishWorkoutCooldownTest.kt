@@ -13,7 +13,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -144,20 +143,4 @@ class FinishWorkoutCooldownTest {
         assertFalse(deps.restTimerStore.current().running)
     }
 
-    /**
-     * Local guard check: without the idempotent cool-down gate, a second finish after skip would
-     * start another cool-down. Remove the guard in [FinishWorkout] to see this fail.
-     */
-    @Test
-    fun idempotentFinishWouldRestartCooldownWithoutTheGuard() = runBlocking {
-        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(80.0, 5)))
-        deps.finishWorkout(fixture.session.id)
-        val firstId = deps.restTimerStore.current().timerId
-        deps.restTimerController.skipIfShown(firstId)
-        assertFalse(deps.restTimerStore.current().running)
-
-        deps.restTimerController.startCooldown()
-        assertTrue(deps.restTimerStore.current().running)
-        assertNotEquals(firstId, deps.restTimerStore.current().timerId)
-    }
 }

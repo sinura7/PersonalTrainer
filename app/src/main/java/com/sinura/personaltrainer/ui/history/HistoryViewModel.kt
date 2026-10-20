@@ -371,7 +371,15 @@ class HistoryViewModel internal constructor(
             projections = DailyProjectionBuilder.project(scoped),
             unit = unit,
             attempt = attempt,
-            key = range?.let { HorizonProgressKey(it, unit, cat.revision, attempt) },
+            key = range?.let {
+                HorizonProgressKey(
+                    range = it,
+                    unit = unit,
+                    revision = cat.revision,
+                    attempt = attempt,
+                    summariesIdentity = scopedSummariesIdentity(scoped),
+                )
+            },
         )
     }
         .flowOn(container.computeDispatcher)
@@ -386,6 +394,7 @@ class HistoryViewModel internal constructor(
                     emit(HorizonRead(key = null, status = ProgressStatus.UNAVAILABLE))
                     return@flow
                 }
+                container.completedTrainingRepository.horizonProgressAllCallsForTest?.incrementAndGet()
                 emit(HorizonRead(key = key, status = ProgressStatus.LOADING))
                 // As for past blocks: a failed read hides the readout and marks the page
                 // behind instead of closing the app (audit UI-17).
@@ -437,7 +446,9 @@ class HistoryViewModel internal constructor(
         }
         // A new request can arrive before flatMapLatest publishes Loading. Never attach
         // the previous period/unit/revision/retry result during that interval.
-        val matching = progress.takeIf { it.key == request.key }
+        val matching = progress.takeIf { read ->
+            read.key != null && request.key != null && read.key == request.key
+        }
         val range = checkNotNull(request.range)
         val failed = matching?.status == ProgressStatus.FAILED
         HistoryUiState(
@@ -624,9 +635,10 @@ class HistoryViewModel internal constructor(
     }
 
     /**
-     * What decides whether the horizon readout is recomputed. The revision replaces the old
-     * session count and newest id: those never moved for an edit, and a longer key that
-     * still ignored content would have been the same bug with more fields.
+     * What decides whether the horizon readout is recomputed. Revision alone missed edits
+     * that changed scoped totals before the revision flow caught up; summariesIdentity
+     * fingerprints the scoped list so a content change restarts progress even when revision
+     * is unchanged.
      */
     private data class HorizonProgressKey(
         val range: HistoryPeriodRange,
@@ -634,6 +646,7 @@ class HistoryViewModel internal constructor(
         val revision: String,
         /** Retry reads the period again, even when nothing it keys on moved. */
         val attempt: Int,
+        val summariesIdentity: Int,
     )
 
     private data class HistoryReads(

@@ -114,6 +114,39 @@ class WorkoutSummaryCooldownRenderTest {
     }
 
     @Test
+    fun cooldownStripShowsWhenSummaryRowIsMissing() {
+        deps.restTimerController.startCooldown()
+        val snapshotFlow = deps.restTimerController.snapshot
+        compose.setContent {
+            PersonalTrainerTheme {
+                CompositionLocalProvider(
+                    LocalWeightUnit provides WeightUnit.KG,
+                    LocalReducedMotion provides true,
+                ) {
+                    Box(Modifier.fillMaxSize()) {
+                        WorkoutSummaryContent(
+                            state = WorkoutSummaryUiState(
+                                isLoading = false,
+                                missing = true,
+                                sessionId = "s1",
+                            ),
+                            unit = WeightUnit.KG,
+                            onRetry = {},
+                            onOpenSession = {},
+                            onDone = {},
+                            onSkipCooldown = { deps.restTimerController.skipIfShown(snapshotFlow.value.timerId) },
+                            restSnapshot = snapshotFlow,
+                            restRemaining = deps.restTimerController.remainingSeconds,
+                        )
+                    }
+                }
+            }
+        }
+        compose.onNodeWithTag(SummaryTags.COOLDOWN).assertIsDisplayed()
+        compose.onNodeWithTag(SummaryTags.COOLDOWN_SKIP).assertIsDisplayed()
+    }
+
+    @Test
     fun cooldownStripShowsWhenSummaryReadFailedButWorkoutSaved() {
         deps.restTimerController.startCooldown()
         val snapshotFlow = deps.restTimerController.snapshot

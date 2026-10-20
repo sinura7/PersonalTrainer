@@ -24,14 +24,17 @@ import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilYearMonth
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.HistoryPeriodRange
 import com.sinura.personaltrainer.domain.HistoryPeriodSelection
 import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.PersonalRecords
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.FailingPastBlocksDao
 import com.sinura.personaltrainer.testutil.ReadGate
@@ -44,12 +47,14 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -58,9 +63,11 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -78,6 +85,7 @@ class HistoryPeriodViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val reads = PeriodFullLogReads()
     private val secondary = PeriodSecondaryReads()
+    private val horizonAllCalls = AtomicInteger()
     private lateinit var deps: FakeAppDependencies
     private val models = mutableListOf<HistoryViewModel>()
     private val emissions = mutableMapOf<HistoryViewModel, CopyOnWriteArrayList<HistoryUiState>>()
@@ -85,6 +93,7 @@ class HistoryPeriodViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
+        horizonAllCalls.set(0)
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
@@ -93,6 +102,7 @@ class HistoryPeriodViewModelTest {
             workoutDaoDecorator = { PeriodSummaryFaultDao(it, secondary) },
             trainingBlockDaoDecorator = { FailingPastBlocksDao(it, secondary.blocks) },
         )
+        deps.completedTrainingRepository.horizonProgressAllCallsForTest = horizonAllCalls
         runBlocking { insertTestExercise(deps, id = EXERCISE, name = "Bench", muscleGroup = "Chest") }
     }
 
@@ -103,6 +113,7 @@ class HistoryPeriodViewModelTest {
         runBlocking { models.forEach { it.clearAndJoinForTest() } }
         models.clear()
         dispatcher.scheduler.advanceUntilIdle()
+        deps.completedTrainingRepository.horizonProgressAllCallsForTest = null
         deps.close()
         Dispatchers.resetMain()
     }
@@ -429,6 +440,131 @@ class HistoryPeriodViewModelTest {
             trace(model).drop(changedUnit).filter { it.unit == WeightUnit.KG && !it.progressLoading }
                 .forEach { assertTrue("pound-formatted progress attached to kilogram state",
                     it.horizonProgress!!.movedMost!!.fromLabel.endsWith("kg")) }
+        }
+    }
+
+    @Test
+    fun scopedSummariesChangeClearsReadyProgressWhileRevisionIsUnchanged() = runBlocking {
+        seedProgress()
+        withModel { model ->
+            awaitReady(model)
+            val held = reads.holdNext(late = true)
+            val correction = trace(model).size
+            deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
+            held.awaitEntered()
+            awaitPendingCorrectionTrace(model, correction)
+            assertPendingEmissions(model, correction, ::pendingCorrectionAt950)
+            held.release.complete(Unit)
+            assertEquals(950.0, awaitReady(model).horizonTotals!!.volumeKg, 0.0)
+        }
+    }
+
+    @Test
+    fun unchangedScopedSummariesReuseReadyProgressWithoutLoadingFlash() = runBlocking {
+        seedProgress()
+        withModel { model ->
+            val first = awaitReady(model)
+            val recordsBroken = first.horizonProgress!!.recordsBroken
+            val allCallsAtReady = horizonAllCalls.get()
+            assertTrue("expected an initial full-log read for horizon progress", allCallsAtReady >= 1)
+            val mid = trace(model).size
+            deps.preferencesRepository.recordBodyweight(80.0, TODAY)
+            awaitBlocksLoadingSeenThenCleared(model, mid)
+            awaitReady(model)
+            assertTrue("expected a catalog re-emit with identical summaries", trace(model).size > mid)
+            assertEquals(
+                "distinctUntilChanged on the progress key must skip a second full-log read before summaries change",
+                allCallsAtReady,
+                horizonAllCalls.get(),
+            )
+            trace(model).drop(mid).forEach { state ->
+                assertFalse("unexpected loading flash on unchanged summaries", state.progressLoading)
+                if (state.horizonProgress != null) {
+                    assertEquals(recordsBroken, state.horizonProgress!!.recordsBroken)
+                }
+            }
+            val editTrace = trace(model).size
+            val callsBeforeEdit = horizonAllCalls.get()
+            deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
+            val settled = awaitState(model) { it.horizonTotals?.volumeKg == 950.0 && !it.progressLoading }
+            assertSummariesChangeHorizonReload(model, editTrace, callsBeforeEdit, settled)
+        }
+    }
+
+    @Test
+    fun rpeOnlySetEditTriggersExactlyOneHorizonReadWithoutStaleReadyProgress() = runBlocking {
+        seedProgress()
+        withModel { model ->
+            awaitReady(model)
+            val allCallsAtReady = horizonAllCalls.get()
+            val revisionBefore = deps.completedTrainingRepository.observeRevision().first()
+            val afterRpe = trace(model).size
+            // closing-set stays 110 kg x 5; only RPE moves 8 to 9 (per-set detail not on SessionSummary).
+            deps.workoutRepository.updateSet("closing-set", 110.0, 5, 9, false)
+            awaitCatalogRevisionAfter(revisionBefore)
+            awaitHorizonReadIncrementWithoutStaleReady(model, afterRpe, allCallsAtReady)
+            awaitReady(model)
+            assertEquals(
+                "catalog revision moves on RPE-only edits, so the progress key must restart one full-log read",
+                allCallsAtReady + 1,
+                horizonAllCalls.get(),
+            )
+            val weightEditTrace = trace(model).size
+            val callsBeforeWeightEdit = horizonAllCalls.get()
+            deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
+            val settled = awaitState(model) { it.horizonTotals?.volumeKg == 950.0 && !it.progressLoading }
+            assertSummariesChangeHorizonReload(model, weightEditTrace, callsBeforeWeightEdit, settled)
+        }
+    }
+
+    @Test
+    fun sameVolumeWeightRepsSwapTriggersFreshHorizonProgress() = runBlocking {
+        seedProgress()
+        withModel { model ->
+            val ready = awaitReady(model)
+            val volumeAtReady = ready.horizonTotals!!.volumeKg
+            val rangeAtReady = checkNotNull(ready.periodRange)
+            val progressBeforeSwap = BlockReviewBuilder.overRange(
+                startEpochDay = rangeAtReady.startEpochDay,
+                endExclusiveEpochDay = rangeAtReady.endExclusiveEpochDay,
+                items = deps.completedTrainingRepository.all(),
+                unit = WeightUnit.KG,
+            )
+            val allCallsAtReady = horizonAllCalls.get()
+            val revisionBefore = deps.completedTrainingRepository.observeRevision().first()
+            val afterSwap = trace(model).size
+            // 100 kg x 5 and 125 kg x 4 share volume; summariesIdentity may stay put while revision moves.
+            deps.workoutRepository.updateSet("opening-set", 125.0, 4, 8, false)
+            awaitCatalogRevisionAfter(revisionBefore)
+            awaitHorizonReadIncrementWithoutStaleReady(model, afterSwap, allCallsAtReady)
+            val after = awaitState(model) { !it.progressLoading && it.horizonProgress != null }
+            assertEquals(volumeAtReady, after.horizonTotals!!.volumeKg, 0.0)
+            assertEquals(
+                "revision must restart horizon progress even when scoped summary totals are unchanged",
+                allCallsAtReady + 1,
+                horizonAllCalls.get(),
+            )
+            val opening125Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(125.0, 4))
+                .toWeightLabel(WeightUnit.KG)
+            val opening100Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(100.0, 5))
+                .toWeightLabel(WeightUnit.KG)
+            val range = checkNotNull(after.periodRange)
+            val progressAfterSwap = BlockReviewBuilder.overRange(
+                startEpochDay = range.startEpochDay,
+                endExclusiveEpochDay = range.endExclusiveEpochDay,
+                items = deps.completedTrainingRepository.all(),
+                unit = WeightUnit.KG,
+            )
+            val beforeFrom = progressBeforeSwap.movedMost?.fromLabel
+            val afterFrom = progressAfterSwap.movedMost?.fromLabel
+            assertNotEquals(
+                "opening-side e1RM label must move from the 100 kg x 5 profile to the 125 kg x 4 profile",
+                opening100Label,
+                afterFrom ?: opening125Label,
+            )
+            assertEquals(opening125Label, afterFrom ?: opening125Label)
+            assertEquals(progressAfterSwap.movedMost, after.horizonProgress!!.movedMost)
+            assertEquals(progressAfterSwap.recordsBroken, after.horizonProgress!!.recordsBroken)
         }
     }
 
@@ -1034,6 +1170,99 @@ class HistoryPeriodViewModelTest {
 
     private suspend fun awaitState(model: HistoryViewModel, ready: (HistoryUiState) -> Boolean): HistoryUiState =
         withTimeout(TestWaits.FLOW_MS) { model.uiState.first(ready) }
+
+    private fun pendingCorrectionAt950(state: HistoryUiState): Boolean =
+        state.horizonTotals?.volumeKg == 950.0 &&
+            state.progressLoading &&
+            state.horizonProgress == null
+
+    private suspend fun awaitHorizonReadIncrementWithoutStaleReady(
+        model: HistoryViewModel,
+        start: Int,
+        baselineCalls: Int,
+    ) {
+        withTimeout(TestWaits.FLOW_MS) {
+            while (horizonAllCalls.get() < baselineCalls + 1) {
+                trace(model).drop(start).filter { it.progressLoading }.forEach { pending ->
+                    assertNull("stale ready progress during reload", pending.horizonProgress)
+                }
+                yield()
+                dispatcher.scheduler.advanceUntilIdle()
+            }
+        }
+    }
+
+    private fun assertSummariesChangeHorizonReload(
+        model: HistoryViewModel,
+        traceStart: Int,
+        callsBeforeEdit: Int,
+        settled: HistoryUiState,
+    ) {
+        val readsStarted = horizonAllCalls.get() - callsBeforeEdit
+        assertTrue(
+            "a summaries-identity change may start one or two full-log reads before summaries catch up",
+            readsStarted in 1..2,
+        )
+        trace(model).drop(traceStart).filter { it.progressLoading }.forEach { pending ->
+            assertNull("stale ready progress during reload", pending.horizonProgress)
+        }
+        assertNotNull("final READY must attach progress for the settled request", settled.horizonProgress)
+        assertEquals(950.0, settled.horizonTotals!!.volumeKg, 0.0)
+        assertFalse(settled.progressLoading)
+    }
+
+    /** Waits until the trace records a pending correction, not only the live StateFlow snapshot. */
+    private suspend fun awaitPendingCorrectionTrace(model: HistoryViewModel, start: Int) {
+        withTimeout(TestWaits.FLOW_MS) {
+            while (trace(model).drop(start).none(::pendingCorrectionAt950)) {
+                yield()
+                dispatcher.scheduler.advanceUntilIdle()
+            }
+        }
+    }
+
+    /** Catalog re-emits after bodyweight can reload blocks; wait for that cycle before measuring all(). */
+    private suspend fun awaitBlocksLoadingSeenThenCleared(model: HistoryViewModel, start: Int) {
+        withTimeout(TestWaits.FLOW_MS) {
+            var sawBlocksLoading = false
+            while (true) {
+                val tail = trace(model).drop(start)
+                if (tail.any { it.blocksLoading }) {
+                    sawBlocksLoading = true
+                }
+                if (sawBlocksLoading && !model.uiState.value.blocksLoading) {
+                    return@withTimeout
+                }
+                yield()
+                dispatcher.scheduler.advanceUntilIdle()
+            }
+        }
+    }
+
+    private suspend fun awaitAllCallCount(target: Int) {
+        withTimeout(TestWaits.FLOW_MS) {
+            while (horizonAllCalls.get() < target) {
+                yield()
+                dispatcher.scheduler.advanceUntilIdle()
+            }
+        }
+    }
+
+    private suspend fun awaitCatalogRevisionAfter(before: String) {
+        withTimeout(TestWaits.FLOW_MS) {
+            coroutineScope {
+                val changed = launch {
+                    deps.completedTrainingRepository.observeRevision()
+                        .dropWhile { it == before }
+                        .first()
+                }
+                while (changed.isActive) {
+                    yield()
+                    dispatcher.scheduler.advanceUntilIdle()
+                }
+            }
+        }
+    }
 
     private suspend fun seedProgress() {
         insertWorkout("opening", day(2024, 11, 1), 100.0)

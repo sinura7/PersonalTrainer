@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.domain.toCompletedTraining
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Read model over both completed-training stores (completed-training-convergence.md).
@@ -20,6 +21,9 @@ class CompletedTrainingRepository(
     private val activities: ActivityRepository,
     private val time: TimePort,
 ) {
+    /** Unit tests only; null in production. Counts [all] calls for History progress coverage. */
+    internal var horizonProgressAllCallsForTest: AtomicInteger? = null
+
     suspend fun all(): List<CompletedTraining> {
         val zone = time.defaultZoneId()
         val fromWorkouts = workouts.sessionsBetween(minDateMs = 0L, maxDateMs = Long.MAX_VALUE)

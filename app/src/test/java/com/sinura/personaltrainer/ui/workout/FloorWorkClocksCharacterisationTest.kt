@@ -846,6 +846,9 @@ class FloorWorkClocksCharacterisationTest {
         vm.stopSetStopwatch()
         vm.removeSelectedLift()
         deps.workoutRepository.awaitSession(sessionId) { session -> session.exercises.none { it.exercise.id == ROW } }
+        vm.uiState.awaitFirst { state ->
+            state.session != null && state.session.exercises.none { it.exercise.id == ROW }
+        }
         vm.undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
         vm.awaitEntryUnlocked()
         assertNotNull(
@@ -1449,11 +1452,22 @@ class FloorWorkClocksCharacterisationTest {
     }
 
     private suspend fun pushOneDeletedSetOffer(vm: ActiveWorkoutViewModel) {
-        vm.setRpe(8)
+        val tokensBefore = vm.undoEntries.value.map { it.token }
+        vm.awaitEntryUnlocked()
+        vm.uiState.awaitFirst { it.canLog && !it.mutating }
+        if (vm.uiState.value.draft.rpe == null && !vm.uiState.value.draft.isWarmup) {
+            vm.setRpe(8)
+        }
+        vm.uiState.awaitFirst { it.logCommitReady && it.canLog && !it.mutating }
         vm.logWorkingSet()
         val setId = vm.uiState.awaitFirst { !it.logging && it.session?.sets?.size == 1 }.session!!.sets.single().id
         vm.deleteSet(setId)
         vm.uiState.awaitFirst { !it.mutating }
+        vm.awaitEntryUnlocked()
+        vm.undoEntries.awaitFirst { entries ->
+            entries.size > tokensBefore.size ||
+                entries.map { it.token } != tokensBefore
+        }
     }
 
     private suspend fun pushUntilUndoDepth(vm: ActiveWorkoutViewModel, depth: Int) {
