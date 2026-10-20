@@ -300,14 +300,11 @@ class HistoryViewModel internal constructor(
 
     private val catalog = historyRetry.flatMapLatest {
         combine(
-            revision.flatMapLatest { finishedWork ->
-                combine(
-                    container.workoutRepository.observeSessionSummariesHealth(),
-                    container.activityRepository.observeCompletedSummariesHealth(),
-                ) { health, activities ->
-                    HistoryReads(health, activities, finishedWork)
-                }
-            },
+            combine(
+                container.workoutRepository.observeSessionSummariesHealth(),
+                container.activityRepository.observeCompletedSummariesHealth(),
+                revision,
+            ) { health, activities, finishedWork -> HistoryReads(health, activities, finishedWork) },
             combine(
                 container.workoutRepository.observeRecordSetsHealth(),
                 container.activityRepository.observeRecordSetsHealth(),

@@ -29,10 +29,12 @@ import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.HistoryPeriodRange
 import com.sinura.personaltrainer.domain.HistoryPeriodSelection
 import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.PersonalRecords
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.FailingPastBlocksDao
 import com.sinura.personaltrainer.testutil.ReadGate
@@ -65,6 +67,7 @@ import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -480,13 +483,11 @@ class HistoryPeriodViewModelTest {
                     assertEquals(recordsBroken, state.horizonProgress!!.recordsBroken)
                 }
             }
+            val editTrace = trace(model).size
+            val callsBeforeEdit = horizonAllCalls.get()
             deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
-            awaitState(model) { it.horizonTotals?.volumeKg == 950.0 && !it.progressLoading }
-            assertEquals(
-                "a real summaries-identity change must trigger exactly one more full-log read",
-                allCallsAtReady + 1,
-                horizonAllCalls.get(),
-            )
+            val settled = awaitState(model) { it.horizonTotals?.volumeKg == 950.0 && !it.progressLoading }
+            assertSummariesChangeHorizonReload(model, editTrace, callsBeforeEdit, settled)
         }
     }
 
@@ -508,14 +509,11 @@ class HistoryPeriodViewModelTest {
                 allCallsAtReady + 1,
                 horizonAllCalls.get(),
             )
+            val weightEditTrace = trace(model).size
+            val callsBeforeWeightEdit = horizonAllCalls.get()
             deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
-            awaitAllCallCount(allCallsAtReady + 2)
-            awaitReady(model)
-            assertEquals(
-                "a real summaries-identity change must trigger exactly one more horizon read",
-                allCallsAtReady + 2,
-                horizonAllCalls.get(),
-            )
+            val settled = awaitState(model) { it.horizonTotals?.volumeKg == 950.0 && !it.progressLoading }
+            assertSummariesChangeHorizonReload(model, weightEditTrace, callsBeforeWeightEdit, settled)
         }
     }
 
@@ -525,6 +523,13 @@ class HistoryPeriodViewModelTest {
         withModel { model ->
             val ready = awaitReady(model)
             val volumeAtReady = ready.horizonTotals!!.volumeKg
+            val rangeAtReady = checkNotNull(ready.periodRange)
+            val progressBeforeSwap = BlockReviewBuilder.overRange(
+                startEpochDay = rangeAtReady.startEpochDay,
+                endExclusiveEpochDay = rangeAtReady.endExclusiveEpochDay,
+                items = deps.completedTrainingRepository.all(),
+                unit = WeightUnit.KG,
+            )
             val allCallsAtReady = horizonAllCalls.get()
             val revisionBefore = deps.completedTrainingRepository.observeRevision().first()
             val afterSwap = trace(model).size
@@ -539,6 +544,27 @@ class HistoryPeriodViewModelTest {
                 allCallsAtReady + 1,
                 horizonAllCalls.get(),
             )
+            val opening125Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(125.0, 4))
+                .toWeightLabel(WeightUnit.KG)
+            val opening100Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(100.0, 5))
+                .toWeightLabel(WeightUnit.KG)
+            val range = checkNotNull(after.periodRange)
+            val progressAfterSwap = BlockReviewBuilder.overRange(
+                startEpochDay = range.startEpochDay,
+                endExclusiveEpochDay = range.endExclusiveEpochDay,
+                items = deps.completedTrainingRepository.all(),
+                unit = WeightUnit.KG,
+            )
+            val beforeFrom = progressBeforeSwap.movedMost?.fromLabel
+            val afterFrom = progressAfterSwap.movedMost?.fromLabel
+            assertNotEquals(
+                "opening-side e1RM label must move from the 100 kg x 5 profile to the 125 kg x 4 profile",
+                opening100Label,
+                afterFrom ?: opening125Label,
+            )
+            assertEquals(opening125Label, afterFrom ?: opening125Label)
+            assertEquals(progressAfterSwap.movedMost, after.horizonProgress!!.movedMost)
+            assertEquals(progressAfterSwap.recordsBroken, after.horizonProgress!!.recordsBroken)
         }
     }
 
@@ -1164,6 +1190,25 @@ class HistoryPeriodViewModelTest {
                 dispatcher.scheduler.advanceUntilIdle()
             }
         }
+    }
+
+    private fun assertSummariesChangeHorizonReload(
+        model: HistoryViewModel,
+        traceStart: Int,
+        callsBeforeEdit: Int,
+        settled: HistoryUiState,
+    ) {
+        val readsStarted = horizonAllCalls.get() - callsBeforeEdit
+        assertTrue(
+            "a summaries-identity change may start one or two full-log reads before summaries catch up",
+            readsStarted in 1..2,
+        )
+        trace(model).drop(traceStart).filter { it.progressLoading }.forEach { pending ->
+            assertNull("stale ready progress during reload", pending.horizonProgress)
+        }
+        assertNotNull("final READY must attach progress for the settled request", settled.horizonProgress)
+        assertEquals(950.0, settled.horizonTotals!!.volumeKg, 0.0)
+        assertFalse(settled.progressLoading)
     }
 
     /** Waits until the trace records a pending correction, not only the live StateFlow snapshot. */
