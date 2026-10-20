@@ -300,11 +300,14 @@ class HistoryViewModel internal constructor(
 
     private val catalog = historyRetry.flatMapLatest {
         combine(
-            combine(
-                container.workoutRepository.observeSessionSummariesHealth(),
-                container.activityRepository.observeCompletedSummariesHealth(),
-                revision,
-            ) { health, activities, finishedWork -> HistoryReads(health, activities, finishedWork) },
+            revision.flatMapLatest { finishedWork ->
+                combine(
+                    container.workoutRepository.observeSessionSummariesHealth(),
+                    container.activityRepository.observeCompletedSummariesHealth(),
+                ) { health, activities ->
+                    HistoryReads(health, activities, finishedWork)
+                }
+            },
             combine(
                 container.workoutRepository.observeRecordSetsHealth(),
                 container.activityRepository.observeRecordSetsHealth(),
@@ -387,13 +390,7 @@ class HistoryViewModel internal constructor(
 
     private val horizonProgress = periodRequest
         .map { it.key }
-        .distinctUntilChanged { prev, next ->
-            when {
-                prev == null && next == null -> true
-                prev == null || next == null -> false
-                else -> prev.reusesProgressLane(next)
-            }
-        }
+        .distinctUntilChanged()
         .flatMapLatest { key ->
             flow {
                 if (key == null) {
@@ -453,7 +450,7 @@ class HistoryViewModel internal constructor(
         // A new request can arrive before flatMapLatest publishes Loading. Never attach
         // the previous period/unit/revision/retry result during that interval.
         val matching = progress.takeIf { read ->
-            read.key != null && request.key != null && read.key.reusesProgressLane(request.key)
+            read.key != null && request.key != null && read.key == request.key
         }
         val range = checkNotNull(request.range)
         val failed = matching?.status == ProgressStatus.FAILED
@@ -653,15 +650,7 @@ class HistoryViewModel internal constructor(
         /** Retry reads the period again, even when nothing it keys on moved. */
         val attempt: Int,
         val summariesIdentity: Int,
-    ) {
-        /** Catalog revision can move without scoped summary totals changing (known per-set gap). */
-        fun reusesProgressLane(other: HorizonProgressKey?): Boolean =
-            other != null &&
-                range == other.range &&
-                unit == other.unit &&
-                attempt == other.attempt &&
-                summariesIdentity == other.summariesIdentity
-    }
+    )
 
     private data class HistoryReads(
         val health: DataHealth<List<SessionSummary>>,

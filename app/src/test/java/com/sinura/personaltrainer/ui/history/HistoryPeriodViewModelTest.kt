@@ -52,6 +52,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -480,8 +481,7 @@ class HistoryPeriodViewModelTest {
                 }
             }
             deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
-            awaitAllCallCount(allCallsAtReady + 1)
-            awaitReady(model)
+            awaitState(model) { it.horizonTotals?.volumeKg == 950.0 && !it.progressLoading }
             assertEquals(
                 "a real summaries-identity change must trigger exactly one more full-log read",
                 allCallsAtReady + 1,
@@ -491,27 +491,51 @@ class HistoryPeriodViewModelTest {
     }
 
     @Test
-    fun rpeOnlySetEditDoesNotTriggerAnotherFullLogRead() = runBlocking {
+    fun rpeOnlySetEditTriggersExactlyOneHorizonReadWithoutStaleReadyProgress() = runBlocking {
         seedProgress()
         withModel { model ->
             awaitReady(model)
             val allCallsAtReady = horizonAllCalls.get()
-            val mid = trace(model).size
+            val revisionBefore = deps.completedTrainingRepository.observeRevision().first()
+            val afterRpe = trace(model).size
             // closing-set stays 110 kg x 5; only RPE moves 8 to 9 (per-set detail not on SessionSummary).
             deps.workoutRepository.updateSet("closing-set", 110.0, 5, 9, false)
-            awaitState(model) {
-                trace(model).size > mid && !it.progressLoading && it.horizonProgress != null
-            }
+            awaitCatalogRevisionAfter(revisionBefore)
+            awaitHorizonReadIncrementWithoutStaleReady(model, afterRpe, allCallsAtReady)
+            awaitReady(model)
             assertEquals(
-                "RPE-only edits that leave summary totals unchanged must not start another horizon read",
-                allCallsAtReady,
+                "catalog revision moves on RPE-only edits, so the progress key must restart one full-log read",
+                allCallsAtReady + 1,
                 horizonAllCalls.get(),
             )
             deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
-            awaitAllCallCount(allCallsAtReady + 1)
+            awaitAllCallCount(allCallsAtReady + 2)
             awaitReady(model)
             assertEquals(
                 "a real summaries-identity change must trigger exactly one more horizon read",
+                allCallsAtReady + 2,
+                horizonAllCalls.get(),
+            )
+        }
+    }
+
+    @Test
+    fun sameVolumeWeightRepsSwapTriggersFreshHorizonProgress() = runBlocking {
+        seedProgress()
+        withModel { model ->
+            val ready = awaitReady(model)
+            val volumeAtReady = ready.horizonTotals!!.volumeKg
+            val allCallsAtReady = horizonAllCalls.get()
+            val revisionBefore = deps.completedTrainingRepository.observeRevision().first()
+            val afterSwap = trace(model).size
+            // 100 kg x 5 and 125 kg x 4 share volume; summariesIdentity may stay put while revision moves.
+            deps.workoutRepository.updateSet("opening-set", 125.0, 4, 8, false)
+            awaitCatalogRevisionAfter(revisionBefore)
+            awaitHorizonReadIncrementWithoutStaleReady(model, afterSwap, allCallsAtReady)
+            val after = awaitState(model) { !it.progressLoading && it.horizonProgress != null }
+            assertEquals(volumeAtReady, after.horizonTotals!!.volumeKg, 0.0)
+            assertEquals(
+                "revision must restart horizon progress even when scoped summary totals are unchanged",
                 allCallsAtReady + 1,
                 horizonAllCalls.get(),
             )
@@ -1126,6 +1150,22 @@ class HistoryPeriodViewModelTest {
             state.progressLoading &&
             state.horizonProgress == null
 
+    private suspend fun awaitHorizonReadIncrementWithoutStaleReady(
+        model: HistoryViewModel,
+        start: Int,
+        baselineCalls: Int,
+    ) {
+        withTimeout(TestWaits.FLOW_MS) {
+            while (horizonAllCalls.get() < baselineCalls + 1) {
+                trace(model).drop(start).filter { it.progressLoading }.forEach { pending ->
+                    assertNull("stale ready progress during reload", pending.horizonProgress)
+                }
+                yield()
+                dispatcher.scheduler.advanceUntilIdle()
+            }
+        }
+    }
+
     /** Waits until the trace records a pending correction, not only the live StateFlow snapshot. */
     private suspend fun awaitPendingCorrectionTrace(model: HistoryViewModel, start: Int) {
         withTimeout(TestWaits.FLOW_MS) {
@@ -1159,6 +1199,22 @@ class HistoryPeriodViewModelTest {
             while (horizonAllCalls.get() < target) {
                 yield()
                 dispatcher.scheduler.advanceUntilIdle()
+            }
+        }
+    }
+
+    private suspend fun awaitCatalogRevisionAfter(before: String) {
+        withTimeout(TestWaits.FLOW_MS) {
+            coroutineScope {
+                val changed = launch {
+                    deps.completedTrainingRepository.observeRevision()
+                        .dropWhile { it == before }
+                        .first()
+                }
+                while (changed.isActive) {
+                    yield()
+                    dispatcher.scheduler.advanceUntilIdle()
+                }
             }
         }
     }
