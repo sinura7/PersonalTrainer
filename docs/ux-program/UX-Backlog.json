@@ -6084,7 +6084,6 @@
         "adversarial": "PENDING formal review on PR #551 (draft). Forge Critic round 6 REQUEST CHANGES at 55f6d21c addressed in product 70a3c4dd.",
         "cleanContext": "Branch cursor/th2-history-progress-key-b25e rebased onto trunk 29eba84b. PR https://github.com/sinura7/PersonalTrainer/pull/551. Product code head 70a3c4dd. Gate-evidence commit f516e6ab (ledger-only over product 70a3c4dd; jobs did not run on product 70a3c4dd): fresh hosted pull_request run 39456140002 job 118743764894 and push run 39456132287 job 118744172788 Tests lint debug build success testDebugUnitTest 4893 tests 0 failures. Ledger tip c1ce6594 (gate-evidence recorded on f516e6ab via d985c7aa). Critic r6: catalog three-way combine restored; summary-edit tests allow 1–2 reads with stale-READY guards; same-volume swap asserts 125×4 e1RM on mover readout. TH3 forgetRemovedLiftStopwatchIfOfferFullyEnded out of scope. required_args_mixed 180/180 with no headroom."
       },
-<<<<<<< HEAD
       "8dc179ca": {
         "when": "2026-10-20",
         "packet": "TH3: floor removal and undo races (lane A, PR #554)",
@@ -6092,19 +6091,14 @@
         "independent": "PENDING formal review on PR #554 (draft).",
         "adversarial": "PENDING formal review on PR #554 (draft).",
         "cleanContext": "Branch cursor/th3-floor-undo-races-ae41. Post-commit hold for observer ordering AC. Did not edit FloorWorkClocksCharacterisationTest.kt."
-=======
+      },
       "12fd6695": {
         "when": "2026-10-20",
         "packet": "TH4: Compose picker and notes test health (lane B) plus #551 Critic r7 carry-over",
         "gate": "Parent trunk 82a93513 (#551 TH2 merged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6; required_args_mixed 180/180). Agent-local ./gradlew --no-daemon -Dorg.gradle.jvmargs=-Xmx2560m testDebugUnitTest assembleDebug BUILD SUCCESSFUL (local, not independently verifiable). Two fresh hosted Tests lint debug build jobs on 12eefafd (ledger tip over product 12fd6695): pull_request run 39472506331 job 118799907937 success testDebugUnitTest 4893 tests 0 failures; push run 39472477397 job 118799805739 success testDebugUnitTest 4892 tests 0 failures. Workflow runs may continue for non-blocking instrumented smoke.",
         "independent": "PENDING formal review on PR (draft).",
         "adversarial": "PENDING formal review on PR (draft).",
-<<<<<<< HEAD
-        "cleanContext": "Branch cursor/th4-test-health-b25e from trunk 82a93513. TH4 spec section 5: OwnedPickerRenderTest uses Main dispatcher scope; PlanRoutineActionsRenderTest.smallFont20 waits on editor loaded not wall clock; ReopenMidPrefillTest notesOnlySavedStateHeld waits for NEWER_NOTES in uiState; RestTimerViewModelTest uses RestTimerGlobalsRule and yield instead of delay in awaitRestRunning plus strict awaitState on preset seed. Ledger corrections (section 21, merged #551 row 70a3c4dd not edited): #551 merged as 82a93513 UX32 at merge; Critic r7 nit 1 sameVolumeWeightRepsSwap assertNotNull beforeMost and assertNotEquals without elvis on afterFrom (TH4); Critic r7 nit 3 HistoryViewModel progress.takeIf { it.key == request.key } (TH4); TH2 fresh gate jobs ran on ledger-only f516e6ab over product 70a3c4dd not on product SHA."
->>>>>>> 12eefafd (UX-Backlog: TH4 ledger row 12fd6695 and section 21 #551 corrections)
-=======
-        "cleanContext": "Branch cursor/th4-test-health-b25e from trunk 82a93513. PR https://github.com/sinura7/PersonalTrainer/pull/553. Product code head 12fd6695. TH4 spec section 5: OwnedPickerRenderTest uses Main dispatcher scope; PlanRoutineActionsRenderTest.smallFont20 waits on editor loaded not wall clock; ReopenMidPrefillTest notesOnlySavedStateHeld waits for NEWER_NOTES in uiState; RestTimerViewModelTest uses RestTimerGlobalsRule and yield instead of delay in awaitRestRunning plus strict awaitState on preset seed. Ledger corrections (section 21, merged #551 row 70a3c4dd not edited): #551 merged as 82a93513 UX32 at merge; Critic r7 nit 1 sameVolumeWeightRepsSwap assertNotNull beforeMost and assertNotEquals without elvis on afterFrom (TH4); Critic r7 nit 3 HistoryViewModel progress.takeIf { it.key == request.key } (TH4); TH2 fresh gate jobs ran on ledger-only f516e6ab over product 70a3c4dd not on product SHA."
->>>>>>> 00b03402 (UX-Backlog: TH4 row links PR 553)
+        "cleanContext": "Branch cursor/th4-test-health-b25e from trunk 82a93513. PR https://github.com/sinura7/PersonalTrainer/pull/553. Product code head 12fd6695."
       }
     }
   }

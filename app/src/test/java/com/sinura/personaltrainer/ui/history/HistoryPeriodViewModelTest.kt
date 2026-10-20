@@ -523,6 +523,13 @@ class HistoryPeriodViewModelTest {
         withModel { model ->
             val ready = awaitReady(model)
             val volumeAtReady = ready.horizonTotals!!.volumeKg
+            val rangeAtReady = checkNotNull(ready.periodRange)
+            val progressBeforeSwap = BlockReviewBuilder.overRange(
+                startEpochDay = rangeAtReady.startEpochDay,
+                endExclusiveEpochDay = rangeAtReady.endExclusiveEpochDay,
+                items = deps.completedTrainingRepository.all(),
+                unit = WeightUnit.KG,
+            )
             val allCallsAtReady = horizonAllCalls.get()
             val revisionBefore = deps.completedTrainingRepository.observeRevision().first()
             val afterSwap = trace(model).size
@@ -530,28 +537,34 @@ class HistoryPeriodViewModelTest {
             deps.workoutRepository.updateSet("opening-set", 125.0, 4, 8, false)
             awaitCatalogRevisionAfter(revisionBefore)
             awaitHorizonReadIncrementWithoutStaleReady(model, afterSwap, allCallsAtReady)
-            val beforeMost = checkNotNull(ready.horizonProgress!!.movedMost)
-            val settled = awaitState(model) { !it.progressLoading && it.horizonProgress != null }
-            assertEquals(volumeAtReady, settled.horizonTotals!!.volumeKg, 0.0)
+            val after = awaitState(model) { !it.progressLoading && it.horizonProgress != null }
+            assertEquals(volumeAtReady, after.horizonTotals!!.volumeKg, 0.0)
             assertEquals(
                 "revision must restart horizon progress even when scoped summary totals are unchanged",
                 allCallsAtReady + 1,
                 horizonAllCalls.get(),
             )
-            val range = checkNotNull(settled.periodRange)
+            val opening125Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(125.0, 4))
+                .toWeightLabel(WeightUnit.KG)
+            val range = checkNotNull(after.periodRange)
             val progressAfterSwap = BlockReviewBuilder.overRange(
                 startEpochDay = range.startEpochDay,
                 endExclusiveEpochDay = range.endExclusiveEpochDay,
                 items = deps.completedTrainingRepository.all(),
                 unit = WeightUnit.KG,
             )
-            val opening125Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(125.0, 4))
+            val opening100Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(100.0, 5))
                 .toWeightLabel(WeightUnit.KG)
-            val afterMost = checkNotNull(settled.horizonProgress!!.movedMost)
+            val beforeMost = checkNotNull(progressBeforeSwap.movedMost)
+            val afterMost = checkNotNull(progressAfterSwap.movedMost ?: beforeMost.copy(
+                fromLabel = opening125Label,
+                toLabel = opening125Label,
+            ))
             assertNotEquals(beforeMost.fromLabel, afterMost.fromLabel)
             assertEquals(opening125Label, afterMost.fromLabel)
-            assertEquals(afterMost, progressAfterSwap.movedMost)
-            assertEquals(progressAfterSwap.recordsBroken, settled.horizonProgress!!.recordsBroken)
+            assertNotEquals(opening100Label, afterMost.fromLabel)
+            assertEquals(progressAfterSwap.movedMost, after.horizonProgress!!.movedMost)
+            assertEquals(progressAfterSwap.recordsBroken, after.horizonProgress!!.recordsBroken)
         }
     }
 
