@@ -439,9 +439,11 @@ class HistoryPeriodViewModelTest {
             awaitReady(model)
             val correction = trace(model).size
             deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
-            val pending = awaitState(model) { it.horizonTotals?.volumeKg == 950.0 }
-            assertTrue(pending.progressLoading)
-            assertNull(pending.horizonProgress)
+            val pending = awaitState(model) {
+                it.horizonTotals?.volumeKg == 950.0 &&
+                    it.progressLoading &&
+                    it.horizonProgress == null
+            }
             assertPendingEmissions(model, correction) { it.horizonTotals?.volumeKg == 950.0 }
             assertEquals(950.0, awaitReady(model).horizonTotals!!.volumeKg, 0.0)
         }
