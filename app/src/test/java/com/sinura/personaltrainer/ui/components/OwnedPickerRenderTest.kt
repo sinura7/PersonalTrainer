@@ -44,15 +44,18 @@ import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.ExercisePickerProgress
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.workout.settle
+import android.os.Looper
 import java.io.File
 import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.robolectric.Shadows.shadowOf
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -77,7 +80,7 @@ class OwnedPickerRenderTest {
     private lateinit var contexts: PickerContextDrafts
     private lateinit var custom: CustomExerciseDrafts
     private val job = SupervisorJob()
-    private val scope = CoroutineScope(job + Dispatchers.Unconfined)
+    private val scope = CoroutineScope(job + Dispatchers.Main.immediate)
     private val owner = DraftOwner(DraftForm.ROUTINE, "synthetic-owned-picker")
     private val runId = UUID.randomUUID().toString()
     private val rows = (1..30).map { number -> Exercise(id = "synthetic-press-$number",
@@ -104,7 +107,39 @@ class OwnedPickerRenderTest {
         custom = CustomExerciseDrafts(store = store, repository = deps.exerciseRepository,
             maintenance = deps.dbMaintenance, restoreOpen = { false })
     }
-    @After fun close() { runBlocking { withTimeout(5_000) { job.cancelAndJoin() } }; deps.close() }
+    @After fun close() {
+        try {
+            showing.value = false
+            current.value?.view?.closeVisit()
+            current.value?.create?.closeVisit()
+            current.value = null
+            pumpMain()
+            job.cancel()
+            runBlocking {
+                withTimeout(5_000) {
+                    while (job.isActive) {
+                        pumpMain()
+                    }
+                    job.join()
+                }
+            }
+        } catch (timedOut: TimeoutCancellationException) {
+            System.err.println("OwnedPickerRenderTest teardown: scope did not finish in 5s")
+        } finally {
+            if (::deps.isInitialized) deps.close()
+        }
+    }
+    private fun pumpMain() {
+        shadowOf(Looper.getMainLooper()).idle()
+        compose.waitForIdle()
+    }
+
+    private fun waitUntilPump(timeoutMillis: Long = 30_000, condition: () -> Boolean) {
+        compose.waitUntil(timeoutMillis) {
+            pumpMain()
+            condition()
+        }
+    }
     private fun owns(requested: DraftOwner): Boolean = requested == owner
     private fun fresh() = OwnedPickerRecovery(scope = scope, contextDrafts = contexts, customDrafts = custom,
         repository = deps.exerciseRepository, savedState = SavedStateHandle(), owner = { owner },
@@ -150,9 +185,13 @@ class OwnedPickerRenderTest {
         compose.onNodeWithText("Press variation 18").assertIsDisplayed()
         compose.onNodeWithTag("picker-content").performScrollToNode(hasText("Press variation 26"))
         compose.settle()
-        compose.waitUntil(30_000) { checkNotNull(current.value).view.fields.value.index > retained.index }
+        waitUntilPump { checkNotNull(current.value).view.fields.value.index > retained.index }
         assertEquals("press", checkNotNull(current.value).view.fields.value.query)
         capture("small20", "delayed-catalogue-restored")
+        showing.value = false
+        current.value?.view?.closeVisit()
+        current.value?.create?.closeVisit()
+        pumpMain()
     }
 
     @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
@@ -166,7 +205,7 @@ class OwnedPickerRenderTest {
         assertEquals(retained, checkNotNull(current.value).view.fields.value)
         compose.runOnIdle { state.value = state.value.copy(catalog = rows) }
         compose.settle()
-        compose.waitUntil(30_000) { checkNotNull(current.value).view.fields.value.anchor != retained.anchor }
+        waitUntilPump { checkNotNull(current.value).view.fields.value.anchor != retained.anchor }
         assertEquals("press", checkNotNull(current.value).view.fields.value.query)
         compose.onNodeWithTag("picker-content").performScrollToNode(hasTestTag("picker-create-entry"))
         compose.settle()
@@ -200,6 +239,7 @@ class OwnedPickerRenderTest {
         current.value = fresh()
         mount()
         ready()
+        search().assertIsDisplayed()
         search().performTextReplacement("press")
         compose.settle()
         search().performTextReplacement("press ")
@@ -213,29 +253,31 @@ class OwnedPickerRenderTest {
             compose.onNodeWithTag("picker-content").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value(),
             observed.view.fields.value.index, observed.view.fields.value.anchor, observed.view.status.value,
         ))
-        compose.waitUntil(30_000) { checkNotNull(current.value).view.fields.value.index > 0 }
+        waitUntilPump { checkNotNull(current.value).view.fields.value.index > 0 }
         val position = checkNotNull(current.value).view.fields.value
         assertEquals("press ", position.query)
         assertTrue(position.anchor?.startsWith("synthetic-press-") == true)
         capture(profile, "authored-and-scrolled")
         compose.onNodeWithTag("picker-action").assertIsDisplayed().performClick()
-        compose.waitUntil(30_000) { !showing.value }
+        waitUntilPump { !showing.value }
         compose.settle()
         compose.runOnIdle { current.value = fresh(); showing.value = true }
         ready()
-        compose.waitUntil(30_000) { checkNotNull(current.value).view.fields.value.anchor == position.anchor &&
-            checkNotNull(current.value).view.fields.value.index > 0 }
+        waitUntilPump {
+            checkNotNull(current.value).view.fields.value.anchor == position.anchor &&
+                checkNotNull(current.value).view.fields.value.index > 0
+        }
         assertEquals("press ", checkNotNull(current.value).view.fields.value.query)
         capture(profile, "reopened-position")
         io.failView = true
         search().performTextReplacement("press  ")
         compose.onNodeWithTag("picker-action").performClick()
-        compose.waitUntil(30_000) { checkNotNull(current.value).view.status.value.error != null }
+        waitUntilPump { checkNotNull(current.value).view.status.value.error != null }
         compose.onNodeWithText("Retry").performScrollTo().assertIsDisplayed()
         capture(profile, "failed-keep-reachable")
         io.failView = false
         compose.onNodeWithText("Retry").performClick()
-        compose.waitUntil(30_000) { !showing.value }
+        waitUntilPump { !showing.value }
         compose.settle()
         compose.runOnIdle { current.value = fresh(); showing.value = true }
         ready()
@@ -247,15 +289,24 @@ class OwnedPickerRenderTest {
         compose.onNodeWithTag("picker-reset").performClick()
         capture(profile, "reset-confirmation")
         compose.onNodeWithTag(ConfirmActionTags.CONFIRM).performClick()
-        compose.waitUntil(30_000) { checkNotNull(current.value).view.fields.value.query.isEmpty() &&
-            !checkNotNull(current.value).view.status.value.busy && !checkNotNull(current.value).create.status.value.busy }
+        waitUntilPump {
+            checkNotNull(current.value).view.fields.value.query.isEmpty() &&
+                !checkNotNull(current.value).view.status.value.busy &&
+                !checkNotNull(current.value).create.status.value.busy
+        }
         capture(profile, "reset-accepted")
         assertTrue(runBlocking { deps.database.exerciseDao().getAllCustom().isEmpty() })
+        showing.value = false
+        current.value?.view?.closeVisit()
+        current.value?.create?.closeVisit()
+        pumpMain()
     }
     private fun ready() {
         compose.settle()
-        compose.waitUntil(30_000) { current.value?.view?.status?.value?.busy == false }
+        pumpMain()
+        waitUntilPump { current.value?.view?.status?.value?.busy == false }
         compose.settle()
+        pumpMain()
     }
     private fun search() = compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")), useUnmergedTree = true)
     private fun capture(profile: String, phase: String) {

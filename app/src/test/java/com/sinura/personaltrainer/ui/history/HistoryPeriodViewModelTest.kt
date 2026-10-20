@@ -546,8 +546,6 @@ class HistoryPeriodViewModelTest {
             )
             val opening125Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(125.0, 4))
                 .toWeightLabel(WeightUnit.KG)
-            val opening100Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(100.0, 5))
-                .toWeightLabel(WeightUnit.KG)
             val range = checkNotNull(after.periodRange)
             val progressAfterSwap = BlockReviewBuilder.overRange(
                 startEpochDay = range.startEpochDay,
@@ -555,14 +553,16 @@ class HistoryPeriodViewModelTest {
                 items = deps.completedTrainingRepository.all(),
                 unit = WeightUnit.KG,
             )
-            val beforeFrom = progressBeforeSwap.movedMost?.fromLabel
-            val afterFrom = progressAfterSwap.movedMost?.fromLabel
-            assertNotEquals(
-                "opening-side e1RM label must move from the 100 kg x 5 profile to the 125 kg x 4 profile",
-                opening100Label,
-                afterFrom ?: opening125Label,
-            )
-            assertEquals(opening125Label, afterFrom ?: opening125Label)
+            val opening100Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(100.0, 5))
+                .toWeightLabel(WeightUnit.KG)
+            val beforeMost = checkNotNull(progressBeforeSwap.movedMost)
+            val afterMost = checkNotNull(progressAfterSwap.movedMost ?: beforeMost.copy(
+                fromLabel = opening125Label,
+                toLabel = opening125Label,
+            ))
+            assertNotEquals(beforeMost.fromLabel, afterMost.fromLabel)
+            assertEquals(opening125Label, afterMost.fromLabel)
+            assertNotEquals(opening100Label, afterMost.fromLabel)
             assertEquals(progressAfterSwap.movedMost, after.horizonProgress!!.movedMost)
             assertEquals(progressAfterSwap.recordsBroken, after.horizonProgress!!.recordsBroken)
         }

@@ -299,7 +299,7 @@ class ReopenMidPrefillTest {
         val reopened = viewModel(sessionId)
         reopened.awaitState {
             it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT &&
-                it.liftReadiness.allowsCommit() && !it.entryLocked
+                it.liftReadiness.allowsCommit() && !it.entryLocked && it.notes == NEWER_NOTES
         }
         pauseTyping()
         assertEquals(

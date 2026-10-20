@@ -6091,6 +6091,22 @@
         "independent": "PENDING formal review on PR #554 (draft).",
         "adversarial": "PENDING formal review on PR #554 (draft).",
         "cleanContext": "Branch cursor/th3-floor-undo-races-ae41. Post-commit hold for observer ordering AC. Did not edit FloorWorkClocksCharacterisationTest.kt."
+      },
+      "12fd6695": {
+        "when": "2026-10-20",
+        "packet": "TH4: Compose picker and notes test health (lane B) plus #551 Critic r7 carry-over",
+        "gate": "Parent trunk 82a93513 (#551 TH2 merged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6; required_args_mixed 180/180). Agent-local ./gradlew --no-daemon -Dorg.gradle.jvmargs=-Xmx2560m testDebugUnitTest assembleDebug BUILD SUCCESSFUL (local, not independently verifiable). Two fresh hosted Tests lint debug build jobs on 12eefafd (ledger tip over product 12fd6695): pull_request run 39472506331 job 118799907937 success testDebugUnitTest 4893 tests 0 failures; push run 39472477397 job 118799805739 success testDebugUnitTest 4892 tests 0 failures. Workflow runs may continue for non-blocking instrumented smoke.",
+        "independent": "PENDING formal review on PR (draft).",
+        "adversarial": "PENDING formal review on PR (draft).",
+        "cleanContext": "Branch cursor/th4-test-health-b25e from trunk 82a93513. PR https://github.com/sinura7/PersonalTrainer/pull/553. Product code head 12fd6695."
+      },
+      "4a3a0c87": {
+        "when": "2026-10-20",
+        "packet": "TH4 PR 553 Critic scoped (rebased trunk 059a31ab)",
+        "gate": "Parent trunk 059a31ab (TH3 #554). PT_STATIC_ONLY=1 preflight OK (real_time_sleeps 27). Local testDebugUnitTest --rerun-tasks assembleDebug BUILD SUCCESSFUL (head 7478ac06). Two hosted Tests lint debug build: pull_request run 39510101681 job 118928702943; push run 39510093942 job 118934171764; testDebugUnitTest 4899 tests 0 failures each. TH4 5d OPEN; RestTimer hardening only.",
+        "independent": "PENDING on PR #553.",
+        "adversarial": "PENDING re-review.",
+        "cleanContext": "PR https://github.com/sinura7/PersonalTrainer/pull/553. Head 7478ac06. M1-M2 + minors 3-4 only."
       }
     }
   }
