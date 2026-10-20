@@ -646,20 +646,6 @@ class HistoryViewModel internal constructor(
         val summariesIdentity: Int,
     )
 
-    /** Stable fingerprint of scoped summaries for progress keys; hash once per request. */
-    private fun scopedSummariesIdentity(summaries: List<SessionSummary>): Int =
-        summaries.asSequence()
-            .sortedBy { it.id }
-            .fold(1) { acc, summary ->
-                var hash = acc
-                hash = 31 * hash + summary.id.hashCode()
-                hash = 31 * hash + (summary.finishedAt?.hashCode() ?: 0)
-                hash = 31 * hash + summary.volumeKg.hashCode()
-                hash = 31 * hash + summary.workingSets
-                hash = 31 * hash + summary.localEpochDay.hashCode()
-                hash
-            }
-
     private data class HistoryReads(
         val health: DataHealth<List<SessionSummary>>,
         val activitySummaries: DataHealth<List<SessionSummary>>,

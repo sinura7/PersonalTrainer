@@ -1920,37 +1920,6 @@
       "status": "Open",
       "fixtures": [],
       "evidenceClass": "Hosted CI timing on P10 stack (39135917503 / 39135921063)"
-    },
-    {
-      "id": "UX32",
-      "title": "History progress key must include scoped summaries identity",
-      "priority": "P0",
-      "type": "Correctness",
-      "observation": "HistoryPeriodViewModel keyed horizon progress on range, unit, revision and retry attempt. A set edit could change scoped totals before the revision flow emitted, so distinctUntilChanged kept a stale READY readout on the new request.",
-      "outcome": "HorizonProgressKey includes a stable fingerprint of scoped summaries so content changes restart progress with LOADING until a fresh READY.",
-      "requirements": [
-        "Fingerprint scoped summaries once per period request without hashing on every uiState emission.",
-        "Preserve existing HistoryPeriodViewModelTest assertions; add coverage for unchanged summaries not flashing LOADING."
-      ],
-      "acceptance": [
-        "aDelayedCorrectionRecorderExposesTheUnacknowledgedPendingTrace passes 50 consecutive local runs.",
-        "Hosted gate green on the TH2 merge head with two fresh unit runs."
-      ],
-      "evidence": [
-        {
-          "path": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryViewModel.kt",
-          "line": 374
-        },
-        {
-          "path": "app/src/test/java/com/sinura/personaltrainer/ui/history/HistoryPeriodViewModelTest.kt",
-          "line": 436
-        }
-      ],
-      "dependencies": [],
-      "decision": "TH2 lane B packet",
-      "status": "In progress",
-      "fixtures": [],
-      "evidenceClass": "HistoryPeriodViewModelTest failure on hosted run 9a5b7458"
     }
   ],
   "fixtures": [
@@ -6106,6 +6075,14 @@
         "independent": "Forge Critic (agent review, not on GitHub): APPROVE WITH NITS at 789a40fb on PR #552. Formal GitHub review pending (draft). Code nits 1, 2, 5 deferred to a later packet.",
         "adversarial": "Forge Critic (agent review, not on GitHub): APPROVE WITH NITS at 789a40fb on PR #552. Formal GitHub review pending (draft). Code nits 1, 2, 5 deferred to a later packet.",
         "cleanContext": "Branch cursor/th1-rest-timer-globals-ae41. PR https://github.com/sinura7/PersonalTrainer/pull/552. Code head 789a40fb (gate pair on this SHA; ledger tip may advance). RestTimerAppForeground keeps ActivityLifecycleCallbacks + Application across resetForTest; sequential RestTimerGlobalsRule apply reinstalls callbacks; RestTimerGlobalsRule addSuppressed for end leak and inner-finally resetAll failure; ownsLedger completion tests assert claimedCountForTest()==1 and hasClaimForTest(exact id) because rule skips end ledger leak check. TH7b checker nits (section 15 F7, F8, etc.) deferred to TH7b part 2. Ledger corrections: #548 row 1e59ca67 round 5 PENDING resolved to Forge Critic round 5 APPROVE WITH NITS at 1e59ca67 (agent review, not on GitHub); Verifier r13 FAIL minor (double spaces only); F5r5 fixed via correction here (merged rows left alone on purpose); hosted pull_request 39218917022 job 117949486675 and push 39218910311 job 117950301174 on cb41e98f gate job passed, testDebugUnitTest FROM-CACHE; #548 merged as 9c701a6c. #550 merged as 28e48f33 (head b75e7658). (V1) row 21593448 correction (d) adds run cancelled for pull_request 39218917022 (cancelled 04:38:58 ET) and push 39218910311 (04:41:14 ET). (V2) correction (c) refers to row 2e192938 (text set in commit 5bdf0056), not 5bdf0056 row key. (V3) b75e7658 gate jobs 118048850830 (push 39249296491) and 118048861347 (pull_request 39249299478), green, fresh, 4821/0."
+      },
+      "dde57475": {
+        "when": "2026-10-20",
+        "packet": "TH2: History progress key identity (UX32) plus P12 Critic nits K3-K6",
+        "gate": "Parent trunk 572ead6f (#543 merged). PT_STATIC_ONLY=1 sh tools/preflight.sh OK (local, not independently verifiable; real_time_sleeps 28, real_time_delays 6; required_args_mixed 180/180). AC2: aDelayedCorrectionRecorderExposesTheUnacknowledgedPendingTrace 50 consecutive local runs on dde57475 ALL_50_PASSED (local, not independently verifiable). Agent-local ./gradlew testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest on dde57475: testDebugUnitTest 4857 tests, 1 failure FloorWorkClocksCharacterisationTest.expiringOldRemoveOfferKeepsStoppedSetClockWhenLiveLiftIsReselected (open TH3 flake; local, not independently verifiable). Two fresh hosted gate jobs on dde57475: pull_request run 39348943871 job 118388276311 Tests, lint, debug build success, testDebugUnitTest 4857 tests, 0 failures (reports artifact); push run 39348937943 job 118388255833 gate job success, testDebugUnitTest 4857 tests, 0 failures (reports artifact). Workflow runs 39348943871 and 39348937943 gate job passed; smoke jobs non-blocking (cancel state not verified this turn).",
+        "independent": "PENDING formal review on PR #551 (draft).",
+        "adversarial": "PENDING formal review on PR #551 (draft).",
+        "cleanContext": "Branch cursor/th2-history-progress-key-b25e. PR https://github.com/sinura7/PersonalTrainer/pull/551. UX32 item in backlog items. K3 renames A00P12 cooldown instrumented classes to WorkoutFinishCooldownInstrumentedTest and WorkoutSummaryCooldownInstrumentedTest. Ledger corrections (section 18, merged P12 rows not edited): Verifier r16 row a6296afd should not use tilde for about 30 min later wording; 22d9d342 passed rests on one job and job 118151114335 never reached tests; 08dae0cc 5 of 5 omits job 118195305497 (never reached tests); instrumented step done 3:46 and 3:40 in a6296afd row are A00 test times not instrumented step end; row 42d0b968 smoke job 117920582162 had both Finish and Summary fail and push run 39209846196 should say run cancelled."
       }
     }
   }

@@ -438,13 +438,16 @@ class HistoryPeriodViewModelTest {
         withModel { model ->
             awaitReady(model)
             val correction = trace(model).size
+            val held = reads.holdNext(late = true)
             deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
-            val pending = awaitState(model) {
+            held.awaitEntered()
+            awaitState(model) {
                 it.horizonTotals?.volumeKg == 950.0 &&
                     it.progressLoading &&
                     it.horizonProgress == null
             }
             assertPendingEmissions(model, correction) { it.horizonTotals?.volumeKg == 950.0 }
+            held.release.complete(Unit)
             assertEquals(950.0, awaitReady(model).horizonTotals!!.volumeKg, 0.0)
         }
     }
@@ -454,11 +457,19 @@ class HistoryPeriodViewModelTest {
         seedProgress()
         withModel { model ->
             val first = awaitReady(model)
+            val recordsBroken = first.horizonProgress!!.recordsBroken
             val mid = trace(model).size
-            val second = awaitReady(model)
-            assertEquals(first.horizonProgress!!.recordsBroken, second.horizonProgress!!.recordsBroken)
+            deps.preferencesRepository.recordBodyweight(80.0, TODAY)
+            val after = awaitState(model) {
+                trace(model).size > mid && !it.progressLoading && it.horizonProgress != null
+            }
+            assertTrue("expected a catalog re-emit with identical summaries", trace(model).size > mid)
+            assertEquals(recordsBroken, after.horizonProgress!!.recordsBroken)
             trace(model).drop(mid).forEach { state ->
                 assertFalse("unexpected loading flash on unchanged summaries", state.progressLoading)
+                if (state.horizonProgress != null) {
+                    assertEquals(recordsBroken, state.horizonProgress!!.recordsBroken)
+                }
             }
         }
     }
