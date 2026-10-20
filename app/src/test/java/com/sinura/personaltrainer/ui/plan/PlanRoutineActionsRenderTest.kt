@@ -372,8 +372,10 @@ class PlanRoutineActionsRenderTest {
             it.ruleId == dayRule.id && it.localEpochDay == today
         }
         tap(compose.onNodeWithTag(PlanDayTags.block(occurrence.id)).performScrollTo())
-        compose.awaitThat("routine editor loaded", editorVm.uiState::value) {
-            !editorVm.uiState.value.isLoading && editorVm.uiState.value.routine != null
+        compose.awaitThat("routine editor save dock ready", editorVm.uiState::value) {
+            val state = editorVm.uiState.value
+            val lifts = state.routine?.exercises.orEmpty()
+            !state.isLoading && !state.failed && !state.missing && lifts.isNotEmpty()
         }
         compose.settle()
         words(RoutineSaveCopy.SCOPE)

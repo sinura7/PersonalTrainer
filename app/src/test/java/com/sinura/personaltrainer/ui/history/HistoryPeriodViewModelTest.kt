@@ -558,6 +558,7 @@ class HistoryPeriodViewModelTest {
             }
             settled.horizonProgress!!.movedMost?.let { afterMost ->
                 assertNotEquals(beforeMost.fromLabel, afterMost.fromLabel)
+                assertEquals(opening125Label, afterMost.fromLabel)
             }
             assertEquals(progressAfterSwap.movedMost, settled.horizonProgress!!.movedMost)
             assertEquals(progressAfterSwap.recordsBroken, settled.horizonProgress!!.recordsBroken)

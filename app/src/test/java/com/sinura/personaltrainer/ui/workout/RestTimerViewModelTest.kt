@@ -33,7 +33,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -49,6 +48,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -57,7 +59,27 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestTimerViewModelTest {
-    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
+    private val restTimerGlobals = RestTimerGlobalsRule()
+    private val perTestMarkers = object : TestWatcher() {
+        override fun starting(description: Description) {
+            System.err.println("RestTimerViewModelTest START ${description.methodName}")
+        }
+
+        override fun finished(description: Description) {
+            System.err.println("RestTimerViewModelTest END ${description.methodName}")
+        }
+
+        override fun failed(e: Throwable?, description: Description) {
+            val sched = dispatcher.scheduler
+            System.err.println(
+                "RestTimerViewModelTest FAIL ${description.methodName}: " +
+                    "virtualTime=${sched.currentTime}, " +
+                    "restSnapshot=${if (::deps.isInitialized) deps.restTimerStore.current() else "deps-not-init"}; " +
+                    "failure=${e?.message}",
+            )
+        }
+    }
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(restTimerGlobals).around(perTestMarkers)
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<RestTimerViewModel>()
@@ -162,11 +184,7 @@ class RestTimerViewModelTest {
         workout.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         workout.logWorkingSet()
         workout.awaitState { !it.logging }
-        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
-        dispatcher.scheduler.runCurrent()
-        dispatcher.scheduler.advanceUntilIdle()
-        awaitSession(fixture.session.id) { it.sets.size == 1 }
-        awaitRestRunning()
+        awaitRestRunning(fixture.session.id, setCount = 1)
 
         val floor = createViewModel(fixture.session.id)
         val state = floor.awaitState {
@@ -525,7 +543,7 @@ class RestTimerViewModelTest {
         val fixture = seedWorkout(targetSets = 3)
         val workout = createWorkoutViewModel(fixture.session.id)
         workout.logTheFirstSet()
-        awaitRestRunning()
+        awaitRestRunning(fixture.session.id, setCount = 1)
         val setId = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single().id
         workout.editSet(setId)
         workout.awaitState { it.editingSetId == setId && !it.entryLocked }
@@ -639,7 +657,7 @@ class RestTimerViewModelTest {
         }
         workout.awaitCall("the Log's first Squat call with last session's RPE") { it?.nextRpe == 8 }
         workout.logSetAndSettle(repository = deps.workoutRepository, scheduler = dispatcher.scheduler)
-        awaitRestRunning()
+        awaitRestRunning(fixture.session.id, setCount = 1)
 
         val logReadsBench = CompletableDeferred<Unit>().also { liftReadGate = BENCH to it }
         workout.selectExercise(BENCH)
@@ -778,7 +796,7 @@ class RestTimerViewModelTest {
         )
         val workout = createWorkoutViewModel(fixture.session.id)
         workout.logOnePlannedSet(SQUAT, weightKg = 100.0, rpe = 7)
-        awaitRestRunning()
+        awaitRestRunning(fixture.session.id, setCount = 1)
         workout.awaitCall("the Log's lighter-week call: hold where it would add weight") {
             it?.reasonCode == SetMicroRecCalculator.LIGHTER_HOLD
         }
@@ -822,28 +840,45 @@ class RestTimerViewModelTest {
         }
     }
 
+    /** After [startSelectedRest] with no new set write. */
     private suspend fun awaitRestRunning() {
         try {
             withTimeout(TestWaits.FLOW_MS) {
                 while (!deps.restTimerStore.current().running) {
-                    // The rest after a logged set waits Motion.ROW_SETTLE_MS on the virtual clock,
-                    // and that delay is scheduled only when Room's write returns — on a real
-                    // thread, possibly after the test's one advance. Waiting on the store alone
-                    // then waits for a delay nothing will ever run (it timed out on a loaded
-                    // machine, 23 September 2026). Drive it while yielding to Room, as
-                    // ActiveWorkoutViewModelTest does; the store stays the success condition.
-                    dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
                     dispatcher.scheduler.runCurrent()
-                    if (!deps.restTimerStore.current().running) yield()
                 }
             }
         } catch (timedOut: TimeoutCancellationException) {
-            throw AssertionError(
-                "Rest did not start; snapshot=${deps.restTimerStore.current()}, " +
-                    "virtualTime=${dispatcher.scheduler.currentTime}",
-                timedOut,
-            )
+            throw restStartFailure(timedOut)
         }
+    }
+
+    /** After a logged set: Room write, then one ROW_SETTLE advance on the virtual clock. */
+    private suspend fun awaitRestRunning(sessionId: String, setCount: Int) {
+        try {
+            withTimeout(TestWaits.FLOW_MS) {
+                awaitSession(sessionId) { it.sets.size == setCount }
+                dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+                dispatcher.scheduler.runCurrent()
+                if (!deps.restTimerStore.current().running) {
+                    throw AssertionError(
+                        "Rest did not start after the set write; snapshot=${deps.restTimerStore.current()}, " +
+                            "virtualTime=${dispatcher.scheduler.currentTime}",
+                    )
+                }
+            }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw restStartFailure(timedOut)
+        }
+    }
+
+    private fun restStartFailure(timedOut: TimeoutCancellationException): AssertionError {
+        val sched = dispatcher.scheduler
+        return AssertionError(
+            "Rest did not start; snapshot=${deps.restTimerStore.current()}, " +
+                "virtualTime=${sched.currentTime}",
+            timedOut,
+        )
     }
 
     private suspend fun RestTimerViewModel.awaitState(
