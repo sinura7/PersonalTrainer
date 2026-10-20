@@ -547,20 +547,10 @@ class HistoryPeriodViewModelTest {
             )
             val opening125Label = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(125.0, 4))
                 .toWeightLabel(WeightUnit.KG)
-            val afterFrom = progressAfterSwap.movedMost?.fromLabel
-            if (afterFrom != null) {
-                assertNotEquals(
-                    "opening-side e1RM label must move from the 100 kg x 5 profile to the 125 kg x 4 profile",
-                    beforeMost.fromLabel,
-                    afterFrom,
-                )
-                assertEquals(opening125Label, afterFrom)
-            }
-            settled.horizonProgress!!.movedMost?.let { afterMost ->
-                assertNotEquals(beforeMost.fromLabel, afterMost.fromLabel)
-                assertEquals(opening125Label, afterMost.fromLabel)
-            }
-            assertEquals(progressAfterSwap.movedMost, settled.horizonProgress!!.movedMost)
+            val afterMost = checkNotNull(settled.horizonProgress!!.movedMost)
+            assertNotEquals(beforeMost.fromLabel, afterMost.fromLabel)
+            assertEquals(opening125Label, afterMost.fromLabel)
+            assertEquals(afterMost, progressAfterSwap.movedMost)
             assertEquals(progressAfterSwap.recordsBroken, settled.horizonProgress!!.recordsBroken)
         }
     }

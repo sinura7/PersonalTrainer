@@ -299,9 +299,8 @@ class ReopenMidPrefillTest {
         val reopened = viewModel(sessionId)
         reopened.awaitState {
             it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT &&
-                it.liftReadiness.allowsCommit() && !it.entryLocked
+                it.liftReadiness.allowsCommit() && !it.entryLocked && it.notes == NEWER_NOTES
         }
-        deps.workoutRepository.awaitSession(sessionId) { it.exercises.isNotEmpty() }
         pauseTyping()
         assertEquals(
             "the reopened workout keeps the words only saved state had; writes since=${notesWrites.drop(mark)}",

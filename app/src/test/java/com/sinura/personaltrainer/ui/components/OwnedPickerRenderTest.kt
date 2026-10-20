@@ -44,21 +44,16 @@ import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.ExercisePickerProgress
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.workout.settle
-import android.os.Handler
 import android.os.Looper
 import java.io.File
 import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.robolectric.Shadows.shadowOf
 import org.junit.After
@@ -75,7 +70,6 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
 
 /** Shipping content/controller/files in a native JVM host; separate from AppNav and phone evidence. */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(application = Application::class)
@@ -86,7 +80,7 @@ class OwnedPickerRenderTest {
     private lateinit var contexts: PickerContextDrafts
     private lateinit var custom: CustomExerciseDrafts
     private val job = SupervisorJob()
-    private lateinit var scope: CoroutineScope
+    private val scope = CoroutineScope(job + Dispatchers.Main.immediate)
     private val owner = DraftOwner(DraftForm.ROUTINE, "synthetic-owned-picker")
     private val runId = UUID.randomUUID().toString()
     private val rows = (1..30).map { number -> Exercise(id = "synthetic-press-$number",
@@ -107,8 +101,6 @@ class OwnedPickerRenderTest {
         }
     }
     @Before fun setup() {
-        Dispatchers.setMain(Handler(Looper.getMainLooper()).asCoroutineDispatcher())
-        scope = CoroutineScope(job + Dispatchers.Main.immediate)
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         val store = DurableDraftStore(directory = temporary.newFolder(), files = io)
         contexts = PickerContextDrafts(store)
@@ -135,7 +127,6 @@ class OwnedPickerRenderTest {
             System.err.println("OwnedPickerRenderTest teardown: scope did not finish in 5s")
         } finally {
             if (::deps.isInitialized) deps.close()
-            Dispatchers.resetMain()
         }
     }
     private fun pumpMain() {
