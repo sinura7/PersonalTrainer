@@ -6107,6 +6107,14 @@
         "independent": "PENDING on PR #553.",
         "adversarial": "PENDING re-review.",
         "cleanContext": "PR https://github.com/sinura7/PersonalTrainer/pull/553. Head 7478ac06. M1-M2 + minors 3-4 only."
+      },
+      "9b643b02": {
+        "when": "2026-10-20",
+        "packet": "UX blueprint P11 past and mixed composer form (PR #555)",
+        "gate": "Parent trunk e5e54cde (TH4 #553). Rebased from 059a31ab; final hosted gate pending on product head after rebase.",
+        "independent": "PENDING formal review on PR #555 (draft).",
+        "adversarial": "PENDING formal review on PR #555 (draft).",
+        "cleanContext": "Branch cursor/p11-past-mixed-form-ae41. No Room/schema change. ComposerFormPolicyTest + ActivityComposerFormRenderTest + ActivityDetailCelebrationRenderTest."
       }
     }
   }
