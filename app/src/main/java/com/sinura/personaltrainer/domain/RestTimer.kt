@@ -88,6 +88,20 @@ class RestTimerClaimLedger {
     fun reset() {
         synchronized(lock) { claimed.clear() }
     }
+
+    internal fun clearForTest() {
+        reset()
+    }
+
+    internal fun isCleanForTest(): Boolean = synchronized(lock) { claimed.isEmpty() }
+
+    internal fun claimedCountForTest(): Int = synchronized(lock) { claimed.size }
+
+    internal fun hasClaimForTest(id: String): Boolean = synchronized(lock) { id in claimed }
+
+    internal fun recordClaimForTest(id: String) {
+        synchronized(lock) { claimed += id }
+    }
 }
 
 object RestTimer {

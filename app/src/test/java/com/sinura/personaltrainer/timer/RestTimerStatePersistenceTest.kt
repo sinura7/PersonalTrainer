@@ -1,10 +1,12 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -12,6 +14,7 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class RestTimerStatePersistenceTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun saveIsReadableOnTheNextLine() {
         // Its own file: the app's start-up recovery clears the shared row on its own thread,

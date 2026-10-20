@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import android.app.NotificationManager
 import android.content.Context
@@ -10,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,6 +23,7 @@ import org.robolectric.annotation.Config
  * A missing asset falls back. The packaged cue is the happy path.
  */
 class RestSoundChoiceTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun soundOffIsQuietEvenWhenTheAssetIsThere() {
         assertEquals(
@@ -69,6 +72,7 @@ class RestSoundChoiceTest {
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestSoundAssetTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun bundledCueIsPackaged() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -126,6 +130,7 @@ class RestSoundAssetTest {
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestTickAlertTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun tickOffClicksNothingEvenWithSoundOn() {
         var clicks = 0
@@ -176,6 +181,7 @@ class RestTickAlertTest {
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestTimerAlertsCreateTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun bundledCuePassesAlarmAttributesIntoCreate() {
         val seen = mutableListOf<AudioAttributes>()
@@ -219,6 +225,7 @@ class RestTimerAlertsCreateTest {
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestTimerDoneChannelTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun doneChannelBypassesDnd() {
         val context = ApplicationProvider.getApplicationContext<Context>()

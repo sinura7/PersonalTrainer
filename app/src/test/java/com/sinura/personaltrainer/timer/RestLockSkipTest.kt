@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.NotificationManager
 import android.content.Intent
 import android.os.Looper
@@ -41,6 +42,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = PersonalTrainerApp::class, qualifiers = "w360dp-h800dp-xhdpi")
 class RestLockSkipTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @get:Rule val compose = createEmptyComposeRule()
 
     private lateinit var app: PersonalTrainerApp

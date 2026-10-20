@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import android.content.Context
 import android.content.ContextWrapper
@@ -7,6 +8,7 @@ import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -16,6 +18,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestTimerCooldownPersistenceTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun cooldownMarkerSurvivesSaveAndRehydrate() {
         val persistence = SharedPrefsRestTimerStatePersistence(CooldownOwnPreferences(ApplicationProvider.getApplicationContext()))

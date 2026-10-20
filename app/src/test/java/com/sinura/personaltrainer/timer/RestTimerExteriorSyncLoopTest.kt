@@ -1,16 +1,24 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobals
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.content.Intent
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.RestTimerMarkers
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import org.junit.After
+import org.junit.Rule
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.activity.ComponentActivity
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
@@ -20,6 +28,7 @@ import org.robolectric.shadows.ShadowSettings
 @RunWith(RobolectricTestRunner::class)
 @Config(application = PersonalTrainerApp::class)
 class RestTimerExteriorSyncLoopTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private lateinit var app: PersonalTrainerApp
 
     @Before
@@ -40,6 +49,26 @@ class RestTimerExteriorSyncLoopTest {
         RestTimerOverlayController.release()
         app.container.restTimerController.stop(fromService = true)
         shadowOf(app.mainLooper).idle()
+    }
+
+    @Test
+    fun globalsResetReinstallsForegroundTrackingAndExteriorPing() {
+        RestTimerGlobals.resetAll()
+        assertSame(app, RestTimerAppForeground.applicationForTest())
+        assertTrue(RestTimerAppForeground.isInstalledForTest())
+        while (shadowOf(app).nextStartedService != null) {
+            // drain
+        }
+        val activityController = Robolectric.buildActivity(ComponentActivity::class.java).create().start()
+        shadowOf(app.mainLooper).idle()
+        activityController.stop().destroy()
+        shadowOf(app.mainLooper).idle()
+        val foregroundActivity = Robolectric.buildActivity(ComponentActivity::class.java).create().start()
+        shadowOf(app.mainLooper).idle()
+        val started = shadowOf(app).nextStartedService
+        foregroundActivity.stop().destroy()
+        assertNotNull(started)
+        assertEquals(RestTimerService.ACTION_EXTERIOR_SYNC, started!!.action)
     }
 
     @Test

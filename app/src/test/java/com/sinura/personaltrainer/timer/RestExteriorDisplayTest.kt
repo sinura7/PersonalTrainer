@@ -1,13 +1,16 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RestExteriorDisplayTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     @Test
     fun idleSnapshotHidesProgressBarCue() {
         val model = RestExteriorDisplay.model(

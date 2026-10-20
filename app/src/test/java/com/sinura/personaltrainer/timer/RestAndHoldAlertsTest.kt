@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.app.Application
 import android.content.Context
 import android.media.AudioAttributes
@@ -9,6 +10,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.RestTick
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -30,6 +32,7 @@ import org.robolectric.shadows.ShadowToneGenerator
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestAndHoldAlertsTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val vibrationOnly = RestTimerPreferences(soundEnabled = false, vibrationEnabled = true)
 
