@@ -199,7 +199,7 @@ class ExercisePickerRenderTest {
         }
         compose.settle()
         compose.onNodeWithText(old.name).assertDoesNotExist()
-        compose.onNodeWithTag(ComposerTags.ADD_SET).assertIsNotEnabled()
+        compose.onNodeWithTag(ComposerTags.ADD_SET).assertDoesNotExist()
         compose.runOnIdle { catalog.value = listOf(old, created) }
         compose.settle()
         compose.onNodeWithText(created.name).assertIsDisplayed()

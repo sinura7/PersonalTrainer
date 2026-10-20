@@ -325,7 +325,12 @@ private fun ActivityReceiptHero(
     unit: WeightUnit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        Kicker(text = ActivityDetailCopy.kicker(celebration, session), color = TextSecondary)
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+            Kicker(text = ActivityDetailCopy.kicker(celebration, session), color = TextSecondary)
+            if (celebration) {
+                Kicker(text = ActivityDetailCopy.SAVED, color = TextSecondary)
+            }
+        }
         if (celebration) {
             Text(
                 session.title,

@@ -15,6 +15,12 @@ class ActivityDetailCopyTest {
     }
 
     @Test
+    fun savedKickerCopyIsDistinctFromComplete() {
+        assertEquals("Saved", ActivityDetailCopy.SAVED)
+        assertNotEquals(ActivityDetailCopy.SAVED, ActivityDetailCopy.kicker(true, strengthSession()))
+    }
+
+    @Test
     fun celebrationKickerNamesTheModality() {
         val run = cardioSession()
         val lift = strengthSession()

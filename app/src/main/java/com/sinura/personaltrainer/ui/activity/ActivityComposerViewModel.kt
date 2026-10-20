@@ -100,6 +100,9 @@ data class ActivityComposerUiState(
     val canShiftLater: Boolean
         get() = ComposerCopy.canShiftLater(epochDay, todayEpochDay)
 
+    val canSave: Boolean
+        get() = ComposerCopy.canSave(mode.name, strength.size, cardio.size)
+
     val isDirty: Boolean
         get() = ComposerCopy.isDirty(
             title = title,
@@ -110,7 +113,7 @@ data class ActivityComposerUiState(
         )
 }
 
-internal data class StrengthAdderFields(val pickedId: String = "", val weight: String = "0", val reps: String = "8", val unit: WeightUnit? = null)
+internal data class StrengthAdderFields(val pickedId: String = "", val weight: String = "", val reps: String = "8", val unit: WeightUnit? = null)
 
 class ActivityComposerViewModel internal constructor(
     application: Application,
@@ -439,6 +442,7 @@ class ActivityComposerViewModel internal constructor(
         val started = error.mark()
         if (saving.value || pickerWrites.busy || _createdExercise.value != null) return
         if (formRecovery?.status?.value?.ready == false || pickerRecovery?.create?.status?.value?.busy == true) return
+        if (!ComposerCopy.canSave(mode.value.name, strength.value.size, cardio.value.size)) return
         saving.value = true
         viewModelScope.launch {
             if (formRecovery?.beginSubmission() == false) { saving.value = false; return@launch }
