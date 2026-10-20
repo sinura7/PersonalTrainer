@@ -22,7 +22,8 @@ object RestTimerAppForeground {
     private var startedActivities = 0
     private val listeners = mutableSetOf<() -> Unit>()
     private var processLifecycleObserver: DefaultLifecycleObserver? = null
-    private var activityLifecycleCallbacksRegistered = false
+    private var activityLifecycleCallbacks: Application.ActivityLifecycleCallbacks? = null
+    private var callbacksApplication: Application? = null
 
     /** Robolectric tests; production uses [install]. */
     internal fun setForegroundForTest(foreground: Boolean) {
@@ -52,27 +53,28 @@ object RestTimerAppForeground {
             runCatching { ProcessLifecycleOwner.get().lifecycle.removeObserver(observer) }
         }
         processLifecycleObserver = null
+        val callbacks = activityLifecycleCallbacks
+        val callbacksApp = callbacksApplication
+        if (callbacks != null && callbacksApp != null) {
+            runCatching { callbacksApp.unregisterActivityLifecycleCallbacks(callbacks) }
+        }
+        activityLifecycleCallbacks = null
+        callbacksApplication = null
         application = null
     }
 
     internal fun isCleanForTest(): Boolean =
         !isInForeground && startedActivities == 0 && listeners.isEmpty()
 
-    internal fun isInstalledForTest(): Boolean = application != null && processLifecycleObserver != null
-
-    /** Robolectric: drives [setForeground] and exterior sync ping like production lifecycle. */
-    internal fun enterForegroundForTest() {
-        setForeground(true)
-    }
-
-    internal fun leaveForegroundForTest() {
-        setForeground(false)
-    }
+    internal fun isInstalledForTest(): Boolean =
+        activityLifecycleCallbacks != null &&
+            callbacksApplication != null &&
+            processLifecycleObserver != null
 
     fun install(app: Application) {
         application = app
-        if (!activityLifecycleCallbacksRegistered) {
-            app.registerActivityLifecycleCallbacks(
+        if (activityLifecycleCallbacks == null) {
+            val callbacks =
                 object : Application.ActivityLifecycleCallbacks {
                     override fun onActivityStarted(activity: Activity) {
                         startedActivities++
@@ -89,9 +91,10 @@ object RestTimerAppForeground {
                     override fun onActivityPaused(activity: Activity) = Unit
                     override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
                     override fun onActivityDestroyed(activity: Activity) = Unit
-                },
-            )
-            activityLifecycleCallbacksRegistered = true
+                }
+            activityLifecycleCallbacks = callbacks
+            callbacksApplication = app
+            app.registerActivityLifecycleCallbacks(callbacks)
         }
         if (processLifecycleObserver == null) {
             processLifecycleObserver =

@@ -10,7 +10,6 @@ import org.junit.Rule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -21,11 +20,6 @@ import org.robolectric.annotation.Config
 class RestTimerCompletionCooldownTest {
     @get:Rule val restTimerGlobals = RestTimerGlobalsRule(ownsLedger = true)
     private val context = ApplicationProvider.getApplicationContext<com.sinura.personaltrainer.PersonalTrainerApp>()
-
-    @Before
-    fun resetLedger() {
-        RestTimerCompletion.reset()
-    }
 
     @Test
     fun cooldownCompletionPostsCooldownDoneWithoutFullScreenIntent() = runBlocking {
@@ -49,7 +43,8 @@ class RestTimerCompletionCooldownTest {
                 nowElapsedRealtime = snap.endsAtElapsedRealtime + 1L,
             ),
         )
-        assertFalse(RestTimerCompletion.ledger.isCleanForTest())
+        assertEquals(1, RestTimerCompletion.ledger.claimedCountForTest())
+        assertTrue(RestTimerCompletion.ledger.hasClaimForTest(snap.timerId))
         val posted = context.getSystemService(NotificationManager::class.java)
             .activeNotifications
             .first { it.id == RestTimerNotifications.DONE_ID }
@@ -61,7 +56,6 @@ class RestTimerCompletionCooldownTest {
             posted.extras.getString(android.app.Notification.EXTRA_TITLE),
         )
         assertTrue(controller.lastCompletedWasCooldown.value)
-        RestTimerCompletion.reset()
     }
 
     @Test
@@ -86,7 +80,8 @@ class RestTimerCompletionCooldownTest {
                 playCue = false,
             ),
         )
-        assertFalse(RestTimerCompletion.ledger.isCleanForTest())
+        assertEquals(1, RestTimerCompletion.ledger.claimedCountForTest())
+        assertTrue(RestTimerCompletion.ledger.hasClaimForTest(snap.timerId))
         RestTimerNotifications.ensureChannels(context)
         val channel = context.getSystemService(NotificationManager::class.java)
             .getNotificationChannel(RestTimerNotifications.CHANNEL_DONE)
@@ -97,6 +92,5 @@ class RestTimerCompletionCooldownTest {
             .notification
         assertEquals("Rest done", posted.extras.getString(android.app.Notification.EXTRA_TITLE))
         assertFalse(app.container.restTimerController.lastCompletedWasCooldown.value)
-        RestTimerCompletion.reset()
     }
 }

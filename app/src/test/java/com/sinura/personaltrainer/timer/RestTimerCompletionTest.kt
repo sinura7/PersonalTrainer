@@ -7,7 +7,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,7 +21,6 @@ class RestTimerCompletionTest {
 
     @Test
     fun aFiveMinuteLateClaimPostsRestDoneWithoutPlayingTheCue() {
-        RestTimerCompletion.reset()
         val context = ApplicationProvider.getApplicationContext<Context>()
         val claimed = runBlocking {
             RestTimerCompletion.completeOnce(
@@ -36,12 +34,12 @@ class RestTimerCompletionTest {
             )
         }
         assertTrue(claimed)
-        assertFalse(RestTimerCompletion.ledger.isCleanForTest())
+        assertEquals(1, RestTimerCompletion.ledger.claimedCountForTest())
+        assertTrue(RestTimerCompletion.ledger.hasClaimForTest("timer-1"))
         val posted = context.getSystemService(NotificationManager::class.java)
             .activeNotifications
             .first { it.id == RestTimerNotifications.DONE_ID }
             .notification
         assertEquals("Rest done", posted.extras.getString(android.app.Notification.EXTRA_TITLE))
-        RestTimerCompletion.reset()
     }
 }

@@ -18,6 +18,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.activity.ComponentActivity
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
@@ -58,9 +59,14 @@ class RestTimerExteriorSyncLoopTest {
         while (shadowOf(app).nextStartedService != null) {
             // drain
         }
-        RestTimerAppForeground.leaveForegroundForTest()
-        RestTimerAppForeground.enterForegroundForTest()
+        val activityController = Robolectric.buildActivity(ComponentActivity::class.java).create().start()
+        shadowOf(app.mainLooper).idle()
+        activityController.stop().destroy()
+        shadowOf(app.mainLooper).idle()
+        val foregroundActivity = Robolectric.buildActivity(ComponentActivity::class.java).create().start()
+        shadowOf(app.mainLooper).idle()
         val started = shadowOf(app).nextStartedService
+        foregroundActivity.stop().destroy()
         assertNotNull(started)
         assertEquals(RestTimerService.ACTION_EXTERIOR_SYNC, started!!.action)
     }

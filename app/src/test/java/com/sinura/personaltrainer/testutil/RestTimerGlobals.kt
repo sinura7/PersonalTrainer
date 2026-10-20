@@ -44,7 +44,9 @@ object RestTimerGlobals {
         step("ledger") { RestTimerCompletion.ledger.clearForTest() }
         step("foreground") { RestTimerAppForeground.resetForTest() }
         runCatching {
-            RestTimerAppForeground.install(ApplicationProvider.getApplicationContext())
+            ApplicationProvider.getApplicationContext<Application>()
+        }.onSuccess { app ->
+            step("foregroundInstall") { RestTimerAppForeground.install(app) }
         }
         if (canResetOverlay()) {
             step("overlay") { RestTimerOverlayController.resetForTest() }

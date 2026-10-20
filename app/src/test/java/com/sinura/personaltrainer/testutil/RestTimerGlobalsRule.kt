@@ -16,30 +16,38 @@ class RestTimerGlobalsRule(
             override fun evaluate() {
                 RestTimerGlobals.resetAll()
                 RestTimerGlobals.assertClean(RestTimerGlobals.Phase.START, skipLedger = ownsLedger)
-                var bodyError: Throwable? = null
+                var pending: Throwable? = null
                 try {
                     try {
                         base.evaluate()
                     } catch (t: Throwable) {
-                        bodyError = t
+                        pending = t
                     }
                 } finally {
                     try {
                         try {
                             RestTimerGlobals.assertClean(RestTimerGlobals.Phase.END, skipLedger = ownsLedger)
                         } catch (leak: AssertionError) {
-                            if (bodyError != null) {
-                                bodyError!!.addSuppressed(leak)
+                            if (pending != null) {
+                                pending!!.addSuppressed(leak)
                             } else {
-                                throw leak
+                                pending = leak
                             }
                         }
                     } finally {
-                        RestTimerGlobals.resetAll()
+                        try {
+                            RestTimerGlobals.resetAll()
+                        } catch (resetError: Throwable) {
+                            if (pending != null) {
+                                pending!!.addSuppressed(resetError)
+                            } else {
+                                pending = resetError
+                            }
+                        }
                     }
                 }
-                if (bodyError != null) {
-                    throw bodyError
+                if (pending != null) {
+                    throw pending
                 }
             }
         }
