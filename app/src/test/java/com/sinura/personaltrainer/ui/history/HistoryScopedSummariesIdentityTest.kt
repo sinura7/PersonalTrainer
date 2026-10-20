@@ -55,6 +55,55 @@ class HistoryScopedSummariesIdentityTest {
     }
 
     @Test
+    fun idChangeGivesADifferentIdentity() {
+        val before = listOf(summary(id = "s1"))
+        val after = listOf(summary(id = "s2"))
+        assertNotEquals(scopedSummariesIdentity(before), scopedSummariesIdentity(after))
+    }
+
+    @Test
+    fun finishedAtChangeGivesADifferentIdentity() {
+        val before = listOf(summary(finishedAt = 2L))
+        val after = listOf(summary(finishedAt = 3L))
+        assertNotEquals(scopedSummariesIdentity(before), scopedSummariesIdentity(after))
+    }
+
+    @Test
+    fun workingSetsChangeGivesADifferentIdentity() {
+        val before = listOf(summary(workingSets = 3))
+        val after = listOf(summary(workingSets = 4))
+        assertNotEquals(scopedSummariesIdentity(before), scopedSummariesIdentity(after))
+    }
+
+    @Test
+    fun localEpochDayChangeGivesADifferentIdentity() {
+        val before = listOf(summary(localEpochDay = 10L))
+        val after = listOf(summary(localEpochDay = 11L))
+        assertNotEquals(scopedSummariesIdentity(before), scopedSummariesIdentity(after))
+    }
+
+    @Test
+    fun kindChangeGivesADifferentIdentity() {
+        val before = listOf(summary(kind = HistoryKind.WORKOUT))
+        val after = listOf(summary(kind = HistoryKind.ACTIVITY))
+        assertNotEquals(scopedSummariesIdentity(before), scopedSummariesIdentity(after))
+    }
+
+    @Test
+    fun cardioSecondsChangeGivesADifferentIdentity() {
+        val before = listOf(summary(cardioSeconds = 0L))
+        val after = listOf(summary(cardioSeconds = 600L))
+        assertNotEquals(scopedSummariesIdentity(before), scopedSummariesIdentity(after))
+    }
+
+    @Test
+    fun cardioDistanceMetersChangeGivesADifferentIdentity() {
+        val before = listOf(summary(cardioDistanceMeters = 1000.0))
+        val after = listOf(summary(cardioDistanceMeters = 2000.0))
+        assertNotEquals(scopedSummariesIdentity(before), scopedSummariesIdentity(after))
+    }
+
+    @Test
     fun volumeKgChangeGivesADifferentIdentity() {
         val before = listOf(summary(volumeKg = 100.0))
         val after = listOf(summary(volumeKg = 950.0))
@@ -100,14 +149,4 @@ class HistoryScopedSummariesIdentityTest {
         assertNotEquals(scopedSummariesIdentity(before), scopedSummariesIdentity(after))
     }
 
-    @Test
-    fun perSetDetailNotInSummaryIsADocumentedGap() {
-        val a = listOf(summary(volumeKg = 100.0, workingSets = 3))
-        val b = listOf(summary(volumeKg = 100.0, workingSets = 3))
-        assertEquals(
-            "RPE-only or per-set weight edits that leave summary totals unchanged are not fingerprinted",
-            scopedSummariesIdentity(a),
-            scopedSummariesIdentity(b),
-        )
-    }
 }

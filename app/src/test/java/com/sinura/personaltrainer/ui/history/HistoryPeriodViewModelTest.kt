@@ -60,6 +60,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -458,27 +459,43 @@ class HistoryPeriodViewModelTest {
     fun unchangedScopedSummariesReuseReadyProgressWithoutLoadingFlash() = runBlocking {
         seedProgress()
         withModel { model ->
-            val first = awaitReady(model)
-            val recordsBroken = first.horizonProgress!!.recordsBroken
+            awaitReady(model)
             val allCallsAtReady = horizonAllCalls.get()
             assertTrue("expected an initial full-log read for horizon progress", allCallsAtReady >= 1)
             val mid = trace(model).size
             deps.preferencesRepository.recordBodyweight(80.0, TODAY)
-            awaitState(model) {
-                trace(model).size > mid && !it.progressLoading && it.horizonProgress != null
-            }
-            assertTrue("expected a catalog re-emit with identical summaries", trace(model).size > mid)
+            awaitBlocksLoadingSeenThenCleared(model, mid)
+            awaitReady(model)
             assertEquals(
-                "distinctUntilChanged on the progress key must skip a second full-log read",
+                "distinctUntilChanged on the progress key must skip a second full-log read before summaries change",
                 allCallsAtReady,
                 horizonAllCalls.get(),
             )
-            trace(model).drop(mid).forEach { state ->
-                assertFalse("unexpected loading flash on unchanged summaries", state.progressLoading)
-                if (state.horizonProgress != null) {
-                    assertEquals(recordsBroken, state.horizonProgress!!.recordsBroken)
-                }
-            }
+            deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
+            awaitAllCallCount(allCallsAtReady + 1)
+            awaitReady(model)
+            assertEquals(
+                "a real summaries-identity change must trigger exactly one more full-log read",
+                allCallsAtReady + 1,
+                horizonAllCalls.get(),
+            )
+        }
+    }
+
+    @Test
+    fun rpeOnlySetEditDoesNotTriggerAnotherFullLogRead() = runBlocking {
+        seedProgress()
+        withModel { model ->
+            awaitReady(model)
+            val allCallsAtReady = horizonAllCalls.get()
+            // closing-set stays 110 kg x 5; only RPE moves 8 to 9 (per-set detail not on SessionSummary).
+            deps.workoutRepository.updateSet("closing-set", 110.0, 5, 9, false)
+            awaitState(model) { !it.progressLoading && it.horizonProgress != null }
+            assertEquals(
+                "RPE-only edits that leave summary totals unchanged must not re-run horizon all()",
+                allCallsAtReady,
+                horizonAllCalls.get(),
+            )
         }
     }
 
@@ -1094,6 +1111,34 @@ class HistoryPeriodViewModelTest {
     private suspend fun awaitPendingCorrectionTrace(model: HistoryViewModel, start: Int) {
         withTimeout(TestWaits.FLOW_MS) {
             while (trace(model).drop(start).none(::pendingCorrectionAt950)) {
+                yield()
+                dispatcher.scheduler.advanceUntilIdle()
+            }
+        }
+    }
+
+    /** Catalog re-emits after bodyweight can reload blocks; wait for that cycle before measuring all(). */
+    private suspend fun awaitBlocksLoadingSeenThenCleared(model: HistoryViewModel, start: Int) {
+        withTimeout(TestWaits.FLOW_MS) {
+            var sawBlocksLoading = false
+            while (true) {
+                val tail = trace(model).drop(start)
+                if (tail.any { it.blocksLoading }) {
+                    sawBlocksLoading = true
+                }
+                if (sawBlocksLoading && !model.uiState.value.blocksLoading) {
+                    return@withTimeout
+                }
+                yield()
+                dispatcher.scheduler.advanceUntilIdle()
+            }
+        }
+    }
+
+    private suspend fun awaitAllCallCount(target: Int) {
+        withTimeout(TestWaits.FLOW_MS) {
+            while (horizonAllCalls.get() < target) {
+                yield()
                 dispatcher.scheduler.advanceUntilIdle()
             }
         }

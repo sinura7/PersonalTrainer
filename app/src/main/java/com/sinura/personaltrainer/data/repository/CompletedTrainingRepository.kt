@@ -24,7 +24,7 @@ class CompletedTrainingRepository(
     /** Unit tests only; null in production. Counts [all] calls for History progress coverage. */
     internal var horizonProgressAllCallsForTest: AtomicInteger? = null
 
-    open suspend fun all(): List<CompletedTraining> {
+    suspend fun all(): List<CompletedTraining> {
         horizonProgressAllCallsForTest?.incrementAndGet()
         val zone = time.defaultZoneId()
         val fromWorkouts = workouts.sessionsBetween(minDateMs = 0L, maxDateMs = Long.MAX_VALUE)
