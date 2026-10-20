@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Assert.assertTrue
@@ -18,6 +19,12 @@ import org.robolectric.annotation.Config
 @Config(application = Application::class)
 class RestTimerCompletionTest {
     @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
+
+    @After
+    fun tearDownLedger() {
+        RestTimerCompletion.reset()
+    }
+
     @Test
     fun aFiveMinuteLateClaimPostsRestDoneWithoutPlayingTheCue() {
         RestTimerCompletion.reset()
