@@ -5,42 +5,42 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 
-/** Hold the next Main dispatch for [armedRoot] or any coroutine job descended from it. */
+/**
+ * After [arm], holds every Main dispatch for [armedRoot] and its descendant jobs until [release].
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class MutationJobResumeGate(private val delegate: CoroutineDispatcher) : CoroutineDispatcher() {
     private data class Pending(val context: CoroutineContext, val block: Runnable)
     private val lock = Any()
     private var armedRoot: Job? = null
-    private var held: Pending? = null
+    private val held = ArrayDeque<Pending>()
 
-    val isHeld: Boolean get() = synchronized(lock) { held != null }
+    val isHeld: Boolean get() = synchronized(lock) { held.isNotEmpty() }
 
     fun arm(root: Job) = synchronized(lock) {
-        check(armedRoot == null && held == null)
+        check(armedRoot == null && held.isEmpty())
         armedRoot = root
     }
 
     override fun isDispatchNeeded(context: CoroutineContext): Boolean = delegate.isDispatchNeeded(context)
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
-        val hold = synchronized(lock) {
-            val root = armedRoot ?: return@synchronized false
-            val job = context[Job] ?: return@synchronized false
-            if (!job.isDescendantOf(root)) return@synchronized false
-            check(held == null)
-            held = Pending(context, block)
-            armedRoot = null
-            true
+        val queue = synchronized(lock) {
+            val root = armedRoot ?: return@synchronized null
+            val job = context[Job] ?: return@synchronized null
+            if (!job.isDescendantOf(root)) return@synchronized null
+            held.addLast(Pending(context, block))
+            held
         }
-        if (!hold) delegate.dispatch(context, block)
+        if (queue == null) delegate.dispatch(context, block)
     }
 
     fun release() {
-        val pending = synchronized(lock) {
+        val toRun = synchronized(lock) {
             armedRoot = null
-            held.also { held = null }
+            held.toList().also { held.clear() }
         }
-        if (pending != null) delegate.dispatch(pending.context, pending.block)
+        toRun.forEach { pending -> delegate.dispatch(pending.context, pending.block) }
     }
 
     private fun Job.isDescendantOf(ancestor: Job): Boolean {

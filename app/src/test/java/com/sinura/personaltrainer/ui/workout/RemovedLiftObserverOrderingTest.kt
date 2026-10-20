@@ -250,6 +250,10 @@ class RemovedLiftObserverOrderingTest {
                 pumpUntil("run $run: removal cleanup completes", { vm.uiState.value }) {
                     newChildren.single().isCompleted && !vm.uiState.value.mutating
                 }
+                runBlocking {
+                    vm.clearAndJoinForTest()
+                }
+                viewModels.remove(vm)
             }
         }
     }
