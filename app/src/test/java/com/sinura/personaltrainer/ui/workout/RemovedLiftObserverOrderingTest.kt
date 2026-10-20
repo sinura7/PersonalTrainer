@@ -58,7 +58,7 @@ import org.robolectric.annotation.Config
 class RemovedLiftObserverOrderingTest {
     private val scheduler = TestCoroutineScheduler()
     private val mainQueue = StandardTestDispatcher(scheduler, "queued Main")
-    private val mainGate = OneJobResumeGate(mainQueue)
+    private val mainGate = MutationJobResumeGate(mainQueue)
     private val ancillary = UnconfinedTestDispatcher(scheduler, "preferences/IO")
     private val observedRows = CopyOnWriteArrayList<SessionWithDetails?>()
     private val viewModels = mutableListOf<ActiveWorkoutViewModel>()
@@ -130,7 +130,7 @@ class RemovedLiftObserverOrderingTest {
             ) {
                 if (removalJob.isCompleted && !mainGate.isHeld) {
                     throw AssertionError(
-                        "removal finished without a held Main dispatch (OneJobResumeGate never captured the Room return)",
+                        "removal finished without a held Main dispatch (MutationJobResumeGate never captured the Room return)",
                     )
                 }
                 mainGate.isHeld
@@ -207,7 +207,6 @@ class RemovedLiftObserverOrderingTest {
         do {
             scheduler.runCurrent()
             if (predicate()) return
-            Thread.sleep(1)
         } while (System.nanoTime() < deadline)
         throw AssertionError("$what did not arrive within ${TestWaits.FLOW_MS} ms; last=${last()}")
     }
@@ -217,41 +216,41 @@ class RemovedLiftObserverOrderingTest {
             real.observeSession(id).onEach { observedRows.add(it) }
     }
 
-    /** Hold exactly one queued continuation of the captured mutation, without blocking Room. */
-    private class OneJobResumeGate(private val delegate: CoroutineDispatcher) : CoroutineDispatcher() {
-        private data class Pending(val context: CoroutineContext, val block: Runnable)
-        private val lock = Any()
-        private var armedJob: Job? = null
-        private var held: Pending? = null
-
-        val isHeld: Boolean get() = synchronized(lock) { held != null }
-
-        fun arm(job: Job) = synchronized(lock) {
-            check(armedJob == null && held == null)
-            armedJob = job
-        }
-
-        override fun isDispatchNeeded(context: CoroutineContext): Boolean = delegate.isDispatchNeeded(context)
-
-        override fun dispatch(context: CoroutineContext, block: Runnable) {
-            val hold = synchronized(lock) {
-                val target = armedJob
-                if (target != null && context[Job] === target) {
-                    check(held == null)
-                    held = Pending(context, block)
-                    armedJob = null
-                    true
-                } else false
+    @Test
+    fun removalMainGateCapturesTheMutationAcross100Runs() {
+        repeat(100) { run ->
+            val sessionId = runBlocking {
+                seedLegExtension(deps, loggedSets = emptyList(), withNextLift = true)
             }
-            if (!hold) delegate.dispatch(context, block)
-        }
-
-        fun release() {
-            val pending = synchronized(lock) {
-                armedJob = null
-                held.also { held = null }
+            val vm = floorViewModel(deps, sessionId).also(viewModels::add)
+            readyOn(vm, FLOOR_LIFT_ID, FLOOR_KG70, 10)
+            vm.selectExercise(FLOOR_NEXT_LIFT_ID)
+            readyOn(vm, FLOOR_NEXT_LIFT_ID, 40.0, 8)
+            val scopeJob = checkNotNull(vm.viewModelScope.coroutineContext[Job])
+            val priorChildren = scopeJob.children.toSet()
+            vm.removeSelectedLift()
+            val newChildren = scopeJob.children.filterNot { it in priorChildren }.toList()
+            assertEquals("run $run: exactly one removal coroutine was launched", 1, newChildren.size)
+            mainGate.arm(newChildren.single())
+            try {
+                pumpUntil(
+                    "run $run: Room's removal return is held on Main",
+                    { "held=${mainGate.isHeld} removalComplete=${newChildren.single().isCompleted}" },
+                ) {
+                    val removalJob = newChildren.single()
+                    if (removalJob.isCompleted && !mainGate.isHeld) {
+                        throw AssertionError(
+                            "run $run: removal finished without a held Main dispatch (MutationJobResumeGate never captured the Room return)",
+                        )
+                    }
+                    mainGate.isHeld
+                }
+            } finally {
+                mainGate.release()
+                pumpUntil("run $run: removal cleanup completes", { vm.uiState.value }) {
+                    newChildren.single().isCompleted && !vm.uiState.value.mutating
+                }
             }
-            if (pending != null) delegate.dispatch(pending.context, pending.block)
         }
     }
 
