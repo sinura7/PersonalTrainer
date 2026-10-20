@@ -49,10 +49,14 @@ import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -67,6 +71,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
 
 /** Shipping content/controller/files in a native JVM host; separate from AppNav and phone evidence. */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(application = Application::class)
@@ -76,8 +81,9 @@ class OwnedPickerRenderTest {
     private lateinit var deps: FakeAppDependencies
     private lateinit var contexts: PickerContextDrafts
     private lateinit var custom: CustomExerciseDrafts
+    private val mainDispatcher = UnconfinedTestDispatcher()
     private val job = SupervisorJob()
-    private val scope = CoroutineScope(job + Dispatchers.Unconfined)
+    private lateinit var scope: CoroutineScope
     private val owner = DraftOwner(DraftForm.ROUTINE, "synthetic-owned-picker")
     private val runId = UUID.randomUUID().toString()
     private val rows = (1..30).map { number -> Exercise(id = "synthetic-press-$number",
@@ -98,13 +104,19 @@ class OwnedPickerRenderTest {
         }
     }
     @Before fun setup() {
+        Dispatchers.setMain(mainDispatcher)
+        scope = CoroutineScope(job + Dispatchers.Main)
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         val store = DurableDraftStore(directory = temporary.newFolder(), files = io)
         contexts = PickerContextDrafts(store)
         custom = CustomExerciseDrafts(store = store, repository = deps.exerciseRepository,
             maintenance = deps.dbMaintenance, restoreOpen = { false })
     }
-    @After fun close() { runBlocking { withTimeout(5_000) { job.cancelAndJoin() } }; deps.close() }
+    @After fun close() {
+        runBlocking { withTimeout(5_000) { job.cancelAndJoin() } }
+        deps.close()
+        Dispatchers.resetMain()
+    }
     private fun owns(requested: DraftOwner): Boolean = requested == owner
     private fun fresh() = OwnedPickerRecovery(scope = scope, contextDrafts = contexts, customDrafts = custom,
         repository = deps.exerciseRepository, savedState = SavedStateHandle(), owner = { owner },
@@ -200,6 +212,7 @@ class OwnedPickerRenderTest {
         current.value = fresh()
         mount()
         ready()
+        search().assertIsDisplayed()
         search().performTextReplacement("press")
         compose.settle()
         search().performTextReplacement("press ")

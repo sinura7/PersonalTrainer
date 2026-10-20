@@ -446,9 +446,7 @@ class HistoryViewModel internal constructor(
         }
         // A new request can arrive before flatMapLatest publishes Loading. Never attach
         // the previous period/unit/revision/retry result during that interval.
-        val matching = progress.takeIf { read ->
-            read.key != null && request.key != null && read.key == request.key
-        }
+        val matching = progress.takeIf { it.key == request.key }
         val range = checkNotNull(request.range)
         val failed = matching?.status == ProgressStatus.FAILED
         HistoryUiState(

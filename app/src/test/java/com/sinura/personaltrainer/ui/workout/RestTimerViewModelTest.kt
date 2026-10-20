@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.ui.theme.Motion
@@ -32,7 +33,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -46,6 +47,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -55,6 +57,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestTimerViewModelTest {
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<RestTimerViewModel>()
@@ -308,13 +311,13 @@ class RestTimerViewModelTest {
         deps.preferencesRepository.setLastRestPresetSeconds(105)
         val floor = createViewModel(fixture.session.id)
 
-        val seeded = withTimeoutOrNull(TestWaits.FLOW_MS) {
-            floor.uiState.first { it.loadState == SessionLoadState.FOUND && it.rest.totalSeconds == 150 }
+        val seeded = floor.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.rest.totalSeconds == 150
         }
         assertEquals(
             "the page seeds the coach's length, not the preset it found saved",
             150,
-            (seeded ?: floor.uiState.value).rest.totalSeconds,
+            seeded.rest.totalSeconds,
         )
     }
 
@@ -831,7 +834,7 @@ class RestTimerViewModelTest {
                     // ActiveWorkoutViewModelTest does; the store stays the success condition.
                     dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
                     dispatcher.scheduler.runCurrent()
-                    if (!deps.restTimerStore.current().running) delay(10)
+                    if (!deps.restTimerStore.current().running) yield()
                 }
             }
         } catch (timedOut: TimeoutCancellationException) {
