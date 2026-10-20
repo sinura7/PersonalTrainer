@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilYearMonth
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.HistoryPeriodRange
 import com.sinura.personaltrainer.domain.HistoryPeriodSelection
@@ -44,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -78,6 +80,7 @@ class HistoryPeriodViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val reads = PeriodFullLogReads()
     private val secondary = PeriodSecondaryReads()
+    private val horizonAllCalls = AtomicInteger()
     private lateinit var deps: FakeAppDependencies
     private val models = mutableListOf<HistoryViewModel>()
     private val emissions = mutableMapOf<HistoryViewModel, CopyOnWriteArrayList<HistoryUiState>>()
@@ -85,6 +88,7 @@ class HistoryPeriodViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
+        horizonAllCalls.set(0)
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
@@ -93,6 +97,7 @@ class HistoryPeriodViewModelTest {
             workoutDaoDecorator = { PeriodSummaryFaultDao(it, secondary) },
             trainingBlockDaoDecorator = { FailingPastBlocksDao(it, secondary.blocks) },
         )
+        deps.completedTrainingRepository.horizonProgressAllCallsForTest = horizonAllCalls
         runBlocking { insertTestExercise(deps, id = EXERCISE, name = "Bench", muscleGroup = "Chest") }
     }
 
@@ -103,6 +108,7 @@ class HistoryPeriodViewModelTest {
         runBlocking { models.forEach { it.clearAndJoinForTest() } }
         models.clear()
         dispatcher.scheduler.advanceUntilIdle()
+        deps.completedTrainingRepository.horizonProgressAllCallsForTest = null
         deps.close()
         Dispatchers.resetMain()
     }
@@ -437,16 +443,12 @@ class HistoryPeriodViewModelTest {
         seedProgress()
         withModel { model ->
             awaitReady(model)
-            val correction = trace(model).size
             val held = reads.holdNext(late = true)
+            val correction = trace(model).size
             deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
             held.awaitEntered()
-            awaitState(model) {
-                it.horizonTotals?.volumeKg == 950.0 &&
-                    it.progressLoading &&
-                    it.horizonProgress == null
-            }
-            assertPendingEmissions(model, correction) { it.horizonTotals?.volumeKg == 950.0 }
+            awaitPendingCorrectionTrace(model, correction)
+            assertPendingEmissions(model, correction, ::pendingCorrectionAt950)
             held.release.complete(Unit)
             assertEquals(950.0, awaitReady(model).horizonTotals!!.volumeKg, 0.0)
         }
@@ -458,13 +460,19 @@ class HistoryPeriodViewModelTest {
         withModel { model ->
             val first = awaitReady(model)
             val recordsBroken = first.horizonProgress!!.recordsBroken
+            val allCallsAtReady = horizonAllCalls.get()
+            assertTrue("expected an initial full-log read for horizon progress", allCallsAtReady >= 1)
             val mid = trace(model).size
             deps.preferencesRepository.recordBodyweight(80.0, TODAY)
-            val after = awaitState(model) {
+            awaitState(model) {
                 trace(model).size > mid && !it.progressLoading && it.horizonProgress != null
             }
             assertTrue("expected a catalog re-emit with identical summaries", trace(model).size > mid)
-            assertEquals(recordsBroken, after.horizonProgress!!.recordsBroken)
+            assertEquals(
+                "distinctUntilChanged on the progress key must skip a second full-log read",
+                allCallsAtReady,
+                horizonAllCalls.get(),
+            )
             trace(model).drop(mid).forEach { state ->
                 assertFalse("unexpected loading flash on unchanged summaries", state.progressLoading)
                 if (state.horizonProgress != null) {
@@ -1076,6 +1084,20 @@ class HistoryPeriodViewModelTest {
 
     private suspend fun awaitState(model: HistoryViewModel, ready: (HistoryUiState) -> Boolean): HistoryUiState =
         withTimeout(TestWaits.FLOW_MS) { model.uiState.first(ready) }
+
+    private fun pendingCorrectionAt950(state: HistoryUiState): Boolean =
+        state.horizonTotals?.volumeKg == 950.0 &&
+            state.progressLoading &&
+            state.horizonProgress == null
+
+    /** Waits until the trace records a pending correction, not only the live StateFlow snapshot. */
+    private suspend fun awaitPendingCorrectionTrace(model: HistoryViewModel, start: Int) {
+        withTimeout(TestWaits.FLOW_MS) {
+            while (trace(model).drop(start).none(::pendingCorrectionAt950)) {
+                dispatcher.scheduler.advanceUntilIdle()
+            }
+        }
+    }
 
     private suspend fun seedProgress() {
         insertWorkout("opening", day(2024, 11, 1), 100.0)
