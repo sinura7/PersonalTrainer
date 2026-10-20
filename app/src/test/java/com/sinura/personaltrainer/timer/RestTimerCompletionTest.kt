@@ -6,8 +6,8 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
-import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,12 +18,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestTimerCompletionTest {
-    @get:Rule val restTimerGlobals = RestTimerGlobalsRule()
-
-    @After
-    fun tearDownLedger() {
-        RestTimerCompletion.reset()
-    }
+    @get:Rule val restTimerGlobals = RestTimerGlobalsRule(ownsLedger = true)
 
     @Test
     fun aFiveMinuteLateClaimPostsRestDoneWithoutPlayingTheCue() {
@@ -41,10 +36,12 @@ class RestTimerCompletionTest {
             )
         }
         assertTrue(claimed)
+        assertFalse(RestTimerCompletion.ledger.isCleanForTest())
         val posted = context.getSystemService(NotificationManager::class.java)
             .activeNotifications
             .first { it.id == RestTimerNotifications.DONE_ID }
             .notification
         assertEquals("Rest done", posted.extras.getString(android.app.Notification.EXTRA_TITLE))
+        RestTimerCompletion.reset()
     }
 }

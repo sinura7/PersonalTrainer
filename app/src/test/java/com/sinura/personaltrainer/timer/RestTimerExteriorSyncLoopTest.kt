@@ -1,7 +1,12 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.testutil.RestTimerGlobals
 import com.sinura.personaltrainer.testutil.RestTimerGlobalsRule
 import android.content.Intent
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.PersonalTrainerApp
@@ -43,6 +48,21 @@ class RestTimerExteriorSyncLoopTest {
         RestTimerOverlayController.release()
         app.container.restTimerController.stop(fromService = true)
         shadowOf(app.mainLooper).idle()
+    }
+
+    @Test
+    fun globalsResetReinstallsForegroundTrackingAndExteriorPing() {
+        RestTimerGlobals.resetAll()
+        assertSame(app, RestTimerAppForeground.applicationForTest())
+        assertTrue(RestTimerAppForeground.isInstalledForTest())
+        while (shadowOf(app).nextStartedService != null) {
+            // drain
+        }
+        RestTimerAppForeground.leaveForegroundForTest()
+        RestTimerAppForeground.enterForegroundForTest()
+        val started = shadowOf(app).nextStartedService
+        assertNotNull(started)
+        assertEquals(RestTimerService.ACTION_EXTERIOR_SYNC, started!!.action)
     }
 
     @Test
