@@ -15,7 +15,7 @@ required_args_mixed = 180
 required_args_lambda = 46
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
-when_exhaustive = 48
+when_exhaustive = 46
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
 # (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site
@@ -68,5 +68,5 @@ defaults_elevation = 1
 stock_component = 1
 # 12 -> 10 in RT-1: the rest notification's two fixed text colours went; the layouts take the
 # system's notification text styles.
-xml_hex = 20
-xml_monospace = 4
+xml_hex = 18
+xml_monospace = 2
