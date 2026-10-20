@@ -6083,6 +6083,14 @@
         "independent": "submitted for re-review",
         "adversarial": "PENDING formal review on PR #551 (draft). Forge Critic round 6 REQUEST CHANGES at 55f6d21c addressed in product 70a3c4dd.",
         "cleanContext": "Branch cursor/th2-history-progress-key-b25e rebased onto trunk 29eba84b. PR https://github.com/sinura7/PersonalTrainer/pull/551. Product code head 70a3c4dd. Gate-evidence commit f516e6ab (ledger-only over product 70a3c4dd; jobs did not run on product 70a3c4dd): fresh hosted pull_request run 39456140002 job 118743764894 and push run 39456132287 job 118744172788 Tests lint debug build success testDebugUnitTest 4893 tests 0 failures. Ledger tip c1ce6594 (gate-evidence recorded on f516e6ab via d985c7aa). Critic r6: catalog three-way combine restored; summary-edit tests allow 1–2 reads with stale-READY guards; same-volume swap asserts 125×4 e1RM on mover readout. TH3 forgetRemovedLiftStopwatchIfOfferFullyEnded out of scope. required_args_mixed 180/180 with no headroom."
+      },
+      "8dc179ca": {
+        "when": "2026-10-20",
+        "packet": "TH3: floor removal and undo races (lane A, PR #554)",
+        "gate": "Parent trunk 82a93513 (#551). Product head 8dc179ca. Hosted push run 39496959098 job 118884381739 and pull_request run 39499086420 job 118891665733 Tests lint debug build success on 8dc179ca. MutationJobResumeGate and WorkoutRepository.afterRemoveExerciseCommitForTest are test-only; production only restoreSaveDraft guard and retireRemovedEntry clock rule. Checker baselines required_args_mixed 180, lambda_arity_declined 47, real_time_sleeps 27 (ratchet from 28), real_time_delays 6; test_real_time_waits 33 fixture cases.",
+        "independent": "PENDING formal review on PR #554 (draft).",
+        "adversarial": "PENDING formal review on PR #554 (draft).",
+        "cleanContext": "Branch cursor/th3-floor-undo-races-ae41. Post-commit hold for observer ordering AC. Did not edit FloorWorkClocksCharacterisationTest.kt."
       }
     }
   }

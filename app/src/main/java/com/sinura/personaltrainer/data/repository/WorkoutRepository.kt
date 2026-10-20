@@ -107,6 +107,8 @@ class WorkoutRepository(
     private val time: TimePort = JvmTime,
     private val ids: IdPort = IdFactory.Uuid,
 ) {
+    /** JVM tests only: runs after [removeExerciseFromSession] commits, before its caller resumes. */
+    internal var afterRemoveExerciseCommitForTest: (suspend () -> Unit)? = null
     /** Private draft fences precede destructive changes; no portable/schema contract changes. */
     internal var beforeWorkoutDestruction: suspend (String) -> Unit = {}
 
@@ -585,7 +587,7 @@ class WorkoutRepository(
             val name = row.exercise.name
             workoutDao.deleteSessionExercise(itemId)
             RemovedLift(item = existing, name = name)
-        }
+        }.also { afterRemoveExerciseCommitForTest?.invoke() }
     }
 
     /**

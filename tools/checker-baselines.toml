@@ -36,7 +36,8 @@ unbounded_waits = 0
 # CancellationException clause ahead of it: it eats the cancellation and carries on.
 cancellation_swallow = 0
 # Real-time Thread.sleep / SystemClock.sleep / TimeUnit.sleep in tests (allowlisted).
-real_time_sleeps = 28
+# 28 -> 27 with TH3: RemovedLiftObserverOrderingTest pumpUntil no longer uses Thread.sleep(1).
+real_time_sleeps = 27
 # delay() calls in test files with no virtual-time marker string (file-level heuristic).
 real_time_delays = 6
 

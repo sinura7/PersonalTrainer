@@ -2206,7 +2206,12 @@ class ActiveWorkoutViewModel internal constructor(
     }
 
     private fun restoreSaveDraft(command: WorkoutSetSave) {
-        selectedExerciseId.value = command.exerciseId
+        val current = sessionReader.observations.value.session
+        if (current != null && current.exercises.none { it.exercise.id == command.exerciseId }) {
+            reconcileSelectionAfterSave()
+            return
+        }
+        applySelection(command.exerciseId)
         editingSetId.value = command.setId.takeIf { command.editing }
         val values = command.values
         draft.value = ActiveExerciseDraft(
