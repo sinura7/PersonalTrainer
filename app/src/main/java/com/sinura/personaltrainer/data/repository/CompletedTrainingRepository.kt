@@ -25,7 +25,6 @@ class CompletedTrainingRepository(
     internal var horizonProgressAllCallsForTest: AtomicInteger? = null
 
     suspend fun all(): List<CompletedTraining> {
-        horizonProgressAllCallsForTest?.incrementAndGet()
         val zone = time.defaultZoneId()
         val fromWorkouts = workouts.sessionsBetween(minDateMs = 0L, maxDateMs = Long.MAX_VALUE)
             .mapNotNull { session -> session.toCompletedTraining(time, zone) }

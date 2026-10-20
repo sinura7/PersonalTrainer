@@ -846,7 +846,9 @@ class FloorWorkClocksCharacterisationTest {
         vm.stopSetStopwatch()
         vm.removeSelectedLift()
         deps.workoutRepository.awaitSession(sessionId) { session -> session.exercises.none { it.exercise.id == ROW } }
-        vm.uiState.awaitFirst { state -> state.session?.exercises?.none { it.exercise.id == ROW } != false }
+        vm.uiState.awaitFirst { state ->
+            state.session != null && state.session.exercises.none { it.exercise.id == ROW }
+        }
         vm.undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == UndoKind.REMOVED_LIFT }
         vm.awaitEntryUnlocked()
         assertNotNull(

@@ -459,18 +459,26 @@ class HistoryPeriodViewModelTest {
     fun unchangedScopedSummariesReuseReadyProgressWithoutLoadingFlash() = runBlocking {
         seedProgress()
         withModel { model ->
-            awaitReady(model)
+            val first = awaitReady(model)
+            val recordsBroken = first.horizonProgress!!.recordsBroken
             val allCallsAtReady = horizonAllCalls.get()
             assertTrue("expected an initial full-log read for horizon progress", allCallsAtReady >= 1)
             val mid = trace(model).size
             deps.preferencesRepository.recordBodyweight(80.0, TODAY)
             awaitBlocksLoadingSeenThenCleared(model, mid)
             awaitReady(model)
+            assertTrue("expected a catalog re-emit with identical summaries", trace(model).size > mid)
             assertEquals(
                 "distinctUntilChanged on the progress key must skip a second full-log read before summaries change",
                 allCallsAtReady,
                 horizonAllCalls.get(),
             )
+            trace(model).drop(mid).forEach { state ->
+                assertFalse("unexpected loading flash on unchanged summaries", state.progressLoading)
+                if (state.horizonProgress != null) {
+                    assertEquals(recordsBroken, state.horizonProgress!!.recordsBroken)
+                }
+            }
             deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
             awaitAllCallCount(allCallsAtReady + 1)
             awaitReady(model)
@@ -488,12 +496,23 @@ class HistoryPeriodViewModelTest {
         withModel { model ->
             awaitReady(model)
             val allCallsAtReady = horizonAllCalls.get()
+            val mid = trace(model).size
             // closing-set stays 110 kg x 5; only RPE moves 8 to 9 (per-set detail not on SessionSummary).
             deps.workoutRepository.updateSet("closing-set", 110.0, 5, 9, false)
-            awaitState(model) { !it.progressLoading && it.horizonProgress != null }
+            awaitState(model) {
+                trace(model).size > mid && !it.progressLoading && it.horizonProgress != null
+            }
             assertEquals(
-                "RPE-only edits that leave summary totals unchanged must not re-run horizon all()",
+                "RPE-only edits that leave summary totals unchanged must not start another horizon read",
                 allCallsAtReady,
+                horizonAllCalls.get(),
+            )
+            deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
+            awaitAllCallCount(allCallsAtReady + 1)
+            awaitReady(model)
+            assertEquals(
+                "a real summaries-identity change must trigger exactly one more horizon read",
+                allCallsAtReady + 1,
                 horizonAllCalls.get(),
             )
         }
