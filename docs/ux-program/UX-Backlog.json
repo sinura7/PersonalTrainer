@@ -6115,6 +6115,14 @@
         "independent": "PENDING formal review on PR #555 (draft).",
         "adversarial": "PENDING formal review on PR #555 (draft).",
         "cleanContext": "Branch cursor/p11-past-mixed-form-ae41. No Room/schema change. ComposerFormPolicyTest + ActivityComposerFormRenderTest + ActivityDetailCelebrationRenderTest."
+      },
+      "6d9d1097": {
+        "when": "2026-10-21",
+        "packet": "Debug 130 version (debugLiveCode bump)",
+        "gate": "Parent trunk 6a691b09 (P11 #555). debugLiveCode 129→130. appVersionCode stays 1. No tag, debug-live branch, or APK in commit. Hosted Tests lint debug build pending.",
+        "independent": "PENDING draft PR review.",
+        "adversarial": "PENDING draft PR review.",
+        "cleanContext": "Branch cursor/debug-live-130-b25e. Unblocks debug-live drop ratchet after Debug 129 (debug-live/2026-10-17-2)."
       }
     }
   }
