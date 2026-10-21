@@ -134,8 +134,14 @@ fun ActivityComposerScreen(
                 }
                 ComposerSaveDock(
                     saving = state.saving,
+                    canSave = state.canSave,
                     onSave = viewModel::save,
                     onCancel = leave,
+                    onDiscardDraft = if (viewModel.formRecovery != null) {
+                        { if (viewModel.canLeave()) confirmLeave = true }
+                    } else {
+                        null
+                    },
                     enabled = privateStatus?.ready != false,
                 )
             }
@@ -194,6 +200,9 @@ fun ActivityComposerScreen(
             }
             if (state.mode != ComposerMode.CARDIO) {
                 item { Kicker("Strength") }
+                if (state.strength.isNotEmpty()) {
+                    item { Kicker(ComposerCopy.DRAFT_NOT_SAVED) }
+                }
                 itemsIndexed(state.strength, key = { index, line -> "${line.exercise.id}-$index" }) { index, line ->
                     InstrumentRow(
                         title = line.exercise.name,
@@ -230,6 +239,9 @@ fun ActivityComposerScreen(
             }
             if (state.mode != ComposerMode.STRENGTH) {
                 item { Kicker("Cardio") }
+                if (state.cardio.isNotEmpty()) {
+                    item { Kicker(ComposerCopy.DRAFT_NOT_SAVED) }
+                }
                 itemsIndexed(state.cardio, key = { index, line -> "${line.type}-$index" }) { index, line ->
                     InstrumentRow(
                         title = ComposerCopy.typeChipLabel(line.type),
@@ -248,9 +260,6 @@ fun ActivityComposerScreen(
                     )
                 }
                 item { CardioAdder(onAdd = viewModel::addCardio) }
-            }
-            if (viewModel.formRecovery != null) item {
-                SecondaryGymButton(text = "Discard draft", onClick = { confirmLeave = true }, enabled = viewModel.canLeave())
             }
         }
     }
@@ -280,17 +289,20 @@ fun ActivityComposerScreen(
 @Composable
 internal fun ComposerSaveDock(
     saving: Boolean,
+    canSave: Boolean,
     onSave: () -> Unit,
     onCancel: () -> Unit,
+    onDiscardDraft: (() -> Unit)? = null,
     enabled: Boolean = true,
 ) {
+    val saveEnabled = !saving && enabled && canSave
     PinnedDock(
         volt = {
             PrimaryGymButton(
                 text = if (saving) ComposerCopy.SAVING else ComposerCopy.SAVE,
-                onClick = onSave,
+                onClick = { if (saveEnabled) onSave() },
                 modifier = Modifier.testTag(ComposerTags.SAVE),
-                enabled = !saving && enabled,
+                enabled = saveEnabled,
             )
         },
         secondary = {
@@ -306,6 +318,21 @@ internal fun ComposerSaveDock(
                     style = InstrumentType.bodyStrong,
                     color = if (saving) TextDisabled else TextSecondary,
                 )
+            }
+        },
+        tertiary = onDiscardDraft?.let { discard ->
+            {
+                TextButton(
+                    onClick = discard,
+                    enabled = !saving,
+                    modifier = Modifier.testTag(ComposerTags.DISCARD_DRAFT),
+                ) {
+                    Text(
+                        ComposerCopy.DISCARD_DRAFT,
+                        style = InstrumentType.bodyStrong,
+                        color = if (saving) TextDisabled else TextSecondary,
+                    )
+                }
             }
         },
     )
@@ -335,8 +362,8 @@ internal fun StrengthAdder(
     val unit = LocalWeightUnit.current
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
     var pickerQuery by rememberSaveable { mutableStateOf("") }
-    var pickedId by rememberSaveable { mutableStateOf(catalog.firstOrNull()?.id.orEmpty()) }
-    var weight by rememberSaveable { mutableStateOf("0") }
+    var pickedId by rememberSaveable { mutableStateOf("") }
+    var weight by rememberSaveable { mutableStateOf("") }
     var reps by rememberSaveable { mutableStateOf("8") }
     val entryUnit = parentFields?.unit ?: unit
     LaunchedEffect(parentFields) {
@@ -347,12 +374,6 @@ internal fun StrengthAdder(
     var weightError by rememberSaveable { mutableStateOf<String?>(null) }
     var repsError by rememberSaveable { mutableStateOf<String?>(null) }
     val view = LocalView.current
-    LaunchedEffect(catalog) {
-        if (pickedId.isEmpty()) {
-            pickedId = catalog.firstOrNull()?.id.orEmpty()
-            if (parentFields != null) onParentFields(StrengthAdderFields(pickedId, weight, reps, entryUnit))
-        }
-    }
     // A created lift is picked like a tapped one; the sheet closes on it.
     LaunchedEffect(created) {
         val lift = created ?: return@LaunchedEffect
@@ -370,9 +391,9 @@ internal fun StrengthAdder(
         )
         if (catalog.isEmpty()) {
             Text(ComposerCopy.NO_LIFTS, style = InstrumentType.caption, color = TextSecondary)
-        } else {
+        } else if (exercise != null) {
             Text(
-                exercise?.name ?: ComposerCopy.CHOOSE_LIFT,
+                exercise.name,
                 style = InstrumentType.bodyStrong,
                 color = TextPrimary,
             )
@@ -422,15 +443,13 @@ internal fun StrengthAdder(
                     .focusRequester(repsFocus)
                     .fieldError(repsError),
             )
-            SecondaryGymButton(
-                text = ComposerCopy.ADD_SET,
+            TextButton(
                 onClick = {
-                    val lift = exercise ?: return@SecondaryGymButton
                     when (val entry = ComposerCopy.strengthEntry(weight, reps, entryUnit)) {
                         is StrengthEntry.ReadySet -> {
                             weightError = null
                             repsError = null
-                            onAdd(lift, entry.weightKg, entry.reps)
+                            onAdd(exercise, entry.weightKg, entry.reps)
                         }
                         is StrengthEntry.RefusedSet -> {
                             // The text stays exactly as typed; the complaint goes under the
@@ -447,9 +466,10 @@ internal fun StrengthAdder(
                         }
                     }
                 },
-                enabled = exercise != null,
                 modifier = Modifier.testTag(ComposerTags.ADD_SET),
-            )
+            ) {
+                Text(ComposerCopy.ADD_SET, style = InstrumentType.bodyStrong, color = TextSecondary)
+            }
         }
     }
     if (externalPickerOpen ?: pickerOpen) {
@@ -587,8 +607,7 @@ private fun CardioAdder(
                 .focusRequester(distanceFocus)
                 .fieldError(distanceError),
         )
-        SecondaryGymButton(
-            text = ComposerCopy.ADD_CARDIO,
+        TextButton(
             onClick = {
                 when (val entry = ComposerCopy.cardioEntry(minutes, distance, distanceUnit)) {
                     is CardioEntry.ReadyCardio -> {
@@ -609,7 +628,9 @@ private fun CardioAdder(
                 }
             },
             modifier = Modifier.testTag(ComposerTags.ADD_CARDIO),
-        )
+        ) {
+            Text(ComposerCopy.ADD_CARDIO, style = InstrumentType.bodyStrong, color = TextSecondary)
+        }
     }
 }
 
@@ -659,4 +680,5 @@ object ComposerTags {
     const val CHOOSE_LIFT = "activity-composer-choose-lift"
     const val REMOVE_STRENGTH = "activity-composer-remove-strength"
     const val REMOVE_CARDIO = "activity-composer-remove-cardio"
+    const val DISCARD_DRAFT = "activity-composer-discard-draft"
 }

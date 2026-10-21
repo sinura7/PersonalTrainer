@@ -135,9 +135,26 @@ class StagedPickerCallerRecoveryTest {
         file.writeText("{synthetic corrupt child")
     }
 
+    @Test fun preP11DefaultCatalogPickedIdRestoresWithoutCrash() = runBlocking {
+        val lift = seedLift()
+        val first = activity(); ready(first)
+        val defaultId = first.uiState.awaitFirst { it.catalog.any { it.id == lift.id } }.catalog.first { it.id == lift.id }.id
+        first.changeAdder(StrengthAdderFields(defaultId, "0", "8", WeightUnit.KG))
+        assertTrue(checkNotNull(first.formRecovery).flush())
+        assertTrue(first.uiState.value.strength.isEmpty())
+        first.clearAndJoinForTest(); activities.remove(first)
+        val reopened = activity(); ready(reopened)
+        assertEquals(defaultId, reopened.adderFields.value.pickedId)
+        assertFalse(reopened.uiState.value.canSave)
+        assertTrue(reopened.uiState.value.strength.isEmpty())
+        assertTrue(deps.database.activityDao().getAllGraphs().isEmpty())
+    }
+
     @Test fun refusedEmptySaveRetainsEditableFieldsAcrossReopeningAndThenSavesOnce() = runBlocking {
         val first = activity(); ready(first); first.setTitle("Keep this refused title")
-        first.save(); first.uiState.awaitFirst { it.error == "Nothing to save." }
+        assertFalse(first.uiState.value.canSave)
+        first.save()
+        assertFalse(first.uiState.value.saving)
         assertTrue(checkNotNull(first.formRecovery).status.value.ready)
         assertTrue(deps.database.activityDao().getAllGraphs().isEmpty())
         first.setTitle("Corrected title after refusal"); assertTrue(first.formRecovery.flush())
@@ -216,15 +233,18 @@ class StagedPickerCallerRecoveryTest {
 
     @Test fun refusalRetrySettlesLandedInspectionAndEditingWithUnavailableConfirmationReads() = runBlocking {
         val vm = activity(); ready(vm); vm.setTitle("Keep exact refused fields")
+        vm.addCardio(CardioType.RUN, 19, 3.25, true)
         assertTrue(checkNotNull(vm.formRecovery).flush())
-        io.loseRefusalAck = true; vm.save()
+        io.loseRefusalAck = true
+        assertTrue(vm.formRecovery.beginSubmission())
+        vm.formRecovery.rejected()
         vm.formRecovery.status.awaitFirst { it.pending && it.error?.startsWith("Nothing was saved") == true }
         assertTrue(deps.database.activityDao().getAllGraphs().isEmpty())
         io.loseResumeAck = true; vm.formRecovery.retry()
         dispatcher.scheduler.advanceUntilIdle()
         assertTrue(vm.formRecovery.status.value.pending)
         vm.formRecovery.retry(); vm.formRecovery.status.awaitFirst { it.ready }
-        vm.setTitle("Corrected after exact Retry"); vm.addCardio(CardioType.RUN, 19, 3.25, true)
+        vm.setTitle("Corrected after exact Retry")
         vm.save(); vm.savedId.awaitFirst { it != null }
         assertEquals("Corrected after exact Retry", vm.uiState.awaitFirst { it.title.startsWith("Corrected") }.title)
         assertEquals(1, deps.database.activityDao().getAllGraphs().size)

@@ -246,6 +246,17 @@ class ActivityComposerViewModelTest {
     }
 
     @Test
+    fun saveIgnoresEmptyFormWithoutCallingConfirm() = runBlocking {
+        viewModel = composer("strength")
+        viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
+        assertFalse(viewModel!!.uiState.value.canSave)
+        viewModel!!.save()
+        assertFalse(viewModel!!.uiState.value.saving)
+        assertEquals(null, viewModel!!.savedId.value)
+        assertTrue(deps.activityRepository.all().isEmpty())
+    }
+
+    @Test
     fun processRecreationRestoresTheTypedDraft() = runBlocking {
         val exercise = seedLift()
         val handle = SavedStateHandle(mapOf("mode" to "mixed"))

@@ -11,6 +11,7 @@ object ComposerCopy {
     const val SAVE = "Save"
     const val SAVING = "Saving…"
     const val CANCEL = "Cancel"
+    const val DISCARD_DRAFT = "Discard draft"
     const val ADD_SET = "Add set"
     const val ADD_CARDIO = "Add cardio"
     const val CHOOSE_LIFT = "Choose a lift"
@@ -27,6 +28,7 @@ object ComposerCopy {
     const val LOGGED_AT_NOON = "Logged at noon. Future dates are refused."
     const val NO_LIFTS = "No lifts in the library yet."
     const val PICKER_TITLE = "Choose a lift"
+    const val DRAFT_NOT_SAVED = "Draft · not saved"
 
     const val VOLT = SAVE
 
@@ -42,9 +44,8 @@ object ComposerCopy {
     /**
      * One Add set, judged as a whole so both boxes can complain at once.
      *
-     * A blank weight is bodyweight — the field starts at 0 and the hint on every other weight
-     * field in the app says "leave empty for bodyweight only" — so blank reads as 0 kg. That is
-     * the only default here. Reps has none: a set with no rep count is not a set, and the old
+     * A blank weight is bodyweight (D15): empty reads as 0 kg on Add set. Reps has none: a set
+     * with no rep count is not a set, and the old
      * `toIntOrNull() ?: 0` fall-through handed the ViewModel a zero it then had to refuse with
      * a banner at the top of a long list.
      */
@@ -111,6 +112,12 @@ object ComposerCopy {
     }
 
     fun canShiftLater(epochDay: Long, todayEpochDay: Long): Boolean = epochDay < todayEpochDay
+
+    fun canSave(mode: String, strengthCount: Int, cardioCount: Int): Boolean = when (mode.lowercase()) {
+        "cardio" -> cardioCount > 0
+        "mixed" -> strengthCount > 0 || cardioCount > 0
+        else -> strengthCount > 0
+    }
 
     fun isDirty(
         title: String,
