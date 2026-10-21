@@ -70,6 +70,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.testutil.isDisposableSdkEmulator
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.timer.AndroidPhoneCapabilities
 import com.sinura.personaltrainer.timer.RestTimerNotifications
@@ -947,7 +948,7 @@ internal class NativeWorkoutFixtureEnvironment(private val workoutPrefix: String
     private var originalCapabilities: PhoneCapabilitySnapshot? = null
 
     fun prepare(container: AppContainer) {
-        check(Build.HARDWARE in setOf("ranchu", "goldfish") && Build.FINGERPRINT.startsWith("Android/sdk_")) {
+        check(isDisposableSdkEmulator()) {
             "Synthetic fixtures require Android SDK emulator hardware, never a phone."
         }
         val avdName = shell("getprop ro.kernel.qemu.avd_name").trim()
