@@ -29,6 +29,9 @@
 > 17 Oct 2026 — Debug 129 version: debugLiveCode 129. The gym-floor
 > version stays 1. This packet does not publish the phone build.
 >
+> 21 Oct 2026 — Debug 130 version: debugLiveCode 130. The gym-floor
+> version stays 1. This packet does not publish the phone build.
+>
 > 17 Oct 2026 — Preflight JVM backup lane: `BackupStageCopy.kt` is named
 > beside the other Gson-only backup sources so `tools/preflight.sh` compiles
 > `BackupStageCopyTest` on trunk.
