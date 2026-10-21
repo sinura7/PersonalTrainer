@@ -6108,10 +6108,10 @@
         "adversarial": "PENDING re-review.",
         "cleanContext": "PR https://github.com/sinura7/PersonalTrainer/pull/553. Head 7478ac06. M1-M2 + minors 3-4 only."
       },
-      "9b643b02": {
+      "4c0666f3": {
         "when": "2026-10-20",
         "packet": "UX blueprint P11 past and mixed composer form (PR #555)",
-        "gate": "Parent trunk e5e54cde (TH4 #553). Rebased from 059a31ab; final hosted gate pending on product head after rebase.",
+        "gate": "Parent trunk e5e54cde (TH4 #553). Product head 4c0666f3 (rebased off 059a31ab). Hosted push run 39515027677 job 118945529386 and pull_request run 39515030403 job 118945267664 Tests lint debug build success, testDebugUnitTest 4908 tests 0 failures. Agent-local gate 4908 tests 3 failures (floor clock / undo race characterisation; not independently verifiable). Checker when_exhaustive 46, xml_hex 18, xml_monospace 2; real_time_sleeps 27.",
         "independent": "PENDING formal review on PR #555 (draft).",
         "adversarial": "PENDING formal review on PR #555 (draft).",
         "cleanContext": "Branch cursor/p11-past-mixed-form-ae41. No Room/schema change. ComposerFormPolicyTest + ActivityComposerFormRenderTest + ActivityDetailCelebrationRenderTest."
