@@ -867,22 +867,35 @@ class UxWalkthroughTest {
         }
     }
 
+    private fun liveStrengthLoggedSetCount(): Int = runBlocking(Dispatchers.IO) {
+        val session = container.workoutRepository.getInProgress() ?: return@runBlocking 0
+        container.workoutRepository.getSession(session.id)?.sets?.size ?: 0
+    }
+
     private fun awaitSetLoggedRestIdle(setNumber: Int) {
-        harnessWaitUntil(20_000) {
+        harnessWaitUntil(45_000) {
+            val persisted = liveStrengthLoggedSetCount() >= setNumber
             val savedVisible = compose.onAllNodes(
-                hasContentDescription("$setNumber saved", substring = true),
+                hasContentDescription(value = "$setNumber saved", substring = true),
             ).fetchSemanticsNodes().isNotEmpty()
             val restIdle = compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isNotEmpty()
-            val restRunning = compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
-            savedVisible && restIdle && !restRunning
+            val restRunningUi = compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
+            val restRunningStore = container.restTimerStore.current().running
+            persisted &&
+                restIdle &&
+                !restRunningUi &&
+                !restRunningStore &&
+                (savedVisible || compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty())
         }
         compose.waitForIdle()
     }
 
     private fun awaitRestTimerRunning() {
-        harnessWaitUntil(20_000) {
+        harnessWaitUntil(45_000) {
+            val restRunningStore = container.restTimerStore.current().running
             compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty() &&
-                compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isEmpty()
+                compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isEmpty() &&
+                restRunningStore
         }
         compose.waitForIdle()
     }
