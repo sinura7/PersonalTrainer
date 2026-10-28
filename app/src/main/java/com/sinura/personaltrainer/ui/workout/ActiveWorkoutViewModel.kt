@@ -36,6 +36,7 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.EffortPrefillPolicy
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
@@ -1172,7 +1173,7 @@ class ActiveWorkoutViewModel internal constructor(
                     draft.value = ActiveExerciseDraft(
                         weightKg = lastWeight,
                         reps = if (hold) 0 else targetReps.coerceAtLeast(1),
-                        rpe = null,
+                        rpe = EffortPrefillPolicy.effortForAutomaticSeed(isWarmup = false, isHold = hold),
                         isWarmup = false,
                         durationSeconds = if (hold) HoldWork.countdownSeconds(planned?.targetSeconds) else null,
                     )
@@ -1204,7 +1205,7 @@ class ActiveWorkoutViewModel internal constructor(
                     draft.value = ActiveExerciseDraft(
                         weightKg = livePlanned?.targetWeightKg ?: 0.0,
                         reps = if (hold) 0 else targetReps.coerceAtLeast(1),
-                        rpe = null,
+                        rpe = EffortPrefillPolicy.effortForAutomaticSeed(isWarmup = false, isHold = hold),
                         isWarmup = false,
                         durationSeconds = if (hold) {
                             HoldWork.countdownSeconds(livePlanned?.targetSeconds)
@@ -2576,9 +2577,15 @@ class ActiveWorkoutViewModel internal constructor(
         val lift = current?.exercises?.firstOrNull { it.exercise.id == liftId }
         if (lift != null && HoldWork.isHold(lift.exercise)) return
         editEntry {
-            draft.value = draft.value.copy(
+            val current = draft.value
+            draft.value = current.copy(
                 weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
                 reps = rec.nextReps.coerceAtLeast(1),
+                rpe = EffortPrefillPolicy.effortWhenApplyingCoachRecommendation(
+                    isWarmup = current.isWarmup,
+                    isHold = false,
+                    suggestedRpe = rec.nextRpe,
+                ),
             )
             markDraftDirty()
         }
