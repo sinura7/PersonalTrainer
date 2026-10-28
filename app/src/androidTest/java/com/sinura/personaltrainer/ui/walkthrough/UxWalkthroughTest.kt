@@ -565,7 +565,7 @@ class UxWalkthroughTest {
         shot("strength-live-entry")
         repeat(3) { index ->
             logWorkingSet(weightKg = 60.0 + index, reps = 5 + index, rpe = 7 + index)
-            awaitSetLoggedRestIdle(index + 1)
+            awaitSetLoggedRestIdle(setNumber = index + 1, expectPlannedRest = index < 2)
             shot("strength-set-${index + 1}-logged")
             if (index < 2) {
                 awaitRestTimerRunning()
@@ -882,15 +882,17 @@ class UxWalkthroughTest {
         container.workoutRepository.getSession(session.id)?.sets?.size ?: 0
     }
 
-    private fun awaitSetLoggedRestIdle(setNumber: Int) {
+    private fun awaitSetLoggedRestIdle(setNumber: Int, expectPlannedRest: Boolean) {
         harnessWaitUntil(45_000) {
             liveStrengthLoggedSetCount() >= setNumber
         }
-        harnessWaitUntil(45_000) {
-            val restIdle = compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isNotEmpty()
-            val restRunningUi = compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
-            val restRunningStore = container.restTimerStore.current().running
-            restIdle && !restRunningUi && !restRunningStore
+        if (expectPlannedRest) {
+            harnessWaitUntil(45_000) {
+                val restIdle = compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isNotEmpty()
+                val restRunningUi = compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
+                val restRunningStore = container.restTimerStore.current().running
+                restIdle && !restRunningUi && !restRunningStore
+            }
         }
         compose.waitForIdle()
     }
