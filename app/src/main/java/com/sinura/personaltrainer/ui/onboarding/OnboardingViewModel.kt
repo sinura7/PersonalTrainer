@@ -19,6 +19,7 @@ import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.testonly.WalkthroughOnboardingNavHook
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
@@ -214,6 +215,12 @@ class OnboardingViewModel @JvmOverloads constructor(
     val finished: StateFlow<Boolean> = _finished.asStateFlow()
 
     init {
+        WalkthroughOnboardingNavHook.consumeForcePreview()?.let { forced ->
+            answersDirty = true
+            answers.value = forced
+            step.value = OnboardingStep.PREVIEW
+            rememberDraft()
+        }
         viewModelScope.launch {
             existingProgram.value = runCatchingCancellable { container.onboardingApplier.hasExistingProgram() }
                 .getOrDefault(false)
