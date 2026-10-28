@@ -1,7 +1,9 @@
 package com.sinura.personaltrainer.ui.walkthrough
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Build
 import android.util.Log
 import android.os.SystemClock
@@ -10,7 +12,9 @@ import android.view.accessibility.AccessibilityNodeInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasAnyAncestor
@@ -76,6 +80,7 @@ import com.sinura.personaltrainer.ui.onboarding.OnboardingTags
 import com.sinura.personaltrainer.ui.plan.PlanTags
 import com.sinura.personaltrainer.ui.progress.BodyTags
 import com.sinura.personaltrainer.ui.settings.SettingsTags
+import com.sinura.personaltrainer.ui.summary.SummaryTags
 import com.sinura.personaltrainer.ui.workout.NativeWorkoutFixtureEnvironment
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
 import com.sinura.personaltrainer.ui.workout.revealFloorControlAboveTempo
@@ -550,10 +555,12 @@ class UxWalkthroughTest {
         shot("strength-live-entry")
         repeat(3) { index ->
             logWorkingSet(weightKg = 60.0 + index, reps = 5 + index, rpe = 7 + index)
+            awaitSetLoggedRestIdle(index + 1)
             shot("strength-set-${index + 1}-logged")
             if (index < 2) {
-                skipRestIfVisible()
+                awaitRestTimerRunning()
                 shot("strength-rest-after-set-${index + 1}")
+                skipRestIfVisible()
             }
         }
         advanceToNextExerciseIfShown()
@@ -563,6 +570,7 @@ class UxWalkthroughTest {
             if (index < 2) skipRestIfVisible()
         }
         finishLiveWorkout()
+        awaitSummaryScreenForCapture()
         shot("strength-finished-summary")
     }
 
@@ -857,6 +865,37 @@ class UxWalkthroughTest {
             compose.onNodeWithTag(WorkoutTestTags.CONTENT)
                 .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id)))
         }
+    }
+
+    private fun awaitSetLoggedRestIdle(setNumber: Int) {
+        harnessWaitUntil(20_000) {
+            val savedVisible = compose.onAllNodes(
+                hasContentDescription("$setNumber saved", substring = true),
+            ).fetchSemanticsNodes().isNotEmpty()
+            val restIdle = compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isNotEmpty()
+            val restRunning = compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
+            savedVisible && restIdle && !restRunning
+        }
+        compose.waitForIdle()
+    }
+
+    private fun awaitRestTimerRunning() {
+        harnessWaitUntil(20_000) {
+            compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isEmpty()
+        }
+        compose.waitForIdle()
+    }
+
+    private fun awaitSummaryScreenForCapture() {
+        harnessWaitUntil(60_000) {
+            compose.onAllNodesWithText("WORKOUT COMPLETE").fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithTag(SummaryTags.CONTENT).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithTag(SummaryTags.FACTS).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.waitForIdle()
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        logHarness("UX_WALKTHROUGH_SUMMARY_READY for capture")
     }
 
     private fun skipRestIfVisible() {
@@ -1359,18 +1398,64 @@ class UxWalkthroughTest {
         val safeLabel = label.replace(Regex("[^A-Za-z0-9-]"), "-").trim('-')
         val name = "flow${flowIndex.toString().padStart(2, '0')}_step${step.toString().padStart(2, '0')}_$safeLabel"
         step += 1
-        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-        val bitmap = automation.takeScreenshot() ?: automation.executeShellCommand("screencap -p").use { pipe ->
-            FileInputStream(pipe.fileDescriptor).use(BitmapFactory::decodeStream)
+        var bitmap = captureWindowBitmap()
+        if (label.contains("summary", ignoreCase = true) && isNearUniformBitmap(bitmap)) {
+            bitmap.recycle()
+            logHarness("UX_WALKTHROUGH_SUMMARY_WINDOW_BLANK trying Compose capture")
+            bitmap = compose.onNodeWithTag(SummaryTags.CONTENT, useUnmergedTree = true)
+                .captureToImage()
+                .asAndroidBitmap()
         }
         checkNotNull(bitmap) { "Screenshot failed for $name" }
         try {
+            assertBitmapHasVisibleContent(bitmap, name)
             val path = NativeArtifacts.write(name, bitmap)
             println("UX_WALKTHROUGH_CAPTURE $path ${bitmap.width}x${bitmap.height}")
             assertTrue("Capture must be non-trivial", bitmap.width > 100 && bitmap.height > 100)
         } finally {
             bitmap.recycle()
         }
+    }
+
+    private fun captureWindowBitmap(): Bitmap {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        return automation.takeScreenshot() ?: automation.executeShellCommand("screencap -p").use { pipe ->
+            FileInputStream(pipe.fileDescriptor).use(BitmapFactory::decodeStream)
+        } ?: error("Both native-window screenshot paths failed")
+    }
+
+    private fun isNearUniformBitmap(bitmap: Bitmap): Boolean = luminanceRange(bitmap) < 20
+
+    private fun assertBitmapHasVisibleContent(bitmap: Bitmap, name: String) {
+        val range = luminanceRange(bitmap)
+        assertTrue(
+            "$name looks blank or near-uniform (luminance range $range; check transition/FLAG_SECURE)",
+            range >= 20,
+        )
+    }
+
+    private fun luminanceRange(bitmap: Bitmap): Int {
+        val stepX = (bitmap.width / 16).coerceAtLeast(1)
+        val stepY = (bitmap.height / 16).coerceAtLeast(1)
+        var min = 255
+        var max = 0
+        var y = 0
+        while (y < bitmap.height) {
+            var x = 0
+            while (x < bitmap.width) {
+                val pixel = bitmap.getPixel(x, y)
+                val luma = (
+                    0.299 * Color.red(pixel) +
+                        0.587 * Color.green(pixel) +
+                        0.114 * Color.blue(pixel)
+                    ).toInt()
+                min = minOf(min, luma)
+                max = maxOf(max, luma)
+                x += stepX
+            }
+            y += stepY
+        }
+        return max - min
     }
 
     private fun shell(command: String): String = InstrumentationRegistry.getInstrumentation().uiAutomation
