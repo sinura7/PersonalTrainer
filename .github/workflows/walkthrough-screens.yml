@@ -74,6 +74,10 @@ jobs:
         if: always()
         run: sudo apt-get update && sudo apt-get install -y python3-pil
 
+      - name: Reject near-blank walkthrough PNGs
+        if: always()
+        run: python3 tools/walkthrough-check-blank-pngs.py walkthrough-screens
+
       - name: Visual diff against trunk baseline
         if: always()
         continue-on-error: true
