@@ -462,7 +462,7 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.reps == rec.nextReps }
         val draft = vm.uiState.value.draft
         assertEquals(rec.nextWeightKg, draft.weightKg, 1e-6)
-        assertNull("Apply fills load only; effort stays for the lifter to choose", draft.rpe)
+        assertEquals("Apply copies coach load and effort (R1 D1)", rec.nextRpe, draft.rpe)
         assertTrue("Apply fills the entry; it never logs", vm.uiState.value.session?.sets?.size == 1)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertDoesNotExist()
     }

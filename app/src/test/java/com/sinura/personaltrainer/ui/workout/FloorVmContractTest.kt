@@ -134,14 +134,14 @@ class FloorVmContractTest {
         val saved = checkNotNull(SavedStateWorkoutDraft(handle).read(sessionId)) { "nothing was saved for the process to come back to" }
         assertEquals(rec.nextWeightKg, saved.weightKg, 1e-6)
         assertEquals(rec.nextReps, saved.reps)
-        assertNull("Apply copies load only; effort is chosen separately", saved.rpe)
+        assertEquals("Apply copies coach effort (R1 D1)", rec.nextRpe, saved.rpe)
         vm.clearAndJoinForTest()
         viewModels.remove(vm)
         deps.workoutDraftCache.clearAll()
         val revived = viewModel(sessionId, handle)
         val state = revived.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg == rec.nextWeightKg }
         assertEquals(rec.nextReps, state.draft.reps)
-        assertNull(state.draft.rpe)
+        assertEquals(rec.nextRpe, state.draft.rpe)
         assertEquals("Apply never logs", 1, storedSession(sessionId).sets.size)
     }
 
