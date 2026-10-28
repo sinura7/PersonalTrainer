@@ -104,6 +104,9 @@ if adb shell 'ls /sdcard/Download/ux-walkthrough-*.png 2>/dev/null'; then
 fi
 echo "UX_WALKTHROUGH_PNG_COUNT=$(find "$OUT_DIR" -maxdepth 1 -name 'flow*.png' 2>/dev/null | wc -l | tr -d ' ')"
 echo "UX_WALKTHROUGH_LOGCAT_COUNT=$(find "$OUT_DIR/logcat" -name 'f*-crash.txt' 2>/dev/null | wc -l | tr -d ' ')"
+if ! python3 tools/walkthrough-check-blank-pngs.py "$OUT_DIR"; then
+  gradle_status=1
+fi
 if [ "$gradle_status" -ne 0 ]; then
   mkdir -p app/build/reports/androidTests
   adb logcat -d 2>/dev/null | grep -E "$FILTER_PATTERN" > app/build/reports/androidTests/logcat-filtered.txt || true

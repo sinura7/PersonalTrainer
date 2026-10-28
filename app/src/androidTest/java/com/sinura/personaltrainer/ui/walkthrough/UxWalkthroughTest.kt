@@ -64,6 +64,7 @@ import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testonly.WalkthroughRestCaptureHook
 import com.sinura.personaltrainer.testutil.isDisposableSdkEmulator
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.activity.ActivityDetailTags
@@ -541,6 +542,15 @@ class UxWalkthroughTest {
     }
 
     private fun flowLiveStrengthWorkout() {
+        WalkthroughRestCaptureHook.setHoldPlannedRestAfterLogMs(8_000)
+        try {
+            flowLiveStrengthWorkoutCaptures()
+        } finally {
+            WalkthroughRestCaptureHook.setHoldPlannedRestAfterLogMs(0)
+        }
+    }
+
+    private fun flowLiveStrengthWorkoutCaptures() {
         preparePopulatedApp()
         seedWalkthroughRoutine()
         awaitHomeReady()
@@ -874,21 +884,13 @@ class UxWalkthroughTest {
 
     private fun awaitSetLoggedRestIdle(setNumber: Int) {
         harnessWaitUntil(45_000) {
+            liveStrengthLoggedSetCount() >= setNumber
+        }
+        harnessWaitUntil(45_000) {
             val restIdle = compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isNotEmpty()
             val restRunningUi = compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
             val restRunningStore = container.restTimerStore.current().running
-            val persisted = liveStrengthLoggedSetCount() >= setNumber
-            if (!restIdle || restRunningUi || restRunningStore) {
-                return@harnessWaitUntil false
-            }
-            if (persisted) {
-                return@harnessWaitUntil true
-            }
-            // Save still in flight: stay on planned rest before ROW_SETTLE starts the timer.
-            compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodes(
-                    hasContentDescription(value = "$setNumber saved", substring = true),
-                ).fetchSemanticsNodes().isNotEmpty()
+            restIdle && !restRunningUi && !restRunningStore
         }
         compose.waitForIdle()
     }

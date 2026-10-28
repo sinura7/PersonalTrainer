@@ -30,6 +30,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.testonly.WalkthroughRestCaptureHook
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
@@ -2721,7 +2722,7 @@ class ActiveWorkoutViewModel internal constructor(
     private fun scheduleRestAfterReceipt(prescribedSeconds: Int) {
         cancelPendingRest()
         pendingRestJob = viewModelScope.launch {
-            delay(Motion.ROW_SETTLE_MS.toLong())
+            delay(Motion.ROW_SETTLE_MS.toLong() + WalkthroughRestCaptureHook.extraDelayAfterSettleMs())
             if (canChangeEntry()) startRestAfterSet(prescribedSeconds)
         }
     }
