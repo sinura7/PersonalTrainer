@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
+import com.sinura.personaltrainer.domain.EffortSource
 import com.sinura.personaltrainer.domain.FloorStepper
 import com.sinura.personaltrainer.domain.FloorTimedMode
 import com.sinura.personaltrainer.domain.FloorTimedModeResolver
@@ -824,7 +825,8 @@ class ActiveWorkoutViewModelTest {
         val draft = vm.awaitState { it.draft.weightKg == 100.0 && it.draft.rpe == 8 }.draft
         assertEquals(100.0, draft.weightKg, 0.0001)
         assertEquals(5, draft.reps)
-        assertEquals("Apply copies coach load and effort (R1 D1)", 8, draft.rpe)
+        assertEquals("Apply copies coach load and effort (R1 COACH)", 8, draft.rpe)
+        assertEquals(EffortSource.COACH, vm.uiState.value.effortSource)
         assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
     }
 
@@ -838,7 +840,7 @@ class ActiveWorkoutViewModelTest {
         vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
-        vm.awaitState { it.session?.sets?.size == 1 && it.draft.rpe == null }
+        vm.awaitState { it.session?.sets?.size == 1 && it.draft.rpe == 6 && it.effortSource == EffortSource.PREFILL_LAST }
         vm.skipRest()
 
         val rec = checkNotNull(
@@ -852,9 +854,11 @@ class ActiveWorkoutViewModelTest {
         )
         assertEquals(102.5, rec.nextWeightKg, 0.0001)
         assertTrue(rec.showApply)
-        val draft = vm.awaitState { it.draft.rpe == null && it.session?.sets?.size == 1 }.draft
+        val draft = vm.awaitState {
+            it.draft.rpe == 6 && it.effortSource == EffortSource.PREFILL_LAST && it.session?.sets?.size == 1
+        }.draft
         assertEquals(100.0, draft.weightKg, 0.0001)
-        assertNull(draft.rpe)
+        assertEquals(6, draft.rpe)
     }
 
     @Test
@@ -2533,6 +2537,35 @@ class ActiveWorkoutViewModelTest {
         } finally {
             job.cancel()
         }
+    }
+
+    @Test
+    fun workingSetPrefillsEffortFromLastLoggedSetInSession() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setRpe(7)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        val state = vm.awaitState { it.session?.sets?.size == 1 && it.draft.rpe == 7 }
+        assertEquals(EffortSource.PREFILL_LAST, state.effortSource)
+        assertTrue(state.logCommitReady)
+    }
+
+    @Test
+    fun userEffortOverrideMarksSourceUser() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setRpe(7)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.draft.rpe == 7 && it.effortSource == EffortSource.PREFILL_LAST }
+        vm.setRpe(9)
+        val overridden = vm.awaitState { it.draft.rpe == 9 }
+        assertEquals(EffortSource.USER, overridden.effortSource)
     }
 
     @Test

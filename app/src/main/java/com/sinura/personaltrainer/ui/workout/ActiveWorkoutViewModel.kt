@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.EffortPrefillPolicy
+import com.sinura.personaltrainer.domain.EffortSource
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
@@ -71,6 +72,7 @@ import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.coach.TempoCoachTip
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
+import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
@@ -212,6 +214,10 @@ data class ActiveWorkoutUiState(
     /** The coach's pick for this session, pinned above the picker's results. */
     val suggestion: Exercise? = null,
     val suggestionReason: String? = null,
+    /** Working-set effort in the draft when effort applies; null for warm-ups and holds. */
+    val effortValue: Int? = null,
+    /** Whether [effortValue] is prefilled, coach-applied, user-picked, or absent (R1 lane B). */
+    val effortSource: EffortSource = EffortSource.NONE,
 ) {
     val isLoading: Boolean get() = loadState == SessionLoadState.LOADING
 
@@ -354,6 +360,7 @@ class ActiveWorkoutViewModel internal constructor(
      */
     private val priorHistory = MutableStateFlow<List<ExerciseSetRecord>>(emptyList())
     val exerciseHistory: StateFlow<List<ExerciseSetRecord>> = priorHistory.asStateFlow()
+    private val effortSource = MutableStateFlow(EffortSource.NONE)
     private val restTotal = MutableStateFlow(
         PlannedRest(
             seconds = RestTimerPreferences.DEFAULT_SECONDS,
@@ -1052,6 +1059,14 @@ class ActiveWorkoutViewModel internal constructor(
             mutating = state.mutating || !recovery.canEnter,
             error = recovery.message.takeIf { recovery.phase != WorkoutPrivatePhase.READY } ?: state.error,
         )
+    }.combine(effortSource) { state, source ->
+        val lift = state.session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
+        val hold = lift?.exercise?.let { HoldWork.isHold(it) } == true
+        val effortApplies = !state.draft.isWarmup && !hold
+        state.copy(
+            effortSource = source,
+            effortValue = state.draft.rpe.takeIf { effortApplies },
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -1170,13 +1185,21 @@ class ActiveWorkoutViewModel internal constructor(
                     val lastWeight = progression?.suggestedWeightKg
                         ?: planned?.targetWeightKg
                         ?: 0.0
+                    val seededEffort = EffortPrefillPolicy.effortForAutomaticSeed(
+                        isWarmup = false,
+                        isHold = hold,
+                        exerciseId = exerciseId,
+                        sessionSets = current.sets,
+                        priorWorkingSets = priorHistory.value,
+                    )
                     draft.value = ActiveExerciseDraft(
                         weightKg = lastWeight,
                         reps = if (hold) 0 else targetReps.coerceAtLeast(1),
-                        rpe = EffortPrefillPolicy.effortForAutomaticSeed(isWarmup = false, isHold = hold),
+                        rpe = seededEffort,
                         isWarmup = false,
                         durationSeconds = if (hold) HoldWork.countdownSeconds(planned?.targetSeconds) else null,
                     )
+                    effortSource.value = if (seededEffort != null) EffortSource.PREFILL_LAST else EffortSource.NONE
                     liftReadiness.value = LiftEntryReadiness.READY
                     suggestionUnavailable.value = false
                     val wrote = writeDraftLocked()
@@ -1202,10 +1225,17 @@ class ActiveWorkoutViewModel internal constructor(
                 if (!saves.pending && !draftDirty.value && editingSetId.value == null &&
                     (!keepDraft || draft.value.weightKg <= 0.0)
                 ) {
+                    val seededEffort = EffortPrefillPolicy.effortForAutomaticSeed(
+                        isWarmup = false,
+                        isHold = hold,
+                        exerciseId = exerciseId,
+                        sessionSets = session.value?.sets.orEmpty(),
+                        priorWorkingSets = priorHistory.value,
+                    )
                     draft.value = ActiveExerciseDraft(
                         weightKg = livePlanned?.targetWeightKg ?: 0.0,
                         reps = if (hold) 0 else targetReps.coerceAtLeast(1),
-                        rpe = EffortPrefillPolicy.effortForAutomaticSeed(isWarmup = false, isHold = hold),
+                        rpe = seededEffort,
                         isWarmup = false,
                         durationSeconds = if (hold) {
                             HoldWork.countdownSeconds(livePlanned?.targetSeconds)
@@ -1213,6 +1243,7 @@ class ActiveWorkoutViewModel internal constructor(
                             null
                         },
                     )
+                    effortSource.value = if (seededEffort != null) EffortSource.PREFILL_LAST else EffortSource.NONE
                     writeDraftLocked()
                 } else {
                     false
@@ -1226,6 +1257,38 @@ class ActiveWorkoutViewModel internal constructor(
 
     private fun isCurrentPrefill(exerciseId: String, generation: Int): Boolean =
         selectedExerciseId.value == exerciseId && prefillGeneration == generation
+
+    private fun automaticEffortForLift(exerciseId: String, isWarmup: Boolean, hold: Boolean): Int? {
+        val current = session.value ?: sessionReader.observations.value.session ?: return null
+        return EffortPrefillPolicy.effortForAutomaticSeed(
+            isWarmup = isWarmup,
+            isHold = hold,
+            exerciseId = exerciseId,
+            sessionSets = current.sets,
+            priorWorkingSets = priorHistory.value,
+        )
+    }
+
+    /** Room may not have emitted the row yet when the save tail seeds the next draft. */
+    private fun sessionSetsForEffortSeed(command: WorkoutSetSave): List<SetLog> {
+        val live = session.value?.sets.orEmpty()
+        if (command.editing || live.any { it.id == command.setId }) return live
+        val values = command.values
+        val lift = session.value?.exercises?.firstOrNull { it.exercise.id == command.exerciseId }
+        return live + SetLog(
+            id = command.setId,
+            sessionId = sessionId,
+            exerciseId = command.exerciseId,
+            exerciseName = lift?.exercise?.name.orEmpty(),
+            setNumber = 0,
+            weightKg = values.weightKg,
+            reps = values.reps,
+            rpe = values.rpe,
+            isWarmup = values.isWarmup,
+            completedAt = time.nowMillis(),
+            durationSeconds = values.durationSeconds,
+        )
+    }
 
     /**
      * Reads the open lift's hint again under [now], the one read a change of the unit or the
@@ -1304,6 +1367,7 @@ class ActiveWorkoutViewModel internal constructor(
             pendingResumeDraft = null
             draftDirty.value = false
             draft.value = ActiveExerciseDraft()
+            effortSource.value = EffortSource.NONE
             liftReadiness.value = LiftEntryReadiness.RESOLVING
         }
         prefillGeneration++
@@ -1351,6 +1415,7 @@ class ActiveWorkoutViewModel internal constructor(
         draft.value = cached.entryDraft()
         draftDirty.value = cached.dirty
         wantAnotherSet.value = cached.extraSetRequested
+        effortSource.value = if (cached.entryDraft().rpe != null) EffortSource.USER else EffortSource.NONE
     }
 
     private fun clearLiftSelection() {
@@ -1362,6 +1427,7 @@ class ActiveWorkoutViewModel internal constructor(
         suggestionUnavailable.value = false
         savedSetAwaitingRow = null
         liftReadiness.value = LiftEntryReadiness.NONE
+        effortSource.value = EffortSource.NONE
         prefillGeneration++
         selectedExerciseId.value = null
     }
@@ -1518,6 +1584,7 @@ class ActiveWorkoutViewModel internal constructor(
         editEntry {
             val current = draft.value
             draft.value = current.copy(rpe = rpe)
+            effortSource.value = if (rpe == null) EffortSource.NONE else EffortSource.USER
         }
         // An effort does not make the entry "typed" (P2a, 29 September 2026). Every working
         // set now carries one, so counting it would stop every entry after a logged set from
@@ -1533,6 +1600,21 @@ class ActiveWorkoutViewModel internal constructor(
                 isWarmup = isWarmup,
                 rpe = if (isWarmup) null else current.rpe,
             )
+            if (isWarmup) {
+                effortSource.value = EffortSource.NONE
+            } else if (current.rpe == null) {
+                val liftId = selectedExerciseId.value
+                val hold = liftId?.let { id ->
+                    session.value?.exercises?.firstOrNull { it.exercise.id == id }?.exercise
+                }?.let { HoldWork.isHold(it) } == true
+                if (liftId != null && !hold) {
+                    val seeded = automaticEffortForLift(liftId, isWarmup = false, hold = false)
+                    if (seeded != null) {
+                        draft.value = draft.value.copy(rpe = seeded)
+                        effortSource.value = EffortSource.PREFILL_LAST
+                    }
+                }
+            }
             markDraftDirty()
         }
     }
@@ -1551,6 +1633,7 @@ class ActiveWorkoutViewModel internal constructor(
                 isWarmup = true,
                 rpe = null,
             )
+            effortSource.value = EffortSource.NONE
             markDraftDirty()
         }
     }
@@ -2220,6 +2303,10 @@ class ActiveWorkoutViewModel internal constructor(
             weightKg = values.weightKg, reps = values.reps, rpe = values.rpe,
             isWarmup = values.isWarmup, durationSeconds = values.durationSeconds,
         )
+        effortSource.value = when {
+            values.isWarmup || values.rpe == null -> EffortSource.NONE
+            else -> EffortSource.USER
+        }
         draftDirty.value = true
         liftReadiness.value = LiftEntryReadiness.READY
     }
@@ -2249,7 +2336,19 @@ class ActiveWorkoutViewModel internal constructor(
             // A correction saved is the lifter's number (W2e): a warm-up's, saved unchanged, would
             // otherwise read as an untouched entry once Warm-up is cleared here.
             if (command.editing) draftDirty.value = true
-            draft.value = draft.value.copy(isWarmup = false, rpe = null)
+            val hold = session.value?.exercises
+                ?.firstOrNull { it.exercise.id == command.exerciseId }
+                ?.exercise
+                ?.let { HoldWork.isHold(it) } == true
+            val seededEffort = EffortPrefillPolicy.effortForAutomaticSeed(
+                isWarmup = false,
+                isHold = hold,
+                exerciseId = command.exerciseId,
+                sessionSets = sessionSetsForEffortSeed(command),
+                priorWorkingSets = priorHistory.value,
+            )
+            draft.value = draft.value.copy(isWarmup = false, rpe = seededEffort)
+            effortSource.value = if (seededEffort != null) EffortSource.PREFILL_LAST else EffortSource.NONE
             error.clearFrom(source = ERR_LOG_SET, before = error.mark())
             persistDraft()
             clocks.stopHold()
@@ -2578,15 +2677,17 @@ class ActiveWorkoutViewModel internal constructor(
         if (lift != null && HoldWork.isHold(lift.exercise)) return
         editEntry {
             val current = draft.value
+            val coachEffort = EffortPrefillPolicy.effortWhenApplyingCoachRecommendation(
+                isWarmup = current.isWarmup,
+                isHold = false,
+                suggestedRpe = rec.nextRpe,
+            )
             draft.value = current.copy(
                 weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
                 reps = rec.nextReps.coerceAtLeast(1),
-                rpe = EffortPrefillPolicy.effortWhenApplyingCoachRecommendation(
-                    isWarmup = current.isWarmup,
-                    isHold = false,
-                    suggestedRpe = rec.nextRpe,
-                ),
+                rpe = coachEffort,
             )
+            effortSource.value = if (coachEffort != null) EffortSource.COACH else EffortSource.NONE
             markDraftDirty()
         }
     }
