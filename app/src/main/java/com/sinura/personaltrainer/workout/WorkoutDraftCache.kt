@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.workout
 
 import com.sinura.personaltrainer.domain.DraftStore
+import com.sinura.personaltrainer.domain.EffortSource
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +20,7 @@ data class WorkoutDraft(
     val durationSeconds: Int? = null,
     val dirty: Boolean = false,
     val extraSetRequested: Boolean = false,
+    val effortSource: EffortSource = EffortSource.NONE,
 )
 
 /**

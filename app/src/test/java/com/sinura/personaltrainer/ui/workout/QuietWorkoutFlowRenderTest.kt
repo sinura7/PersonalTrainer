@@ -152,6 +152,17 @@ class QuietWorkoutFlowRenderTest {
     @Test
     fun rtl_largeText() = recordManualResult("360x640-rtl-font20", 2f, LayoutDirection.Rtl)
 
+    @Test
+    fun firstEverLiftShowsEffortMissingAndLogDisabled() {
+        val vm = openScreen(fontScale = 1f)
+        compose.onNode(
+            hasTestTag(WorkoutTestTags.LOG_READINESS) and hasAnyAncestor(hasTestTag(WorkoutTestTags.SECTION_RPE)),
+            useUnmergedTree = true,
+        ).assert(hasText(EFFORT_MISSING))
+        assertPrimaryReachable(enabled = false)
+        assertFalse(vm.uiState.value.logCommitReady)
+    }
+
     @Test @Config(qualifiers = "w360dp-h1600dp-xhdpi")
     fun entryAndVisibleReadinessPrecedeSavedWorkCoachAndStats() {
         val vm = openScreen(fontScale = 1f)

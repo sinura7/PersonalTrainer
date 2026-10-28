@@ -813,8 +813,15 @@ class ActiveWorkoutViewModel internal constructor(
             hintSettings.map { it?.lighterWeek == true },
             container.preferencesRepository.weightUnit,
             container.preferencesRepository.coachPreferences,
-        ) { editing, lighter, unit, coach ->
-            MicroRecExtras(editingSetId = editing, lighterWeek = lighter, unit = unit, coachPrefs = coach)
+            effortSource,
+        ) { editing, lighter, unit, coach, effort ->
+            MicroRecExtras(
+                editingSetId = editing,
+                lighterWeek = lighter,
+                unit = unit,
+                coachPrefs = coach,
+                draftRpeIntent = effort == EffortSource.USER || effort == EffortSource.COACH,
+            )
         },
     ) { core, extras ->
         NextSetInputs(
@@ -828,6 +835,7 @@ class ActiveWorkoutViewModel internal constructor(
             lighterWeek = extras.lighterWeek,
             unit = extras.unit,
             coachPrefs = extras.coachPrefs,
+            draftRpeIntent = extras.draftRpeIntent,
         ).coachKey()
     }.distinctUntilChanged()
 
@@ -1258,6 +1266,12 @@ class ActiveWorkoutViewModel internal constructor(
     private fun isCurrentPrefill(exerciseId: String, generation: Int): Boolean =
         selectedExerciseId.value == exerciseId && prefillGeneration == generation
 
+    private fun isHoldLift(exerciseId: String): Boolean {
+        val exercise = session.value?.exercises?.firstOrNull { it.exercise.id == exerciseId }?.exercise
+            ?: return false
+        return HoldWork.isHold(exercise)
+    }
+
     private fun automaticEffortForLift(exerciseId: String, isWarmup: Boolean, hold: Boolean): Int? {
         val current = session.value ?: sessionReader.observations.value.session ?: return null
         return EffortPrefillPolicy.effortForAutomaticSeed(
@@ -1415,7 +1429,7 @@ class ActiveWorkoutViewModel internal constructor(
         draft.value = cached.entryDraft()
         draftDirty.value = cached.dirty
         wantAnotherSet.value = cached.extraSetRequested
-        effortSource.value = if (cached.entryDraft().rpe != null) EffortSource.USER else EffortSource.NONE
+        effortSource.value = cached.effortSource
     }
 
     private fun clearLiftSelection() {
@@ -1602,13 +1616,14 @@ class ActiveWorkoutViewModel internal constructor(
             )
             if (isWarmup) {
                 effortSource.value = EffortSource.NONE
-            } else if (current.rpe == null) {
+            } else {
                 val liftId = selectedExerciseId.value
-                val hold = liftId?.let { id ->
-                    session.value?.exercises?.firstOrNull { it.exercise.id == id }?.exercise
-                }?.let { HoldWork.isHold(it) } == true
-                if (liftId != null && !hold) {
-                    val seeded = automaticEffortForLift(liftId, isWarmup = false, hold = false)
+                if (liftId != null && !isHoldLift(liftId)) {
+                    val seeded = automaticEffortForLift(
+                        exerciseId = liftId,
+                        isWarmup = false,
+                        hold = false,
+                    )
                     if (seeded != null) {
                         draft.value = draft.value.copy(rpe = seeded)
                         effortSource.value = EffortSource.PREFILL_LAST
@@ -2303,7 +2318,7 @@ class ActiveWorkoutViewModel internal constructor(
             weightKg = values.weightKg, reps = values.reps, rpe = values.rpe,
             isWarmup = values.isWarmup, durationSeconds = values.durationSeconds,
         )
-        effortSource.value = when {
+        effortSource.value = liftDraft(command.exerciseId)?.effortSource ?: when {
             values.isWarmup || values.rpe == null -> EffortSource.NONE
             else -> EffortSource.USER
         }
@@ -2685,9 +2700,9 @@ class ActiveWorkoutViewModel internal constructor(
             draft.value = current.copy(
                 weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
                 reps = rec.nextReps.coerceAtLeast(1),
-                rpe = coachEffort,
+                rpe = coachEffort ?: current.rpe,
             )
-            effortSource.value = if (coachEffort != null) EffortSource.COACH else EffortSource.NONE
+            if (coachEffort != null) effortSource.value = EffortSource.COACH
             markDraftDirty()
         }
     }
@@ -3096,6 +3111,7 @@ class ActiveWorkoutViewModel internal constructor(
             durationSeconds = fields.durationSeconds,
             dirty = dirty,
             extraSetRequested = wantAnotherSet.value,
+            effortSource = effortSource.value,
         )
         // The entry, and with it the session's notes (WorkoutDraftCache.sessionNotes).
         draftCache.put(current)
@@ -3128,6 +3144,7 @@ class ActiveWorkoutViewModel internal constructor(
         val lighterWeek: Boolean,
         val unit: WeightUnit,
         val coachPrefs: CoachPreferences,
+        val draftRpeIntent: Boolean,
     )
 
     /** Which load the hint on screen came from, by [prefillGeneration], and what it was read under (W2e). */

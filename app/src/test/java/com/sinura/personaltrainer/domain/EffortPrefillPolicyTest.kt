@@ -47,7 +47,14 @@ class EffortPrefillPolicyTest {
             setLog(id = "2", exerciseId = "sq", rpe = 8, completedAt = 200L),
         )
         val prior = listOf(
-            ExerciseSetRecord("p", "old", 100.0, 5, completedAt = 300L, rpe = 9),
+            ExerciseSetRecord(
+                setId = "p",
+                sessionId = "old",
+                weightKg = 100.0,
+                reps = 5,
+                completedAt = 300L,
+                rpe = 9,
+            ),
         )
         assertEquals(
             8,
@@ -82,9 +89,30 @@ class EffortPrefillPolicyTest {
     @Test
     fun automaticSeedFallsBackToLatestPriorWorkingSet() {
         val prior = listOf(
-            ExerciseSetRecord("a", "s1", 100.0, 5, completedAt = 100L, rpe = 6),
-            ExerciseSetRecord("b", "s2", 100.0, 5, completedAt = 300L, rpe = 9),
-            ExerciseSetRecord("c", "s3", 100.0, 5, completedAt = 200L, rpe = 7),
+            ExerciseSetRecord(
+                setId = "a",
+                sessionId = "s1",
+                weightKg = 100.0,
+                reps = 5,
+                completedAt = 100L,
+                rpe = 6,
+            ),
+            ExerciseSetRecord(
+                setId = "b",
+                sessionId = "s2",
+                weightKg = 100.0,
+                reps = 5,
+                completedAt = 300L,
+                rpe = 9,
+            ),
+            ExerciseSetRecord(
+                setId = "c",
+                sessionId = "s3",
+                weightKg = 100.0,
+                reps = 5,
+                completedAt = 200L,
+                rpe = 7,
+            ),
         )
         assertEquals(
             9,

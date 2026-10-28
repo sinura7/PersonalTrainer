@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.UndoKind
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -790,6 +791,51 @@ class ActiveWorkoutViewModelTest {
         assertFalse(deps.restTimerStore.current().running)
         assertNull(vm.personalRecord.value)
         assertTrue(checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.isEmpty())
+    }
+
+    @Test
+    fun coachApplyWithNullNextRpeKeepsUserEffort() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.setRpe(8)
+        vm.awaitState { it.draft.rpe == 8 && it.effortSource == EffortSource.USER }
+        val applyCoachRec = ActiveWorkoutViewModel::class.java.getDeclaredMethod(
+            "applyCoachRec",
+            SetMicroRec::class.java,
+            Boolean::class.javaPrimitiveType,
+        ).apply { isAccessible = true }
+        val rec = SetMicroRec(
+            nextWeightKg = 102.5,
+            nextReps = 5,
+            nextRpe = null,
+            previewOnly = false,
+            showApply = true,
+            reasonCode = SetMicroRecCalculator.IN_TANK,
+            trace = checkNotNull(vm.microRec.value).trace,
+        )
+        applyCoachRec.invoke(vm, rec, false)
+        dispatcher.scheduler.advanceUntilIdle()
+        val state = vm.awaitState { it.draft.weightKg == 102.5 && it.draft.rpe == 8 }
+        assertEquals(EffortSource.USER, state.effortSource)
+    }
+
+    @Test
+    fun switchingBackRestoresPrefillEffortSource() = runBlocking {
+        val fixture = seedTwoLifts()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setRpe(7)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.draft.rpe == 7 && it.effortSource == EffortSource.PREFILL_LAST }
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.liftReadiness.allowsCommit() }
+        vm.selectExercise(SQUAT)
+        val back = vm.awaitState { it.selectedExerciseId == SQUAT && it.draft.rpe == 7 }
+        assertEquals(EffortSource.PREFILL_LAST, back.effortSource)
     }
 
     @Test

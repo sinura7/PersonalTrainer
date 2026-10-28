@@ -41,6 +41,8 @@ internal data class NextSetInputs(
     val lighterWeek: Boolean,
     val unit: WeightUnit,
     val coachPrefs: CoachPreferences,
+    /** True when draft effort was chosen or coach-applied, not automatic prefill (W2c). */
+    val draftRpeIntent: Boolean,
 ) {
     fun rec(nowMs: Long, todayEpochDay: Long): SetMicroRec? =
         coachKey().rec(nowMs = nowMs, todayEpochDay = todayEpochDay)
@@ -60,6 +62,7 @@ internal data class NextSetInputs(
             wantAnotherSet = wantAnotherSet,
             historySets = historySets,
             coachPrefs = coachPrefs,
+            draftRpeIntent = draftRpeIntent,
         ),
         prefs = coachPrefs,
     )
