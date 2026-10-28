@@ -14,7 +14,7 @@ object NativeArtifacts {
 
     fun write(name: String, bitmap: Bitmap): String {
         require(runId.matches(Regex("[A-Za-z0-9-]+")))
-        require(name.matches(Regex("[A-Za-z0-9-]+")))
+        require(name.matches(Regex("[A-Za-z0-9._-]+")))
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val root = checkNotNull(instrumentation.targetContext.getExternalFilesDir(null))
         val file = File(root, "$runId-$name.png")
