@@ -836,7 +836,7 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.LOG_SET) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
-        compose.waitForIdle()
+        // Do not waitForIdle here: ROW_SETTLE_MS auto-starts rest; idle wait can miss REST_IDLE.
     }
 
     private fun enterNumbers(weightKg: Double, reps: Int) {
@@ -874,18 +874,21 @@ class UxWalkthroughTest {
 
     private fun awaitSetLoggedRestIdle(setNumber: Int) {
         harnessWaitUntil(45_000) {
-            val persisted = liveStrengthLoggedSetCount() >= setNumber
-            val savedVisible = compose.onAllNodes(
-                hasContentDescription(value = "$setNumber saved", substring = true),
-            ).fetchSemanticsNodes().isNotEmpty()
             val restIdle = compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isNotEmpty()
             val restRunningUi = compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
             val restRunningStore = container.restTimerStore.current().running
-            persisted &&
-                restIdle &&
-                !restRunningUi &&
-                !restRunningStore &&
-                (savedVisible || compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty())
+            val persisted = liveStrengthLoggedSetCount() >= setNumber
+            if (!restIdle || restRunningUi || restRunningStore) {
+                return@harnessWaitUntil false
+            }
+            if (persisted) {
+                return@harnessWaitUntil true
+            }
+            // Save still in flight: stay on planned rest before ROW_SETTLE starts the timer.
+            compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodes(
+                    hasContentDescription(value = "$setNumber saved", substring = true),
+                ).fetchSemanticsNodes().isNotEmpty()
         }
         compose.waitForIdle()
     }
