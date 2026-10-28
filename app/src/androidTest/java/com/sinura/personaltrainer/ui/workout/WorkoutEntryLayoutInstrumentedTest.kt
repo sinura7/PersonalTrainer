@@ -105,7 +105,7 @@ class WorkoutEntryLayoutInstrumentedTest(
         val commit = compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         // Compose rounds dp constraints to physical pixels. Compare the same
         // integer floor; 72 dp at density 2.28125 correctly renders as 164 px.
-        val minimumCommitPixels = with(rootNode.layoutInfo.density) { 72.dp.roundToPx() }
+        val minimumCommitPixels = with(rootNode.layoutInfo.density) { 64.dp.roundToPx() }
         assertTrue("72 dp commit floor: pixels=${commit.height}, expected=$minimumCommitPixels", commit.height >= minimumCommitPixels)
         assertTrue("commit remains in viewport", commit.bottom <= root.bottom + 1)
         val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot

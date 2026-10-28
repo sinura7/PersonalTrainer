@@ -18,4 +18,13 @@
     <string name="rest_overlay_dismiss_glyph">×</string>
     <string name="lockscreen_rest_widget_preview_time">1:30</string>
     <string name="rest_overlay_resize_handle">Resize rest timer</string>
+    <string name="live_effort_label">How hard?</string>
+    <string name="live_effort_last">Last time %1$d</string>
+    <string name="live_effort_scale">6 easy · 10 max</string>
+    <string name="live_effort_missing">Pick an effort</string>
+    <string name="live_warmup_caption">Warm-ups skip effort and rest</string>
+    <string name="tempo_label">Tempo</string>
+    <string name="tempo_applied">Already filled in · tap for why</string>
+    <string name="tempo_undo">Undo</string>
+    <string name="tempo_why">Why</string>
 </resources>

@@ -144,7 +144,7 @@ class FloorSectionEdgesRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         compose.waitForIdle()
         compose.waitUntil(timeoutMillis = WAIT_MS) {
-            compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_LINE).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
         val callout = compose.onAllNodes(hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_CALLOUT)), useUnmergedTree = true)
@@ -160,9 +160,7 @@ class FloorSectionEdgesRenderTest {
     }
 
     private fun assertFramedAndDrawn() {
-        compose.waitUntil(timeoutMillis = WAIT_MS) {
-            compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.awaitFloorTag(WorkoutTestTags.SET_HISTORY, WAIT_MS)
         compose.waitForIdle()
         val frames = listOf(
             WorkoutTestTags.SECTION_ENTRY,

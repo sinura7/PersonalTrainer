@@ -164,18 +164,14 @@ class AdaptiveTempoReachabilityRenderTest {
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.CURRENT_LIFT))
         compose.waitForIdle()
-        compose.onAllNodes(
-            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
-        ).assertCountEquals(1)
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_LINE).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
         capture("why-relocation", "inline-offscreen-why-open")
         observeWhy("inline-offscreen-why-open")
 
         compose.runOnIdle { font.floatValue = 1f }
         compose.waitForIdle()
-        compose.onAllNodes(
-            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
-        ).assertCountEquals(1)
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_LINE).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
         observeWhy("returned-inline-before-keep-touch")
         assertWhyActionReachable(WorkoutTestTags.TEMPO_WHY_USE, 64f)
@@ -313,11 +309,19 @@ class AdaptiveTempoReachabilityRenderTest {
     }
 
     private fun assertCardPlacement(inline: Boolean) {
-        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(1)
-        compose.onAllNodes(
-            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
-                hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
-        ).assertCountEquals(1)
+        if (inline) {
+            compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_LINE).assertCountEquals(1)
+            compose.onAllNodes(
+                hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
+                    hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
+            ).assertCountEquals(0)
+        } else {
+            compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(1)
+            compose.onAllNodes(
+                hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
+                    hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
+            ).assertCountEquals(1)
+        }
     }
 
     private fun assertFullyVisibleInWindow(node: SemanticsNodeInteraction, tag: String): SemanticsNodeInteraction {
@@ -339,9 +343,10 @@ class AdaptiveTempoReachabilityRenderTest {
         val node = compose.onNodeWithTag(tag)
         val dockCoach = hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
             hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK))
-        // Apply and Why live on the dock suggestion cloud; everything else scrolls in content.
+        val inlineTempo = compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_LINE).fetchSemanticsNodes().isNotEmpty()
+        // Apply and Why live on the dock suggestion cloud during rest; on the log path they sit in content.
         if (tag != WorkoutTestTags.MICRO_REC_APPLY && tag != WorkoutTestTags.MICRO_REC_WHY ||
-            compose.onAllNodes(dockCoach).fetchSemanticsNodes().isEmpty()
+            (compose.onAllNodes(dockCoach).fetchSemanticsNodes().isEmpty() && !inlineTempo)
         ) {
             compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
             compose.waitForIdle()
@@ -350,6 +355,10 @@ class AdaptiveTempoReachabilityRenderTest {
             (tag == WorkoutTestTags.MICRO_REC_APPLY || tag == WorkoutTestTags.MICRO_REC_WHY)
         ) {
             return assertFullyVisibleInWindow(node, tag)
+        }
+        if (inlineTempo && tag == WorkoutTestTags.MICRO_REC_WHY) {
+            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.TEMPO_LINE))
+            compose.waitForIdle()
         }
         for (attempt in 0..3) {
             val target = node.fetchSemanticsNode()

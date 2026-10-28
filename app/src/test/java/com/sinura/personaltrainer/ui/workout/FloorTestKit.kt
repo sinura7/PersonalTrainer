@@ -25,6 +25,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -474,7 +475,11 @@ internal fun ActiveWorkoutViewModel.pickEffortIfNeeded() {
     val state = uiState.value
     val lift = state.session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId } ?: return
     val hold = HoldWork.isHold(lift.exercise)
-    if (state.draft.rpe == null && SetLogRules.requiresEffort(isWarmup = state.draft.isWarmup, isHold = hold)) {
+    if (
+        state.draft.rpe == null &&
+        state.effortValue == null &&
+        SetLogRules.requiresEffort(isWarmup = state.draft.isWarmup, isHold = hold)
+    ) {
         setRpe(TEST_EFFORT)
     }
 }
@@ -739,6 +744,16 @@ internal fun ComposeContentTestRule.scrollFloorTo(tag: String, clearTempo: Boole
     onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
     if (clearTempo) scrollFloorClearOfTempo()
     waitForIdle()
+}
+
+/** Scrolls the floor column until [tag] is composed, for lazy regions below the fold. */
+internal fun ComposeContentTestRule.awaitFloorTag(tag: String, timeoutMillis: Long = FLOOR_WAIT_MS) {
+    waitUntil(timeoutMillis) {
+        runCatching {
+            onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
+            waitForIdle()
+        }.isSuccess && onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+    }
 }
 
 private fun ComposeContentTestRule.settleKeypad() {

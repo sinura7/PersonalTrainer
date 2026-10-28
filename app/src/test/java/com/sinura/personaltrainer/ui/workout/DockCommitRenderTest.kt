@@ -59,7 +59,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The commit at the foot of the floor: a verb over what it will write, said to TalkBack as
- * one line, set in its own type and never shorter than 72 dp; it makes no haptic of its own
+ * one line, set in its own type and never shorter than 64 dp; it makes no haptic of its own
  * (the set's landing does), says why it waits when it cannot act, lets an open edit save
  * before Finish, and never lets a press begun on one action land on the next. On the real
  * screen it names the next lift under a short verb, writes the set in the lifter's unit and
@@ -132,7 +132,7 @@ class DockCommitRenderTest {
     }
 
     @Test
-    fun theCommitIsNeverShorterThanSeventyTwoDp() {
+    fun theCommitIsNeverShorterThanSixtyFourDp() {
         showDock(floorDockState(action = logSet, payload = null))
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertHeightIsAtLeast(COMMIT_MIN)
         dockState = floorDockState(action = next, payload = "Leg Curl")
@@ -301,6 +301,6 @@ class DockCommitRenderTest {
 
     private companion object {
         /** The owner's floor rule, as a number: a thumb-and-chalk target, not a token's name. */
-        val COMMIT_MIN = 72.dp
+        val COMMIT_MIN = 64.dp
     }
 }

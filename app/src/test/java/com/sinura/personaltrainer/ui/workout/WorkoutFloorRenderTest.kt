@@ -168,12 +168,10 @@ class WorkoutFloorRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "budget-360x1600", vm = vm, heightDp = 1600) {
             compose.waitUntil(timeoutMillis = 20_000) { vm.tempoCoachTip.value != null }
-            compose.waitUntil(timeoutMillis = 20_000) {
-                compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty() &&
-                    compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNodes().isNotEmpty()
-            }
+            compose.awaitFloorTag(WorkoutTestTags.SET_HISTORY)
+            compose.awaitFloorTag(WorkoutTestTags.TEMPO_LINE)
         }
-        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_LINE).assertIsDisplayed()
         val identity = compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).fetchSemanticsNode()
         // Focus measures the complete common floor, including the shared saved/Tempo row.
         // The unchanged ceiling does not include the disclosed secondary sheet; its controls

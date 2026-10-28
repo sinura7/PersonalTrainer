@@ -82,7 +82,9 @@ import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.NotesLeaveDialog
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.PinnedDock
+import com.sinura.personaltrainer.ui.components.EffortChips
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.TempoLine
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -124,6 +126,7 @@ object WorkoutTestTags {
     const val NEXT_SET_COMPACT = "workout-next-set-compact"
     const val FLOOR_DOCK = "workout-floor-dock"
     const val TEMPO_COACH_CARD = "workout-tempo-coach-card"
+    const val TEMPO_LINE = "workout-tempo-line"
     const val TEMPO_COACH_SHORTCUT = "workout-tempo-coach-shortcut"
     const val TEMPO_SUGGESTION_LABEL = "workout-tempo-suggestion-label"
     const val TEMPO_COACH_DISMISS = "workout-tempo-coach-dismiss"
@@ -585,24 +588,6 @@ private fun ActiveWorkoutContent(
                             },
                         )
                     } else if (logBarVisible) {
-                        floorTempoTip?.let { tip ->
-                            TempoCoachCard(
-                                tip = tip,
-                                loadClass = loadClass,
-                                unit = unit,
-                                applied = floorTempoApplied,
-                                enabled = floorEntryEnabled,
-                                onApply = { viewModel.applyTempoCoachTip(tip) },
-                                onDismiss = { viewModel.dismissTempoCoachTip(tip) },
-                                cardState = checkNotNull(floorTempoCardState),
-                                renderDialogs = false,
-                                compactLandscape = landscape || compactTempoDock,
-                                compactStrip = compactTempoDock,
-                                modifier = Modifier
-                                    .padding(horizontal = Metrics.gutter)
-                                    .padding(top = Metrics.space2, bottom = Metrics.space1),
-                            )
-                        }
                         WorkoutDock(
                             state = WorkoutDockState(
                                 primaryAction = primaryAction,
@@ -869,18 +854,40 @@ private fun ActiveWorkoutContent(
                                         }
                                     }
                                 }
+                                floorTempoTip?.let { tip ->
+                                    item(key = "tempo-line") {
+                                        TempoLine(
+                                            message = tip.tipShort,
+                                            applied = floorTempoApplied,
+                                            enabled = floorEntryEnabled,
+                                            onWhy = { checkNotNull(floorTempoCardState).showWhy = true },
+                                            onUndo = { viewModel.undoTopOffer() },
+                                            modifier = Modifier
+                                                .padding(horizontal = Metrics.gutter)
+                                                .padding(bottom = Metrics.space2)
+                                                .testTag(WorkoutTestTags.TEMPO_LINE),
+                                        )
+                                    }
+                                }
                                 item(key = "rpe") {
                                     Column(modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.SECTION_RPE),
                                         verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                                        RpeSelector(
-                                            focused = true,
-                                            optional = hold,
-                                            enabled = entryEnabled,
-                                            warmup = state.draft.isWarmup,
-                                            rpe = state.draft.rpe,
-                                            recommendedRpe = microRec?.nextRpe,
+                                        EffortChips(
+                                            selected = state.effortChipSelected,
+                                            prefilled = state.effortChipPrefilled,
+                                            last = state.lastPerformance?.topSet?.rpe,
+                                            enabled = entryEnabled && effortEntryReady,
+                                            hiddenForWarmup = state.draft.isWarmup || hold,
+                                            warmupCaption = if (state.draft.isWarmup) {
+                                                state.draft.rpe?.let { rpe ->
+                                                    "Recorded effort: RPE $rpe is kept for this warm-up."
+                                                }
+                                            } else {
+                                                null
+                                            },
                                             entryReady = effortEntryReady,
-                                            onRpe = viewModel::setRpe,
+                                            showError = state.effortMissingForCommit && state.effortValue == null,
+                                            onSelect = viewModel::setRpe,
                                         )
                                         WorkoutReadiness(
                                             action = primaryState.value,

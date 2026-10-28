@@ -77,7 +77,7 @@ object Metrics {
     val stepperPlateWidth: Dp = 64.dp
 
     /** Weight plates. Same height as [commit]. */
-    val stepperWeightHeight: Dp = 72.dp
+    val stepperWeightHeight: Dp = 64.dp
 
     /** Reps / hold-draft plates. Bodyweight reps use [stepperWeightHeight]. */
     val stepperRepsHeight: Dp = 64.dp
@@ -133,8 +133,8 @@ object Metrics {
     /** Scroll clearance when Tempo shows the full card above the dock. */
     val logFloorTempoFull: Dp = 128.dp
 
-    /** The one action worth a bigger target than anything else: logging a set. */
-    val commit: Dp = 72.dp
+    /** Primary commit control (Log set): full width, 64 dp per v3 PrimaryButton. */
+    val commit: Dp = logFloorCommit
 
     /**
      * Round − / + plates beside the hero numerals on the active workout: the area a thumb

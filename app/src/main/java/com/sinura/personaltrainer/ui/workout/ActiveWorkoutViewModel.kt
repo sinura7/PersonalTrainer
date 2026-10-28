@@ -236,10 +236,18 @@ data class ActiveWorkoutUiState(
             val exerciseId = selectedExerciseId ?: return false
             val lift = session?.exercises?.firstOrNull { it.exercise.id == exerciseId } ?: return false
             val hold = HoldWork.isHold(lift.exercise)
-            return SetLogRules.validateEffort(rpe = draft.rpe, isWarmup = draft.isWarmup, isHold = hold) != null
+            return SetLogRules.validateEffort(rpe = effortValue, isWarmup = draft.isWarmup, isHold = hold) != null
         }
 
     val logCommitReady: Boolean get() = canLog && !effortMissingForCommit
+
+    /** Explicit chip selection ([EffortSource.USER]). */
+    val effortChipSelected: Int?
+        get() = if (effortSource == EffortSource.USER) effortValue else null
+
+    /** Dotted prefill chip ([EffortSource.PREFILL_LAST]). */
+    val effortChipPrefilled: Int?
+        get() = if (effortSource == EffortSource.PREFILL_LAST) effortValue else null
 
     val canFinish: Boolean
         get() = loadState == SessionLoadState.FOUND && session?.sets?.isNotEmpty() == true && !entryLocked
@@ -287,9 +295,15 @@ class ActiveWorkoutViewModel internal constructor(
     @JvmOverloads constructor(application: Application, savedStateHandle: SavedStateHandle,
         container: AppDependencies = application.appContainer(),
         undoTimeout: UndoTimeoutProvider = systemUndoTimeout(application)) :
-        this(application, savedStateHandle, container, undoTimeout,
-            (container as? AppContainer)?.pickerContextDrafts, (container as? AppContainer)?.customExerciseDrafts,
-            (container as? AppContainer)?.pickerSwapDrafts)
+        this(
+            application,
+            savedStateHandle,
+            container,
+            undoTimeout,
+            (container as? AppContainer)?.pickerContextDrafts,
+            (container as? AppContainer)?.customExerciseDrafts,
+            (container as? AppContainer)?.pickerSwapDrafts,
+        )
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
     private val durability = draftCache.persistence?.forEntry()
@@ -2228,7 +2242,7 @@ class ActiveWorkoutViewModel internal constructor(
         val values = WorkoutSetValues(
             weightKg = current.weightKg,
             reps = if (hold) 0 else current.reps,
-            rpe = current.rpe,
+            rpe = uiState.value.effortValue,
             isWarmup = current.isWarmup,
             durationSeconds = duration,
         )

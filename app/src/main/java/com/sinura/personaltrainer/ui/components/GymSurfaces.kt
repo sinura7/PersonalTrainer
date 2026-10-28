@@ -58,6 +58,7 @@ import com.sinura.personaltrainer.ui.theme.SectionEdge
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.OutlineSolidVariant
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
@@ -148,6 +149,54 @@ fun GymSectionHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+enum class PanelEmphasis { None, Emphasis }
+
+/**
+ * v3 card shell: Surface1 panel with optional Volt emphasis border.
+ */
+@Composable
+fun Panel(
+    modifier: Modifier = Modifier,
+    emphasis: PanelEmphasis = PanelEmphasis.None,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val shape = RoundedCornerShape(Radius.lg)
+    val border = when (emphasis) {
+        PanelEmphasis.None -> BorderStroke(Metrics.hairline, OutlineSolidVariant)
+        PanelEmphasis.Emphasis -> BorderStroke(Metrics.emphasisBorder, Volt)
+    }
+    val colors = CardDefaults.cardColors(containerColor = Surface1)
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = modifier.fillMaxWidth(),
+            colors = colors,
+            shape = shape,
+            border = border,
+        ) {
+            Column(
+                modifier = Modifier.padding(Metrics.space4),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                content = content,
+            )
+        }
+    } else {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            colors = colors,
+            shape = shape,
+            border = border,
+        ) {
+            Column(
+                modifier = Modifier.padding(Metrics.space4),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                content = content,
+            )
         }
     }
 }

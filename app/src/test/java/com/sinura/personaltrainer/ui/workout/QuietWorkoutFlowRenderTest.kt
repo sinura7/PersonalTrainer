@@ -181,9 +181,10 @@ class QuietWorkoutFlowRenderTest {
         ).assert(hasText(EFFORT_MISSING))
         compose.onAllNodesWithTag(WorkoutTestTags.LOG_SET).assertCountEquals(1)
         assertNoFloatingCoach()
+        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_LINE).assertCountEquals(1)
         compose.onAllNodes(
             hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.FLOOR_DOCK)),
-        ).assertCountEquals(1)
+        ).assertCountEquals(0)
         compose.revealWorkoutSetOption(WorkoutTestTags.STATS_ROW)
         compose.onNodeWithTag(WorkoutTestTags.STAT_LAST).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.STAT_BEST).assertExists()
@@ -502,7 +503,7 @@ class QuietWorkoutFlowRenderTest {
             bounds.left >= -1f && bounds.top >= -1f && bounds.right <= window.first + 1f && bounds.bottom <= window.second + 1f
         observe("primary", "layout=${target.size} bounds=$bounds window=$window density=$density fullyVisible=$whole enabled=$enabled")
         assertTrue("the anchored primary must retain its full target", whole)
-        assertTrue("the primary retains at least72dp", bounds.height / density + 0.01f >= 72f)
+        assertTrue("the primary retains at least64dp", bounds.height / density + 0.01f >= 64f)
         node.assertIsDisplayed()
         return if (enabled) node.assertIsEnabled() else node.assertIsNotEnabled()
     }

@@ -88,7 +88,7 @@ class SetHistoryStripRenderTest {
         assertEquals("set-2", edited)
         assertEquals(null, deleted)
         assertEquals(0, openedAll)
-        compose.onNodeWithTag(WorkoutTestTags.setChip("set-1")).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.setChip("set-1")).assertIsDisplayed()
     }
 
     @Test
