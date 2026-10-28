@@ -165,8 +165,8 @@ class ConnectedWorkoutJourneyTest {
         chooseEffort(8)
         awaitEntry("effort preserves the typed result") { matches(it.draft, 82.5, 12) && it.draft.rpe == 8 }
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsEnabled().performClick()
-        awaitEntry("exactly one set is saved and the next effort is empty") {
-            it.session?.sets?.size == 1 && it.draft.rpe == null
+        awaitEntry("exactly one set is saved and the next effort is prefilled from the log") {
+            it.session?.sets?.size == 1 && it.draft.rpe == 8
         }
         val original = session().sets.single()
         assertSet(original, sessionId, original.id, 82.5, 12, 8)

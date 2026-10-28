@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
+import com.sinura.personaltrainer.domain.EffortSource
 import com.sinura.personaltrainer.domain.FloorStepper
 import com.sinura.personaltrainer.domain.FloorTimedMode
 import com.sinura.personaltrainer.domain.FloorTimedModeResolver
@@ -26,6 +27,7 @@ import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.UndoKind
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -792,6 +794,51 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun coachApplyWithNullNextRpeKeepsUserEffort() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.setRpe(8)
+        vm.awaitState { it.draft.rpe == 8 && it.effortSource == EffortSource.USER }
+        val applyCoachRec = ActiveWorkoutViewModel::class.java.getDeclaredMethod(
+            "applyCoachRec",
+            SetMicroRec::class.java,
+            Boolean::class.javaPrimitiveType,
+        ).apply { isAccessible = true }
+        val rec = SetMicroRec(
+            nextWeightKg = 102.5,
+            nextReps = 5,
+            nextRpe = null,
+            previewOnly = false,
+            showApply = true,
+            reasonCode = SetMicroRecCalculator.IN_TANK,
+            trace = checkNotNull(vm.microRec.value).trace,
+        )
+        applyCoachRec.invoke(vm, rec, false)
+        dispatcher.scheduler.advanceUntilIdle()
+        val state = vm.awaitState { it.draft.weightKg == 102.5 && it.draft.rpe == 8 }
+        assertEquals(EffortSource.USER, state.effortSource)
+    }
+
+    @Test
+    fun switchingBackRestoresPrefillEffortSource() = runBlocking {
+        val fixture = seedTwoLifts()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setRpe(7)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.draft.rpe == 7 && it.effortSource == EffortSource.PREFILL_LAST }
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW && it.liftReadiness.allowsCommit() }
+        vm.selectExercise(SQUAT)
+        val back = vm.awaitState { it.selectedExerciseId == SQUAT && it.draft.rpe == 7 }
+        assertEquals(EffortSource.PREFILL_LAST, back.effortSource)
+    }
+
+    @Test
     fun applyMicroRecFillsDraftAndDoesNotLog() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
@@ -821,10 +868,11 @@ class ActiveWorkoutViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         vm.applyMicroRec()
         dispatcher.scheduler.advanceUntilIdle()
-        val draft = vm.awaitState { it.draft.weightKg == 100.0 && it.draft.rpe == null }.draft
+        val draft = vm.awaitState { it.draft.weightKg == 100.0 && it.draft.rpe == 8 }.draft
         assertEquals(100.0, draft.weightKg, 0.0001)
         assertEquals(5, draft.reps)
-        assertNull("Apply copies load only; last effort stays a hint", draft.rpe)
+        assertEquals("Apply copies coach load and effort (R1 COACH)", 8, draft.rpe)
+        assertEquals(EffortSource.COACH, vm.uiState.value.effortSource)
         assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
     }
 
@@ -838,7 +886,7 @@ class ActiveWorkoutViewModelTest {
         vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
-        vm.awaitState { it.session?.sets?.size == 1 && it.draft.rpe == null }
+        vm.awaitState { it.session?.sets?.size == 1 && it.draft.rpe == 6 && it.effortSource == EffortSource.PREFILL_LAST }
         vm.skipRest()
 
         val rec = checkNotNull(
@@ -852,9 +900,11 @@ class ActiveWorkoutViewModelTest {
         )
         assertEquals(102.5, rec.nextWeightKg, 0.0001)
         assertTrue(rec.showApply)
-        val draft = vm.awaitState { it.draft.rpe == null && it.session?.sets?.size == 1 }.draft
+        val draft = vm.awaitState {
+            it.draft.rpe == 6 && it.effortSource == EffortSource.PREFILL_LAST && it.session?.sets?.size == 1
+        }.draft
         assertEquals(100.0, draft.weightKg, 0.0001)
-        assertNull(draft.rpe)
+        assertEquals(6, draft.rpe)
     }
 
     @Test
@@ -2533,6 +2583,35 @@ class ActiveWorkoutViewModelTest {
         } finally {
             job.cancel()
         }
+    }
+
+    @Test
+    fun workingSetPrefillsEffortFromLastLoggedSetInSession() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setRpe(7)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        val state = vm.awaitState { it.session?.sets?.size == 1 && it.draft.rpe == 7 }
+        assertEquals(EffortSource.PREFILL_LAST, state.effortSource)
+        assertTrue(state.logCommitReady)
+    }
+
+    @Test
+    fun userEffortOverrideMarksSourceUser() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setRpe(7)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.draft.rpe == 7 && it.effortSource == EffortSource.PREFILL_LAST }
+        vm.setRpe(9)
+        val overridden = vm.awaitState { it.draft.rpe == 9 }
+        assertEquals(EffortSource.USER, overridden.effortSource)
     }
 
     @Test

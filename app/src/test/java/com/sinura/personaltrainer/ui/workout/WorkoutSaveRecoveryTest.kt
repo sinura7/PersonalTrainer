@@ -330,7 +330,7 @@ class WorkoutSaveRecoveryTest {
         // The save's tail resets the draft's effort after the row lands; a Next captured before
         // that reset carries a different draft and is refused as stale. Wait for the reset.
         val next = vm.primaryAction.awaitFirst {
-            it.enabled && it.kind == WorkoutPrimaryKind.NEXT_EXERCISE && it.identity.draft.rpe == null
+            it.enabled && it.kind == WorkoutPrimaryKind.NEXT_EXERCISE && it.identity.draft.rpe == TEST_EFFORT
         }
         assertFalse(vm.performPrimary(log))
         assertFalse(vm.performPrimary(next))

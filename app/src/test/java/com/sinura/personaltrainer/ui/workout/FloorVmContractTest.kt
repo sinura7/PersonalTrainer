@@ -129,19 +129,22 @@ class FloorVmContractTest {
         vm.setReps(3)
         vm.awaitState { it.draft.weightKg == 80.0 && it.draft.reps == 3 }
         vm.applyMicroRec()
-        vm.awaitState { it.draft.weightKg == rec.nextWeightKg && it.draft.reps == rec.nextReps }
+        vm.awaitState {
+            it.draft.weightKg == rec.nextWeightKg && it.draft.reps == rec.nextReps &&
+                it.effortSource == com.sinura.personaltrainer.domain.EffortSource.COACH
+        }
         // The applied numbers are what a process death hands back, not the ones walked off.
         val saved = checkNotNull(SavedStateWorkoutDraft(handle).read(sessionId)) { "nothing was saved for the process to come back to" }
         assertEquals(rec.nextWeightKg, saved.weightKg, 1e-6)
         assertEquals(rec.nextReps, saved.reps)
-        assertNull("Apply copies load only; effort is chosen separately", saved.rpe)
+        assertEquals("Apply copies coach effort (R1 COACH)", rec.nextRpe, saved.rpe)
         vm.clearAndJoinForTest()
         viewModels.remove(vm)
         deps.workoutDraftCache.clearAll()
         val revived = viewModel(sessionId, handle)
         val state = revived.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg == rec.nextWeightKg }
         assertEquals(rec.nextReps, state.draft.reps)
-        assertNull(state.draft.rpe)
+        assertEquals(rec.nextRpe, state.draft.rpe)
         assertEquals("Apply never logs", 1, storedSession(sessionId).sets.size)
     }
 

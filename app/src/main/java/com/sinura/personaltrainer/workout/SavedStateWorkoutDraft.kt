@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.workout
 
 import androidx.lifecycle.SavedStateHandle
 import com.sinura.personaltrainer.domain.DraftStore
+import com.sinura.personaltrainer.domain.EffortSource
 
 /**
  * Mirrors staged workout entry into [SavedStateHandle], which is written to the saved
@@ -151,6 +152,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
         handle[liftKey(id, FIELD_DURATION)] = draft.durationSeconds
         handle[liftKey(id, FIELD_DIRTY)] = draft.dirty
         handle[liftKey(id, FIELD_EXTRA)] = draft.extraSetRequested
+        handle[liftKey(id, FIELD_EFFORT_SOURCE)] = draft.effortSource.name
     }
 
     private fun readLiftFields(sessionId: String, exerciseId: String): WorkoutDraft? {
@@ -166,6 +168,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
             durationSeconds = handle.get<Int>(liftKey(exerciseId, FIELD_DURATION)),
             dirty = handle.get<Boolean>(liftKey(exerciseId, FIELD_DIRTY)) ?: false,
             extraSetRequested = handle.get<Boolean>(liftKey(exerciseId, FIELD_EXTRA)) ?: false,
+            effortSource = readEffortSource(exerciseId),
         )
     }
 
@@ -206,8 +209,15 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
     }
 
     private fun removeLiftKeys(exerciseId: String) {
-        listOf(FIELD_WEIGHT, FIELD_REPS, FIELD_RPE, FIELD_WARMUP, FIELD_DURATION, FIELD_DIRTY, FIELD_EXTRA)
-            .forEach { handle.remove<Any>(liftKey(exerciseId, it)) }
+        listOf(
+            FIELD_WEIGHT, FIELD_REPS, FIELD_RPE, FIELD_WARMUP, FIELD_DURATION, FIELD_DIRTY, FIELD_EXTRA,
+            FIELD_EFFORT_SOURCE,
+        ).forEach { handle.remove<Any>(liftKey(exerciseId, it)) }
+    }
+
+    private fun readEffortSource(exerciseId: String): EffortSource {
+        val raw = handle.get<String>(liftKey(exerciseId, FIELD_EFFORT_SOURCE)) ?: return EffortSource.NONE
+        return runCatching { EffortSource.valueOf(raw) }.getOrDefault(EffortSource.NONE)
     }
 
     private companion object {
@@ -231,6 +241,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
         const val FIELD_DURATION = "durationSeconds"
         const val FIELD_DIRTY = "dirty"
         const val FIELD_EXTRA = "extraSetRequested"
+        const val FIELD_EFFORT_SOURCE = "effortSource"
 
         fun liftKey(exerciseId: String, field: String): String = "draft.lift.$exerciseId.$field"
     }

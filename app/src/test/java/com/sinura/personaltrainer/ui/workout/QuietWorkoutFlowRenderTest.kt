@@ -152,6 +152,17 @@ class QuietWorkoutFlowRenderTest {
     @Test
     fun rtl_largeText() = recordManualResult("360x640-rtl-font20", 2f, LayoutDirection.Rtl)
 
+    @Test
+    fun firstEverLiftShowsEffortMissingAndLogDisabled() {
+        val vm = openScreen(fontScale = 1f)
+        compose.onNode(
+            hasTestTag(WorkoutTestTags.LOG_READINESS) and hasAnyAncestor(hasTestTag(WorkoutTestTags.SECTION_RPE)),
+            useUnmergedTree = true,
+        ).assert(hasText(EFFORT_MISSING))
+        assertPrimaryReachable(enabled = false)
+        assertFalse(vm.uiState.value.logCommitReady)
+    }
+
     @Test @Config(qualifiers = "w360dp-h1600dp-xhdpi")
     fun entryAndVisibleReadinessPrecedeSavedWorkCoachAndStats() {
         val vm = openScreen(fontScale = 1f)
@@ -247,10 +258,10 @@ class QuietWorkoutFlowRenderTest {
         assertEquals(selected, saved.exerciseId)
         assertManual(saved.weightKg, saved.reps, saved.rpe)
         assertEquals("logging cannot advance the lift", selected, vm.uiState.value.selectedExerciseId)
-        assertNull("the next working set needs its own effort", vm.uiState.value.draft.rpe)
-        assertPrimaryReachable(enabled = false)
+        assertEquals("the next working set carries the last logged effort", 8, vm.uiState.value.draft.rpe)
+        assertPrimaryReachable(enabled = true)
         inspectSavedSets(vm, profile, fontScale, direction)
-        reveal(WorkoutTestTags.LOG_READINESS, profile).assert(hasText(EFFORT_MISSING))
+        reveal(WorkoutTestTags.LOG_READINESS, profile).assert(hasText(READY))
         capture(profile, "saved-next-draft")
         writeObservations(profile)
     }
@@ -351,7 +362,7 @@ class QuietWorkoutFlowRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertDoesNotExist()
         assertEquals(draft, vm.uiState.value.draft)
         assertEquals(graph, stored(vm))
-        assertPrimaryReachable(enabled = false)
+        assertPrimaryReachable(enabled = true)
     }
 
     private fun assertWhollyInside(target: androidx.compose.ui.semantics.SemanticsNode,
@@ -436,7 +447,7 @@ class QuietWorkoutFlowRenderTest {
         compose.awaitThat("one intended set is durable and the next entry is unlocked", vm.uiState::value) {
             val state = vm.uiState.value
             state.session?.id == sessionId && state.session?.sets?.size == 1 &&
-                !state.entryLocked && state.draft.rpe == null
+                !state.entryLocked && state.draft.rpe == 8
         }
         assertEquals(1, stored(vm).sets.size)
         assertFalse(stored(vm).sets.single().isWarmup)

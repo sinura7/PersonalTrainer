@@ -29,7 +29,7 @@ class NextSetInputsTest {
             "every input the coach reads, none of them with a default",
             listOf(
                 "session", "selectedExerciseId", "draft", "hint", "editingSetId", "wantAnotherSet",
-                "historySets", "lighterWeek", "unit", "coachPrefs",
+                "historySets", "lighterWeek", "unit", "coachPrefs", "draftRpeIntent",
             ),
             parameters.map { it.removePrefix("val ").substringBefore(":").trim() },
         )

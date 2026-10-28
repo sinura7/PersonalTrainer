@@ -163,23 +163,29 @@ class CoachRecomputeTest {
         val fixture = seedWorkout()
         val log = createLog(fixture.session.id)
         log.logTheFirstSet()
+        log.awaitState { it.draft.rpe == 8 && !it.entryLocked }
+        dispatcher.scheduler.advanceUntilIdle()
         val hold = checkNotNull(
             log.awaitCall("the Log's call after a set at RPE 8") {
                 it?.reasonCode == SetMicroRecCalculator.QUALITY
             },
         )
-        dispatcher.scheduler.advanceUntilIdle()
 
         val issued = CopyOnWriteArrayList<SetMicroRec?>()
         val watch = launch(dispatcher) { log.microRec.collect { issued += it } }
+
         clock.advance(1_000)
         log.setWeight(102.5)
         dispatcher.scheduler.advanceUntilIdle()
-        log.awaitState { it.draft.weightKg == 102.5 && !it.entryLocked }
+        log.awaitState { it.draft.weightKg == 102.5 && it.draft.rpe == 8 && !it.entryLocked }
         watch.cancel()
 
         val stamps = issued.map { it?.trace?.generatedAtMs }
-        assertEquals("a weight step with no RPE chosen yet, a second later, asked the coach again: $stamps", 1, issued.size)
+        assertEquals(
+            "a weight step alone, with effort already on the draft from the last log, keeps the Log's call: $stamps",
+            1,
+            issued.size,
+        )
         assertSame("the Log's call is the one it already had", hold, log.microRec.value)
 
         // The call still carries the time it was made (ADR-008): a change the coach reads is

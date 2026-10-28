@@ -5,6 +5,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
+import com.sinura.personaltrainer.domain.EffortSource
 import com.sinura.personaltrainer.domain.HoldTimerUiState
 import com.sinura.personaltrainer.domain.SetStopwatchUiState
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -34,6 +35,7 @@ internal object WorkoutCheckpointCodec : DraftCodec<WorkoutEntryCheckpoint, Unit
                     isWarmup = draft.isWarmup, durationSeconds = draft.durationSeconds,
                 )))
                 addProperty("dirty", draft.dirty); addProperty("extra", draft.extraSetRequested)
+                addProperty("effortSource", draft.effortSource.name)
             }) }
         })
         add("numbers", JsonArray().apply { value.numbers.forEach { add(encodeWorkoutNumber(it)) } })
@@ -55,6 +57,9 @@ internal object WorkoutCheckpointCodec : DraftCodec<WorkoutEntryCheckpoint, Unit
                 reps = fields.reps, rpe = fields.rpe, isWarmup = fields.isWarmup,
                 notes = notes.orEmpty(), durationSeconds = fields.durationSeconds,
                 dirty = lift.flag("dirty"), extraSetRequested = lift.flag("extra"),
+                effortSource = lift.nullableText("effortSource")?.let { name ->
+                    runCatching { EffortSource.valueOf(name) }.getOrDefault(EffortSource.NONE)
+                } ?: EffortSource.NONE,
             )
         }
         require(entries.map { it.first }.distinct().size == entries.size)

@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.EffortSource
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
@@ -341,6 +342,9 @@ class RestTimerViewModel @JvmOverloads constructor(
             lighterWeek = loaded.lighterWeek,
             unit = loaded.unit,
             coachPrefs = loaded.coachPrefs,
+            draftRpeIntent = cached?.effortSource.let { source ->
+                source == EffortSource.USER || source == EffortSource.COACH
+            },
         )
     }
 

@@ -31,6 +31,7 @@ internal fun workoutCoachSuggestion(
     wantAnotherSet: Boolean = false,
     historySets: List<ExerciseSetRecord> = emptyList(),
     coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
+    draftRpeIntent: Boolean = false,
 ): CoachSuggestion? = workoutCoachInputs(
     session = session,
     selectedExerciseId = selectedExerciseId,
@@ -44,6 +45,7 @@ internal fun workoutCoachSuggestion(
     wantAnotherSet = wantAnotherSet,
     historySets = historySets,
     coachPrefs = coachPrefs,
+    draftRpeIntent = draftRpeIntent,
 )?.let { inputs -> CoachEngine.suggest(inputs = inputs, prefs = coachPrefs) }
 
 /**
@@ -63,6 +65,7 @@ internal fun workoutCoachInputs(
     wantAnotherSet: Boolean = false,
     historySets: List<ExerciseSetRecord> = emptyList(),
     coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
+    draftRpeIntent: Boolean = false,
 ): SetMicroRecInputs? {
     if (session == null) return null
     val exerciseId = session.resolveSelectedExerciseId(selectedExerciseId) ?: return null
@@ -78,7 +81,7 @@ internal fun workoutCoachInputs(
     }
     val lastAny = sets.maxByOrNull { it.completedAt }
     // Warm-up drafts are not a preview of the next working set.
-    val draftRpe = draft.rpe.takeUnless { draft.isWarmup }
+    val draftRpe = draft.rpe.takeUnless { draft.isWarmup }?.takeIf { draftRpeIntent }
     return setMicroRecInputs(
         editing = editingSetId != null,
         loadType = planned?.exercise?.loadType,
@@ -97,7 +100,7 @@ internal fun workoutCoachInputs(
         nowMs = nowMs,
         todayEpochDay = todayEpochDay,
         allowExtra = wantAnotherSet,
-        rpeIntent = true,
+        rpeIntent = draftRpeIntent && draftRpe != null,
         historyWorking = historySets.map { set ->
             LoggedSetView(
                 weightKg = set.weightKg,

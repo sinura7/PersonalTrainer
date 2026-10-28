@@ -88,7 +88,9 @@ class QuietCompletionReadinessRenderTest {
             targetSets = 2,
         )
         compose.showWorkoutScreen(vm)
-        reveal(WorkoutTestTags.rpeChoice(8)).assertIsEnabled().performClick()
+        if (vm.uiState.value.draft.rpe != 8) {
+            reveal(WorkoutTestTags.rpeChoice(8)).assertIsEnabled().performClick()
+        }
         compose.awaitThat("the final planned set is ready", vm.primaryAction::value) {
             vm.primaryAction.value.kind == WorkoutPrimaryKind.LOG_SET && vm.primaryAction.value.enabled
         }
