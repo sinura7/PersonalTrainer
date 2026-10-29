@@ -357,9 +357,7 @@ private fun SummaryHeading(summary: WorkoutSummary) {
  */
 @Composable
 private fun SummaryFacts(summary: WorkoutSummary, unit: WeightUnit) {
-    val volumeLabel = remember(summary.volumeKg, unit) {
-        WeightConverter.formatVolumeLabel(summary.volumeKg, unit)
-    }
+    val volumeWhole = WeightConverter.formatVolumeNumber(summary.volumeKg, unit)
     val prLabel = summary.recordCount.toString()
     FlowRow(
         modifier = Modifier.fillMaxWidth().testTag(SummaryTags.FACTS),
@@ -375,9 +373,17 @@ private fun SummaryFacts(summary: WorkoutSummary, unit: WeightUnit) {
         if (summary.volumeKg > 0.0) {
             StatTile(
                 label = stringResource(R.string.summary_volume),
-                value = volumeLabel.substringBefore(" ").trim(),
+                value = volumeWhole,
                 unit = unit.suffix,
                 modifier = Modifier.testTag(SummaryTags.HEADLINE),
+            )
+        }
+        if (summary.bodyweightReps > 0) {
+            StatTile(
+                label = stringResource(R.string.summary_bodyweight_reps),
+                value = summary.bodyweightReps.toString(),
+                modifier = Modifier.testTag(SummaryTags.BODYWEIGHT_REPS),
+                spokenOverride = "Bodyweight reps ${summary.bodyweightReps}",
             )
         }
         StatTile(

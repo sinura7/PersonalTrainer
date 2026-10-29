@@ -380,8 +380,9 @@ fun StatTile(
     caption: String? = null,
     valueColor: Color = TextPrimary,
     onClick: (() -> Unit)? = null,
+    spokenOverride: String? = null,
 ) {
-    val spoken = buildString {
+    val spoken = spokenOverride ?: buildString {
         append(label)
         append(", ")
         append(value)

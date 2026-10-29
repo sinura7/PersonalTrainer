@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -127,7 +128,7 @@ class SessionNotesRenderTest {
     @Test
     fun endWorkoutCarriesTheSessionNotesAndWritesThem() {
         val vm = openWithNotes()
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.openFinishFromOverflow()
         compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         compose.onNodeWithText("Finish workout?").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.FINISH_KEEP).performClick()
@@ -145,7 +146,7 @@ class SessionNotesRenderTest {
         compose.awaitThat(what = "End workout's notes became the session's", now = vm.uiState::value) { vm.uiState.value.notes == EDITED }
         awaitConfirmedNotes(vm, EDITED)
         assertTrue("writing notes is not finishing", vm.uiState.value.session?.finishedAt == null)
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.openFinishFromOverflow()
         compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         compose.onNodeWithText("Finish workout?").assertIsDisplayed()
     }

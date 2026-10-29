@@ -30,6 +30,8 @@ import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.forgetFirstApplication
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
+import com.sinura.personaltrainer.testutil.waitUntilFinishEnabledInOverflow
 import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
 import com.sinura.personaltrainer.ui.navigation.Route
 import com.sinura.personaltrainer.ui.summary.SummaryTags
@@ -118,8 +120,8 @@ class SummaryCorrectionNavigationTest {
 
         awaitTag(tag = LiveSessionBarTestTags.ROOT)
         compose.onNodeWithTag(testTag = LiveSessionBarTestTags.ROOT).performClick()
-        awaitTag(tag = WorkoutTestTags.FINISH, enabled = true)
-        compose.onNodeWithTag(testTag = WorkoutTestTags.FINISH).assertIsEnabled().performClick()
+        compose.waitUntilFinishEnabledInOverflow()
+        compose.openFinishFromOverflow()
         compose.waitUntil(timeoutMillis = WAIT_MS, condition = {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH_SHEET)).fetchSemanticsNodes().isNotEmpty()
         })

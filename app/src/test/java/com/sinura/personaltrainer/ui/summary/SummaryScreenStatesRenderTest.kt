@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -61,6 +62,25 @@ class SummaryScreenStatesRenderTest {
             ),
         )
         compose.onNodeWithText(SummaryCopy.SAVED_NO_WORK_TITLE).assertIsDisplayed()
+    }
+
+    @Test
+    fun bodyweightRepsTileUsesSpokenLabel() {
+        mount(
+            WorkoutSummaryUiState(
+                sessionId = "bw",
+                isLoading = false,
+                savedConfirmed = true,
+                summary = WorkoutSummary(
+                    sessionId = "bw",
+                    title = "Bodyweight",
+                    workingSets = 1,
+                    bodyweightReps = 35,
+                ),
+            ),
+        )
+        compose.onNodeWithTag(SummaryTags.BODYWEIGHT_REPS).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Bodyweight reps 35").assertIsDisplayed()
     }
 
     @Test

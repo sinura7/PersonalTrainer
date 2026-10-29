@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.EndWorkoutCopy
+import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
 import com.sinura.personaltrainer.ui.components.OutlinedMarks
@@ -83,6 +84,8 @@ internal fun LiftOverflowMenu(
     onSetOptions: (() -> Unit)? = null,
     showDiscardWorkout: Boolean = false,
     onDiscardWorkout: () -> Unit = {},
+    canFinish: Boolean = false,
+    onFinish: () -> Unit = {},
 ) {
     var menuOpen by rememberSaveable(liftId) { mutableStateOf(false) }
     LaunchedEffect(enabled) { if (!enabled) menuOpen = false }
@@ -131,6 +134,17 @@ internal fun LiftOverflowMenu(
                     onNotes()
                 },
             )
+            if (canFinish) {
+                InstrumentMenuItem(
+                    spokenLabel = LogBarCopy.FINISH_WORKOUT,
+                    leadingIcon = TemperIcons.Check,
+                    onClick = {
+                        menuOpen = false
+                        onFinish()
+                    },
+                    modifier = Modifier.testTag(WorkoutTestTags.FINISH),
+                )
+            }
             InstrumentMenuItem(
                 spokenLabel = CurrentLiftCopy.SKIP,
                 leadingIcon = TemperIcons.Chevron,

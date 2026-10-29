@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
@@ -99,11 +100,10 @@ class WorkoutHeaderRowRenderTest {
             .assertWidthIsAtLeast(Metrics.touchMin)
         assertEquals(listOf("Workout options"), options.spokenDescriptions())
         val bounds = options.getBoundsInRoot()
-        val finish = compose.onNodeWithTag(WorkoutTestTags.FINISH).getBoundsInRoot()
         val floor = compose.onNodeWithTag(WorkoutTestTags.CONTENT).getBoundsInRoot()
-        assertTrue("on Finish's row, was $bounds beside $finish", bounds.top < finish.bottom && bounds.bottom > finish.top)
-        assertTrue("after Finish, was $bounds beside $finish", bounds.left >= finish.right)
         assertTrue("in the header, above the floor, was $bounds over $floor", bounds.bottom <= floor.top)
+        options.performClick()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsDisplayed()
     }
 
     @Test
@@ -151,17 +151,15 @@ class WorkoutHeaderRowRenderTest {
 
     @Test
     @Config(qualifiers = "w412dp-h840dp-xhdpi")
-    fun focusedHeaderKeepsItsHeightAndFinishWidthAfterTheFirstSave() {
+    fun focusedHeaderKeepsItsHeightAfterTheFirstSave() {
         val saved = mutableStateOf(false)
         compose.showFloor {
             Column(Modifier.width(412.dp)) {
                 WorkoutHeader(
                     routineName = "F2 entry fixture · Lower A",
                     progress = WorkoutProgress(1, 1, 0, if (saved.value) 1 else 0, 12, emptyList()),
-                    canFinish = saved.value,
                     compact = false,
                     onExit = {},
-                    onFinish = {},
                     focused = true,
                     overflow = { Box(Modifier.size(Metrics.touchMin)) },
                 )
@@ -169,13 +167,10 @@ class WorkoutHeaderRowRenderTest {
             }
         }
         val beforeBottom = compose.onNodeWithTag("after-workout-header").fetchSemanticsNode().boundsInRoot.top
-        val beforeAction = compose.onNodeWithTag(WorkoutTestTags.FINISH).fetchSemanticsNode().boundsInRoot
         val beforeProgress = compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).fetchSemanticsNode().boundsInRoot
         compose.runOnIdle { saved.value = true }
         compose.waitForIdle()
-        val finish = compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val afterProgress = compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).fetchSemanticsNode()
-        assertEquals("Enabling Finish must not resize the end action", beforeAction.width, finish.width, 1f)
         assertEquals("Saving must not move the content below the header", beforeBottom,
             compose.onNodeWithTag("after-workout-header").fetchSemanticsNode().boundsInRoot.top, 1f)
         assertEquals("Progress retains its vertical anchor", beforeProgress.top, afterProgress.boundsInRoot.top, 1f)

@@ -14,6 +14,8 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
+import com.sinura.personaltrainer.testutil.waitUntilFinishEnabledInOverflow
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -239,13 +241,10 @@ class ActiveWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().performClick()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_USE).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_KEEP).assertIsDisplayed().performClick()
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.waitUntilFinishEnabledInOverflow(10_000)
         assertFalse(container.restTimerStore.current().running)
 
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.openFinishFromOverflow()
         compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         compose.onNodeWithText("Finish workout?").assertIsDisplayed()
         compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
@@ -320,10 +319,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
                 isWarmup = false,
             )
         }
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.waitUntilFinishEnabledInOverflow(10_000)
 
         compose.onNodeWithContentDescription("Close").performClick()
         compose.waitUntil(10_000) {
@@ -339,13 +335,11 @@ class ActiveWorkoutJourneyInstrumentedTest {
         })
 
         compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).performClick()
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH))
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.waitUntilFinishEnabledInOverflow(10_000)
         compose.onNodeWithContentDescription("Close").performClick()
-        compose.onNodeWithContentDescription("Workout actions").performClick()
-        compose.onNodeWithText("Finish workout").performClick()
+        compose.openFinishFromOverflow()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
 
         compose.waitUntil(15_000) {
             runBlocking(Dispatchers.IO) {

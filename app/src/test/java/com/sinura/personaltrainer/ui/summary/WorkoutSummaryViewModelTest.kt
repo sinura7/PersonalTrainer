@@ -638,4 +638,68 @@ class WorkoutSummaryViewModelTest {
             return delegate.finishedWorkingSetsForExercises(exerciseIds)
         }
     }
+
+    @Test
+    fun firstWorkoutSavedIsFalseWhenAnotherFinishedSessionExists() = runBlocking {
+        seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)), finish = true)
+        val second = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(80.0, 8)), finish = true)
+        val vm = createViewModel(second.session.id)
+        val state = vm.uiState.awaitFirst { !it.isLoading }
+        assertFalse(state.firstWorkoutSaved)
+    }
+
+    @Test
+    fun tempoHintsFailureLeavesSummaryLoadedWithEmptyTempoLines() = runBlocking {
+        val fixture = seedTestWorkout(
+            deps,
+            loggedSets = listOf(TestSetInput(100.0, 5)),
+            finish = true,
+        )
+        val vm = createViewModel(fixture.session.id, tempoThrowingReads())
+        val state = vm.uiState.awaitFirst { !it.isLoading && !it.failed }
+        assertTrue(state.savedConfirmed)
+        assertTrue(state.tempoNextTime.isEmpty())
+        assertEquals(500.0, state.summary.volumeKg, 0.0001)
+    }
+
+    @Test
+    fun tempoNextTimeOmitsHoldLinesAndIncludesProgressionOnWorkingLifts() = runBlocking {
+        seedTestWorkout(
+            deps,
+            exerciseId = "ex-curl",
+            exerciseName = "Curl",
+            routineId = "routine-curl",
+            loggedSets = listOf(TestSetInput(45.0, 10)),
+            finish = true,
+        )
+        val progressed = seedTestWorkout(
+            deps,
+            exerciseId = "ex-curl",
+            exerciseName = "Curl",
+            routineId = "routine-progress-curl",
+            loggedSets = listOf(TestSetInput(50.0, 10)),
+            finish = true,
+        )
+        val vmChange = createViewModel(progressed.session.id)
+        val changeState = vmChange.uiState.awaitFirst { !it.isLoading && it.tempoNextTime.isNotEmpty() }
+        assertEquals("Curl", changeState.tempoNextTime.single().exerciseName)
+    }
+
+    private fun tempoThrowingReads(): AppDependencies {
+        val calls = java.util.concurrent.atomic.AtomicInteger(0)
+        val repo = WorkoutRepository(
+            database = deps.database,
+            workoutDao = object : WorkoutDao by deps.database.workoutDao() {
+                override suspend fun finishedWorkingSetsForExercises(
+                    exerciseIds: List<String>,
+                ): List<FinishedWorkingSetRow> {
+                    if (calls.incrementAndGet() > 1) error("boom: tempo progression read failed")
+                    return deps.database.workoutDao().finishedWorkingSetsForExercises(exerciseIds)
+                }
+            },
+        )
+        return object : AppDependencies by deps {
+            override val workoutRepository: WorkoutRepository = repo
+        }
+    }
 }

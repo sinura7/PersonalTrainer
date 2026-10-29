@@ -25,6 +25,8 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
+import com.sinura.personaltrainer.testutil.waitUntilFinishEnabledInOverflow
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -881,7 +883,7 @@ class UxWalkthroughTest {
         harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isNotEmpty() ||
                 compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodes(hasTestTag(WorkoutTestTags.DOCK_FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         if (compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
@@ -966,10 +968,8 @@ class UxWalkthroughTest {
     }
 
     private fun finishLiveWorkout() {
-        harnessWaitUntil(30_000) {
-            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.waitUntilFinishEnabledInOverflow(30_000)
+        compose.openFinishFromOverflow()
         compose.onNodeWithText("Finish workout?").assertIsDisplayed()
         compose.onNodeWithText("Finish and see summary").performClick()
         harnessWaitUntil(30_000) {

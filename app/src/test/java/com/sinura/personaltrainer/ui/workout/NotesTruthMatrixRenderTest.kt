@@ -23,6 +23,7 @@ import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -208,7 +209,7 @@ class NotesTruthMatrixRenderTest {
             action(node = compose.onNodeWithText("Done"), modal = true).performTouchInput { click() }
             compose.settle()
 
-            compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+            compose.openFinishFromOverflow()
             compose.settle()
             capture("end-before-notes-toggle")
             dumpEndSemantics("end-before-notes-toggle")
@@ -232,7 +233,7 @@ class NotesTruthMatrixRenderTest {
             )
             assertEquals("Seat 6", storedNotes(sessionId))
             clearAndConfirm(state = { active.uiState.value.notesSave }, flush = active::persistDraftForExit, prefix = "end")
-            compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+            compose.openFinishFromOverflow()
             compose.settle()
             action(node = compose.onNodeWithTag(EndWorkoutTags.SAVE), modal = false)
             capture("end-actions-cleared")

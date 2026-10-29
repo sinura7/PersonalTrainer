@@ -574,6 +574,12 @@ class ActiveWorkoutViewModel internal constructor(
         setLiftTransitionNextId(null)
     }
 
+    /** Elapsed whole minutes for the finish sheet; uses [TimePort], not composition clock. */
+    fun sessionDurationMinutes(): Int {
+        val started = session.value?.startedAt ?: return 1
+        return ((time.nowMillis() - started).coerceAtLeast(0L) / 60_000L).toInt().coerceAtLeast(1)
+    }
+
     fun closeTempoCoachSheet() {
         tempoCoachSheetVisible.value = false
     }
@@ -1907,7 +1913,10 @@ class ActiveWorkoutViewModel internal constructor(
                 savedDraft.removeLift(selectedId)
                 // Room can select and prefill a survivor before this mutation resumes.
                 // Clear only the removed selection; keep that newer entry ready.
-                if (selectedExerciseId.value == selectedId) clearLiftSelection()
+                if (selectedExerciseId.value == selectedId) {
+                    cancelLiftTransition()
+                    clearLiftSelection()
+                }
                 error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
             } catch (thrown: CancellationException) {
                 throw thrown

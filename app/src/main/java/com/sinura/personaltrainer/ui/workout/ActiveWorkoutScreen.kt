@@ -537,11 +537,9 @@ private fun ActiveWorkoutContent(
             WorkoutHeader(
                 routineName = session?.routineName ?: "Workout",
                 progress = progress,
-                canFinish = state.canFinish,
                 compact = LandscapeChrome.compactHeader(landscape),
                 focused = true,
                 onExit = { keepAndExit() },
-                onFinish = { confirmEnd = true },
                 overflow = {
                     when {
                         selected != null -> LiftOverflowMenu(
@@ -558,6 +556,8 @@ private fun ActiveWorkoutContent(
                             onSetOptions = { setOptionsOpen = true },
                             showDiscardWorkout = state.showDiscard,
                             onDiscardWorkout = { confirmDiscard = true },
+                            canFinish = state.canFinish,
+                            onFinish = { confirmEnd = true },
                         )
                         state.showDiscard -> SessionDiscardOverflowMenu(
                             onDiscardWorkout = { confirmDiscard = true },
@@ -588,7 +588,7 @@ private fun ActiveWorkoutContent(
             val showFinish = primaryAction.kind == WorkoutPrimaryKind.FINISH
             val showAnother = advance.showAnother && !state.entryLocked
             // The timer slot, advance choice, and Log set share one dock so a one-handed
-            // thumb reaches every control. Finish stays in the header — it is not a mid-set act.
+            // thumb reaches every control. Finish is overflow or dock-primary, not header text.
             val emptySession = state.loadState == SessionLoadState.FOUND && session != null &&
                 !session.hasLifts() && !state.save.pending &&
                 FloorCompactChrome.emptySessionHidesTimerDock()
@@ -1349,13 +1349,11 @@ private fun ActiveWorkoutContent(
 
     if (confirmEnd) {
         val plannedWorking = session?.exercises?.sumOf { it.targetSets.coerceAtLeast(0) } ?: 0
-        val durationMin = session?.let {
-            ((System.currentTimeMillis() - it.startedAt).coerceAtLeast(0L) / 60_000L).toInt()
-        } ?: 1
         FinishSheet(
             loggedSets = session?.sets?.count { !it.isWarmup } ?: 0,
             plannedWorkingSets = plannedWorking,
-            durationMinutes = durationMin.coerceAtLeast(1),
+            durationMinutes = viewModel.sessionDurationMinutes(),
+            notesSave = state.notesSave,
             onFinish = {
                 confirmEnd = false
                 viewModel.finishWorkout()

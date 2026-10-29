@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.repository.prefs
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -25,6 +26,18 @@ class RestFloorCaptionSessionsTest {
     }
 
     @Test
+    fun legacySessionCountIsReadBeforeMigratingToIds() = runBlocking {
+        val store = SettingsStore(PreferenceDataStoreFactory.create { temp.newFile("prefs3.preferences_pb") })
+        store.data.edit { prefs ->
+            prefs[REST_FLOOR_CAPTION_SESSIONS] = 2
+            prefs[REST_FLOOR_CAPTION_LAST_SESSION] = "legacy-a"
+        }
+        val restPrefs = RestPrefsStore(store)
+        restPrefs.recordRestFloorCaptionForSession("legacy-b")
+        assertEquals(2, restPrefs.restFloorCaptionSessions.first())
+    }
+
+    @Test
     fun captionBudgetStopsAfterThreeDistinctSessions() = runBlocking {
         val store = SettingsStore(PreferenceDataStoreFactory.create { temp.newFile("prefs2.preferences_pb") })
         val restPrefs = RestPrefsStore(store)
@@ -33,6 +46,6 @@ class RestFloorCaptionSessionsTest {
         restPrefs.recordRestFloorCaptionForSession("s3")
         assertEquals(3, restPrefs.restFloorCaptionSessions.first())
         restPrefs.recordRestFloorCaptionForSession("s4")
-        assertEquals(4, restPrefs.restFloorCaptionSessions.first())
+        assertEquals(3, restPrefs.restFloorCaptionSessions.first())
     }
 }

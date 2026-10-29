@@ -28,6 +28,8 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.components.NotesSaveState
+import com.sinura.personaltrainer.ui.components.NotesSaveStatus
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,11 +43,15 @@ internal fun FinishSheet(
     onDiscard: () -> Unit,
     onDismiss: () -> Unit,
     editOpen: Boolean,
+    notesSave: NotesSaveState = NotesSaveState(),
     loading: Boolean = false,
     error: String? = null,
     onRetry: () -> Unit = {},
 ) {
-    val canSave = EndWorkoutCopy.canSave(loggedSets)
+    val notesBlocking = notesSave.status == NotesSaveStatus.PENDING ||
+        notesSave.status == NotesSaveStatus.SAVING ||
+        notesSave.status == NotesSaveStatus.FAILED
+    val canSave = EndWorkoutCopy.canSave(loggedSets) && !notesBlocking
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = {
@@ -81,6 +87,13 @@ internal fun FinishSheet(
                     text = EndWorkoutCopy.BACK_TO_EDIT,
                     onClick = onKeepTraining,
                     modifier = Modifier.testTag(EndWorkoutTags.BACK_TO_EDIT),
+                )
+            } else if (notesBlocking) {
+                Text(
+                    EndWorkoutCopy.BAR_NOTES_PENDING,
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                    modifier = Modifier.testTag(EndWorkoutTags.NOTES_PENDING),
                 )
             } else {
                 Text(

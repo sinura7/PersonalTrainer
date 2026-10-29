@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
+
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.graphics.Rect as AndroidRect
 import android.os.Build
@@ -151,7 +153,7 @@ class WorkoutTruthInstrumentedTest {
         compose.waitUntil(15_000) { vm.uiState.value.notesSave.status == NotesSaveStatus.SAVING }
         // Finish is explicitly allowed while ordinary notes are pending/saving. Its
         // ordered writer barrier must complete before the finished row can be claimed.
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.openFinishFromOverflow()
         compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         val save = compose.onNodeWithTag(EndWorkoutTags.SAVE)
         assertNativeAction(save, 48)

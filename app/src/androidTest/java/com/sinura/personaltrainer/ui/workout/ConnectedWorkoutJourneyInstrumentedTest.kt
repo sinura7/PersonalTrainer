@@ -27,7 +27,9 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -319,7 +321,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         awaitCondition("Undo restores the exact latest result") { session().sets.firstOrNull { it.id == latest.id } == latest }
         assertEquals(intended.sortedBy { it.id }, session().sets.sortedBy { it.id })
 
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled().performClick()
+        compose.openFinishFromOverflow()
         compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         compose.onNodeWithText("Finish workout?").assertIsDisplayed()
         compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()

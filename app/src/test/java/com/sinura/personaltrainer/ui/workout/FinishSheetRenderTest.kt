@@ -1,10 +1,13 @@
 package com.sinura.personaltrainer.ui.workout
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.sinura.personaltrainer.ui.components.EndWorkoutTags
+import com.sinura.personaltrainer.ui.components.NotesSaveState
+import com.sinura.personaltrainer.ui.components.NotesSaveStatus
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import org.junit.Rule
 import org.junit.Test
@@ -101,5 +104,26 @@ class FinishSheetRenderTest {
         }
         compose.onNodeWithTag(EndWorkoutTags.EDIT_OPEN).assertIsDisplayed()
         compose.onNodeWithTag(EndWorkoutTags.BACK_TO_EDIT).assertIsDisplayed()
+    }
+
+    @Test
+    fun finishSheetBlocksSaveWhileNotesArePending() {
+        compose.setContent {
+            PersonalTrainerTheme {
+                FinishSheet(
+                    loggedSets = 2,
+                    plannedWorkingSets = 3,
+                    durationMinutes = 10,
+                    onFinish = {},
+                    onKeepTraining = {},
+                    onDiscard = {},
+                    onDismiss = {},
+                    editOpen = false,
+                    notesSave = NotesSaveState(status = NotesSaveStatus.SAVING),
+                )
+            }
+        }
+        compose.onNodeWithTag(EndWorkoutTags.NOTES_PENDING).assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsNotEnabled()
     }
 }

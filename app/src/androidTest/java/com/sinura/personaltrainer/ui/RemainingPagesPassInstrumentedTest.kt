@@ -95,7 +95,7 @@ class RemainingPagesPassInstrumentedTest {
         compose.onNodeWithTag(SummaryTags.DONE).assertIsDisplayed()
         compose.onNodeWithText("Done").assertIsDisplayed()
         compose.onNodeWithTag(SummaryTags.OPEN_SESSION).assertIsDisplayed()
-        compose.onNodeWithText("View in History").assertIsDisplayed()
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.SummaryCopy.OPEN_SESSION).assertIsDisplayed()
     }
 
     @Test

@@ -62,6 +62,9 @@ interface RestPrefs {
 }
 
 internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
+    companion object {
+        const val REST_FLOOR_CAPTION_SESSION_BUDGET = 3
+    }
     override val restTimerPreferences: Flow<RestTimerPreferences> = store.pref { prefs ->
         RestTimerPreferences(
             soundEnabled = prefs[REST_SOUND] ?: true,
@@ -108,16 +111,23 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
             val existing = prefs[REST_FLOOR_CAPTION_SESSION_IDS]
             if (existing != null) {
                 if (sessionId in existing) return@edit
+                if (existing.size >= REST_FLOOR_CAPTION_SESSION_BUDGET) return@edit
                 prefs[REST_FLOOR_CAPTION_SESSION_IDS] = existing + sessionId
                 return@edit
             }
             if (prefs[REST_FLOOR_CAPTION_LAST_SESSION] == sessionId) return@edit
-            prefs[REST_FLOOR_CAPTION_LAST_SESSION] = sessionId
+            val legacyCount = prefs[REST_FLOOR_CAPTION_SESSIONS] ?: 0
+            val previousLast = prefs[REST_FLOOR_CAPTION_LAST_SESSION]
             val migrated = buildSet {
-                prefs[REST_FLOOR_CAPTION_LAST_SESSION]?.let { add(it) }
+                previousLast?.let { add(it) }
                 add(sessionId)
             }
-            prefs[REST_FLOOR_CAPTION_SESSION_IDS] = migrated
+            val capped = if (legacyCount >= REST_FLOOR_CAPTION_SESSION_BUDGET) {
+                migrated.take(REST_FLOOR_CAPTION_SESSION_BUDGET).toSet()
+            } else {
+                migrated
+            }
+            prefs[REST_FLOOR_CAPTION_SESSION_IDS] = capped
             prefs.remove(REST_FLOOR_CAPTION_SESSIONS)
             prefs.remove(REST_FLOOR_CAPTION_LAST_SESSION)
         }

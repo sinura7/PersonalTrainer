@@ -97,6 +97,7 @@
     <string name="summary_kicker">Workout saved</string>
     <string name="summary_sets">sets</string>
     <string name="summary_volume">kg volume</string>
+    <string name="summary_bodyweight_reps">Bodyweight reps</string>
     <string name="summary_prs">PR</string>
     <string name="summary_prs_plural">PRs</string>
     <string name="summary_pr_kicker">Personal record</string>

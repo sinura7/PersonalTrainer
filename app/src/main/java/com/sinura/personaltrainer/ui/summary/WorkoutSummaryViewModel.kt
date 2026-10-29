@@ -191,18 +191,32 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                         isCustom = true,
                     ))
                 }
-                val hintLoader = ProgressionHintLoader(container, sessionId)
-                val settings = hintLoader.settings().first()
-                val tempoLines = summary.highlights.mapNotNull { highlight ->
-                    val planned = session.exercises.firstOrNull { it.exercise.id == highlight.exerciseId }
-                    val hint = hintLoader.progression(highlight.exerciseId, planned, settings) ?: return@mapNotNull null
-                    if (!progressionShowsChange(hint)) return@mapNotNull null
-                    SummaryTempoLine(
-                        exerciseName = highlight.exerciseName,
-                        message = ProgressionCopy.stripReason(hint, settings.unit),
-                    )
+                val tempoLines = runCatchingCancellable {
+                    val hintLoader = ProgressionHintLoader(container, sessionId)
+                    val settings = hintLoader.settings().first()
+                    session.exercises.mapNotNull { item ->
+                        val exerciseId = item.exercise.id
+                        val loggedWorking = session.sets.any { !it.isWarmup && it.exerciseId == exerciseId }
+                        if (!loggedWorking) return@mapNotNull null
+                        val hint = hintLoader.progression(exerciseId, item, settings) ?: return@mapNotNull null
+                        if (!progressionShowsChange(hint)) return@mapNotNull null
+                        SummaryTempoLine(
+                            exerciseName = item.exercise.name,
+                            message = ProgressionCopy.stripReason(hint, settings.unit),
+                        )
+                    }
+                }.getOrElse { thrown ->
+                    AppLog.w(TAG, "Reading tempo hints for the summary failed", thrown)
+                    emptyList()
                 }
-                val firstSaved = prior.values.all { it.isEmpty() }
+                val otherFinished = runCatchingCancellable {
+                    container.workoutRepository.countOtherFinishedSessions(sessionId)
+                }.getOrElse { thrown ->
+                    AppLog.w(TAG, "Reading finished-session history failed", thrown)
+                    settle(failed = true, savedConfirmed = saved)
+                    return@launch
+                }
+                val firstSaved = otherFinished == 0
                 settle(
                     savedConfirmed = saved,
                     summary = summary,

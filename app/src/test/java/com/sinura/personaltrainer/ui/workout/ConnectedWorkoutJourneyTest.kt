@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
@@ -223,7 +224,7 @@ class ConnectedWorkoutJourneyTest {
 
         // Finish the partial plan through its real confirmation. An unlogged draft and
         // the untouched second exercise must not turn into extra work in the receipt.
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled().performClick()
+        compose.openFinishFromOverflow()
         compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         compose.onNodeWithText("Finish workout?").assertIsDisplayed()
         compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()

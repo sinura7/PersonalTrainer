@@ -276,7 +276,7 @@ class SummaryDetailSavedWorkRenderTest {
         show(session.copy(exercises = listOf(repsLift), sets = listOf(repsSet)))
         assertFact(SummaryTags.WORKING_SETS, "1", "sets")
         assertNoFact("kg volume")
-        compose.onNode(hasContentDescription("Bodyweight reps 35")).assertDoesNotExist()
+        compose.onNode(hasContentDescription("Bodyweight reps 35")).assertExists()
         host.readable(host.words("Top set 35 reps", SummaryTags.lift(pushUp.id)), "Top set 35 reps")
         host.capture("bodyweight-results")
 
