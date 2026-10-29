@@ -6,8 +6,7 @@ name: Walkthrough screens
 on:
   pull_request:
   push:
-    # Match CI: cloud agents push cursor/** without a fresh pull_request event.
-    branches: [trunk, 'claude/**', 'cursor/**', 'codex/**']
+    branches: [trunk]
 
 permissions:
   contents: read

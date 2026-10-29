@@ -27,4 +27,5 @@
     <string name="tempo_applied">Already filled in · tap for why</string>
     <string name="tempo_undo">Undo</string>
     <string name="tempo_why">Why</string>
+    <string name="tempo_apply">Apply</string>
 </resources>

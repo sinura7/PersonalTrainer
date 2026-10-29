@@ -861,6 +861,7 @@ private fun ActiveWorkoutContent(
                                             applied = floorTempoApplied,
                                             enabled = floorEntryEnabled,
                                             onWhy = { checkNotNull(floorTempoCardState).showWhy = true },
+                                            onApply = { viewModel.applyTempoCoachTip(tip) },
                                             onUndo = { viewModel.undoTopOffer() },
                                             modifier = Modifier
                                                 .padding(horizontal = Metrics.gutter)
@@ -879,13 +880,7 @@ private fun ActiveWorkoutContent(
                                             recommended = microRec?.nextRpe,
                                             enabled = entryEnabled && effortEntryReady,
                                             hiddenForWarmup = state.draft.isWarmup || hold,
-                                            warmupCaption = if (state.draft.isWarmup) {
-                                                state.draft.rpe?.let { rpe ->
-                                                    "Recorded effort: RPE $rpe is kept for this warm-up."
-                                                }
-                                            } else {
-                                                null
-                                            },
+                                            warmupCaption = null,
                                             entryReady = effortEntryReady,
                                             showError = state.effortMissingForCommit && state.effortValue == null,
                                             onSelect = { value ->

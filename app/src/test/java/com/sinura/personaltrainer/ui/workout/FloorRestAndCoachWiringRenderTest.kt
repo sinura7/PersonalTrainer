@@ -467,7 +467,31 @@ class FloorRestAndCoachWiringRenderTest {
         assertEquals(rec.nextWeightKg, draft.weightKg, 1e-6)
         assertEquals("Apply copies coach load and effort (R1 COACH)", rec.nextRpe, draft.rpe)
         assertTrue("Apply fills the entry; it never logs", vm.uiState.value.session?.sets?.size == 1)
+        val appliedRpe = checkNotNull(rec.nextRpe)
+        compose.scrollFloorTo(WorkoutTestTags.RPE_TRACK, clearTempo = true)
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(appliedRpe)).assertIsSelected()
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(appliedRpe))
+            .assert(hasContentDescription("Effort $appliedRpe selected"))
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_LINE).assertDoesNotExist()
+    }
+
+    @Test
+    fun tempoLineApplySelectsCoachEffortChipWithoutOpeningWhy() {
+        val vm = openLegExtension(deps, viewModels, loggedSets = listOf(set(reps = 9, rpe = 8)))
+        show(vm)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value?.nextRpe == 8 }
+        vm.setRpe(null)
+        vm.setReps(8)
+        compose.waitUntil(timeoutMillis = WAIT_MS) {
+            vm.uiState.value.draft.rpe == null && vm.microRec.value?.nextRpe == 8
+        }
+        assertTempoCoachCardOnScreen(vm)
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).performClick()
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.rpe == 8 }
+        compose.scrollFloorTo(WorkoutTestTags.RPE_TRACK, clearTempo = true)
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).assertIsSelected()
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8))
+            .assert(hasContentDescription("Effort 8 selected"))
     }
 
     @Test

@@ -32,6 +32,7 @@ fun TempoLine(
     message: String,
     applied: Boolean,
     onWhy: () -> Unit,
+    onApply: () -> Unit,
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -69,7 +70,7 @@ fun TempoLine(
                 style = InstrumentType.body,
                 color = com.sinura.personaltrainer.ui.theme.TextPrimary,
                 maxLines = maxLines,
-                overflow = TextOverflow.Clip,
+                overflow = TextOverflow.Ellipsis,
             )
             if (applied) {
                 Text(
@@ -79,11 +80,26 @@ fun TempoLine(
                 )
             }
         }
-        QuietButton(
-            text = if (applied) stringResource(R.string.tempo_undo) else stringResource(R.string.tempo_why),
-            onClick = if (applied) onUndo else onWhy,
-            enabled = enabled,
-            modifier = Modifier.testTag(if (applied) "workout-tempo-undo" else "workout-micro-rec-why"),
-        )
+        if (applied) {
+            QuietButton(
+                text = stringResource(R.string.tempo_undo),
+                onClick = onUndo,
+                enabled = enabled,
+                modifier = Modifier.testTag("workout-tempo-undo"),
+            )
+        } else {
+            QuietButton(
+                text = stringResource(R.string.tempo_apply),
+                onClick = onApply,
+                enabled = enabled,
+                modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC_APPLY),
+            )
+            QuietButton(
+                text = stringResource(R.string.tempo_why),
+                onClick = onWhy,
+                enabled = enabled,
+                modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC_WHY),
+            )
+        }
     }
 }

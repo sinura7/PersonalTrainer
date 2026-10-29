@@ -328,7 +328,7 @@ class FloorScreenWiringRenderTest {
         }
         compose.scrollFloorTo(WorkoutTestTags.RPE_WARMUP_REASON)
         compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON)
-            .assert(hasText("Recorded effort: RPE 9 is kept for this warm-up."))
+            .assert(hasText("Warm-ups skip effort and rest"))
         compose.scrollFloorTo(WorkoutTestTags.REPS_STEPPER)
         compose.withKeypad(compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER), "9")
         compose.awaitThat("the manual correction reaches the draft", vm.uiState::value) { vm.uiState.value.draft.reps == 9 }

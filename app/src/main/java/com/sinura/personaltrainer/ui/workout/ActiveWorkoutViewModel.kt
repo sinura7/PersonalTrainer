@@ -241,9 +241,13 @@ data class ActiveWorkoutUiState(
 
     val logCommitReady: Boolean get() = canLog && !effortMissingForCommit
 
-    /** Explicit chip selection ([EffortSource.USER]). */
+    /** Explicit chip selection ([EffortSource.USER] or coach Apply [EffortSource.COACH]). */
     val effortChipSelected: Int?
-        get() = if (effortSource == EffortSource.USER) effortValue else null
+        get() = if (effortSource == EffortSource.USER || effortSource == EffortSource.COACH) {
+            effortValue
+        } else {
+            null
+        }
 
     /** Dotted prefill chip ([EffortSource.PREFILL_LAST]). */
     val effortChipPrefilled: Int?
@@ -2250,7 +2254,7 @@ class ActiveWorkoutViewModel internal constructor(
         val values = WorkoutSetValues(
             weightKg = current.weightKg,
             reps = if (hold) 0 else current.reps,
-            rpe = if (!current.isWarmup && !hold) uiState.value.effortValue else current.rpe,
+            rpe = current.rpe,
             isWarmup = current.isWarmup,
             durationSeconds = duration,
         )

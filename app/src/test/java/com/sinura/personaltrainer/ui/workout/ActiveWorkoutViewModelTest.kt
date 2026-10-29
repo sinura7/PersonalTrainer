@@ -877,6 +877,24 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun logSetCommitsDraftRpeWithoutWaitingForUiStateEffort() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setRpe(8)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.draft.rpe == 8 && it.canLog }
+        vm.setRpe(9)
+        vm.logSet()
+        val session = awaitSession(fixture.session.id) {
+            it.sets.size == 2 && it.sets.last { set -> !set.isWarmup }.rpe == 9
+        }
+        assertEquals(9, session.sets.last { !it.isWarmup }.rpe)
+    }
+
+    @Test
     fun logDoesNotAutoApplyInTank() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)

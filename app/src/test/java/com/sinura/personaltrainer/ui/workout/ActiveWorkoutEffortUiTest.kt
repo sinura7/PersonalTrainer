@@ -19,4 +19,11 @@ class ActiveWorkoutEffortUiTest {
         assertEquals(9, state.effortChipSelected)
         assertNull(state.effortChipPrefilled)
     }
+
+    @Test
+    fun coachApplyMapsToSelectedChipOnly() {
+        val state = ActiveWorkoutUiState(effortValue = 8, effortSource = EffortSource.COACH)
+        assertEquals(8, state.effortChipSelected)
+        assertNull(state.effortChipPrefilled)
+    }
 }
