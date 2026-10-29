@@ -29,6 +29,8 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.PinnedDock
+import com.sinura.personaltrainer.ui.components.ActionTone
+import com.sinura.personaltrainer.ui.components.PrimaryButton
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestDurationSheet
 import com.sinura.personaltrainer.ui.components.RestHonestyRow
@@ -91,6 +93,9 @@ internal data class WorkoutDockState(
     val timer: WorkoutDockTimer,
     val keepEntry: Boolean = false,
     val keepingEntry: Boolean = false,
+    /** Full-screen rest floor: companion hides the dock rest card. */
+    val restImmersion: Boolean = false,
+    val restPrimarySubLabel: String? = null,
 )
 
 internal data class WorkoutDockEvents(
@@ -168,6 +173,7 @@ internal fun WorkoutDock(
         else -> "Timers"
     }
     LaunchedEffect(timedActive) { if (!timedActive) timingDetails = false }
+    val restImmersion = state.restImmersion
     val mode = FloorTimerSurface.mode(
         holdRunning = timer.holdRunning,
         stopwatchRunning = timer.stopwatchRunning,
@@ -207,22 +213,26 @@ internal fun WorkoutDock(
             FloorTimedMode.REST_IDLE,
             FloorTimedMode.REST_RUNNING,
             FloorTimedMode.REST_COMPLETE,
-            -> RestTimerCard(
-                remainingSeconds = timer.restRemainingSeconds,
-                totalSeconds = timer.restTotalSeconds,
-                restSourceTag = timer.restSourceTag,
-                running = timer.restRunning,
-                completedTimerId = timer.restCompletedTimerId,
-                afterWarmup = timer.afterWarmup,
-                offerSetClock = timer.offerSetClock,
-                onSkip = events.onSkipRest,
-                onStart = events.onStartRest,
-                onNudge = events.onNudgeRest,
-                onEditDuration = { durationSheet = true },
-                onStartSetClock = events.onStartSetClock,
-                onOpenRest = events.onOpenRest,
-                focused = true,
-            )
+            -> {
+                if (!restImmersion) {
+                    RestTimerCard(
+                        remainingSeconds = timer.restRemainingSeconds,
+                        totalSeconds = timer.restTotalSeconds,
+                        restSourceTag = timer.restSourceTag,
+                        running = timer.restRunning,
+                        completedTimerId = timer.restCompletedTimerId,
+                        afterWarmup = timer.afterWarmup,
+                        offerSetClock = timer.offerSetClock,
+                        onSkip = events.onSkipRest,
+                        onStart = events.onStartRest,
+                        onNudge = events.onNudgeRest,
+                        onEditDuration = { durationSheet = true },
+                        onStartSetClock = events.onStartSetClock,
+                        onOpenRest = events.onOpenRest,
+                        focused = true,
+                    )
+                }
+            }
         }
     }
     val clockButton: @Composable () -> Unit = {
@@ -245,6 +255,26 @@ internal fun WorkoutDock(
                     .testTag(WorkoutTestTags.TIMER_ROW),
             ) {
                 when {
+                    restImmersion && (contextVisible || !state.undoMessage.isNullOrBlank()) -> FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        if (!state.undoMessage.isNullOrBlank()) {
+                            GymUndoHost(
+                                message = state.undoMessage,
+                                onUndo = events.onUndo,
+                                onDismissed = events.onUndoDismissed,
+                                offerKey = state.undoKey ?: state.undoMessage,
+                                dwellMs = state.undoDwellMs,
+                            )
+                        } else if (honesty != null) {
+                            RestHonestyRow(
+                                honesty = honesty,
+                                onDismissBatteryHint = events.onDismissRestBatteryHint,
+                                onOpenNotifications = events.onOpenNotifications,
+                            )
+                        }
+                    }
                     contextVisible -> FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         maxItemsInEachRow = if (LocalDensity.current.fontScale >= 1.6f) 1 else 2,
@@ -314,6 +344,7 @@ internal fun WorkoutDock(
                         onClick = { durationSheet = true },
                         modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.COMPANION_CLOCK),
                     ) { Text("Timer controls ›", style = InstrumentType.bodyStrong, color = TextSecondary) }
+                    restImmersion -> Unit
                     else -> timerSurface()
                 }
             }
@@ -333,33 +364,48 @@ internal fun WorkoutDock(
                     } else {
                         Metrics.logFloorCommit
                     }
-                PrimaryGymButton(
-                    text = verb,
-                    supporting = payload,
-                    textStyle = InstrumentType.commit,
-                    onClick = {
-                        val accepted = if (state.keepEntry) events.onKeepEntry() else events.onPrimary(action)
-                        if (accepted && action.kind == WorkoutPrimaryKind.REVIEW_SAVE) saveDetails = true
-                    },
-                    enabled = if (state.keepEntry) !state.keepingEntry else action.enabled,
-                    disabledReason = if (state.keepEntry) "Keeping entry…" else LogCommitCopy.disabledReason(
-                        logging = state.logging,
-                        liftReady = state.canLog || state.logging,
-                        effortMissing = state.effortMissingForCommit && !state.logging,
-                    ),
-                    modifier = Modifier
-                        .testTag(
-                            when {
-                                state.keepEntry -> "workout-keep-entry"
-                                nextAct -> WorkoutTestTags.NEXT
-                                finishAct -> WorkoutTestTags.DOCK_FINISH
-                                else -> WorkoutTestTags.LOG_SET
-                            },
-                        )
-                        .semantics { contentDescription = spokenAction },
-                    height = primaryHeight,
-                    hapticFeedback = false,
-                )
+                if (action.kind == WorkoutPrimaryKind.START_SET_NOW) {
+                    PrimaryButton(
+                        label = verb,
+                        subLabel = state.restPrimarySubLabel,
+                        tone = ActionTone.Rest,
+                        onClick = {
+                            val accepted = events.onPrimary(action)
+                            if (accepted && action.kind == WorkoutPrimaryKind.REVIEW_SAVE) saveDetails = true
+                        },
+                        modifier = Modifier
+                            .testTag(WorkoutTestTags.REST_START_NOW)
+                            .semantics { contentDescription = spokenAction },
+                    )
+                } else {
+                    PrimaryGymButton(
+                        text = verb,
+                        supporting = payload,
+                        textStyle = InstrumentType.commit,
+                        onClick = {
+                            val accepted = if (state.keepEntry) events.onKeepEntry() else events.onPrimary(action)
+                            if (accepted && action.kind == WorkoutPrimaryKind.REVIEW_SAVE) saveDetails = true
+                        },
+                        enabled = if (state.keepEntry) !state.keepingEntry else action.enabled,
+                        disabledReason = if (state.keepEntry) "Keeping entry…" else LogCommitCopy.disabledReason(
+                            logging = state.logging,
+                            liftReady = state.canLog || state.logging,
+                            effortMissing = state.effortMissingForCommit && !state.logging,
+                        ),
+                        modifier = Modifier
+                            .testTag(
+                                when {
+                                    state.keepEntry -> "workout-keep-entry"
+                                    nextAct -> WorkoutTestTags.NEXT
+                                    finishAct -> WorkoutTestTags.DOCK_FINISH
+                                    else -> WorkoutTestTags.LOG_SET
+                                },
+                            )
+                            .semantics { contentDescription = spokenAction },
+                        height = primaryHeight,
+                        hapticFeedback = false,
+                    )
+                }
             }
         },
     )

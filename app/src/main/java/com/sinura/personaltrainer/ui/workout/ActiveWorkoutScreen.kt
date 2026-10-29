@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
@@ -59,6 +60,7 @@ import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
@@ -68,6 +70,7 @@ import com.sinura.personaltrainer.domain.coach.TempoCoachTip
 import com.sinura.personaltrainer.domain.WeightDraftSource
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutProgressCalculator
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -127,6 +130,14 @@ object WorkoutTestTags {
     const val FLOOR_DOCK = "workout-floor-dock"
     const val TEMPO_COACH_CARD = "workout-tempo-coach-card"
     const val TEMPO_LINE = "workout-tempo-line"
+    const val REST_FLOOR = "workout-rest-floor"
+    const val REST_FLOOR_RING = "workout-rest-floor-ring"
+    const val REST_START_NOW = "workout-rest-start-now"
+    const val UP_NEXT_CARD = "workout-up-next-card"
+    const val REST_EDIT_UP_NEXT = "workout-rest-edit-up-next"
+    const val REST_UNDO_LAST = "workout-rest-undo-last"
+    const val TEMPO_SHEET = "workout-tempo-sheet"
+    const val TEMPO_SHEET_USE = "workout-tempo-sheet-use"
     const val TEMPO_COACH_SHORTCUT = "workout-tempo-coach-shortcut"
     const val TEMPO_SUGGESTION_LABEL = "workout-tempo-suggestion-label"
     const val TEMPO_COACH_DISMISS = "workout-tempo-coach-dismiss"
@@ -240,6 +251,9 @@ private fun ActiveWorkoutContent(
     val microRec by viewModel.microRec.collectAsStateWithLifecycle()
     val tempoCoachTip by viewModel.tempoCoachTip.collectAsStateWithLifecycle()
     val tempoCoachDismissed by viewModel.tempoCoachDismissed.collectAsStateWithLifecycle()
+    val tempoCoachSheetOpen by viewModel.tempoCoachSheetOpen.collectAsStateWithLifecycle()
+    val restFirstCaption by viewModel.restFirstCaptionVisible.collectAsStateWithLifecycle()
+    val restImmersionLiftId by viewModel.restImmersionLiftId.collectAsStateWithLifecycle()
     val exerciseHistory by viewModel.exerciseHistory.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
@@ -276,6 +290,7 @@ private fun ActiveWorkoutContent(
     val restNotificationsEnabled = restNotificationsEnabledOverride
         ?: rememberRestNotificationsEnabled()
     val rest = restState.value
+    val restImmersion = rest.running && state.selectedExerciseId == restImmersionLiftId
     val restExteriorActive = state.loadState == SessionLoadState.FOUND && (
         state.showRest || rest.running || (rest.completedTimerId != null && !rest.running)
         )
@@ -611,6 +626,8 @@ private fun ActiveWorkoutContent(
                                 undoMessage = undoEntries.lastOrNull()?.offer?.message,
                                 undoKey = undoEntries.lastOrNull()?.offer?.key,
                                 undoDwellMs = undoDwellMs,
+                                restImmersion = restImmersion,
+                                restPrimarySubLabel = stringResource(R.string.rest_start_sub).takeIf { restImmersion },
                                 timer = WorkoutDockTimer(
                                     show = showRest,
                                     restRemainingSeconds = rest.remainingSeconds,
@@ -725,7 +742,45 @@ private fun ActiveWorkoutContent(
                         .fillMaxSize()
                         .padding(padding),
                 ) {
-                    LazyColumn(
+                    if (restImmersion && selected != null) {
+                        val workingCount = logged.count { !it.isWarmup }
+                        val upNextSet = workingCount + 1
+                        val upNextTarget = microRec?.let { SetMicroRecCopy.numbers(it, loadClass, unit) }
+                            ?: SetCopy.setLine(
+                                state.draft.weightKg,
+                                state.draft.reps,
+                                loadClass,
+                                unit,
+                            )
+                        val lastLogged = logged.lastOrNull()
+                        val loggedLine = lastLogged?.let { set ->
+                            SetCopy.setLine(set.weightKg, set.reps, loadClass, unit) +
+                                set.rpe?.let { " · effort $it" }.orEmpty()
+                        }
+                        WorkoutRestPanel(
+                            remainingSeconds = rest.remainingSeconds,
+                            totalSeconds = rest.totalSeconds,
+                            running = rest.running,
+                            completed = rest.completedTimerId != null && !rest.running,
+                            upNextKicker = stringResource(
+                                R.string.rest_up_next,
+                                upNextSet,
+                                selected.targetSets,
+                            ),
+                            upNextTarget = upNextTarget,
+                            upNextLoading = microRec == null && state.hint == null,
+                            loggedLine = loggedLine,
+                            showFirstRestCaption = restFirstCaption,
+                            onNudge = viewModel::nudgeRest,
+                            onSkip = viewModel::skipRest,
+                            onUndoLastSet = viewModel::undoTopOffer,
+                            onOpenRest = { session?.id?.let(onOpenRest) },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(vertical = Metrics.space3),
+                        )
+                    } else LazyColumn(
                         state = listState,
                         modifier = Modifier
                             .fillMaxSize()
@@ -863,6 +918,7 @@ private fun ActiveWorkoutContent(
                                             onWhy = { checkNotNull(floorTempoCardState).showWhy = true },
                                             onApply = { viewModel.applyTempoCoachTip(tip) },
                                             onUndo = { viewModel.undoTopOffer() },
+                                            onDismiss = { viewModel.dismissTempoCoachTip(tip) },
                                             modifier = Modifier
                                                 .padding(horizontal = Metrics.gutter)
                                                 .padding(bottom = Metrics.space2)
@@ -957,6 +1013,29 @@ private fun ActiveWorkoutContent(
             onApply = { viewModel.applyTempoCoachTip(tip) },
             cardState = checkNotNull(floorTempoCardState),
         )
+    }
+    if (tempoCoachSheetOpen) {
+        (floorNextTip ?: floorTempoTip)?.let { tip ->
+            if (tip is TempoCoachTip.NextSet) {
+                val currentTarget = SetCopy.setLine(
+                    state.draft.weightKg,
+                    state.draft.reps,
+                    loadClass,
+                    unit,
+                )
+                val suggestedTarget = SetMicroRecCopy.numbers(tip.rec, loadClass, unit)
+                TempoSheet(
+                    tip = tip,
+                    currentTarget = currentTarget,
+                    suggestedTarget = suggestedTarget,
+                    applying = state.logging || state.save.pending,
+                    showIntro = false,
+                    onUse = { viewModel.applyTempoCoachTip(tip) },
+                    onKeep = viewModel::closeTempoCoachSheet,
+                    onDismiss = { viewModel.dismissTempoCoachTip(tip) },
+                )
+            }
+        }
     }
 
     if (setOptionsOpen && selected != null && session != null && !state.entryLocked) {

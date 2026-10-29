@@ -132,6 +132,8 @@ internal val REST_DEFAULT = intPreferencesKey("rest_default_seconds")
 internal val REST_LAST_PRESET = intPreferencesKey("rest_last_preset_seconds")
 internal val REST_ALARM_ELIGIBLE = booleanPreferencesKey("rest_alarm_eligible")
 internal val REST_BATTERY_HINT = booleanPreferencesKey("rest_battery_hint_shown")
+internal val REST_FLOOR_CAPTION_SESSIONS = intPreferencesKey("rest_floor_caption_sessions")
+internal val REST_FLOOR_CAPTION_LAST_SESSION = stringPreferencesKey("rest_floor_caption_last_session")
 internal val REST_ALERTS_ASKED = booleanPreferencesKey("rest_alerts_asked")
 internal val REST_EXTERIOR_ASKED = booleanPreferencesKey("rest_exterior_asked")
 

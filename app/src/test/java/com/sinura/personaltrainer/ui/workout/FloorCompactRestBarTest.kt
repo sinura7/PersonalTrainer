@@ -28,6 +28,8 @@ class FloorCompactRestBarTest {
         assertEquals(48, Metrics.touchMin.value.toInt())
         assertEquals(72, Metrics.commit.value.toInt())
         assertEquals(48, Metrics.restRingSmall.value.toInt())
+        assertEquals(240, Metrics.restRingLarge.value.toInt())
+        assertEquals(10, Metrics.restRingStroke.value.toInt())
         assertEquals(4, Metrics.ringStroke.value.toInt())
 
         val bar = ownedSource("ui/components/RestTimerUi.kt")

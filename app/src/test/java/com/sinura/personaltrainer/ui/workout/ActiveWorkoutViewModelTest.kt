@@ -591,6 +591,24 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun processDeathRestoresRestImmersionLiftId() = runBlocking {
+        val fixture = seedWorkout()
+        val handle = handleFor(fixture.session.id)
+        val first = createViewModel(fixture.session.id, handle)
+        first.awaitPrefilled()
+        first.setRpe(8)
+        first.logSetAndSettle()
+        awaitRestRunning()
+        assertEquals(SQUAT, first.restImmersionLiftId.value)
+        first.clearAndJoinForTest()
+        viewModels.remove(first)
+
+        val recreated = createViewModel(fixture.session.id, handle)
+        recreated.awaitState { it.loadState == SessionLoadState.FOUND }
+        assertEquals(SQUAT, recreated.restImmersionLiftId.value)
+    }
+
+    @Test
     fun rebootClearsAHoldWhenElapsedRealtimeWentBackwards() = runBlocking {
         val clock = ControllableTimePort()
         clock.advance(10_000)

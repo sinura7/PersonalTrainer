@@ -106,17 +106,16 @@ class WorkoutFloorRenderTest {
     fun rendersTheRestingFloor() {
         val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "resting-360x800", vm = vm, expectRest = true) {
-            deps.restTimerController.start(totalSeconds = 120, sessionId = vm.uiState.value.session?.id)
-            deps.restTimerController.adjust(deltaSeconds = -28)
-            // The first rest of a fresh install shows the battery hint in the companion slot;
-            // this frame is about the card underneath it.
+            vm.selectRestDuration(120)
+            vm.startSelectedRest()
+            vm.nudgeRest(-28)
             vm.acknowledgeRestBatteryHint()
             // The clock is the service's; its state reaches the ViewModel through one flow and
             // the composition through another, so wait for the card itself to be on screen
             // rather than capture the frame the instant the clock was started.
             compose.waitUntil(timeoutMillis = 20_000) { vm.restTimerState.value.running }
             compose.waitUntil(timeoutMillis = 20_000) {
-                compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag(WorkoutTestTags.REST_FLOOR).fetchSemanticsNodes().isNotEmpty()
             }
         }
     }
@@ -347,11 +346,11 @@ class WorkoutFloorRenderTest {
             compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
             compose.closeWorkoutSetOptions()
         }
-        if (heightDp >= 640 && fontScale < 1.6f) {
+        if (!expectRest && heightDp >= 640 && fontScale < 1.6f) {
             compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_ENTRY))
             compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
         }
-        if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
+        if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR).assertExists()
     }
 
     private companion object {

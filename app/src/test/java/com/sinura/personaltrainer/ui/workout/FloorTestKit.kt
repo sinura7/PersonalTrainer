@@ -182,6 +182,8 @@ internal fun floorDockState(
     showAnother: Boolean = true,
     undoMessage: String? = null,
     timer: WorkoutDockTimer = WorkoutDockTimer(show = true, restTotalSeconds = 120),
+    restImmersion: Boolean = false,
+    restPrimarySubLabel: String? = null,
 ): WorkoutDockState = WorkoutDockState(
     primaryAction = action,
     verb = action.verb(includeNextName = false),
@@ -198,6 +200,8 @@ internal fun floorDockState(
     undoKey = undoMessage,
     undoDwellMs = 60_000L,
     timer = timer,
+    restImmersion = restImmersion,
+    restPrimarySubLabel = restPrimarySubLabel,
 )
 
 /** Dock callbacks that do nothing unless a test hands one in. */

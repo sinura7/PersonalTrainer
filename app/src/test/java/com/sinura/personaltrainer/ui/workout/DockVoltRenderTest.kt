@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.Volt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -53,11 +54,22 @@ class DockVoltRenderTest {
     }
 
     @Test
-    fun theCommitIsTheDocksOneFilledVoltWhileRestRuns() {
+    fun theCommitIsRestCyanWhileRestImmersionRuns() {
+        val startNow = floorPrimaryAction(
+            kind = WorkoutPrimaryKind.START_SET_NOW,
+            enabled = true,
+        ).copy(startSetNowLabel = "Start set 2 now")
         val running = WorkoutDockTimer(show = true, restRemainingSeconds = 60, restTotalSeconds = 120, restRunning = true)
-        showDock(floorDockState(action = logSet, timer = running))
-        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
-        assertTheOneVoltIs(WorkoutTestTags.LOG_SET)
+        showDock(
+            floorDockState(
+                action = startNow,
+                timer = running,
+                restImmersion = true,
+                restPrimarySubLabel = "Or wait. Phone buzzes at 0:00",
+            ),
+        )
+        compose.onNodeWithTag(WorkoutTestTags.REST_START_NOW).assertExists()
+        assertTheOneRestCyanIs(WorkoutTestTags.REST_START_NOW)
     }
 
     @Test
@@ -103,6 +115,17 @@ class DockVoltRenderTest {
                 WorkoutDock(state = state, events = events)
             }
         }
+    }
+
+    private fun assertTheOneRestCyanIs(commitTag: String) {
+        val commit = compose.onNodeWithTag(commitTag).windowBounds()
+        val frame = compose.drawWindow()
+        val area = commit.width * commit.height
+        val filled = frame.count(commit, RestCyan)
+        assertTrue("the commit is filled RestCyan: $filled of $area pixels", filled >= area * FILLED_SHARE)
+        val window = box(0f, 0f, frame.width.toFloat(), frame.height.toFloat())
+        val outside = frame.count(window, RestCyan) - frame.count(inflate(commit, EDGE_PX), RestCyan)
+        assertEquals("RestCyan drawn in the dock outside its commit", 0, outside)
     }
 
     private fun assertTheOneVoltIs(commitTag: String) {

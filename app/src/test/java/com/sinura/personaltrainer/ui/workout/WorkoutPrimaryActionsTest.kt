@@ -123,6 +123,57 @@ class WorkoutPrimaryActionsTest {
     }
 
     @Test
+    fun runningRestOnRestLiftShowsStartSetNow() {
+        val ready = state()
+        val action = derive(
+            ready,
+            restRunning = true,
+            restImmersionLiftId = "squat",
+            startSetNowLabel = "Start set 2 now",
+        )
+        assertEquals(WorkoutPrimaryKind.START_SET_NOW, action.kind)
+        assertEquals("Start set 2 now", action.verb())
+        assertTrue(action.enabled)
+    }
+
+    @Test
+    fun runningRestOnAnotherLiftKeepsNormalPrimary() {
+        val ready = state(selected = "row")
+        val action = derive(
+            ready,
+            restRunning = true,
+            restImmersionLiftId = "squat",
+            startSetNowLabel = "Start set 2 now",
+        )
+        assertEquals(WorkoutPrimaryKind.LOG_SET, action.kind)
+    }
+
+    @Test
+    fun nextExerciseOutranksStartSetNowDuringRestOnRestLift() {
+        val complete = state(sets = listOf(set("squat")))
+        val action = derive(
+            complete,
+            restRunning = true,
+            restImmersionLiftId = "squat",
+            startSetNowLabel = "Start set 2 now",
+        )
+        assertEquals(WorkoutPrimaryKind.NEXT_EXERCISE, action.kind)
+    }
+
+    @Test
+    fun failedSaveOutranksStartSetNowOnRestLift() {
+        val ready = state()
+        val command = WorkoutSetSave("session", "squat", "new-set", 1, WorkoutSetValues(60.0, 5, null, false, null))
+        val action = derive(
+            ready.copy(save = WorkoutSaveState(WorkoutSavePhase.FAILED, command)),
+            restRunning = true,
+            restImmersionLiftId = "squat",
+            startSetNowLabel = "Start set 2 now",
+        )
+        assertEquals(WorkoutPrimaryKind.RETRY_SAVE, action.kind)
+    }
+
+    @Test
     fun timerTickPreservesPressIdentityButAChangedDraftOrSavedSetInvalidatesIt() {
         val state = state()
         val first = derive(state, stopwatch = SetStopwatchUiState(running = true, used = true, elapsedSeconds = 12))
@@ -139,7 +190,20 @@ class WorkoutPrimaryActionsTest {
         extra: Boolean = false,
         hold: HoldTimerUiState = HoldTimerUiState(),
         stopwatch: SetStopwatchUiState = SetStopwatchUiState(),
-    ) = WorkoutPrimaryActions.derive(state, extra, hold, stopwatch, timedGeneration = 1, activation = 0)
+        restRunning: Boolean = false,
+        restImmersionLiftId: String? = null,
+        startSetNowLabel: String? = null,
+    ) = WorkoutPrimaryActions.derive(
+        state,
+        extra,
+        hold,
+        stopwatch,
+        timedGeneration = 1,
+        activation = 0,
+        restRunning = restRunning,
+        restImmersionLiftId = restImmersionLiftId,
+        startSetNowLabel = startSetNowLabel,
+    )
 
     private fun state(selected: String = "squat", sets: List<SetLog> = emptyList()) = ActiveWorkoutUiState(
         loadState = SessionLoadState.FOUND,

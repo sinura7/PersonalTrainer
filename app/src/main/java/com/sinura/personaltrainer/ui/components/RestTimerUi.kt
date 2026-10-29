@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -529,8 +530,12 @@ fun RestSweepRing(
     modifier: Modifier = Modifier,
     clockTestTag: String? = null,
     ringSize: Dp = REST_RING_SIZE,
+    ringStroke: Dp = REST_RING_STROKE,
     afterWarmup: Boolean = false,
     restSourceTag: String = RestIdleCopy.PLANNED_REST,
+    caption: String? = null,
+    useNumeralXl: Boolean = false,
+    completeAccent: Color = PrGold,
 ) {
     val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
     val progress by animateFloatAsState(
@@ -539,7 +544,7 @@ fun RestSweepRing(
         label = "rest-ring",
     )
     val sweepColor by animateColorAsState(
-        targetValue = if (finished) PrGold else accent,
+        targetValue = if (finished) completeAccent else accent,
         animationSpec = instrumentTween(Motion.BASE),
         label = "rest-ring-accent",
     )
@@ -573,7 +578,7 @@ fun RestSweepRing(
         contentAlignment = Alignment.Center,
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokePx = REST_RING_STROKE.toPx()
+            val strokePx = ringStroke.toPx()
             val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
             val inset = strokePx / 2f
             val arcSize = Size(size.width - inset * 2f, size.height - inset * 2f)
@@ -608,7 +613,7 @@ fun RestSweepRing(
             }
             Text(
                 clock,
-                style = InstrumentType.numeralHero,
+                style = if (useNumeralXl) InstrumentType.numeralXl else InstrumentType.numeralHero,
                 color = TextPrimary,
                 maxLines = 1,
                 softWrap = false,
@@ -619,6 +624,15 @@ fun RestSweepRing(
                     )
                     .clearAndSetSemantics { contentDescription = spoken },
             )
+            if (!caption.isNullOrBlank() && !finished) {
+                Text(
+                    caption,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -681,6 +695,8 @@ internal fun RestNudgeButtons(
     skipTag: String,
     modifier: Modifier = Modifier,
     perRow: Int = 3,
+    minusLabel: String = RestNudgeCopy.MINUS,
+    plusLabel: String = RestNudgeCopy.PLUS,
 ) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
@@ -689,13 +705,13 @@ internal fun RestNudgeButtons(
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         RestControl(
-            label = RestNudgeCopy.MINUS,
+            label = minusLabel,
             spoken = RestNudgeCopy.MINUS_SPOKEN,
             onClick = { onNudge(-RestTimer.NUDGE_SECONDS) },
             modifier = Modifier.weight(1f).testTag(minusTag),
         )
         RestControl(
-            label = RestNudgeCopy.PLUS,
+            label = plusLabel,
             spoken = RestNudgeCopy.PLUS_SPOKEN,
             onClick = { onNudge(RestTimer.NUDGE_SECONDS) },
             modifier = Modifier.weight(1f).testTag(plusTag),
@@ -889,6 +905,56 @@ fun CustomRestDialog(
             }
         }
     }
+}
+
+enum class RingSize { Large, Mini }
+
+/**
+ * v3 rest ring for the in-workout rest floor and between-lift mini (240 dp / 120 dp).
+ */
+@Composable
+fun RestRing(
+    remainingMs: Long,
+    totalMs: Long,
+    modifier: Modifier = Modifier,
+    size: RingSize = RingSize.Large,
+    accent: Color = RestCyan,
+    running: Boolean = true,
+    completed: Boolean = false,
+    totalLabel: String? = null,
+) {
+    val remainingSeconds = (remainingMs / 1000L).toInt()
+    val totalSeconds = (totalMs / 1000L).toInt().coerceAtLeast(1)
+    val ringSize = when (size) {
+        RingSize.Large -> Metrics.restRingLarge
+        RingSize.Mini -> Metrics.restRingSmall
+    }
+    val stroke = when (size) {
+        RingSize.Large -> Metrics.restRingStroke
+        RingSize.Mini -> Metrics.ringStroke
+    }
+    val sweepAccent = if (completed) Volt else accent
+    val kicker = when {
+        completed -> stringResource(com.sinura.personaltrainer.R.string.rest_go)
+        running -> TalkBackPolicy.REST_RUNNING_KICKER
+        else -> TalkBackPolicy.REST_RUNNING_KICKER
+    }
+    val clock = RestTimer.formatClock(if (completed) 0 else remainingSeconds.coerceAtLeast(0))
+    RestSweepRing(
+        remainingSeconds = if (completed) 0 else remainingSeconds,
+        totalSeconds = totalSeconds,
+        accent = sweepAccent,
+        clock = clock,
+        kicker = kicker,
+        running = running && !completed,
+        finished = completed,
+        modifier = modifier,
+        ringSize = ringSize,
+        ringStroke = stroke,
+        caption = totalLabel,
+        useNumeralXl = size == RingSize.Large,
+        completeAccent = Volt,
+    )
 }
 
 private val REST_RING_SIZE = 280.dp
