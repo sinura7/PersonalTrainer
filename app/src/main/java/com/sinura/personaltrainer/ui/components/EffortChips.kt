@@ -49,6 +49,8 @@ fun EffortChips(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     last: Int? = null,
+    /** Coach next-set effort hint when nothing is selected yet (same copy as [RpeCopy.lastHint]). */
+    recommended: Int? = null,
     enabled: Boolean = true,
     showError: Boolean = false,
     hiddenForWarmup: Boolean = false,
@@ -87,9 +89,15 @@ fun EffortChips(
                 style = InstrumentType.bodyStrong,
                 color = if (showError) Danger else TextSecondary,
             )
-            if (last != null) {
+            val hintRpe = when {
+                selected != null || prefilled != null -> null
+                recommended != null -> recommended
+                last != null -> last
+                else -> null
+            }
+            hintRpe?.let { rpe ->
                 Text(
-                    text = "Last: $last",
+                    text = "Last: $rpe",
                     style = InstrumentType.caption,
                     color = TextSecondary,
                     modifier = Modifier.testTag(WorkoutTestTags.RPE_LAST_HINT),

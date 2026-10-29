@@ -187,7 +187,7 @@ internal fun RestTimerCard(
             // One step lighter than the panels around it, so resting reads as a state the
             // floor is in rather than another card on it. The segments below then recess to
             // Surface1 inside it, which is the same step read the other way.
-            .background(if (idle) com.sinura.personaltrainer.ui.theme.RestContainer else Surface2)
+            .background(Surface2)
             .border(Metrics.hairline, SectionEdge, RoundedCornerShape(Radius.md))
             .testTag(if (idle) WorkoutTestTags.REST_IDLE else WorkoutTestTags.REST_BAR)
             .padding(horizontal = if (compactPresentation) Metrics.space2 else Metrics.space3,

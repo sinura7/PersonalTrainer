@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.ui.workout
 
-import com.sinura.personaltrainer.domain.workout.EffortSource
+import com.sinura.personaltrainer.domain.EffortSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

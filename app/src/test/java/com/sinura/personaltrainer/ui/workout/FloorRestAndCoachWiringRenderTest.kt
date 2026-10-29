@@ -305,7 +305,7 @@ class FloorRestAndCoachWiringRenderTest {
         assertOnlyTheHoldHidesTheCard(vm)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_LINE).assertDoesNotExist()
         compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_LINE).assertCountEquals(0)
-        compose.onAllNodes(hasText("0 reps", substring = true), useUnmergedTree = true).assertCountEquals(0)
+        compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assertDoesNotExist()
     }
 
     /** The call would show on any other lift: a visible call, an entry that is not locked. */
@@ -403,7 +403,11 @@ class FloorRestAndCoachWiringRenderTest {
         assertTrue("the call is one the card shows on entry", SetMicroRecCopy.visibleOnEntry(call!!))
         // Look where the card would be: the effort track sits just above it.
         assertTempoCoachCardOnScreen(vm)
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsNotEnabled()
+        val tempoAction = compose.onNode(
+            hasTestTag(WorkoutTestTags.MICRO_REC_WHY) or hasTestTag("workout-tempo-undo"),
+            useUnmergedTree = true,
+        )
+        tempoAction.assertIsNotEnabled()
         compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).assertIsNotEnabled()
         gate.complete(Unit)
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }

@@ -25,6 +25,7 @@ object SetCopy {
         fun Double.loadLabel(): String = if (entryPrecision) WorkoutWeightCopy.label(this, unit) else toWeightLabel(unit)
         val held = durationSeconds?.takeIf { it > 0 }
         val safeReps = reps.coerceAtLeast(0)
+        if (safeReps < 1 && held == null && loadClass == LoadClass.BODYWEIGHT) return ""
         if (held != null && safeReps < 1) {
             val clock = HoldWork.formatRange(held)
             val load = weightKg.takeIf { it.isFinite() && it > 0.0 }

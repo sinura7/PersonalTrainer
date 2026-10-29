@@ -876,6 +876,7 @@ private fun ActiveWorkoutContent(
                                             selected = state.effortChipSelected,
                                             prefilled = state.effortChipPrefilled,
                                             last = state.lastPerformance?.topSet?.rpe,
+                                            recommended = microRec?.nextRpe,
                                             enabled = entryEnabled && effortEntryReady,
                                             hiddenForWarmup = state.draft.isWarmup || hold,
                                             warmupCaption = if (state.draft.isWarmup) {
@@ -887,7 +888,13 @@ private fun ActiveWorkoutContent(
                                             },
                                             entryReady = effortEntryReady,
                                             showError = state.effortMissingForCommit && state.effortValue == null,
-                                            onSelect = viewModel::setRpe,
+                                            onSelect = { value ->
+                                                if (state.effortChipSelected == value) {
+                                                    viewModel.setRpe(null)
+                                                } else {
+                                                    viewModel.setRpe(value)
+                                                }
+                                            },
                                         )
                                         WorkoutReadiness(
                                             action = primaryState.value,

@@ -2165,13 +2165,21 @@ class ActiveWorkoutViewModel internal constructor(
 
     private fun currentPrimaryAction(): WorkoutPrimaryAction {
         val read = sessionReader.observations.value
+        val draftValue = draft.value
+        val selected = selectedExerciseId.value
+        val lift = read.session?.exercises?.firstOrNull { it.exercise.id == selected }
+        val hold = lift?.exercise?.let { HoldWork.isHold(it) } == true
+        val effortApplies = !draftValue.isWarmup && !hold
+        val source = effortSource.value
         return WorkoutPrimaryActions.derive(
             state = ActiveWorkoutUiState(
                 loadState = read.loadState, session = read.session,
-                selectedExerciseId = selectedExerciseId.value, draft = draft.value,
+                selectedExerciseId = selected, draft = draftValue,
                 editingSetId = editingSetId.value, logging = saves.inFlight.value,
                 mutating = mutating.value || !privateDrafts.recovery.value.canCommit && !saves.pending, save = saves.operation.value,
                 liftReadiness = liftReadiness.value, draftDirty = draftDirty.value,
+                effortSource = source,
+                effortValue = draftValue.rpe.takeIf { effortApplies },
             ),
             extraSet = wantAnotherSet.value, hold = clocks.hold.value, stopwatch = clocks.stopwatch.value,
             timedGeneration = clocks.generation.value, activation = primaryActivation.value,
@@ -2242,7 +2250,7 @@ class ActiveWorkoutViewModel internal constructor(
         val values = WorkoutSetValues(
             weightKg = current.weightKg,
             reps = if (hold) 0 else current.reps,
-            rpe = uiState.value.effortValue,
+            rpe = if (!current.isWarmup && !hold) uiState.value.effortValue else current.rpe,
             isWarmup = current.isWarmup,
             durationSeconds = duration,
         )

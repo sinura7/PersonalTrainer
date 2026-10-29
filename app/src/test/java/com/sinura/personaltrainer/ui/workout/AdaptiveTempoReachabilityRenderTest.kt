@@ -164,6 +164,7 @@ class AdaptiveTempoReachabilityRenderTest {
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.CURRENT_LIFT))
         compose.waitForIdle()
+        compose.scrollFloorTo(WorkoutTestTags.TEMPO_LINE)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_LINE).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
         capture("why-relocation", "inline-offscreen-why-open")

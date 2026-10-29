@@ -113,10 +113,9 @@ class FloorSectionEdgesRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = twoWorkingSetsLogged())
         show(vm, fontScale = 2f)
         assertFramedAndDrawn()
-        // Inside its frame the effort track still lays its five out on one row at 360 dp
-        // (RpeSelector sizes the row from the width it is given, which the frame narrowed).
+        // R1 EffortChips: at font scale 2.0 the scale splits 6–8 and 9–10 (acceptance A09).
         val tops = RpeCopy.VALUES.map { compose.onNodeWithTag(WorkoutTestTags.rpeChoice(it)).windowBounds().top }
-        assertEquals("the five effort chips share one row at the largest text, tops were $tops", 1, tops.map { it.toInt() }.toSet().size)
+        assertEquals("effort chips use two rows at font scale 2.0, tops were $tops", 2, tops.map { it.toInt() }.toSet().size)
     }
 
     @Test
@@ -142,10 +141,10 @@ class FloorSectionEdgesRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
         show(vm, fontScale = 2f)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
+        vm.setReps(8)
         compose.waitForIdle()
-        compose.waitUntil(timeoutMillis = WAIT_MS) {
-            compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_LINE).fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.scrollFloorTo(WorkoutTestTags.TEMPO_LINE)
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_LINE).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
         val callout = compose.onAllNodes(hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_CALLOUT)), useUnmergedTree = true)
             .fetchSemanticsNodes().filter { androidx.compose.ui.semantics.SemanticsProperties.Text in it.config }
