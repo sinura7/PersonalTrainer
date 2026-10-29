@@ -96,6 +96,8 @@ internal data class WorkoutDockState(
     /** Full-screen rest floor: companion hides the dock rest card. */
     val restImmersion: Boolean = false,
     val restPrimarySubLabel: String? = null,
+    /** What-next sheet owns Next / Finish; hide the dock duplicate. */
+    val hideAdvancePrimary: Boolean = false,
 )
 
 internal data class WorkoutDockEvents(
@@ -354,7 +356,9 @@ internal fun WorkoutDock(
         verticalPadding = Metrics.space2,
         prelude = companion,
         volt = {
-            key(action.identity) {
+            if (state.hideAdvancePrimary && completeDock) {
+                Unit
+            } else key(action.identity) {
                 val verb = if (state.keepEntry) "Keep entry" else state.verb
                 val payload = state.payload.takeUnless { state.keepEntry }
                 val spokenAction = listOfNotNull(verb, (state.spokenPayload ?: payload).takeUnless { state.keepEntry }).joinToString(" · ")

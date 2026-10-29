@@ -33,6 +33,7 @@ import com.sinura.personaltrainer.testutil.forgetFirstApplication
 import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
 import com.sinura.personaltrainer.ui.navigation.Route
 import com.sinura.personaltrainer.ui.summary.SummaryTags
+import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
 import java.io.File
 import java.io.FileOutputStream
@@ -119,13 +120,11 @@ class SummaryCorrectionNavigationTest {
         compose.onNodeWithTag(testTag = LiveSessionBarTestTags.ROOT).performClick()
         awaitTag(tag = WorkoutTestTags.FINISH, enabled = true)
         compose.onNodeWithTag(testTag = WorkoutTestTags.FINISH).assertIsEnabled().performClick()
-        val endDialog = hasText(text = "End workout?") and hasAnyAncestor(matcher = isDialog())
         compose.waitUntil(timeoutMillis = WAIT_MS, condition = {
-            compose.onAllNodes(matcher = endDialog).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH_SHEET)).fetchSemanticsNodes().isNotEmpty()
         })
-        compose.onNode(matcher = endDialog).assertIsDisplayed()
-        compose.onNode(matcher = hasText(text = "Save as is") and hasAnyAncestor(matcher = isDialog()))
-            .assertIsEnabled().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsEnabled().performClick()
 
         awaitTotalVolume(kilograms = 500)
         val finished = storedSession(sessionId = originalSet.sessionId)
@@ -191,7 +190,7 @@ class SummaryCorrectionNavigationTest {
 
         compose.onNodeWithTag(testTag = SessionDetailTestTags.BACK).assertIsEnabled().performClick()
         awaitTotalVolume(kilograms = 600)
-        compose.onNode(matcher = hasContentDescription(value = "Total volume 500 kg")).assertDoesNotExist()
+        compose.onNode(matcher = hasContentDescription(value = "kg volume, 500 kg")).assertDoesNotExist()
         capture(name = "summary-after-correction-600kg")
         compose.onNodeWithTag(testTag = SummaryTags.DONE).assertIsEnabled().performClick()
         awaitTag(tag = HOME_TAB)
@@ -239,7 +238,7 @@ class SummaryCorrectionNavigationTest {
 
     private fun awaitTotalVolume(kilograms: Int) {
         awaitTag(tag = SummaryTags.CONTENT)
-        val spoken = "Total volume $kilograms kg"
+        val spoken = "kg volume, $kilograms kg"
         val readout = hasContentDescription(value = spoken) and
             hasAnyAncestor(matcher = hasTestTag(testTag = SummaryTags.CONTENT))
         compose.waitUntil(timeoutMillis = WAIT_MS, condition = {

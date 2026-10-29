@@ -614,7 +614,8 @@ class FloorRestAndCoachWiringRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithText("End workout?").assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
         assertEquals("Finish is not an exit", 0, exits)
     }
 
@@ -632,7 +633,7 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.entryLocked }
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled().performClick()
-        compose.onAllNodesWithText("End workout?").assertCountEquals(0)
+        compose.onAllNodesWithTag(WorkoutTestTags.FINISH_SHEET).assertCountEquals(0)
         gate.complete(Unit)
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }
         compose.waitForIdle()

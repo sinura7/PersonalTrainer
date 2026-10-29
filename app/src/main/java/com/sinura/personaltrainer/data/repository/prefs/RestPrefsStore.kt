@@ -80,7 +80,14 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
         store.pref { prefs -> prefs[REST_BATTERY_HINT] ?: false }
 
     override val restFloorCaptionSessions: Flow<Int> =
-        store.pref { prefs -> prefs[REST_FLOOR_CAPTION_SESSIONS] ?: 0 }
+        store.pref { prefs ->
+            val ids = prefs[REST_FLOOR_CAPTION_SESSION_IDS]
+            if (ids != null) {
+                ids.size
+            } else {
+                prefs[REST_FLOOR_CAPTION_SESSIONS] ?: 0
+            }
+        }
 
     override val restAlertsAsked: Flow<Boolean> =
         store.pref { prefs -> prefs[REST_ALERTS_ASKED] ?: false }
@@ -98,10 +105,21 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
 
     override suspend fun recordRestFloorCaptionForSession(sessionId: String) {
         store.data.edit { prefs ->
+            val existing = prefs[REST_FLOOR_CAPTION_SESSION_IDS]
+            if (existing != null) {
+                if (sessionId in existing) return@edit
+                prefs[REST_FLOOR_CAPTION_SESSION_IDS] = existing + sessionId
+                return@edit
+            }
             if (prefs[REST_FLOOR_CAPTION_LAST_SESSION] == sessionId) return@edit
             prefs[REST_FLOOR_CAPTION_LAST_SESSION] = sessionId
-            val next = (prefs[REST_FLOOR_CAPTION_SESSIONS] ?: 0) + 1
-            prefs[REST_FLOOR_CAPTION_SESSIONS] = next
+            val migrated = buildSet {
+                prefs[REST_FLOOR_CAPTION_LAST_SESSION]?.let { add(it) }
+                add(sessionId)
+            }
+            prefs[REST_FLOOR_CAPTION_SESSION_IDS] = migrated
+            prefs.remove(REST_FLOOR_CAPTION_SESSIONS)
+            prefs.remove(REST_FLOOR_CAPTION_LAST_SESSION)
         }
     }
 

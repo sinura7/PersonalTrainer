@@ -595,7 +595,9 @@ class FloorScreenWiringRenderTest {
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.logReceipt.value != null }
-        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
+        compose.awaitThat("What next opens after the last planned save", now = vm.whatNextVisible::value) {
+            vm.whatNextVisible.value
+        }
         // A minute on every clock the floor reads, since none of them moves the others: the
         // screen's, which runs the receipt's dwell; the ViewModel's scheduler; and the
         // device's elapsed time with the main thread's own timers.
@@ -606,6 +608,7 @@ class FloorScreenWiringRenderTest {
         assertNull("the receipt's dwell ran to its end", vm.logReceipt.value)
         assertEquals("time alone must not move the lifter", LEG_EXTENSION, vm.uiState.value.selectedExerciseId)
         compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.selectedExerciseId == NEXT_LIFT }
     }
 

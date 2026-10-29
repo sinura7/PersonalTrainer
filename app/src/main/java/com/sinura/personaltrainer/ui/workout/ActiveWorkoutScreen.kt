@@ -74,7 +74,6 @@ import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
 import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.InstrumentPreset
 import com.sinura.personaltrainer.ui.components.QuietButton
@@ -136,6 +135,20 @@ object WorkoutTestTags {
     const val UP_NEXT_CARD = "workout-up-next-card"
     const val REST_EDIT_UP_NEXT = "workout-rest-edit-up-next"
     const val REST_UNDO_LAST = "workout-rest-undo-last"
+    const val WHAT_NEXT_SHEET = "workout-what-next-sheet"
+    const val WHAT_NEXT_ADD_SET = "workout-what-next-add-set"
+    const val WHAT_NEXT_SWAP = "workout-what-next-swap"
+    const val WHAT_NEXT_SKIP = "workout-what-next-skip"
+    const val WHAT_NEXT_EDIT = "workout-what-next-edit"
+    const val LIFT_TRANSITION = "workout-lift-transition"
+    const val BETWEEN_MINI_RING = "workout-between-mini-ring"
+    const val BETWEEN_START = "workout-between-start"
+    const val BETWEEN_OTHER = "workout-between-other"
+    const val BETWEEN_SETS_CHIP = "workout-between-sets-chip"
+    const val BETWEEN_VOLUME_CHIP = "workout-between-volume-chip"
+    const val BETWEEN_PR_CHIP = "workout-between-pr-chip"
+    const val FINISH_SHEET = "workout-finish-sheet"
+    const val FINISH_KEEP = "workout-finish-keep"
     const val TEMPO_SHEET = "workout-tempo-sheet"
     const val TEMPO_SHEET_USE = "workout-tempo-sheet-use"
     const val TEMPO_COACH_SHORTCUT = "workout-tempo-coach-shortcut"
@@ -254,6 +267,8 @@ private fun ActiveWorkoutContent(
     val tempoCoachSheetOpen by viewModel.tempoCoachSheetOpen.collectAsStateWithLifecycle()
     val restFirstCaption by viewModel.restFirstCaptionVisible.collectAsStateWithLifecycle()
     val restImmersionLiftId by viewModel.restImmersionLiftId.collectAsStateWithLifecycle()
+    val whatNextVisible by viewModel.whatNextVisible.collectAsStateWithLifecycle()
+    val liftTransitionNextId by viewModel.liftTransitionNextId.collectAsStateWithLifecycle()
     val exerciseHistory by viewModel.exerciseHistory.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
@@ -622,7 +637,8 @@ private fun ActiveWorkoutContent(
                                 keepingEntry = state.mutating || state.logging,
                                 error = state.error,
                                 suggestionUnavailable = state.suggestionUnavailable,
-                                showAnother = showAnother,
+                                showAnother = showAnother && !whatNextVisible,
+                                hideAdvancePrimary = whatNextVisible,
                                 undoMessage = undoEntries.lastOrNull()?.offer?.message,
                                 undoKey = undoEntries.lastOrNull()?.offer?.key,
                                 undoDwellMs = undoDwellMs,
@@ -737,12 +753,54 @@ private fun ActiveWorkoutContent(
             }
 
             else -> {
+                val transitionNext = liftTransitionNextId?.let { id ->
+                    session.exercises.firstOrNull { it.exercise.id == id }
+                }
+                if (liftTransitionNextId != null && selected != null && transitionNext != null) {
+                    BackHandler { viewModel.cancelLiftTransition() }
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
                 ) {
-                    if (restImmersion && selected != null) {
+                    if (liftTransitionNextId != null && selected != null && transitionNext != null) {
+                        val liftSets = session.setsFor(selected.exercise.id)
+                        val working = liftSets.count { !it.isWarmup }
+                        val volumeKg = liftSets.filter { !it.isWarmup }.sumOf { it.weightKg * it.reps }
+                        val prMoment = personalRecord?.takeIf { it.exerciseName == selected.exercise.name }
+                        val prLabel = prMoment?.let {
+                            SetCopy.setLine(it.weightKg, it.reps, loadClass, unit)
+                        }
+                        val nextIndex = session.exercises.indexOfFirst { it.exercise.id == transitionNext.exercise.id } + 1
+                        val nextTarget = SetCopy.setLine(
+                            transitionNext.targetWeightKg ?: 0.0,
+                            transitionNext.targetReps,
+                            LoadClass.of(transitionNext.exercise.loadType),
+                            unit,
+                        )
+                        val currentIndex = session.exercises.indexOfFirst { it.exercise.id == selected.exercise.id } + 1
+                        LiftTransitionPanel(
+                            liftIndex = currentIndex,
+                            liftCount = session.exercises.size,
+                            completedLiftName = selected.exercise.name,
+                            workingSets = working,
+                            volumeKgLabel = com.sinura.personaltrainer.util.QuantityFormat.formatGroupedNumber(volumeKg),
+                            prLabel = prLabel,
+                            nextLiftIndex = nextIndex,
+                            nextLiftName = transitionNext.exercise.name,
+                            nextTarget = nextTarget,
+                            nextTargetLoading = false,
+                            nextFirstTimeCaption = state.hint == null && state.lastPerformance == null,
+                            restRemainingSeconds = rest.remainingSeconds,
+                            restTotalSeconds = rest.totalSeconds,
+                            restRunning = rest.running,
+                            restCompleted = rest.completedTimerId != null && !rest.running,
+                            onStartNext = viewModel::completeLiftTransition,
+                            onChooseOther = { liftSwitcherOpen = true },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    } else if (restImmersion && selected != null) {
                         val workingCount = logged.count { !it.isWarmup }
                         val upNextSet = workingCount + 1
                         val upNextTarget = microRec?.let { SetMicroRecCopy.numbers(it, loadClass, unit) }
@@ -755,7 +813,9 @@ private fun ActiveWorkoutContent(
                         val lastLogged = logged.lastOrNull()
                         val loggedLine = lastLogged?.let { set ->
                             SetCopy.setLine(set.weightKg, set.reps, loadClass, unit) +
-                                set.rpe?.let { " · effort $it" }.orEmpty()
+                                set.rpe?.let { rpe ->
+                                    stringResource(R.string.rest_logged_effort, rpe)
+                                }.orEmpty()
                         }
                         WorkoutRestPanel(
                             remainingSeconds = rest.remainingSeconds,
@@ -1240,26 +1300,76 @@ private fun ActiveWorkoutContent(
         )
     }
 
+    if (whatNextVisible && selected != null && session != null) {
+        val nextLift = advance.nextLift
+        val targetLine = nextLift?.let {
+            SetCopy.setLine(it.targetWeightKg ?: 0.0, it.targetReps, LoadClass.of(it.exercise.loadType), unit)
+        }
+        val liftsLeft = session.exercises.count { !session.isTargetMet(it.exercise.id) }
+        WhatNextSheet(
+            addSetSubLabel = targetLine?.let { stringResource(R.string.next_add_set_sub, it) },
+            swapSubLabel = state.swapSiblings.take(2).joinToString(", ") { it.name }.takeIf { it.isNotBlank() }?.let {
+                stringResource(R.string.next_swap_sub, it)
+            },
+            skipSubLabel = stringResource(R.string.next_skip_sub, liftsLeft.coerceAtLeast(1)),
+            primaryLabel = if (advance.showFinish) {
+                stringResource(R.string.next_finish_cta)
+            } else {
+                stringResource(R.string.next_lift_cta, advance.nextName.orEmpty())
+            },
+            showFinish = advance.showFinish,
+            rowsEnabled = !state.entryLocked,
+            onAddSet = {
+                viewModel.requestExtraSet()
+                viewModel.dismissWhatNext()
+            },
+            onSwap = {
+                viewModel.dismissWhatNext()
+                viewModel.requestSwap()
+            },
+            onSkip = {
+                viewModel.dismissWhatNext()
+                liftSwitcherOpen = true
+            },
+            onEditSaved = {
+                viewModel.dismissWhatNext()
+                setsOpen = true
+            },
+            onPrimary = {
+                viewModel.dismissWhatNext()
+                if (advance.showFinish) {
+                    confirmEnd = true
+                } else {
+                    advance.nextExerciseId?.let(viewModel::beginLiftTransition)
+                }
+            },
+            onDismiss = viewModel::dismissWhatNext,
+        )
+    }
+
     if (confirmEnd) {
-        EndWorkoutDialog(
-            loggedSets = session?.sets?.size ?: 0,
-            notes = state.notes,
-            notesExpanded = finishNotesOpen,
-            onToggleNotes = { finishNotesOpen = !finishNotesOpen },
-            onNotesChange = viewModel::setNotes,
-            notesSave = state.notesSave,
-            onRetryNotes = viewModel::retryNotesSave,
-            notesEnabled = !state.mutating && !state.finished,
-            onSave = {
+        val plannedWorking = session?.exercises?.sumOf { it.targetSets.coerceAtLeast(0) } ?: 0
+        val durationMin = session?.let {
+            ((System.currentTimeMillis() - it.startedAt).coerceAtLeast(0L) / 60_000L).toInt()
+        } ?: 1
+        FinishSheet(
+            loggedSets = session?.sets?.count { !it.isWarmup } ?: 0,
+            plannedWorkingSets = plannedWorking,
+            durationMinutes = durationMin.coerceAtLeast(1),
+            onFinish = {
                 confirmEnd = false
                 viewModel.finishWorkout()
             },
-            onDiscardInstead = {
+            onKeepTraining = { confirmEnd = false },
+            onDiscard = {
                 confirmEnd = false
                 confirmDiscard = true
             },
             onDismiss = { confirmEnd = false },
             editOpen = state.editingSetId != null,
+            loading = state.mutating,
+            error = state.error?.takeIf { state.save.phase == WorkoutSavePhase.FAILED },
+            onRetry = viewModel::retrySave,
         )
     }
 

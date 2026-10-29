@@ -8,9 +8,13 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ProgressionAction
+import com.sinura.personaltrainer.domain.ProgressionCopy
+import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
+import com.sinura.personaltrainer.ui.workout.ProgressionHintLoader
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.Job
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -48,6 +53,13 @@ data class WorkoutSummaryUiState(
     val highlightExercises: Map<String, Exercise> = emptyMap(),
     /** One quiet line about the unattended Drive copy, or null when there is nothing to say. */
     val autoBackup: String? = null,
+    val tempoNextTime: List<SummaryTempoLine> = emptyList(),
+    val firstWorkoutSaved: Boolean = false,
+)
+
+data class SummaryTempoLine(
+    val exerciseName: String,
+    val message: String,
 )
 
 /**
@@ -108,6 +120,8 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
         savedConfirmed: Boolean = false,
         summary: WorkoutSummary = WorkoutSummary(),
         highlightExercises: Map<String, Exercise> = emptyMap(),
+        tempoNextTime: List<SummaryTempoLine> = emptyList(),
+        firstWorkoutSaved: Boolean = false,
     ) {
         // update, not read-then-write: the backup's line arrives from its own thread and must
         // not be lost to a settle landing at the same moment, or overwrite one.
@@ -121,9 +135,16 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 summary = summary,
                 highlightExercises = highlightExercises,
                 autoBackup = current.autoBackup,
+                tempoNextTime = tempoNextTime,
+                firstWorkoutSaved = firstWorkoutSaved,
             )
         }
     }
+
+    private fun progressionShowsChange(hint: ProgressionHint): Boolean =
+        hint.action != ProgressionAction.HOLD ||
+            kotlin.math.abs(hint.suggestedWeightKg - hint.lastWeightKg) > 1e-6 ||
+            hint.suggestedReps != hint.lastReps
 
     private fun load() {
         loading?.cancel()
@@ -147,9 +168,15 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
             }
             // The row is in hand: from here on "saved" is a fact, whatever the summary does.
             val saved = session.isFinished
+            val exerciseIds = session.sets.filterNot { it.isWarmup }.map { it.exerciseId }
+            val prior = runCatchingCancellable {
+                container.workoutRepository.historyBefore(sessionId, exerciseIds)
+            }.getOrElse { thrown ->
+                AppLog.w(TAG, "Reading lift history before the summary failed", thrown)
+                settle(failed = true, savedConfirmed = saved)
+                return@launch
+            }
             runCatchingCancellable {
-                val exerciseIds = session.sets.filterNot { it.isWarmup }.map { it.exerciseId }
-                val prior = container.workoutRepository.historyBefore(sessionId, exerciseIds)
                 withContext(container.computeDispatcher) {
                     WorkoutSummaryBuilder.build(session, prior)
                 }
@@ -164,7 +191,25 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                         isCustom = true,
                     ))
                 }
-                settle(savedConfirmed = saved, summary = summary, highlightExercises = identities)
+                val hintLoader = ProgressionHintLoader(container, sessionId)
+                val settings = hintLoader.settings().first()
+                val tempoLines = summary.highlights.mapNotNull { highlight ->
+                    val planned = session.exercises.firstOrNull { it.exercise.id == highlight.exerciseId }
+                    val hint = hintLoader.progression(highlight.exerciseId, planned, settings) ?: return@mapNotNull null
+                    if (!progressionShowsChange(hint)) return@mapNotNull null
+                    SummaryTempoLine(
+                        exerciseName = highlight.exerciseName,
+                        message = ProgressionCopy.stripReason(hint, settings.unit),
+                    )
+                }
+                val firstSaved = prior.values.all { it.isEmpty() }
+                settle(
+                    savedConfirmed = saved,
+                    summary = summary,
+                    highlightExercises = identities,
+                    tempoNextTime = tempoLines,
+                    firstWorkoutSaved = firstSaved,
+                )
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Building the workout summary failed", thrown)
                 // Never strand the user on a spinner because a summary would not compute — but

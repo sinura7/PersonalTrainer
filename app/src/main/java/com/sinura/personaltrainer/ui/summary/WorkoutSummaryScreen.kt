@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -56,7 +55,6 @@ import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.SummaryCopy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import com.sinura.personaltrainer.domain.SummaryHeadline
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
@@ -68,7 +66,10 @@ import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.components.ThumbSize
+import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.stringResource
 import com.sinura.personaltrainer.ui.theme.GoldContainer
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -206,6 +207,23 @@ internal fun WorkoutSummaryContent(
                     }
                 }
 
+                if (state.tempoNextTime.isNotEmpty()) {
+                    item(key = "tempo-next") {
+                        SummaryTempoNextTimeCard(lines = state.tempoNextTime)
+                    }
+                }
+
+                if (state.firstWorkoutSaved) {
+                    item(key = "first-workout") {
+                        Text(
+                            stringResource(R.string.summary_first),
+                            style = InstrumentType.caption,
+                            color = TextTertiary,
+                            modifier = Modifier.testTag(SummaryTags.FIRST_WORKOUT),
+                        )
+                    }
+                }
+
                 item(key = "lifts-label") {
                     GymSectionHeader(
                         title = "Lifts",
@@ -303,12 +321,30 @@ private fun SummaryCooldownStrip(
 }
 
 @Composable
+private fun SummaryTempoNextTimeCard(lines: List<SummaryTempoLine>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SummaryTags.TEMPO_NEXT),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        Kicker(stringResource(R.string.summary_tempo_kicker))
+        lines.forEach { line ->
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                Text(line.exerciseName, style = InstrumentType.title, color = TextPrimary)
+                Text(line.message, style = InstrumentType.body, color = TextSecondary)
+            }
+        }
+    }
+}
+
+@Composable
 private fun SummaryHeading(summary: WorkoutSummary) {
     val dateLabel = remember(summary.performedAtMs) {
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))
     }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        Kicker(SummaryCopy.COMPLETE)
+        Kicker(stringResource(R.string.summary_kicker))
         Text(summary.title, style = InstrumentType.display, color = TextPrimary)
         Text(dateLabel, style = InstrumentType.caption, color = TextTertiary)
     }
@@ -321,58 +357,37 @@ private fun SummaryHeading(summary: WorkoutSummary) {
  */
 @Composable
 private fun SummaryFacts(summary: WorkoutSummary, unit: WeightUnit) {
-    val headline = summary.headline
-    val target = remember(headline, unit) {
-        when (headline) {
-            is SummaryHeadline.Volume -> WeightConverter.volumeAnimationTarget(headline.kg, unit)
-            is SummaryHeadline.BodyweightReps -> headline.reps
-            is SummaryHeadline.WorkingSets -> headline.count
-        }
+    val volumeLabel = remember(summary.volumeKg, unit) {
+        WeightConverter.formatVolumeLabel(summary.volumeKg, unit)
     }
-    val headlineLabel = when (headline) {
-        is SummaryHeadline.Volume -> SummaryCopy.TOTAL_VOLUME
-        is SummaryHeadline.BodyweightReps -> SummaryCopy.BODYWEIGHT_REPS
-        is SummaryHeadline.WorkingSets -> SummaryCopy.WORKING_SETS
-    }
-    val finalLabel = remember(headline, unit) {
-        when (headline) {
-            is SummaryHeadline.Volume -> WeightConverter.formatVolumeLabel(headline.kg, unit)
-            is SummaryHeadline.BodyweightReps -> headline.reps.toString()
-            is SummaryHeadline.WorkingSets -> headline.count.toString()
-        }
-    }
-    var played by rememberSaveable { mutableStateOf(false) }
-    var counting by remember { mutableStateOf(played) }
-    LaunchedEffect(Unit) {
-        counting = true
-        played = true
-    }
-    val shown by animateIntAsState(
-        targetValue = if (counting) target else 0,
-        animationSpec = instrumentTween(Motion.DRAW),
-        label = "summary-volume",
-    )
-    val headlineValue = com.sinura.personaltrainer.util.QuantityFormat.formatGroupedNumber(shown.toDouble()) +
-        if (headline is SummaryHeadline.Volume) " ${unit.suffix}" else ""
-
+    val prLabel = summary.recordCount.toString()
     FlowRow(
         modifier = Modifier.fillMaxWidth().testTag(SummaryTags.FACTS),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
         maxItemsInEachRow = 3,
     ) {
-        if (headline is SummaryHeadline.WorkingSets) {
-            SummaryFact(headlineLabel, headlineValue, SummaryTags.HEADLINE, "$headlineLabel $finalLabel")
-        } else {
-            SummaryFact(SummaryCopy.WORKING_SETS, summary.workingSets.toString(), SummaryTags.WORKING_SETS)
+        StatTile(
+            label = stringResource(R.string.summary_sets),
+            value = summary.workingSets.toString(),
+            modifier = Modifier.testTag(SummaryTags.WORKING_SETS),
+        )
+        if (summary.volumeKg > 0.0) {
+            StatTile(
+                label = stringResource(R.string.summary_volume),
+                value = volumeLabel.substringBefore(" ").trim(),
+                unit = unit.suffix,
+                modifier = Modifier.testTag(SummaryTags.HEADLINE),
+            )
         }
-        SummaryFact(SummaryCopy.DURATION, "${summary.durationMinutes} min", SummaryTags.DURATION)
-        if (headline !is SummaryHeadline.WorkingSets) {
-            SummaryFact(headlineLabel, headlineValue, SummaryTags.HEADLINE, "$headlineLabel $finalLabel")
-        }
-        if (headline is SummaryHeadline.Volume && summary.bodyweightReps > 0) {
-            SummaryFact(SummaryCopy.BODYWEIGHT_REPS, summary.bodyweightReps.toString(), SummaryTags.BODYWEIGHT_REPS)
-        }
+        StatTile(
+            label = stringResource(
+                if (summary.recordCount == 1) R.string.summary_prs else R.string.summary_prs_plural,
+            ),
+            value = prLabel,
+            valueColor = if (summary.recordCount > 0) PrGold else TextPrimary,
+            modifier = Modifier.testTag(SummaryTags.PR_COUNT),
+        )
     }
 }
 
@@ -614,14 +629,14 @@ internal fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
     PinnedDock(
         volt = {
             PrimaryGymButton(
-                text = SummaryCopy.DONE,
+                text = stringResource(R.string.summary_done),
                 onClick = onDone,
                 modifier = Modifier.testTag(SummaryTags.DONE),
             )
         },
         secondary = {
             SecondaryGymButton(
-                text = SummaryCopy.OPEN_SESSION,
+                text = stringResource(R.string.summary_history),
                 onClick = onOpenSession,
                 modifier = Modifier.testTag(SummaryTags.OPEN_SESSION),
             )
@@ -642,6 +657,9 @@ object SummaryTags {
     const val DONE = "summary-done"
     const val OPEN_SESSION = "summary-open-session"
     const val RETRY = "summary-retry"
+    const val PR_COUNT = "summary-pr-count"
+    const val TEMPO_NEXT = "summary-tempo-next"
+    const val FIRST_WORKOUT = "summary-first-workout"
     fun lift(exerciseId: String) = "summary-lift-$exerciseId"
     fun art(exerciseId: String) = "summary-art-$exerciseId"
     fun recordArt(exerciseId: String) = "summary-record-art-$exerciseId"

@@ -609,6 +609,19 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun tempoCoachSheetOpenAndRestImmersionClearWhenRestEnds() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id, handleFor(fixture.session.id))
+        vm.awaitPrefilled()
+        vm.setRpe(8)
+        vm.logSetAndSettle()
+        awaitRestRunning()
+        vm.skipRest()
+        assertFalse(vm.tempoCoachSheetOpen.value)
+        assertNull(vm.restImmersionLiftId.value)
+    }
+
+    @Test
     fun rebootClearsAHoldWhenElapsedRealtimeWentBackwards() = runBlocking {
         val clock = ControllableTimePort()
         clock.advance(10_000)

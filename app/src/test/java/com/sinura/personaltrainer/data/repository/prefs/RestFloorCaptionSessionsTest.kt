@@ -23,4 +23,16 @@ class RestFloorCaptionSessionsTest {
         }
         assertEquals(2, restPrefs.restFloorCaptionSessions.first())
     }
+
+    @Test
+    fun captionBudgetStopsAfterThreeDistinctSessions() = runBlocking {
+        val store = SettingsStore(PreferenceDataStoreFactory.create { temp.newFile("prefs2.preferences_pb") })
+        val restPrefs = RestPrefsStore(store)
+        restPrefs.recordRestFloorCaptionForSession("s1")
+        restPrefs.recordRestFloorCaptionForSession("s2")
+        restPrefs.recordRestFloorCaptionForSession("s3")
+        assertEquals(3, restPrefs.restFloorCaptionSessions.first())
+        restPrefs.recordRestFloorCaptionForSession("s4")
+        assertEquals(4, restPrefs.restFloorCaptionSessions.first())
+    }
 }

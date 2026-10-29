@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
@@ -90,7 +91,7 @@ class FinishWithOpenCorrectionRenderTest {
         val (vm, session) = openACorrection()
 
         compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
+        compose.onNodeWithText("Finish and see summary").performClick()
 
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.finished }
         val saved = checkNotNull(runBlocking { deps.workoutRepository.getSession(session.id) })

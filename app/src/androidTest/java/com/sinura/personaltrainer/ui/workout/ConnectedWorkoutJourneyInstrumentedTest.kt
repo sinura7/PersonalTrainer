@@ -74,6 +74,7 @@ import com.sinura.personaltrainer.testutil.isDisposableSdkEmulator
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.timer.AndroidPhoneCapabilities
 import com.sinura.personaltrainer.timer.RestTimerNotifications
+import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.components.SessionLogTags
 import com.sinura.personaltrainer.ui.components.SetTableLine
@@ -319,11 +320,12 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         assertEquals(intended.sortedBy { it.id }, session().sets.sortedBy { it.id })
 
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled().performClick()
-        compose.onNodeWithText("End workout?").assertIsDisplayed()
-        compose.onNodeWithText("Save as is").performClick()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
         awaitTag(SummaryTags.DONE)
         assertNoBlockingDialogs()
-        compose.onNodeWithText("WORKOUT COMPLETE").assertIsDisplayed()
+        compose.onNodeWithText("WORKOUT SAVED").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.LOG_READINESS).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertDoesNotExist()
         compose.onNodeWithText(fixture.routineName).assertIsDisplayed()

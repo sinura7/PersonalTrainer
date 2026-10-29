@@ -106,7 +106,8 @@ class FloorVmContractTest {
         val next = withTimeout(TestWaits.FLOW_MS) { vm.primaryAction.first { it.kind == WorkoutPrimaryKind.NEXT_EXERCISE } }
         assertEquals(ROW, next.identity.nextExerciseId)
         assertEquals("the plan stays on the finished lift until the lifter taps", SQUAT, vm.uiState.value.selectedExerciseId)
-        assertTrue("the commit takes Next exercise", vm.performPrimary(next))
+        assertTrue("the commit opens between-lifts", vm.performPrimary(next))
+        vm.completeLiftTransition()
         assertEquals(ROW, vm.awaitState { it.selectedExerciseId == ROW }.selectedExerciseId)
     }
 

@@ -128,9 +128,8 @@ class SessionNotesRenderTest {
     fun endWorkoutCarriesTheSessionNotesAndWritesThem() {
         val vm = openWithNotes()
         compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithText(EndWorkoutCopy.TITLE).assertIsDisplayed()
-        compose.onNodeWithTag(NotesTestTags.STATUS).assert(hasText("Notes saved"))
-        // Text alone is never a saved toggle; the adjacent state reports the confirmed write.
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
         compose.holdingTheClock {
             compose.onNodeWithText(CurrentLiftCopy.SESSION_NOTES).assertIsDisplayed().performClick()
             compose.settle()
@@ -142,7 +141,8 @@ class SessionNotesRenderTest {
         compose.awaitThat(what = "End workout's notes became the session's", now = vm.uiState::value) { vm.uiState.value.notes == EDITED }
         awaitConfirmedNotes(vm, EDITED)
         assertTrue("writing notes is not finishing", vm.uiState.value.session?.finishedAt == null)
-        compose.onNodeWithText(EndWorkoutCopy.TITLE).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
     }
 
     @Test

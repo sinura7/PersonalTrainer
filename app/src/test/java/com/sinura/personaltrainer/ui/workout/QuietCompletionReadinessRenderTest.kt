@@ -129,15 +129,21 @@ class QuietCompletionReadinessRenderTest {
         )
         assertFalse("readiness cannot describe unsaved numbers as saved", manualDraft == ActiveExerciseDraft())
 
+        compose.awaitThat("planned completion opens What next", now = vm.whatNextVisible::value) {
+            vm.whatNextVisible.value
+        }
+        compose.onNodeWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).assertIsDisplayed()
         if (withNextLift) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed().assertIsEnabled().performClick()
-            compose.awaitThat("only the explicit Next tap changes lifts", vm.uiState::value) {
+            compose.onNodeWithTag(WorkoutTestTags.LIFT_TRANSITION).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).assertIsDisplayed().performClick()
+            compose.awaitThat("only the explicit Start next tap changes lifts", vm.uiState::value) {
                 vm.uiState.value.selectedExerciseId == FLOOR_NEXT_LIFT_ID && FLOOR_LIFT_READY(vm.uiState.value)
             }
             assertEquals("Next cannot save the pending entry", savedPlan, stored(vm))
         } else {
             compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed().assertIsEnabled()
-            compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().assertIsEnabled().performClick()
+            compose.onNodeWithTag(WorkoutTestTags.WHAT_NEXT_ADD_SET).assertIsDisplayed().performClick()
             compose.awaitThat("manual extra arms the existing draft", vm.primaryAction::value) {
                 vm.extraSetRequested.value && vm.primaryAction.value.kind == WorkoutPrimaryKind.LOG_SET &&
                     vm.primaryAction.value.enabled

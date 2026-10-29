@@ -43,6 +43,7 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.testutil.NativeArtifacts
+import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
 import com.sinura.personaltrainer.ui.history.SetEditTestTags
@@ -245,19 +246,20 @@ class ActiveWorkoutJourneyInstrumentedTest {
         assertFalse(container.restTimerStore.current().running)
 
         compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithText("End workout?").assertIsDisplayed()
-        compose.onNodeWithText("Save as is").performClick()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
         compose.waitUntil(10_000) {
             runBlocking(Dispatchers.IO) {
                 container.workoutRepository.getSession(fixture.sessionId)?.finishedAt != null
             }
         }
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithText("WORKOUT COMPLETE")
+            compose.onAllNodesWithText("WORKOUT SAVED")
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        compose.onNodeWithText("WORKOUT COMPLETE").assertIsDisplayed()
+        compose.onNodeWithText("WORKOUT SAVED").assertIsDisplayed()
         compose.onNodeWithText(fixture.routineName).assertIsDisplayed()
         val volumeLabel = WeightConverter.formatVolumeLabel(
             live.work().volumeKg,
@@ -293,7 +295,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
             compose.onAllNodes(hasTestTag("navigation-home")).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag("navigation-home").assertIsSelected()
-        compose.onNodeWithText("WORKOUT COMPLETE").assertDoesNotExist()
+        compose.onNodeWithText("WORKOUT SAVED").assertDoesNotExist()
         compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertDoesNotExist()
         assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
         assertEquals(finished, runBlocking(Dispatchers.IO) { container.workoutRepository.getSession(fixture.sessionId) })
@@ -351,13 +353,13 @@ class ActiveWorkoutJourneyInstrumentedTest {
             }
         }
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithText("WORKOUT COMPLETE")
+            compose.onAllNodesWithText("WORKOUT SAVED")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("WORKOUT COMPLETE").assertIsDisplayed()
+        compose.onNodeWithText("WORKOUT SAVED").assertIsDisplayed()
         compose.activityRule.scenario.recreate()
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithText("WORKOUT COMPLETE")
+            compose.onAllNodesWithText("WORKOUT SAVED")
                 .fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithContentDescription("Total volume 500 kg").assertIsDisplayed()
