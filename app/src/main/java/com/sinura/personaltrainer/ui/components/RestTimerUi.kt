@@ -695,6 +695,8 @@ internal fun RestNudgeButtons(
     skipTag: String,
     modifier: Modifier = Modifier,
     perRow: Int = 3,
+    minusLabel: String = RestNudgeCopy.MINUS,
+    plusLabel: String = RestNudgeCopy.PLUS,
 ) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
@@ -703,13 +705,13 @@ internal fun RestNudgeButtons(
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         RestControl(
-            label = RestNudgeCopy.MINUS,
+            label = minusLabel,
             spoken = RestNudgeCopy.MINUS_SPOKEN,
             onClick = { onNudge(-RestTimer.NUDGE_SECONDS) },
             modifier = Modifier.weight(1f).testTag(minusTag),
         )
         RestControl(
-            label = RestNudgeCopy.PLUS,
+            label = plusLabel,
             spoken = RestNudgeCopy.PLUS_SPOKEN,
             onClick = { onNudge(RestTimer.NUDGE_SECONDS) },
             modifier = Modifier.weight(1f).testTag(plusTag),

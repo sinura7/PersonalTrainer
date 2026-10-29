@@ -45,8 +45,8 @@ internal fun WorkoutRestPanel(
     onSkip: () -> Unit,
     onEditUpNext: () -> Unit,
     onUndoLastSet: () -> Unit,
-    onOpenRest: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onOpenRest: () -> Unit = {},
 ) {
     val view = LocalView.current
     val urgent = running && remainingSeconds in 1..3
@@ -70,6 +70,11 @@ internal fun WorkoutRestPanel(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
+        Text(
+            stringResource(R.string.rest_kicker),
+            style = InstrumentType.kicker,
+            color = RestCyan,
+        )
         RestRing(
             remainingMs = remainingSeconds.coerceAtLeast(0) * 1000L,
             totalMs = totalSeconds.coerceAtLeast(1) * 1000L,
@@ -97,6 +102,8 @@ internal fun WorkoutRestPanel(
                 minusTag = WorkoutTestTags.REST_MINUS,
                 plusTag = WorkoutTestTags.REST_PLUS,
                 skipTag = WorkoutTestTags.REST_SKIP,
+                minusLabel = stringResource(R.string.rest_minus),
+                plusLabel = stringResource(R.string.rest_plus),
                 modifier = Modifier.padding(horizontal = Metrics.gutter),
             )
         }

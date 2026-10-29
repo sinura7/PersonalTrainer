@@ -578,6 +578,14 @@ private fun ActiveWorkoutContent(
                 !session.hasLifts() && !state.save.pending &&
                 FloorCompactChrome.emptySessionHidesTimerDock()
             val showRest = state.loadState == SessionLoadState.FOUND && state.showRest
+            val restStartVerb = if (primaryAction.kind == WorkoutPrimaryKind.START_SET_NOW && rest.running) {
+                val workingLogged = session?.sets?.count {
+                    it.exerciseId == state.selectedExerciseId && !it.isWarmup
+                } ?: 0
+                stringResource(R.string.rest_start_now, workingLogged + 1)
+            } else {
+                null
+            }
             if (emptySession || showRest || logBarVisible) {
                 Column(
                     modifier = Modifier
@@ -609,7 +617,7 @@ private fun ActiveWorkoutContent(
                                 // The verb stays short in every orientation. Portrait names the next
                                 // lift on the commit's capped supporting line; a 360 dp landscape has
                                 // no room for a second line there, so it only speaks it.
-                                verb = primaryAction.verb(includeNextName = false),
+                                verb = restStartVerb ?: primaryAction.verb(includeNextName = false),
                                 payload = primaryAction.payload(unit = unit, loadClass = loadClass)
                                     ?: primaryAction.nextName.takeIf { !landscape && primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
                                 spokenPayload = primaryAction.nextName.takeIf { primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },

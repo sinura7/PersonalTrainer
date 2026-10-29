@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Warn
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +47,7 @@ internal fun TempoSheet(
     suggestedTarget: String,
     applying: Boolean,
     showIntro: Boolean,
+    applyFailed: Boolean = false,
     onUse: () -> Unit,
     onKeep: () -> Unit,
     onDismiss: () -> Unit,
@@ -121,6 +123,13 @@ internal fun TempoSheet(
                 maxLines = 6,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (applyFailed) {
+                Text(
+                    stringResource(R.string.tempo_apply_failed),
+                    style = InstrumentType.caption,
+                    color = Warn,
+                )
+            }
             SecondaryButton(
                 label = stringResource(R.string.tempo_keep, currentTarget),
                 onClick = onKeep,

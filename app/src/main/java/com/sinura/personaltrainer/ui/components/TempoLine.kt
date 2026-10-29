@@ -15,8 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,7 +44,7 @@ fun TempoLine(
     onDismiss: (() -> Unit)? = null,
 ) {
     val fontScale = LocalDensity.current.fontScale
-    val narrow = LocalConfiguration.current.screenWidthDp <= 360
+    val narrow = LocalWindowInfo.current.containerDpSize.width <= 360.dp
     val stackActions = fontScale >= 2f && narrow
     val maxLines = if (fontScale >= 1.3f) 3 else 2
     Column(
