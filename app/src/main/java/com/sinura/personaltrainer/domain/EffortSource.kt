@@ -13,4 +13,15 @@ enum class EffortSource {
 
     /** The lifter picked or cleared a chip. */
     USER,
+    ;
+
+    companion object {
+        /** Legacy checkpoints and SavedState lifts without [effortSource] stored. */
+        fun decodeStored(name: String?, rpe: Int?): EffortSource {
+            if (name != null) {
+                return runCatching { valueOf(name) }.getOrDefault(NONE)
+            }
+            return if (rpe != null) USER else NONE
+        }
+    }
 }

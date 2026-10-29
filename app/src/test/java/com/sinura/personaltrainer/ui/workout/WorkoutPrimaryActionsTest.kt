@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.domain.SetStopwatchUiState
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
+import com.sinura.personaltrainer.domain.EffortSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -109,7 +110,15 @@ class WorkoutPrimaryActionsTest {
     fun aWorkingSetWithNoEffortKeepsLogOffUntilOneIsChosen() {
         val ready = state()
         assertFalse(derive(ready).enabled)
-        assertTrue(derive(ready.copy(draft = ready.draft.copy(rpe = 8))).enabled)
+        assertTrue(
+            derive(
+                ready.copy(
+                    draft = ready.draft.copy(rpe = 8),
+                    effortValue = 8,
+                    effortSource = EffortSource.USER,
+                ),
+            ).enabled,
+        )
         assertTrue(derive(ready.copy(draft = ready.draft.copy(isWarmup = true))).enabled)
     }
 

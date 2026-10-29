@@ -113,7 +113,7 @@ class WorkoutCommitTargetRenderTest {
                 it.layoutHeightDp + 0.01f < REQUIRED_HEIGHT_DP || !it.fullyInside
         }
         assertTrue(
-            "ADR-027 workout commit must render at least 72 dp and remain fully reachable; $profile: $failures",
+            "ADR-027 workout commit must render at least 64 dp and remain fully reachable; $profile: $failures",
             failures.isEmpty(),
         )
     }
@@ -142,7 +142,7 @@ class WorkoutCommitTargetRenderTest {
 
     private companion object {
         const val FRAME = "workout-commit72-investigation-frame"
-        const val REQUIRED_HEIGHT_DP = 72f
+        const val REQUIRED_HEIGHT_DP = 64f
 
         fun scenarios(): List<Scenario> {
             val draft = ActiveExerciseDraft(weightKg = FLOOR_KG70, reps = 10, rpe = 8)

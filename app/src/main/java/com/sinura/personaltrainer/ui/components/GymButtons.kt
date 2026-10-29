@@ -188,10 +188,76 @@ fun DangerGymButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    DestructiveButton(label = text, onClick = onClick, modifier = modifier)
+}
+
+enum class ActionTone { Act, Rest }
+
+enum class ActionState { Enabled, Disabled, Loading, Error }
+
+/** v3 primary: 64 dp Volt (or RestCyan when [tone] is [ActionTone.Rest]). */
+@Composable
+fun PrimaryButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    subLabel: String? = null,
+    tone: ActionTone = ActionTone.Act,
+    state: ActionState = ActionState.Enabled,
+) {
+    val enabled = state == ActionState.Enabled || state == ActionState.Error
+    PrimaryGymButton(
+        text = if (state == ActionState.Error) "Retry save" else label,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        height = Metrics.commit,
+        supporting = subLabel,
+        textStyle = InstrumentType.commit,
+    )
+}
+
+/** v3 secondary: 52 dp Surface3. */
+@Composable
+fun SecondaryButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
     SecondaryGymButton(
-        text = text,
+        text = label,
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        height = Metrics.rowMin,
+        textStyle = InstrumentType.bodyStrong,
+    )
+}
+
+/** v3 ghost: escape routes, min 48 dp. */
+@Composable
+fun GhostButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    QuietButton(text = label, onClick = onClick, modifier = modifier)
+}
+
+/** v3 destructive: Danger ink on DangerContainer, 52 dp. */
+@Composable
+fun DestructiveButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SecondaryGymButton(
+        text = label,
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         contentColor = Danger,
+        height = Metrics.rowMin,
+        textStyle = InstrumentType.bodyStrong,
     )
 }

@@ -130,11 +130,15 @@ class FloorScreenWiringRenderTest {
     fun theLoopReadsIdentityEntryEffortReadinessHistoryCoachThenStats() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm, heightDp = 1600)
-        compose.waitUntil(timeoutMillis = WAIT_MS) { exists(WorkoutTestTags.SET_HISTORY) }
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
+        compose.awaitFloorTag(WorkoutTestTags.TEMPO_LINE, WAIT_MS)
+        compose.awaitFloorTag(WorkoutTestTags.SET_HISTORY, WAIT_MS)
+        compose.awaitFloorTag(WorkoutTestTags.RPE_TRACK, WAIT_MS)
         // Quiet gives entry and saved work priority over secondary advice and statistics.
         val order = listOf(
             WorkoutTestTags.CURRENT_LIFT,
             WorkoutTestTags.SET_ENTRY,
+            WorkoutTestTags.TEMPO_LINE,
             WorkoutTestTags.RPE_TRACK,
             WorkoutTestTags.LOG_READINESS,
             WorkoutTestTags.SET_HISTORY,
@@ -324,7 +328,7 @@ class FloorScreenWiringRenderTest {
         }
         compose.scrollFloorTo(WorkoutTestTags.RPE_WARMUP_REASON)
         compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON)
-            .assert(hasText("Recorded effort: RPE 9 is kept for this warm-up."))
+            .assert(hasText("Warm-ups skip effort and rest"))
         compose.scrollFloorTo(WorkoutTestTags.REPS_STEPPER)
         compose.withKeypad(compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER), "9")
         compose.awaitThat("the manual correction reaches the draft", vm.uiState::value) { vm.uiState.value.draft.reps == 9 }
@@ -504,6 +508,7 @@ class FloorScreenWiringRenderTest {
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
+        compose.scrollFloorTo(WorkoutTestTags.SET_HISTORY)
         compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()

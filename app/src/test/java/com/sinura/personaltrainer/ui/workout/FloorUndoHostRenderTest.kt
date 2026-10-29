@@ -151,7 +151,12 @@ class FloorUndoHostRenderTest {
         compose.waitForIdle()
         assertTrue("the set is back", checkNotNull(vm.uiState.value.session).sets.any { it.id == first.id })
         assertEquals("an undo lands as a commit", HapticFeedbackConstants.CONFIRM, felt.felt().last())
-        assertTrue("the offer is gone", compose.onAllNodes(hasText("Undo") and hasClickAction()).fetchSemanticsNodes().isEmpty())
+        assertTrue(
+            "the offer is gone",
+            compose.onAllNodes(
+                hasText("Undo") and hasClickAction() and !hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_LINE)),
+            ).fetchSemanticsNodes().isEmpty(),
+        )
     }
 
     @Test
@@ -168,7 +173,12 @@ class FloorUndoHostRenderTest {
         compose.mainClock.advanceTimeBy(25 * ONE_SECOND_MS)
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.undoEntries.value.isEmpty() }
         compose.waitForIdle()
-        assertTrue("the offer is gone", compose.onAllNodes(hasText("Undo") and hasClickAction()).fetchSemanticsNodes().isEmpty())
+        assertTrue(
+            "the offer is gone",
+            compose.onAllNodes(
+                hasText("Undo") and hasClickAction() and !hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_LINE)),
+            ).fetchSemanticsNodes().isEmpty(),
+        )
         assertEquals("letting it go puts nothing back", 1, checkNotNull(vm.uiState.value.session).sets.size)
     }
 

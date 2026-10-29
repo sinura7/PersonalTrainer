@@ -342,9 +342,9 @@ class RestTimerViewModel @JvmOverloads constructor(
             lighterWeek = loaded.lighterWeek,
             unit = loaded.unit,
             coachPrefs = loaded.coachPrefs,
-            draftRpeIntent = cached?.effortSource.let { source ->
+            draftRpeIntent = cached?.effortSource?.let { source ->
                 source == EffortSource.USER || source == EffortSource.COACH
-            },
+            } ?: false,
         )
     }
 

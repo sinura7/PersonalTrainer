@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +44,9 @@ import com.sinura.personaltrainer.domain.SetRowCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
+import com.sinura.personaltrainer.ui.components.SetPillModel
+import com.sinura.personaltrainer.ui.components.SetPillRow
+import com.sinura.personaltrainer.ui.components.SetPillState
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -92,9 +96,18 @@ internal fun SetHistoryStrip(
     trailing: (@Composable () -> Unit)? = null,
 ) {
     if (focused) {
-        Box(modifier) {
-            FocusSavedSet(sets, targetSets, editingSetId, loadClass, unit, enabled, onEdit, onOpenAll, Modifier, trailing)
-        }
+        SetPillFocusRow(
+            sets = sets,
+            targetSets = targetSets,
+            loadClass = loadClass,
+            unit = unit,
+            current = current,
+            editingSetId = editingSetId,
+            enabled = enabled,
+            onEdit = onEdit,
+            onOpenAll = onOpenAll,
+            modifier = modifier,
+        )
         return
     }
     if (sets.isEmpty() && current == null) return
@@ -106,11 +119,10 @@ internal fun SetHistoryStrip(
     val ordinals = SetOrdinalCopy.loggedLines(warmupFlags = sets.map { it.isWarmup }, targetSets = targetSets)
     val marks = SetOrdinalCopy.marks(sets.map { it.isWarmup })
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(WorkoutTestTags.SET_HISTORY),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
+        Column(Modifier.fillMaxWidth().testTag(WorkoutTestTags.SET_HISTORY)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -203,6 +215,100 @@ internal fun SetHistoryStrip(
                         Text(CURRENT, style = InstrumentType.bodyStrong, color = Volt)
                         Text(current.label, style = InstrumentType.caption, color = TextSecondary)
                     }
+                }
+            }
+        }
+        }
+    }
+}
+
+@Composable
+private fun SetPillFocusRow(
+    sets: List<SetLog>,
+    targetSets: Int,
+    loadClass: LoadClass,
+    unit: WeightUnit,
+    current: CurrentSetMark?,
+    editingSetId: String?,
+    enabled: Boolean,
+    onEdit: (String) -> Unit,
+    onOpenAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val ordinals = SetOrdinalCopy.loggedLines(sets.map { it.isWarmup }, targetSets)
+    val marks = SetOrdinalCopy.marks(sets.map { it.isWarmup })
+    val latestId = WorkoutAdvance.latestSetId(sets)
+    val visibleSets = if (editingSetId != null) sets.filter { it.id == editingSetId } else sets
+    val pills = buildList {
+        visibleSets.forEach { set ->
+            val index = sets.indexOf(set)
+            val value = FloorStatCopy.compactSet(set.weightKg, set.reps, loadClass, unit).take(7)
+            val ordinal = ordinals.getOrElse(index) { "Set" }
+            val line = SetCopy.setLine(
+                set.weightKg,
+                set.reps,
+                loadClass,
+                unit,
+                durationSeconds = set.durationSeconds,
+                entryPrecision = true,
+            ) +
+                (if (set.isWarmup) " · Warm-up" else "") +
+                (set.rpe?.let { " · RPE $it" } ?: "")
+            val spokenSet = FloorStatCopy.spokenSet(
+                weightKg = set.weightKg,
+                reps = set.reps,
+                loadClass = loadClass,
+                unit = unit,
+                rpe = set.rpe,
+                durationSeconds = set.durationSeconds,
+            )
+            val editingOrdinal = ordinal.takeIf { set.id == editingSetId }
+            val spoken = when {
+                editingOrdinal != null -> "Saved set. $editingOrdinal: $line"
+                set.id == latestId && editingSetId == null && sets.size > 1 ->
+                    "${sets.size} saved. Edit latest saved set: $line"
+                else -> "$ordinal, $spokenSet, saved"
+            }
+            add(
+                SetPillModel(
+                    key = set.id,
+                    state = when {
+                        set.id == editingSetId -> SetPillState.Selected
+                        set.id == latestId && current == null && editingSetId == null -> SetPillState.Now
+                        else -> SetPillState.Done
+                    },
+                    label = if (set.isWarmup) marks.getOrElse(index) { "W1" } else ordinal,
+                    value = value,
+                    onClick = { onEdit(set.id) },
+                    enabled = enabled && editingSetId == null,
+                    testTag = WorkoutTestTags.setChip(set.id),
+                    contentDescription = spoken,
+                ),
+            )
+        }
+        current?.let { mark ->
+            add(
+                SetPillModel(
+                    key = "current",
+                    state = SetPillState.Now,
+                    label = mark.label,
+                    value = null,
+                    onClick = {},
+                    enabled = false,
+                ),
+            )
+        }
+    }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().testTag(WorkoutTestTags.SET_HISTORY)) {
+            SetPillRow(pills = pills, contentPadding = PaddingValues())
+            if (sets.isNotEmpty()) {
+                TextButton(
+                    onClick = onOpenAll,
+                    enabled = enabled,
+                    modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.VIEW_SETS),
+                ) {
+                    Text("All", style = InstrumentType.caption, color = TextSecondary)
                 }
             }
         }

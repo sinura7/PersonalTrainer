@@ -236,10 +236,22 @@ data class ActiveWorkoutUiState(
             val exerciseId = selectedExerciseId ?: return false
             val lift = session?.exercises?.firstOrNull { it.exercise.id == exerciseId } ?: return false
             val hold = HoldWork.isHold(lift.exercise)
-            return SetLogRules.validateEffort(rpe = draft.rpe, isWarmup = draft.isWarmup, isHold = hold) != null
+            return SetLogRules.validateEffort(rpe = effortValue, isWarmup = draft.isWarmup, isHold = hold) != null
         }
 
     val logCommitReady: Boolean get() = canLog && !effortMissingForCommit
+
+    /** Explicit chip selection ([EffortSource.USER] or coach Apply [EffortSource.COACH]). */
+    val effortChipSelected: Int?
+        get() = if (effortSource == EffortSource.USER || effortSource == EffortSource.COACH) {
+            effortValue
+        } else {
+            null
+        }
+
+    /** Dotted prefill chip ([EffortSource.PREFILL_LAST]). */
+    val effortChipPrefilled: Int?
+        get() = if (effortSource == EffortSource.PREFILL_LAST) effortValue else null
 
     val canFinish: Boolean
         get() = loadState == SessionLoadState.FOUND && session?.sets?.isNotEmpty() == true && !entryLocked
@@ -287,9 +299,15 @@ class ActiveWorkoutViewModel internal constructor(
     @JvmOverloads constructor(application: Application, savedStateHandle: SavedStateHandle,
         container: AppDependencies = application.appContainer(),
         undoTimeout: UndoTimeoutProvider = systemUndoTimeout(application)) :
-        this(application, savedStateHandle, container, undoTimeout,
-            (container as? AppContainer)?.pickerContextDrafts, (container as? AppContainer)?.customExerciseDrafts,
-            (container as? AppContainer)?.pickerSwapDrafts)
+        this(
+            application,
+            savedStateHandle,
+            container,
+            undoTimeout,
+            (container as? AppContainer)?.pickerContextDrafts,
+            (container as? AppContainer)?.customExerciseDrafts,
+            (container as? AppContainer)?.pickerSwapDrafts,
+        )
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
     private val durability = draftCache.persistence?.forEntry()
@@ -2151,13 +2169,21 @@ class ActiveWorkoutViewModel internal constructor(
 
     private fun currentPrimaryAction(): WorkoutPrimaryAction {
         val read = sessionReader.observations.value
+        val draftValue = draft.value
+        val selected = selectedExerciseId.value
+        val lift = read.session?.exercises?.firstOrNull { it.exercise.id == selected }
+        val hold = lift?.exercise?.let { HoldWork.isHold(it) } == true
+        val effortApplies = !draftValue.isWarmup && !hold
+        val source = effortSource.value
         return WorkoutPrimaryActions.derive(
             state = ActiveWorkoutUiState(
                 loadState = read.loadState, session = read.session,
-                selectedExerciseId = selectedExerciseId.value, draft = draft.value,
+                selectedExerciseId = selected, draft = draftValue,
                 editingSetId = editingSetId.value, logging = saves.inFlight.value,
                 mutating = mutating.value || !privateDrafts.recovery.value.canCommit && !saves.pending, save = saves.operation.value,
                 liftReadiness = liftReadiness.value, draftDirty = draftDirty.value,
+                effortSource = source,
+                effortValue = draftValue.rpe.takeIf { effortApplies },
             ),
             extraSet = wantAnotherSet.value, hold = clocks.hold.value, stopwatch = clocks.stopwatch.value,
             timedGeneration = clocks.generation.value, activation = primaryActivation.value,
@@ -2318,7 +2344,9 @@ class ActiveWorkoutViewModel internal constructor(
             weightKg = values.weightKg, reps = values.reps, rpe = values.rpe,
             isWarmup = values.isWarmup, durationSeconds = values.durationSeconds,
         )
-        effortSource.value = liftDraft(command.exerciseId)?.effortSource ?: when {
+        val cached = liftDraft(command.exerciseId)
+        effortSource.value = when {
+            cached != null && cached.rpe == values.rpe -> cached.effortSource
             values.isWarmup || values.rpe == null -> EffortSource.NONE
             else -> EffortSource.USER
         }

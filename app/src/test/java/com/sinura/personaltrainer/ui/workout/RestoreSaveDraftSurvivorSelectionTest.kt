@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.draft.DurableDraftStore
 import com.sinura.personaltrainer.data.draft.DurableWorkoutDrafts
+import com.sinura.personaltrainer.domain.EffortSource
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.testutil.ControllableTimePort
@@ -83,6 +84,37 @@ class RestoreSaveDraftSurvivorSelectionTest {
 
     private fun install(port: WorkoutDraftPersistence = service()) {
         deps.workoutDraftCache.persistence = port
+    }
+
+    @Test
+    fun releasedSaveWithDifferentRpeRestoresUserNotCachedPrefill() = runBlocking {
+        val handle = SavedStateHandle(mapOf("sessionId" to fixture.session.id))
+        SavedStateWorkoutDraft(handle).write(
+            WorkoutDraft(
+                sessionId = fixture.session.id,
+                exerciseId = fixture.exercise.id,
+                weightKg = 60.0,
+                reps = 8,
+                rpe = 7,
+                isWarmup = false,
+                notes = "Existing notes",
+                effortSource = EffortSource.PREFILL_LAST,
+                dirty = true,
+            ),
+        )
+        val command = WorkoutSetSave(
+            sessionId = fixture.session.id,
+            exerciseId = fixture.exercise.id,
+            setId = "pending-rpe-mismatch",
+            completedAt = fixture.session.startedAt + 500,
+            values = WorkoutSetValues(60.0, 8, 8, false, null),
+        )
+        SavedStateWorkoutSave(handle).write(command)
+        val vm = active(handle)
+        vm.primaryAction.awaitFirst { it.kind == WorkoutPrimaryKind.REVIEW_SAVE && it.enabled }
+        vm.editFailedSave()
+        val state = vm.uiState.awaitFirst { !it.save.pending && it.draft.rpe == 8 }
+        assertEquals(EffortSource.USER, state.effortSource)
     }
 
     @Test

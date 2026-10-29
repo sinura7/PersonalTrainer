@@ -57,9 +57,7 @@ internal object WorkoutCheckpointCodec : DraftCodec<WorkoutEntryCheckpoint, Unit
                 reps = fields.reps, rpe = fields.rpe, isWarmup = fields.isWarmup,
                 notes = notes.orEmpty(), durationSeconds = fields.durationSeconds,
                 dirty = lift.flag("dirty"), extraSetRequested = lift.flag("extra"),
-                effortSource = lift.nullableText("effortSource")?.let { name ->
-                    runCatching { EffortSource.valueOf(name) }.getOrDefault(EffortSource.NONE)
-                } ?: EffortSource.NONE,
+                effortSource = EffortSource.decodeStored(lift.optionalString("effortSource"), fields.rpe),
             )
         }
         require(entries.map { it.first }.distinct().size == entries.size)
@@ -251,6 +249,9 @@ private fun decodeClocks(value: JsonElement): WorkoutClockCheckpoint {
         holdExerciseId = holdExercise, hold = hold, stopwatches = watches.toMap(),
     )
 }
+
+private fun JsonObject.optionalString(key: String): String? =
+    get(key)?.notNull()?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
 
 private fun JsonObject.addNullable(key: String, value: String?) = add(key, value?.let(::JsonPrimitive) ?: JsonNull.INSTANCE)
 private fun JsonObject.text(key: String): String = get(key).also { require(it.isJsonPrimitive && it.asJsonPrimitive.isString) }.asString

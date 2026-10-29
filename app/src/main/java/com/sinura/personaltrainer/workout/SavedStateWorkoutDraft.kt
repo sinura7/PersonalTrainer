@@ -168,7 +168,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
             durationSeconds = handle.get<Int>(liftKey(exerciseId, FIELD_DURATION)),
             dirty = handle.get<Boolean>(liftKey(exerciseId, FIELD_DIRTY)) ?: false,
             extraSetRequested = handle.get<Boolean>(liftKey(exerciseId, FIELD_EXTRA)) ?: false,
-            effortSource = readEffortSource(exerciseId),
+            effortSource = readEffortSource(exerciseId, handle.get<Int>(liftKey(exerciseId, FIELD_RPE))),
         )
     }
 
@@ -215,9 +215,9 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
         ).forEach { handle.remove<Any>(liftKey(exerciseId, it)) }
     }
 
-    private fun readEffortSource(exerciseId: String): EffortSource {
-        val raw = handle.get<String>(liftKey(exerciseId, FIELD_EFFORT_SOURCE)) ?: return EffortSource.NONE
-        return runCatching { EffortSource.valueOf(raw) }.getOrDefault(EffortSource.NONE)
+    private fun readEffortSource(exerciseId: String, rpe: Int?): EffortSource {
+        val raw = handle.get<String>(liftKey(exerciseId, FIELD_EFFORT_SOURCE))
+        return EffortSource.decodeStored(raw, rpe)
     }
 
     private companion object {

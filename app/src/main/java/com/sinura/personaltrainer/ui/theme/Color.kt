@@ -120,6 +120,9 @@ val DangerContainer = Color(0xFF2A1214)
 val RestCyan = Color(0xFF33D6E8)
 val RestCyanDim = Color(0x2433D6E8)
 
+/** Rest pill and up-next accent background (R1). RestCyan on this passes AA body text. */
+val RestContainer = Color(0xFF0B2A2F)
+
 // ---------------------------------------------------------------------------
 // Muscle heat
 // ---------------------------------------------------------------------------
