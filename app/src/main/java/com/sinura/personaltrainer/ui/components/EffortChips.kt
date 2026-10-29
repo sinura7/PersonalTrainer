@@ -97,7 +97,7 @@ fun EffortChips(
             }
             hintRpe?.let { rpe ->
                 Text(
-                    text = "Last: $rpe",
+                    text = stringResource(R.string.live_effort_last, rpe),
                     style = InstrumentType.caption,
                     color = TextSecondary,
                     modifier = Modifier.testTag(WorkoutTestTags.RPE_LAST_HINT),

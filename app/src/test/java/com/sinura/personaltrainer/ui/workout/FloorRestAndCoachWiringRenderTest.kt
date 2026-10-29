@@ -446,7 +446,7 @@ class FloorRestAndCoachWiringRenderTest {
         val recommended = checkNotNull(vm.microRec.value?.nextRpe)
         scrollTo(WorkoutTestTags.RPE_TRACK)
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(recommended)).assertIsNotSelected()
-        compose.onNodeWithTag(WorkoutTestTags.RPE_LAST_HINT).assert(hasText("Last: $recommended"))
+        compose.onNodeWithTag(WorkoutTestTags.RPE_LAST_HINT).assert(hasText("Last time $recommended"))
     }
 
     @Test
