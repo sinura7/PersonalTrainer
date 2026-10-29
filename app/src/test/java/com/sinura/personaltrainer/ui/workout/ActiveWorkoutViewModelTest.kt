@@ -879,14 +879,6 @@ class ActiveWorkoutViewModelTest {
 
     @Test
     fun logSetCommitsDraftRpeWithoutWaitingForUiStateEffort() = runBlocking {
-        deps.close()
-        dispatcher = StandardTestDispatcher()
-        Dispatchers.setMain(dispatcher)
-        deps = FakeAppDependencies(
-            context = ApplicationProvider.getApplicationContext(),
-            scheduler = dispatcher,
-        )
-        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
         val fixture = seedWorkout(targetSets = 3)
         val vm = createViewModel(fixture.session.id)
         vm.awaitPrefilled()
@@ -895,13 +887,17 @@ class ActiveWorkoutViewModelTest {
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.draft.rpe == 8 && it.canLog }
+        val laggingUi = StandardTestDispatcher()
+        Dispatchers.setMain(laggingUi)
         vm.setRpe(9)
         vm.logSet()
+        laggingUi.scheduler.advanceUntilIdle()
         dispatcher.scheduler.advanceUntilIdle()
         val session = awaitSession(fixture.session.id) {
             it.sets.size == 2 && it.sets.last { row -> !row.isWarmup }.rpe == 9
         }
         assertEquals(9, session.sets.last { row -> !row.isWarmup }.rpe)
+        Dispatchers.setMain(dispatcher)
     }
 
     @Test
