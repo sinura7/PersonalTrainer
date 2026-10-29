@@ -172,7 +172,6 @@ object WorkoutPrimaryActions {
             state.save.phase == WorkoutSavePhase.SAVING || state.logging -> WorkoutPrimaryKind.SAVING
             state.save.phase == WorkoutSavePhase.FAILED -> WorkoutPrimaryKind.RETRY_SAVE
             state.save.phase == WorkoutSavePhase.CONFLICT -> WorkoutPrimaryKind.REVIEW_SAVE
-            onRestLift -> WorkoutPrimaryKind.START_SET_NOW
             session?.exercises?.isEmpty() == true -> WorkoutPrimaryKind.ADD_EXERCISE
             state.editingSetId != null -> WorkoutPrimaryKind.SAVE_CHANGES
             isHold && hold.gettingReady -> WorkoutPrimaryKind.GET_READY
@@ -181,6 +180,7 @@ object WorkoutPrimaryActions {
             stopwatch.used -> WorkoutPrimaryKind.LOG_SET
             advance.showNext -> WorkoutPrimaryKind.NEXT_EXERCISE
             advance.showFinish -> WorkoutPrimaryKind.FINISH
+            onRestLift -> WorkoutPrimaryKind.START_SET_NOW
             isHold -> WorkoutPrimaryKind.START_HOLD
             else -> WorkoutPrimaryKind.LOG_SET
         }

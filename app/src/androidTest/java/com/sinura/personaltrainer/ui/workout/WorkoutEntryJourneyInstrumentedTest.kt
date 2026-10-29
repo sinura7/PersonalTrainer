@@ -352,7 +352,15 @@ class WorkoutEntryJourneyInstrumentedTest {
 
     @Test fun savedSetsSheetEditsTheChosenRowDeletesAndUndoesWithoutAnotherInsert() {
         mount(fontScale = 2f)
-        repeat(2) { pickEffort(); compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick(); awaitSets(it + 1) }
+        repeat(2) {
+            pickEffort()
+            compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
+            awaitSets(it + 1)
+            if (it == 0) {
+                compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
+                compose.waitUntil(5_000) { !fixture.vm.restTimerState.value.running }
+            }
+        }
         val original = savedSets().first()
         scrollContentTo(WorkoutTestTags.VIEW_SETS)
         captureFloorControl("savedsets-open-before-reveal", WorkoutTestTags.VIEW_SETS)

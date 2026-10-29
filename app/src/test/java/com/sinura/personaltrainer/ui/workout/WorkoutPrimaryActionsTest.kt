@@ -149,6 +149,18 @@ class WorkoutPrimaryActionsTest {
     }
 
     @Test
+    fun nextExerciseOutranksStartSetNowDuringRestOnRestLift() {
+        val complete = state(sets = listOf(set("squat")))
+        val action = derive(
+            complete,
+            restRunning = true,
+            restImmersionLiftId = "squat",
+            startSetNowLabel = "Start set 2 now",
+        )
+        assertEquals(WorkoutPrimaryKind.NEXT_EXERCISE, action.kind)
+    }
+
+    @Test
     fun failedSaveOutranksStartSetNowOnRestLift() {
         val ready = state()
         val command = WorkoutSetSave("session", "squat", "new-set", 1, WorkoutSetValues(60.0, 5, null, false, null))
