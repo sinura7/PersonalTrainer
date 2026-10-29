@@ -134,7 +134,7 @@ class DockCommitRenderTest {
     @Test
     fun theCommitIsNeverShorterThanSixtyFourDp() {
         showDock(floorDockState(action = logSet, payload = null))
-        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertHeightIsAtLeast(COMMIT_MIN)
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertHeightIsAtLeast(LOG_FLOOR_COMMIT_MIN)
         dockState = floorDockState(action = next, payload = "Leg Curl")
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.NEXT).assertHeightIsAtLeast(COMMIT_MIN)
@@ -300,7 +300,7 @@ class DockCommitRenderTest {
     }
 
     private companion object {
-        /** The owner's floor rule, as a number: a thumb-and-chalk target, not a token's name. */
-        val COMMIT_MIN = 64.dp
+        val LOG_FLOOR_COMMIT_MIN = Metrics.logFloorCommit
+        val COMMIT_MIN = Metrics.commit
     }
 }

@@ -35,7 +35,7 @@ class RestIdlePresentationTest {
         assertFalse("idle rest must not use a filled Volt", card.contains("PrimaryGymButton"))
         assertFalse(card.contains("SnapValueWheel("))
         assertFalse("the rest card never pulses", card.contains("rememberInfiniteTransition"))
-        assertEquals(64, Metrics.commit.value.toInt())
+        assertEquals(72, Metrics.commit.value.toInt())
         assertEquals(48, Metrics.restRingSmall.value.toInt())
     }
 

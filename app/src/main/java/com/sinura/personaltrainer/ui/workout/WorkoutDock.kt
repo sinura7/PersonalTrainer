@@ -327,6 +327,12 @@ internal fun WorkoutDock(
                 val verb = if (state.keepEntry) "Keep entry" else state.verb
                 val payload = state.payload.takeUnless { state.keepEntry }
                 val spokenAction = listOfNotNull(verb, (state.spokenPayload ?: payload).takeUnless { state.keepEntry }).joinToString(" · ")
+                val primaryHeight =
+                    if (state.keepEntry || nextAct || finishAct || action.kind != WorkoutPrimaryKind.LOG_SET) {
+                        Metrics.commit
+                    } else {
+                        Metrics.logFloorCommit
+                    }
                 PrimaryGymButton(
                     text = verb,
                     supporting = payload,
@@ -351,7 +357,7 @@ internal fun WorkoutDock(
                             },
                         )
                         .semantics { contentDescription = spokenAction },
-                    height = Metrics.commit,
+                    height = primaryHeight,
                     hapticFeedback = false,
                 )
             }

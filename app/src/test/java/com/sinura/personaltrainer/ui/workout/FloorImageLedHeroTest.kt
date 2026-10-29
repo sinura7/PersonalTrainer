@@ -56,7 +56,7 @@ class FloorImageLedHeroTest {
     @Test
     fun theDockKeepsItsTokensAndNoContextRailReceiptOrHiddenClock() {
         assertEquals(56, Metrics.logTimerRow.value.toInt())
-        assertEquals(64, Metrics.commit.value.toInt())
+        assertEquals(72, Metrics.commit.value.toInt())
         val dock = ownedSource("ui/workout/WorkoutDock.kt")
         assertFalse(dock.contains("CONTEXT_RAIL"))
         assertFalse(dock.contains("logContextRail"))

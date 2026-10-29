@@ -133,8 +133,8 @@ object Metrics {
     /** Scroll clearance when Tempo shows the full card above the dock. */
     val logFloorTempoFull: Dp = 128.dp
 
-    /** Primary commit control (Log set): full width, 64 dp per v3 PrimaryButton. */
-    val commit: Dp = logFloorCommit
+    /** Primary commit control app-wide (recovery Keep, rest card, cardio, dock Next/Finish): 72 dp. */
+    val commit: Dp = 72.dp
 
     /**
      * Round − / + plates beside the hero numerals on the active workout: the area a thumb

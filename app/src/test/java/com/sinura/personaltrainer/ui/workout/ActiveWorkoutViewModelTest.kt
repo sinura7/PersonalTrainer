@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -878,6 +879,14 @@ class ActiveWorkoutViewModelTest {
 
     @Test
     fun logSetCommitsDraftRpeWithoutWaitingForUiStateEffort() = runBlocking {
+        deps.close()
+        dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
         val fixture = seedWorkout(targetSets = 3)
         val vm = createViewModel(fixture.session.id)
         vm.awaitPrefilled()
@@ -888,10 +897,11 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { it.draft.rpe == 8 && it.canLog }
         vm.setRpe(9)
         vm.logSet()
+        dispatcher.scheduler.advanceUntilIdle()
         val session = awaitSession(fixture.session.id) {
-            it.sets.size == 2 && it.sets.last { set -> !set.isWarmup }.rpe == 9
+            it.sets.size == 2 && it.sets.last { row -> !row.isWarmup }.rpe == 9
         }
-        assertEquals(9, session.sets.last { !it.isWarmup }.rpe)
+        assertEquals(9, session.sets.last { row -> !row.isWarmup }.rpe)
     }
 
     @Test

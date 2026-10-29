@@ -26,7 +26,7 @@ class FloorCompactRestBarTest {
     fun restHoldAndSetShareOneInstrumentBar() {
         assertEquals(56, Metrics.logTimerRow.value.toInt())
         assertEquals(48, Metrics.touchMin.value.toInt())
-        assertEquals(64, Metrics.commit.value.toInt())
+        assertEquals(72, Metrics.commit.value.toInt())
         assertEquals(48, Metrics.restRingSmall.value.toInt())
         assertEquals(4, Metrics.ringStroke.value.toInt())
 
