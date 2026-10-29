@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
+import com.sinura.personaltrainer.domain.EffortSource
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.UndoKind
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -146,6 +147,31 @@ class FloorVmContractTest {
         assertEquals(rec.nextReps, state.draft.reps)
         assertEquals(rec.nextRpe, state.draft.rpe)
         assertEquals("Apply never logs", 1, storedSession(sessionId).sets.size)
+    }
+
+    @Test
+    fun prefilledEffortSurvivesProcessDeath() = runBlocking {
+        val sessionId = seedSquat(loggedSets = emptyList())
+        val handle = handleFor(sessionId)
+        val vm = viewModel(sessionId, handle)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setRpe(8)
+        vm.logSetAndLand()
+        vm.skipRest()
+        vm.awaitState { it.draft.rpe == 8 && it.effortSource == EffortSource.PREFILL_LAST }
+        val saved = checkNotNull(SavedStateWorkoutDraft(handle).read(sessionId))
+        assertEquals(8, saved.rpe)
+        assertEquals(EffortSource.PREFILL_LAST, saved.effortSource)
+        vm.clearAndJoinForTest()
+        viewModels.remove(vm)
+        deps.workoutDraftCache.clearAll()
+        val revived = viewModel(sessionId, handle)
+        val state = revived.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.rpe == 8 && it.effortSource == EffortSource.PREFILL_LAST
+        }
+        assertEquals(8, state.draft.rpe)
+        assertEquals("prefill survives process death", EffortSource.PREFILL_LAST, state.effortSource)
+        assertEquals(1, storedSession(sessionId).sets.size)
     }
 
     @Test

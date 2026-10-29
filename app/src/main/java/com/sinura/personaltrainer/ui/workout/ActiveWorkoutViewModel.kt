@@ -2340,7 +2340,9 @@ class ActiveWorkoutViewModel internal constructor(
             weightKg = values.weightKg, reps = values.reps, rpe = values.rpe,
             isWarmup = values.isWarmup, durationSeconds = values.durationSeconds,
         )
-        effortSource.value = liftDraft(command.exerciseId)?.effortSource ?: when {
+        val cached = liftDraft(command.exerciseId)
+        effortSource.value = when {
+            cached != null && cached.rpe == values.rpe -> cached.effortSource
             values.isWarmup || values.rpe == null -> EffortSource.NONE
             else -> EffortSource.USER
         }
