@@ -329,7 +329,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_READINESS).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertDoesNotExist()
         compose.onNodeWithText(fixture.routineName).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Total volume 451 kg").assertIsDisplayed()
+        compose.onNodeWithContentDescription("kg volume, 451 kg").assertIsDisplayed()
         captureWindow("summary")
         val finished = session()
         assertNotNull(finished.finishedAt)

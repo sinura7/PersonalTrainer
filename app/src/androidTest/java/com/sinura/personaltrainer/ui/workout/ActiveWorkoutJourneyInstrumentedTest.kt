@@ -265,7 +265,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
             live.work().volumeKg,
             WeightUnit.KG,
         )
-        compose.onNodeWithContentDescription("Total volume $volumeLabel").assertIsDisplayed()
+        compose.onNodeWithContentDescription("kg volume, $volumeLabel").assertIsDisplayed()
         captureWindow("summary")
         // The lift breakdown is the fourth item of the summary's list, below the fold of a
         // 731 dp screen. Scroll the LIST to it rather than the node: a node's own
@@ -362,14 +362,14 @@ class ActiveWorkoutJourneyInstrumentedTest {
             compose.onAllNodesWithText("WORKOUT SAVED")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithContentDescription("Total volume 500 kg").assertIsDisplayed()
+        compose.onNodeWithContentDescription("kg volume, 500 kg").assertIsDisplayed()
         compose.onAllNodes(isDialog()).assertCountEquals(0)
         assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
 
         val original = runBlocking(Dispatchers.IO) {
             checkNotNull(container.workoutRepository.getSession(fixture.sessionId)).sets.single()
         }
-        compose.onNodeWithText("See full session").performClick()
+        compose.onNodeWithText("View in History").performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodes(hasTestTag(SessionDetailTestTags.EDIT_SET))
                 .fetchSemanticsNodes().isNotEmpty()

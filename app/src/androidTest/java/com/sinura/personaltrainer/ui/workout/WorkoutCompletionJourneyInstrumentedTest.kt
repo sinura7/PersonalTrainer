@@ -85,15 +85,22 @@ class WorkoutCompletionJourneyInstrumentedTest {
         compose.waitUntil(15_000) { fixture.vm.whatNextVisible.value }
         compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
         compose.waitUntil(15_000) { fixture.vm.liftTransitionNextId.value == next.id }
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_TRANSITION).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).performClick()
-        compose.waitUntil(15_000) { fixture.vm.uiState.value.selectedExerciseId == next.id && fixture.vm.uiState.value.draft.weightKg == 40.0 }
+        compose.waitUntil(15_000) {
+            fixture.vm.liftTransitionNextId.value == null &&
+                fixture.vm.uiState.value.selectedExerciseId == next.id &&
+                fixture.vm.uiState.value.draft.weightKg == 40.0
+        }
         SystemClock.sleep(android.view.ViewConfiguration.getDoubleTapTimeout().toLong() + 20)
         pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(3)
+        compose.waitUntil(15_000) { fixture.vm.whatNextVisible.value }
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         assertFalse(session().isFinished)
-        compose.onNodeWithText("Finish and see summary").performClick()
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.EndWorkoutTags.SAVE).performClick()
         compose.waitUntil(15_000) { session().isFinished }
         assertEquals(3, session().sets.size)
         assertEquals(1, session().sets.count { it.exerciseId == next.id })

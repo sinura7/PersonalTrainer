@@ -145,15 +145,14 @@ class WorkoutTruthInstrumentedTest {
         val original = fixture.stored()
         var finished: String? = null
         val vm = mountActive { finished = it }
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithText("Session notes", substring = true).performClick()
-        noteField().performClick()
-        awaitKeyboard()
+        openLiveNotes()
         fixture.writeGate = CompletableDeferred()
         noteField().performTextReplacement("Finish barrier sentence")
         compose.waitUntil(15_000) { vm.uiState.value.notesSave.status == NotesSaveStatus.SAVING }
         // Finish is explicitly allowed while ordinary notes are pending/saving. Its
         // ordered writer barrier must complete before the finished row can be claimed.
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         val save = compose.onNodeWithTag(EndWorkoutTags.SAVE)
         assertNativeAction(save, 48)
         save.performTouchInput { click() }

@@ -80,7 +80,8 @@ class P07ReceiptStatesInstrumentedTest {
                     onRetry = {}, onOpenSession = {}, onDone = {})
             }
         }
-        compose.onNodeWithContentDescription("Bodyweight reps 35").assertIsDisplayed()
+        compose.onNodeWithContentDescription("sets, 1").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Bodyweight reps 35").assertDoesNotExist()
         compose.onNodeWithText(SummaryCopy.TOTAL_VOLUME).assertDoesNotExist()
         compose.onNodeWithText("0 lb").assertDoesNotExist()
         compose.onNodeWithText("0 kg").assertDoesNotExist()

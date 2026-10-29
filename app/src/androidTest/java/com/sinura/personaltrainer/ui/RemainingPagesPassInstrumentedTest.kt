@@ -95,7 +95,7 @@ class RemainingPagesPassInstrumentedTest {
         compose.onNodeWithTag(SummaryTags.DONE).assertIsDisplayed()
         compose.onNodeWithText("Done").assertIsDisplayed()
         compose.onNodeWithTag(SummaryTags.OPEN_SESSION).assertIsDisplayed()
-        compose.onNodeWithText("See full session").assertIsDisplayed()
+        compose.onNodeWithText("View in History").assertIsDisplayed()
     }
 
     @Test
