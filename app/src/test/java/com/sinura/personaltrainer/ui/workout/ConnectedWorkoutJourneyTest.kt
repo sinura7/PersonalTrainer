@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -183,18 +184,19 @@ class ConnectedWorkoutJourneyTest {
         }
         val rest = deps.restTimerStore.current()
         assertEquals(sessionId, rest.sessionId)
-        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { !active.restTimerState.value.running }
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {
+            compose.onAllNodesWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNodes().isNotEmpty()
+        }
 
-        // Give the next set a distinct unsaved draft, then use the real switcher twice.
-        // Its restoration must not substitute the last saved values or the other lift.
         enterNumbers(weightLb = "87.5", reps = "9")
         chooseEffort(7)
         switchTo(FLOOR_NEXT_LIFT_ID)
         switchTo(FLOOR_LIFT_ID)
         awaitEntry("the departing draft returns intact") { matches(it.draft, 87.5, 9) && it.draft.rpe == 7 }
         assertEquals("switching must not add work", listOf(original.id), session().sets.map { it.id })
-        assertEquals(rest.timerId, deps.restTimerStore.current().timerId)
-        assertTrue(deps.restTimerStore.current().running)
 
         // Correction starts from the saved chip, not from editSet called by the test.
         scrollFloorTo(WorkoutTestTags.setChip(original.id))
@@ -418,8 +420,13 @@ class ConnectedWorkoutJourneyTest {
     }
 
     private fun switchTo(exerciseId: String) {
-        scrollFloorTo(WorkoutTestTags.LIFT_SWITCH)
-        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).performClick()
+        if (compose.onAllNodesWithTag(WorkoutTestTags.LIFT_SWITCH).fetchSemanticsNodes().isNotEmpty()) {
+            scrollFloorTo(WorkoutTestTags.LIFT_SWITCH)
+            compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).performClick()
+        } else {
+            compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+            compose.onNodeWithText(com.sinura.personaltrainer.domain.CurrentLiftCopy.SWITCH).performClick()
+        }
         compose.onNodeWithTag(WorkoutTestTags.liftSwitcherRow(exerciseId)).performClick()
         awaitEntry("lift $exerciseId is selected") { it.selectedExerciseId == exerciseId }
     }

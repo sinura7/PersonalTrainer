@@ -133,7 +133,7 @@ class FloorRestAndCoachWiringRenderTest {
         assertNoStartNext()
         compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.running }
-        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertDoesNotExist()
     }
 
@@ -146,7 +146,8 @@ class FloorRestAndCoachWiringRenderTest {
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
         compose.awaitThat(what = "the rest runs", now = vm.restTimerState::value) { vm.restTimerState.value.running }
-        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.CurrentLiftCopy.SWITCH).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCHER).assertIsDisplayed()
         val current = compose.onNodeWithTag(WorkoutTestTags.liftRest(FLOOR_LIFT_ID), useUnmergedTree = true).mergedTexts().single()
         assertTrue("the current lift's rest is running, was \"$current\"", current.startsWith("Rest remaining: "))
@@ -218,7 +219,7 @@ class FloorRestAndCoachWiringRenderTest {
         val started = vm.restTimerState.value.remainingSeconds
         compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.remainingSeconds == started + 15 }
-        compose.onNode(hasClickAction() and hasAnyAncestor(hasTestTag(WorkoutTestTags.REST_BAR)) and hasText("Rest ·", substring = true)).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR_RING).performClick()
         assertEquals("a tap on the running rest opens this session's rest page", listOf(checkNotNull(vm.uiState.value.session).id), restPages)
         compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.restTimerState.value.running }
@@ -234,7 +235,7 @@ class FloorRestAndCoachWiringRenderTest {
         compose.onNodeWithTag("workout-rest-battery").assertIsDisplayed()
         compose.onNode(hasText("Got it") and hasClickAction()).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.restTimerState.value.batteryHint }
-        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR).assertIsDisplayed()
     }
 
     @Test

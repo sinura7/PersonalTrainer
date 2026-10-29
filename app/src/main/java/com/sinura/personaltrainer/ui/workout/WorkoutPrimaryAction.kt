@@ -18,6 +18,8 @@ enum class WorkoutPrimaryKind {
     /** GET READY is counting before a hold (P2b): disabled, so a tap cannot log a one-second hold. */
     GET_READY,
     LOG_HOLD, NEXT_EXERCISE, FINISH, CHECKING, SAVING, UPDATING, RETRY_SAVE, REVIEW_SAVE,
+    /** Rest floor: end rest and return to set entry. */
+    START_SET_NOW,
 }
 
 /** Identity of the action actually rendered. Clock ticks do not invalidate a press. */
@@ -39,6 +41,7 @@ data class WorkoutPrimaryAction(
     val identity: WorkoutPrimaryIdentity,
     val enabled: Boolean,
     val nextName: String? = null,
+    val startSetNowLabel: String? = null,
     val durationSeconds: Int? = null,
 ) {
     val kind: WorkoutPrimaryKind get() = identity.kind
@@ -63,6 +66,7 @@ data class WorkoutPrimaryAction(
         WorkoutPrimaryKind.UPDATING -> "Updating workout…"
         WorkoutPrimaryKind.RETRY_SAVE -> "Retry save"
         WorkoutPrimaryKind.REVIEW_SAVE -> "Review save"
+        WorkoutPrimaryKind.START_SET_NOW -> startSetNowLabel ?: "Start set now"
     }
 
     /**
@@ -87,6 +91,7 @@ data class WorkoutPrimaryAction(
             WorkoutPrimaryKind.NEXT_EXERCISE,
             WorkoutPrimaryKind.FINISH,
             WorkoutPrimaryKind.UPDATING,
+            WorkoutPrimaryKind.START_SET_NOW,
             -> false
         }
         if (!carriesSet) return null
@@ -129,6 +134,7 @@ data class WorkoutPrimaryAction(
             WorkoutPrimaryKind.UPDATING -> "Updating workout…"
             WorkoutPrimaryKind.RETRY_SAVE -> "Retry save"
             WorkoutPrimaryKind.REVIEW_SAVE -> "Review save"
+            WorkoutPrimaryKind.START_SET_NOW -> startSetNowLabel ?: "Start set now"
         }
     }
 }
@@ -142,6 +148,8 @@ object WorkoutPrimaryActions {
         stopwatch: SetStopwatchUiState,
         timedGeneration: Int,
         activation: Long,
+        restRunning: Boolean = false,
+        nextSetOrdinal: Int? = null,
     ): WorkoutPrimaryAction {
         val session = state.session
         val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
@@ -155,6 +163,7 @@ object WorkoutPrimaryActions {
         val available = state.loadState == SessionLoadState.FOUND && session?.isFinished == false
         val kind = when {
             !available -> WorkoutPrimaryKind.UNAVAILABLE
+            restRunning -> WorkoutPrimaryKind.START_SET_NOW
             state.mutating -> WorkoutPrimaryKind.UPDATING
             state.save.phase == WorkoutSavePhase.CHECKING -> WorkoutPrimaryKind.CHECKING
             state.save.phase == WorkoutSavePhase.SAVING || state.logging -> WorkoutPrimaryKind.SAVING
@@ -176,8 +185,10 @@ object WorkoutPrimaryActions {
             WorkoutPrimaryKind.UPDATING, WorkoutPrimaryKind.GET_READY -> false
             WorkoutPrimaryKind.LOG_SET, WorkoutPrimaryKind.SAVE_CHANGES -> state.logCommitReady
             WorkoutPrimaryKind.LOG_WARMUP, WorkoutPrimaryKind.START_HOLD, WorkoutPrimaryKind.LOG_HOLD -> state.canLog
+            WorkoutPrimaryKind.START_SET_NOW -> true
             else -> true
         }
+        val startNowVerb = nextSetOrdinal?.let { "Start set $it now" }
         return WorkoutPrimaryAction(
             identity = WorkoutPrimaryIdentity(
                 kind = kind, sessionId = session?.id, exerciseId = state.selectedExerciseId,
@@ -187,6 +198,7 @@ object WorkoutPrimaryActions {
                 pendingSave = state.save.command,
             ),
             enabled = enabled, nextName = advance.nextName,
+            startSetNowLabel = startNowVerb,
             durationSeconds = FloorTimerSurface.durationToLog(
                 hold = isHold, holdElapsedSeconds = hold.elapsedSeconds,
                 holdTotalSeconds = hold.totalSeconds, holdRemainingSeconds = hold.remainingSeconds,

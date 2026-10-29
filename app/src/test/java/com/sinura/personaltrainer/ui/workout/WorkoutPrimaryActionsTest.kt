@@ -123,6 +123,15 @@ class WorkoutPrimaryActionsTest {
     }
 
     @Test
+    fun runningRestShowsStartSetNow() {
+        val ready = state()
+        val action = derive(ready, restRunning = true, nextSetOrdinal = 2)
+        assertEquals(WorkoutPrimaryKind.START_SET_NOW, action.kind)
+        assertEquals("Start set 2 now", action.verb())
+        assertTrue(action.enabled)
+    }
+
+    @Test
     fun timerTickPreservesPressIdentityButAChangedDraftOrSavedSetInvalidatesIt() {
         val state = state()
         val first = derive(state, stopwatch = SetStopwatchUiState(running = true, used = true, elapsedSeconds = 12))
@@ -139,7 +148,18 @@ class WorkoutPrimaryActionsTest {
         extra: Boolean = false,
         hold: HoldTimerUiState = HoldTimerUiState(),
         stopwatch: SetStopwatchUiState = SetStopwatchUiState(),
-    ) = WorkoutPrimaryActions.derive(state, extra, hold, stopwatch, timedGeneration = 1, activation = 0)
+        restRunning: Boolean = false,
+        nextSetOrdinal: Int? = null,
+    ) = WorkoutPrimaryActions.derive(
+        state,
+        extra,
+        hold,
+        stopwatch,
+        timedGeneration = 1,
+        activation = 0,
+        restRunning = restRunning,
+        nextSetOrdinal = nextSetOrdinal,
+    )
 
     private fun state(selected: String = "squat", sets: List<SetLog> = emptyList()) = ActiveWorkoutUiState(
         loadState = SessionLoadState.FOUND,

@@ -499,6 +499,17 @@ class ActiveWorkoutViewModel internal constructor(
     private val wantAnotherSet = MutableStateFlow(false)
     private val tempoTipDismissed = MutableStateFlow(false)
     val tempoCoachDismissed: StateFlow<Boolean> = tempoTipDismissed.asStateFlow()
+    private val tempoCoachSheetVisible = MutableStateFlow(false)
+    val tempoCoachSheetOpen: StateFlow<Boolean> = tempoCoachSheetVisible.asStateFlow()
+    private val showRestFirstCaption = MutableStateFlow(false)
+    val restFirstCaptionVisible: StateFlow<Boolean> = showRestFirstCaption.asStateFlow()
+    /** Lift that owns the full-screen rest floor; cleared when rest stops. */
+    private val restImmersionLiftIdStore = MutableStateFlow<String?>(null)
+    val restImmersionLiftId: StateFlow<String?> = restImmersionLiftIdStore.asStateFlow()
+
+    fun closeTempoCoachSheet() {
+        tempoCoachSheetVisible.value = false
+    }
     private val addASetDismissedExercises = MutableStateFlow<Set<String>>(emptySet())
     private val addASetAcceptedExercises = MutableStateFlow<Set<String>>(emptySet())
     /** Lifters chose Add another set after planned working sets were already in (ADR-004). */
@@ -2163,8 +2174,24 @@ class ActiveWorkoutViewModel internal constructor(
             Triple(hold, stopwatch, generation)
         },
         primaryActivation,
-    ) { state, extra, timing, activation ->
-        WorkoutPrimaryActions.derive(state.copy(mutating = state.mutating || !privateDrafts.recovery.value.canCommit && !state.save.pending), extra, timing.first, timing.second, timing.third, activation)
+        restTimerState,
+    ) { state, extra, timing, activation, rest ->
+        val session = state.session
+        val lift = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
+        val workingLogged = session?.sets?.count {
+            it.exerciseId == state.selectedExerciseId && !it.isWarmup
+        } ?: 0
+        val nextSet = workingLogged + 1
+        WorkoutPrimaryActions.derive(
+            state.copy(mutating = state.mutating || !privateDrafts.recovery.value.canCommit && !state.save.pending),
+            extra,
+            timing.first,
+            timing.second,
+            timing.third,
+            activation,
+            restRunning = rest.running,
+            nextSetOrdinal = nextSet.takeIf { rest.running && lift != null },
+        )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, currentPrimaryAction())
 
     private fun currentPrimaryAction(): WorkoutPrimaryAction {
@@ -2210,6 +2237,7 @@ class ActiveWorkoutViewModel internal constructor(
             WorkoutPrimaryKind.NEXT_EXERCISE -> action.identity.nextExerciseId?.let(::selectExercise)
             WorkoutPrimaryKind.RETRY_SAVE -> retrySave()
             WorkoutPrimaryKind.FINISH, WorkoutPrimaryKind.REVIEW_SAVE -> Unit // The screen opens its confirmation/details.
+            WorkoutPrimaryKind.START_SET_NOW -> skipRest()
             WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING, WorkoutPrimaryKind.UPDATING, WorkoutPrimaryKind.GET_READY -> return false
         }
         return true
@@ -2624,6 +2652,8 @@ class ActiveWorkoutViewModel internal constructor(
     fun skipRest() {
         cancelPendingRest()
         restTimer.stop()
+        tempoCoachSheetVisible.value = false
+        restImmersionLiftIdStore.value = null
     }
 
     /** Idle: change the planned rest. Running: the same gateway ±15. */
@@ -2657,6 +2687,7 @@ class ActiveWorkoutViewModel internal constructor(
         clocks.stopHold()
         clocks.discardStopwatch()
         val planned = restTotal.value
+        restImmersionLiftIdStore.value = selectedExerciseId.value
         restCommands.startPlanned(planned.seconds, planned.sourceTag)
     }
 
@@ -2689,6 +2720,7 @@ class ActiveWorkoutViewModel internal constructor(
 
     fun applyTempoCoachTip(tip: TempoCoachTip) {
         if (!canChangeEntry()) return
+        tempoCoachSheetVisible.value = false
         when (tip) {
             is TempoCoachTip.NextSet -> applyMicroRec()
             is TempoCoachTip.AddASet -> {
@@ -2893,10 +2925,31 @@ class ActiveWorkoutViewModel internal constructor(
             it.copy(seconds = plan.seconds, sourceTag = plan.sourceTag())
         }
         val seconds = plan.seconds
+        restImmersionLiftIdStore.value = selectedExerciseId.value
         restTimer.start(seconds, sessionId, plan.sourceTag())
         viewModelScope.launch {
             container.preferencesRepository.markRestAlarmEligible()
+            container.preferencesRepository.recordRestFloorSession()
+            val sessions = container.preferencesRepository.restFloorCaptionSessions.first()
+            showRestFirstCaption.value = sessions <= 3
+            maybeOpenTempoCoachSheet()
         }
+    }
+
+    private fun maybeOpenTempoCoachSheet() {
+        val tip = tempoCoachTip.value as? TempoCoachTip.NextSet ?: return
+        if (!tip.rec.showApply || tip.rec.previewOnly) return
+        val unit = weightUnit.value
+        if (tip.rec.isApplied(
+                weightKg = draft.value.weightKg,
+                reps = draft.value.reps,
+                rpe = draft.value.rpe,
+                unit = unit,
+            )
+        ) {
+            return
+        }
+        tempoCoachSheetVisible.value = true
     }
 
     /** Flushes the debounce tail: leaving must not drop the words typed in the last 400 ms. */

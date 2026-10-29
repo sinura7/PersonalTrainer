@@ -157,7 +157,10 @@ object Metrics {
 
     /** The rest card's small countdown ring, and its stroke. */
     val restRingSmall: Dp = 48.dp
+    /** In-workout rest floor ring (screen 09). */
+    val restRingLarge: Dp = 240.dp
     val ringStroke: Dp = 4.dp
+    val restRingStroke: Dp = 10.dp
 
     /** Segmented session progress under the workout title. */
     val progressTrack: Dp = space1

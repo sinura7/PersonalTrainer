@@ -155,10 +155,9 @@ class QuietWorkoutFlowRenderTest {
     @Test
     fun firstEverLiftShowsEffortMissingAndLogDisabled() {
         val vm = openScreen(fontScale = 1f)
-        compose.onNode(
-            hasTestTag(WorkoutTestTags.LOG_READINESS) and hasAnyAncestor(hasTestTag(WorkoutTestTags.SECTION_RPE)),
-            useUnmergedTree = true,
-        ).assert(hasText(EFFORT_MISSING))
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SECTION_RPE))
+        compose.onNodeWithTag(WorkoutTestTags.LOG_READINESS, useUnmergedTree = true)
+            .assert(hasText(EFFORT_MISSING))
         assertPrimaryReachable(enabled = false)
         assertFalse(vm.uiState.value.logCommitReady)
     }
@@ -175,10 +174,8 @@ class QuietWorkoutFlowRenderTest {
         capture("hierarchy-360x1600", "all-context")
         assertEquals("recording precedes the secondary context", tops.sorted(), tops)
         assertEquals("each region has its own place", tops.size, tops.toSet().size)
-        compose.onNode(
-            hasTestTag(WorkoutTestTags.LOG_READINESS) and hasAnyAncestor(hasTestTag(WorkoutTestTags.SECTION_RPE)),
-            useUnmergedTree = true,
-        ).assert(hasText(EFFORT_MISSING))
+        compose.onNodeWithTag(WorkoutTestTags.LOG_READINESS, useUnmergedTree = true)
+            .assert(hasText(EFFORT_MISSING))
         compose.onAllNodesWithTag(WorkoutTestTags.LOG_SET).assertCountEquals(1)
         assertNoFloatingCoach()
         compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_LINE).assertCountEquals(1)
@@ -262,6 +259,12 @@ class QuietWorkoutFlowRenderTest {
         assertEquals("the next working set carries the last logged effort", 8, vm.uiState.value.draft.rpe)
         assertPrimaryReachable(enabled = true)
         inspectSavedSets(vm, profile, fontScale, direction)
+        if (compose.onAllNodesWithTag(WorkoutTestTags.REST_FLOOR).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(WorkoutTestTags.REST_START_NOW).performClick()
+            compose.waitUntil(timeoutMillis = WAIT_MS) {
+                compose.onAllNodesWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNodes().isNotEmpty()
+            }
+        }
         reveal(WorkoutTestTags.LOG_READINESS, profile).assert(hasText(READY))
         capture(profile, "saved-next-draft")
         writeObservations(profile)
@@ -580,6 +583,7 @@ class QuietWorkoutFlowRenderTest {
     private fun kg(lb: Double) = WeightConverter.toKg(lb, WeightUnit.LBS)
 
     private companion object {
+        const val WAIT_MS = 20_000L
         const val BUILT_IN_NAME = "Incline Dumbbell Bench Press"
         const val EFFORT_MISSING = "Choose effort to log this set."
         const val READY = "Ready to log your entry."

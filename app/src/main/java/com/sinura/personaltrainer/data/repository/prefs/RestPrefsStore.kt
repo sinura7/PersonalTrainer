@@ -22,6 +22,9 @@ interface RestPrefs {
      */
     val restBatteryHintShown: Flow<Boolean>
 
+    /** Sessions that have shown the in-workout rest floor (D13 caption budget). Device-local. */
+    val restFloorCaptionSessions: Flow<Int>
+
     /**
      * The "Rest alerts" sentence before Android's notification prompt has been answered on this
      * phone (Continue, Not now, or closed) and is not put up again (audit RT-2). Device-local, like
@@ -34,6 +37,7 @@ interface RestPrefs {
 
     suspend fun markRestAlarmEligible()
     suspend fun markRestBatteryHintShown()
+    suspend fun recordRestFloorSession()
     suspend fun markRestAlertsAsked()
     suspend fun markRestExteriorAsked()
     suspend fun setRestSoundEnabled(enabled: Boolean)
@@ -74,6 +78,9 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
     override val restBatteryHintShown: Flow<Boolean> =
         store.pref { prefs -> prefs[REST_BATTERY_HINT] ?: false }
 
+    override val restFloorCaptionSessions: Flow<Int> =
+        store.pref { prefs -> prefs[REST_FLOOR_CAPTION_SESSIONS] ?: 0 }
+
     override val restAlertsAsked: Flow<Boolean> =
         store.pref { prefs -> prefs[REST_ALERTS_ASKED] ?: false }
 
@@ -86,6 +93,13 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
 
     override suspend fun markRestBatteryHintShown() {
         store.data.edit { prefs -> prefs[REST_BATTERY_HINT] = true }
+    }
+
+    override suspend fun recordRestFloorSession() {
+        store.data.edit { prefs ->
+            val next = (prefs[REST_FLOOR_CAPTION_SESSIONS] ?: 0) + 1
+            prefs[REST_FLOOR_CAPTION_SESSIONS] = next
+        }
     }
 
     override suspend fun markRestAlertsAsked() {

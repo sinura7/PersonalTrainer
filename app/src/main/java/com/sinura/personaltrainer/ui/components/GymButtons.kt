@@ -39,7 +39,9 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.Surface2
+import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -68,6 +70,8 @@ fun PrimaryGymButton(
      */
     supporting: String? = null,
     textStyle: TextStyle = InstrumentType.title,
+    containerColor: Color = Volt,
+    contentColor: Color = Pit,
 ) {
     val view = LocalView.current
     val interactions = interactionSource ?: remember { MutableInteractionSource() }
@@ -92,9 +96,9 @@ fun PrimaryGymButton(
             ),
         shape = RoundedCornerShape(Radius.md),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Volt,
-            contentColor = Pit,
-            disabledContainerColor = Surface2,
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = Surface3,
             disabledContentColor = TextDisabled,
         ),
     ) {
@@ -102,7 +106,7 @@ fun PrimaryGymButton(
             Text(
                 text,
                 style = textStyle,
-                color = if (enabled) Pit else TextDisabled,
+                color = if (enabled) contentColor else TextDisabled,
                 textAlign = TextAlign.Center,
             )
         } else {
@@ -110,13 +114,13 @@ fun PrimaryGymButton(
                 Text(
                     text,
                     style = textStyle,
-                    color = if (enabled) Pit else TextDisabled,
+                    color = if (enabled) contentColor else TextDisabled,
                     textAlign = TextAlign.Center,
                 )
                 Text(
                     supporting,
                     style = InstrumentType.bodyStrong,
-                    color = if (enabled) Pit else TextDisabled,
+                    color = if (enabled) contentColor else TextDisabled,
                     textAlign = TextAlign.Center,
                     // Capped, so a long payload (the next lift's name) never grows the commit
                     // into the floor; the whole string stays in semantics.
@@ -206,6 +210,10 @@ fun PrimaryButton(
     state: ActionState = ActionState.Enabled,
 ) {
     val enabled = state == ActionState.Enabled || state == ActionState.Error
+    val (containerFill, labelInk) = when (tone) {
+        ActionTone.Act -> Volt to Pit
+        ActionTone.Rest -> RestCyan to Pit
+    }
     PrimaryGymButton(
         text = if (state == ActionState.Error) "Retry save" else label,
         onClick = onClick,
@@ -214,6 +222,8 @@ fun PrimaryButton(
         height = Metrics.commit,
         supporting = subLabel,
         textStyle = InstrumentType.commit,
+        containerColor = containerFill,
+        contentColor = labelInk,
     )
 }
 

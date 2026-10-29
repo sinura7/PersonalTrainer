@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.datastore.preferences.core.edit
@@ -301,15 +302,13 @@ class RestAlertsAskedOnceTest {
     private fun openTheRestPage() {
         compose.waitUntil(timeoutMillis = WAIT_MS) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.COMPANION_CLOCK)).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag(WorkoutTestTags.REST_BAR)))
-                    .fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodes(hasTestTag(WorkoutTestTags.REST_FLOOR_RING)).fetchSemanticsNodes().isNotEmpty()
         }
         val clock = compose.onAllNodes(hasTestTag(WorkoutTestTags.COMPANION_CLOCK))
         if (clock.fetchSemanticsNodes().isNotEmpty()) {
             clock[0].performClick()
         } else {
-            compose.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag(WorkoutTestTags.REST_BAR)))[0]
-                .performClick()
+            compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR_RING).performClick()
         }
         awaitTag(RestFloorTags.ROOT)
     }

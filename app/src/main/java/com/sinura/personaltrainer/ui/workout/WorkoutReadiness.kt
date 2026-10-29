@@ -38,6 +38,7 @@ internal fun WorkoutReadiness(action: WorkoutPrimaryAction, effortMissing: Boole
         }
         WorkoutPrimaryKind.UNAVAILABLE -> "Waiting for your workout…"
         WorkoutPrimaryKind.ADD_EXERCISE -> "Add an exercise to begin."
+        WorkoutPrimaryKind.START_SET_NOW -> "Rest is running. Start the next set when you're ready."
     }
     Text(
         text = when {
