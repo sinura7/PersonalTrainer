@@ -356,10 +356,9 @@ class WorkoutEntryJourneyInstrumentedTest {
             pickEffort()
             compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
             awaitSets(it + 1)
-            if (it == 0) {
-                compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
-                compose.waitUntil(5_000) { !fixture.vm.restTimerState.value.running }
-            }
+            compose.waitUntil(5_000) { fixture.vm.restTimerState.value.running }
+            compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
+            compose.waitUntil(5_000) { !fixture.vm.restTimerState.value.running }
         }
         val original = savedSets().first()
         scrollContentTo(WorkoutTestTags.VIEW_SETS)
