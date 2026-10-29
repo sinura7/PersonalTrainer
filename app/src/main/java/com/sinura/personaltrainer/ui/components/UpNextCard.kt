@@ -28,6 +28,7 @@ fun UpNextCard(
     modifier: Modifier = Modifier,
     reason: String? = null,
     loading: Boolean = false,
+    showEdit: Boolean = true,
 ) {
     Panel(modifier = modifier.testTag(WorkoutTestTags.UP_NEXT_CARD)) {
         Row(
@@ -67,17 +68,19 @@ fun UpNextCard(
                     )
                 }
             }
-            TextButton(
-                onClick = onEdit,
-                modifier = Modifier
-                    .heightIn(min = Metrics.touchMin)
-                    .testTag(WorkoutTestTags.REST_EDIT_UP_NEXT),
-            ) {
-                Text(
-                    text = stringResource(R.string.rest_edit),
-                    style = InstrumentType.bodyStrong,
-                    color = TextPrimary,
-                )
+            if (showEdit) {
+                TextButton(
+                    onClick = onEdit,
+                    modifier = Modifier
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.REST_EDIT_UP_NEXT),
+                ) {
+                    Text(
+                        text = stringResource(R.string.rest_edit),
+                        style = InstrumentType.bodyStrong,
+                        color = TextPrimary,
+                    )
+                }
             }
         }
     }

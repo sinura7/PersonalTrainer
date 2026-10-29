@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.repository.WorkoutPickerSwap
 import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
 
 import android.app.Application
+import com.sinura.personaltrainer.R
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -286,6 +287,8 @@ data class PersonalRecordMoment(
     val reps: Int,
 )
 
+private const val REST_IMMERSION_LIFT_KEY = "workout.restImmersionLiftId"
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActiveWorkoutViewModel internal constructor(
     application: Application,
@@ -500,12 +503,22 @@ class ActiveWorkoutViewModel internal constructor(
     private val tempoTipDismissed = MutableStateFlow(false)
     val tempoCoachDismissed: StateFlow<Boolean> = tempoTipDismissed.asStateFlow()
     private val tempoCoachSheetVisible = MutableStateFlow(false)
-    val tempoCoachSheetOpen: StateFlow<Boolean> = tempoCoachSheetVisible.asStateFlow()
     private val showRestFirstCaption = MutableStateFlow(false)
     val restFirstCaptionVisible: StateFlow<Boolean> = showRestFirstCaption.asStateFlow()
     /** Lift that owns the full-screen rest floor; cleared when rest stops. */
-    private val restImmersionLiftIdStore = MutableStateFlow<String?>(null)
+    private val restImmersionLiftIdStore = MutableStateFlow(
+        privateSavedState.get<String?>(REST_IMMERSION_LIFT_KEY),
+    )
     val restImmersionLiftId: StateFlow<String?> = restImmersionLiftIdStore.asStateFlow()
+
+    private fun setRestImmersionLiftId(liftId: String?) {
+        restImmersionLiftIdStore.value = liftId
+        if (liftId == null) {
+            privateSavedState.remove<String?>(REST_IMMERSION_LIFT_KEY)
+        } else {
+            privateSavedState[REST_IMMERSION_LIFT_KEY] = liftId
+        }
+    }
 
     fun closeTempoCoachSheet() {
         tempoCoachSheetVisible.value = false
@@ -820,6 +833,12 @@ class ActiveWorkoutViewModel internal constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = RestTimerUiState(),
         )
+
+    val tempoCoachSheetOpen: StateFlow<Boolean> = combine(
+        tempoCoachSheetVisible,
+        restTimerState,
+    ) { visible, rest -> visible && rest.running }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     /**
      * In-set next load. Recomputed on log, RPE, warmup, lift switch, delete/undo, and edit.
@@ -2182,6 +2201,11 @@ class ActiveWorkoutViewModel internal constructor(
             it.exerciseId == state.selectedExerciseId && !it.isWarmup
         } ?: 0
         val nextSet = workingLogged + 1
+        val immersionLiftId = restImmersionLiftIdStore.value
+        val onRestLift = rest.running && state.selectedExerciseId == immersionLiftId
+        val startNowLabel = nextSet.takeIf { onRestLift && lift != null }?.let { ordinal ->
+            getApplication<Application>().getString(R.string.rest_start_now, ordinal)
+        }
         WorkoutPrimaryActions.derive(
             state.copy(mutating = state.mutating || !privateDrafts.recovery.value.canCommit && !state.save.pending),
             extra,
@@ -2190,7 +2214,8 @@ class ActiveWorkoutViewModel internal constructor(
             timing.third,
             activation,
             restRunning = rest.running,
-            nextSetOrdinal = nextSet.takeIf { rest.running && lift != null },
+            restImmersionLiftId = immersionLiftId,
+            startSetNowLabel = startNowLabel,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, currentPrimaryAction())
 
@@ -2202,6 +2227,15 @@ class ActiveWorkoutViewModel internal constructor(
         val hold = lift?.exercise?.let { HoldWork.isHold(it) } == true
         val effortApplies = !draftValue.isWarmup && !hold
         val source = effortSource.value
+        val rest = restTimerState.value
+        val immersionLiftId = restImmersionLiftIdStore.value
+        val workingLogged = read.session?.sets?.count {
+            it.exerciseId == selected && !it.isWarmup
+        } ?: 0
+        val onRestLift = rest.running && selected == immersionLiftId
+        val startNowLabel = (workingLogged + 1).takeIf { onRestLift && lift != null }?.let { ordinal ->
+            getApplication<Application>().getString(R.string.rest_start_now, ordinal)
+        }
         return WorkoutPrimaryActions.derive(
             state = ActiveWorkoutUiState(
                 loadState = read.loadState, session = read.session,
@@ -2214,6 +2248,9 @@ class ActiveWorkoutViewModel internal constructor(
             ),
             extraSet = wantAnotherSet.value, hold = clocks.hold.value, stopwatch = clocks.stopwatch.value,
             timedGeneration = clocks.generation.value, activation = primaryActivation.value,
+            restRunning = rest.running,
+            restImmersionLiftId = immersionLiftId,
+            startSetNowLabel = startNowLabel,
         )
     }
 
@@ -2653,7 +2690,7 @@ class ActiveWorkoutViewModel internal constructor(
         cancelPendingRest()
         restTimer.stop()
         tempoCoachSheetVisible.value = false
-        restImmersionLiftIdStore.value = null
+        setRestImmersionLiftId(null)
     }
 
     /** Idle: change the planned rest. Running: the same gateway ±15. */
@@ -2687,7 +2724,7 @@ class ActiveWorkoutViewModel internal constructor(
         clocks.stopHold()
         clocks.discardStopwatch()
         val planned = restTotal.value
-        restImmersionLiftIdStore.value = selectedExerciseId.value
+        setRestImmersionLiftId(selectedExerciseId.value)
         restCommands.startPlanned(planned.seconds, planned.sourceTag)
     }
 
@@ -2925,11 +2962,11 @@ class ActiveWorkoutViewModel internal constructor(
             it.copy(seconds = plan.seconds, sourceTag = plan.sourceTag())
         }
         val seconds = plan.seconds
-        restImmersionLiftIdStore.value = selectedExerciseId.value
+        setRestImmersionLiftId(selectedExerciseId.value)
         restTimer.start(seconds, sessionId, plan.sourceTag())
         viewModelScope.launch {
             container.preferencesRepository.markRestAlarmEligible()
-            container.preferencesRepository.recordRestFloorSession()
+            container.preferencesRepository.recordRestFloorCaptionForSession(sessionId)
             val sessions = container.preferencesRepository.restFloorCaptionSessions.first()
             showRestFirstCaption.value = sessions <= 3
             maybeOpenTempoCoachSheet()

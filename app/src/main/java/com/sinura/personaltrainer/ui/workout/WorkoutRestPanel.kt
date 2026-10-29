@@ -43,7 +43,6 @@ internal fun WorkoutRestPanel(
     showFirstRestCaption: Boolean,
     onNudge: (Int) -> Unit,
     onSkip: () -> Unit,
-    onEditUpNext: () -> Unit,
     onUndoLastSet: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenRest: () -> Unit = {},
@@ -110,8 +109,9 @@ internal fun WorkoutRestPanel(
         UpNextCard(
             kicker = upNextKicker,
             target = upNextTarget,
-            onEdit = onEditUpNext,
+            onEdit = {},
             loading = upNextLoading,
+            showEdit = false,
             modifier = Modifier.padding(horizontal = Metrics.gutter),
         )
         loggedLine?.let { line ->

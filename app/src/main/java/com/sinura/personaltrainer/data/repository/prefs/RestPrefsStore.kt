@@ -37,7 +37,8 @@ interface RestPrefs {
 
     suspend fun markRestAlarmEligible()
     suspend fun markRestBatteryHintShown()
-    suspend fun recordRestFloorSession()
+    /** Counts at most once per workout session id (D13 caption budget). */
+    suspend fun recordRestFloorCaptionForSession(sessionId: String)
     suspend fun markRestAlertsAsked()
     suspend fun markRestExteriorAsked()
     suspend fun setRestSoundEnabled(enabled: Boolean)
@@ -95,8 +96,10 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
         store.data.edit { prefs -> prefs[REST_BATTERY_HINT] = true }
     }
 
-    override suspend fun recordRestFloorSession() {
+    override suspend fun recordRestFloorCaptionForSession(sessionId: String) {
         store.data.edit { prefs ->
+            if (prefs[REST_FLOOR_CAPTION_LAST_SESSION] == sessionId) return@edit
+            prefs[REST_FLOOR_CAPTION_LAST_SESSION] = sessionId
             val next = (prefs[REST_FLOOR_CAPTION_SESSIONS] ?: 0) + 1
             prefs[REST_FLOOR_CAPTION_SESSIONS] = next
         }

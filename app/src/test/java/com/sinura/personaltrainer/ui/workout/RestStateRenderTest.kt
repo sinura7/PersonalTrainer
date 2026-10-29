@@ -36,7 +36,6 @@ class RestStateRenderTest {
                 showFirstRestCaption = false,
                 onNudge = {},
                 onSkip = {},
-                onEditUpNext = {},
                 onUndoLastSet = {},
             )
         }
@@ -59,7 +58,6 @@ class RestStateRenderTest {
                 showFirstRestCaption = true,
                 onNudge = {},
                 onSkip = {},
-                onEditUpNext = {},
                 onUndoLastSet = {},
             )
         }
@@ -84,7 +82,6 @@ class RestStateRenderTest {
                 showFirstRestCaption = false,
                 onNudge = {},
                 onSkip = {},
-                onEditUpNext = {},
                 onUndoLastSet = {},
             )
         }
@@ -108,7 +105,6 @@ class RestStateRenderTest {
                 showFirstRestCaption = false,
                 onNudge = {},
                 onSkip = {},
-                onEditUpNext = {},
                 onUndoLastSet = {},
             )
         }

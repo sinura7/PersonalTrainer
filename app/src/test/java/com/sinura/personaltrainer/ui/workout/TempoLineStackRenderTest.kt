@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.sinura.personaltrainer.ui.components.TempoLine
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -35,5 +36,6 @@ class TempoLineStackRenderTest {
         val apply = compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         val dismiss = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_DISMISS).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue("Apply and Dismiss must stack vertically at font 2.0", apply.top > dismiss.bottom - 1f || dismiss.top > apply.bottom - 1f)
+        assertEquals("Stacked buttons share the same left edge", apply.left, dismiss.left, 1f)
     }
 }

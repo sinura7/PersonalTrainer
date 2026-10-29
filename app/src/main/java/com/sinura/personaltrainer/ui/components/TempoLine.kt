@@ -94,7 +94,11 @@ fun TempoLine(
         }
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2, Alignment.End),
+            horizontalArrangement = if (stackActions) {
+                Arrangement.spacedBy(Metrics.space2, Alignment.Start)
+            } else {
+                Arrangement.spacedBy(Metrics.space2, Alignment.End)
+            },
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
             maxItemsInEachRow = if (stackActions) 1 else 3,
         ) {

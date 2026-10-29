@@ -149,7 +149,8 @@ object WorkoutPrimaryActions {
         timedGeneration: Int,
         activation: Long,
         restRunning: Boolean = false,
-        nextSetOrdinal: Int? = null,
+        restImmersionLiftId: String? = null,
+        startSetNowLabel: String? = null,
     ): WorkoutPrimaryAction {
         val session = state.session
         val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
@@ -161,14 +162,17 @@ object WorkoutPrimaryActions {
             editing = state.editingSetId != null,
         )
         val available = state.loadState == SessionLoadState.FOUND && session?.isFinished == false
+        val onRestLift = restRunning &&
+            state.selectedExerciseId != null &&
+            state.selectedExerciseId == restImmersionLiftId
         val kind = when {
             !available -> WorkoutPrimaryKind.UNAVAILABLE
-            restRunning -> WorkoutPrimaryKind.START_SET_NOW
             state.mutating -> WorkoutPrimaryKind.UPDATING
             state.save.phase == WorkoutSavePhase.CHECKING -> WorkoutPrimaryKind.CHECKING
             state.save.phase == WorkoutSavePhase.SAVING || state.logging -> WorkoutPrimaryKind.SAVING
             state.save.phase == WorkoutSavePhase.FAILED -> WorkoutPrimaryKind.RETRY_SAVE
             state.save.phase == WorkoutSavePhase.CONFLICT -> WorkoutPrimaryKind.REVIEW_SAVE
+            onRestLift -> WorkoutPrimaryKind.START_SET_NOW
             session?.exercises?.isEmpty() == true -> WorkoutPrimaryKind.ADD_EXERCISE
             state.editingSetId != null -> WorkoutPrimaryKind.SAVE_CHANGES
             isHold && hold.gettingReady -> WorkoutPrimaryKind.GET_READY
@@ -188,7 +192,6 @@ object WorkoutPrimaryActions {
             WorkoutPrimaryKind.START_SET_NOW -> true
             else -> true
         }
-        val startNowVerb = nextSetOrdinal?.let { "Start set $it now" }
         return WorkoutPrimaryAction(
             identity = WorkoutPrimaryIdentity(
                 kind = kind, sessionId = session?.id, exerciseId = state.selectedExerciseId,
@@ -198,7 +201,7 @@ object WorkoutPrimaryActions {
                 pendingSave = state.save.command,
             ),
             enabled = enabled, nextName = advance.nextName,
-            startSetNowLabel = startNowVerb,
+            startSetNowLabel = startSetNowLabel?.takeIf { onRestLift },
             durationSeconds = FloorTimerSurface.durationToLog(
                 hold = isHold, holdElapsedSeconds = hold.elapsedSeconds,
                 holdTotalSeconds = hold.totalSeconds, holdRemainingSeconds = hold.remainingSeconds,
