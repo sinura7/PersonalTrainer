@@ -73,14 +73,14 @@
     <string name="next_swap">Swap this lift</string>
     <string name="next_swap_sub">Same muscles: %1$s</string>
     <string name="next_skip">Skip to a different lift</string>
-    <string name="next_skip_sub">Pick from the %1$d left</string>
+    <string name="next_skip_sub" tools:ignore="PluralsCandidate">Pick from the %1$d left</string>
     <string name="next_edit">Edit a saved set</string>
     <string name="next_lift_cta">Next: %1$s</string>
     <string name="next_finish_cta">Finish workout</string>
     <string name="next_planned_done">Planned sets complete</string>
-    <string name="between_kicker">Lift %1$d of %2$d complete</string>
+    <string name="between_kicker" tools:ignore="PluralsCandidate">Lift %1$d of %2$d complete</string>
     <string name="between_title">%1$s done</string>
-    <string name="between_sets">%1$d sets</string>
+    <string name="between_sets" tools:ignore="PluralsCandidate">%1$d sets</string>
     <string name="between_volume">%1$s kg</string>
     <string name="between_pr">PR %1$s</string>
     <string name="between_up_next">Up next · %1$d of %2$d</string>
@@ -88,11 +88,11 @@
     <string name="between_other">Choose a different lift</string>
     <string name="between_first_time">First time, start light</string>
     <string name="finish_title">Finish workout?</string>
-    <string name="finish_counts">%1$d of %2$d working sets saved · %3$d min</string>
+    <string name="finish_counts" tools:ignore="PluralsCandidate">%1$d of %2$d working sets saved · %3$d min</string>
     <string name="finish_cta">Finish and see summary</string>
     <string name="finish_keep">Keep training</string>
     <string name="finish_discard">Discard workout</string>
-    <string name="finish_incomplete">%1$d planned sets not done</string>
+    <string name="finish_incomplete" tools:ignore="PluralsCandidate">%1$d planned sets not done</string>
     <string name="finish_try_again">Try again</string>
     <string name="summary_kicker">Workout saved</string>
     <string name="summary_sets">sets</string>

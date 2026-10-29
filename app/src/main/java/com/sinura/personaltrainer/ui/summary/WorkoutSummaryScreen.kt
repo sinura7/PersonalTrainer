@@ -562,7 +562,11 @@ private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit, exercises: 
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RecordMark(record = true)
-                        Text("Personal record", style = InstrumentType.caption, color = PrGold)
+                        Text(
+                            stringResource(R.string.summary_pr_kicker),
+                            style = InstrumentType.caption,
+                            color = PrGold,
+                        )
                     }
                 }
                 val column = SetCopy.workColumn(highlight.work, unit)
