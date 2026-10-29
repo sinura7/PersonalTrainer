@@ -29,7 +29,6 @@ import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
-import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -916,7 +915,7 @@ internal fun ComposeContentTestRule.revealFloorControlAboveTempo(tag: String) {
         val target = onNodeWithTag(tag).assertIsDisplayed().fetchSemanticsNode()
         val bounds = target.boundsInRoot
         val content = onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
-        val tempo = onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
+        val tempo = this.onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
             !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT))).fetchSemanticsNodes()
             .singleOrNull()?.boundsInRoot
         val safeBottom = minOf(content.bottom, tempo?.top ?: content.bottom)
