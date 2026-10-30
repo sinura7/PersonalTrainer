@@ -106,4 +106,13 @@
     <string name="summary_done">Done</string>
     <string name="summary_history">View in History</string>
     <string name="summary_first">First workout saved</string>
+    <string name="preview_subtitle">%1$d lifts · about %2$d min</string>
+    <string name="preview_begin">Begin with %1$s</string>
+    <string name="preview_begin_sub">Warm-up 1 · %1$s</string>
+    <string name="preview_begin_sub_working">Set 1 · %1$s</string>
+    <string name="preview_reorder">Reorder or swap</string>
+    <string name="preview_first_time">First time</string>
+    <string name="preview_last">Last %1$s</string>
+    <string name="preview_add_lift">Add a lift</string>
+    <string name="preview_back">Back to Today</string>
 </resources>
