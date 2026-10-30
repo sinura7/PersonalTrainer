@@ -112,8 +112,10 @@ class LiveCardioFinishedBackTest {
         val now = JvmTime.captureNow()
         val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
         val live = (started as ActivityWrite.Accepted).session
-        val finishing = viewModel(live.id)
+        val clock = TestCardioClock(now.instantMillis)
+        val finishing = viewModel(live.id, clock)
         finishing.uiState.awaitFirst { it.session != null }
+        finishing.runPastTheGate(clock)
         finishing.finish()
         finishing.finishedId.first { it != null }
         return viewModel(live.id)
@@ -126,12 +128,22 @@ class LiveCardioFinishedBackTest {
         return viewModel(live.id)
     }
 
-    private fun viewModel(sessionId: String): LiveCardioViewModel =
-        LiveCardioViewModel(
-            application = ApplicationProvider.getApplicationContext(),
-            savedStateHandle = SavedStateHandle(mapOf("sessionId" to sessionId)),
-            container = deps,
-        ).also { viewModels += it }
+    private fun viewModel(sessionId: String, clock: TestCardioClock? = null): LiveCardioViewModel =
+        if (clock == null) {
+            LiveCardioViewModel(
+                application = ApplicationProvider.getApplicationContext(),
+                savedStateHandle = SavedStateHandle(mapOf("sessionId" to sessionId)),
+                container = deps,
+            ).also { viewModels += it }
+        } else {
+            LiveCardioViewModel(
+                application = ApplicationProvider.getApplicationContext(),
+                savedStateHandle = SavedStateHandle(mapOf("sessionId" to sessionId)),
+                container = deps,
+                elapsedRealtime = { clock.elapsedMs },
+                wallClock = { clock.wallMs },
+            ).also { viewModels += it }
+        }
 
     private fun runBlock() = CardioBlock(
         id = "blk-live",

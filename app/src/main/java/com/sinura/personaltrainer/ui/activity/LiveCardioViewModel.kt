@@ -158,6 +158,11 @@ class LiveCardioViewModel @JvmOverloads constructor(
     fun finish() {
         val current = session.value ?: return
         if (finishing.value) return
+        // Same one-minute gate as the dock (A24): a stray tap or a scripted call before the
+        // first minute does not end the run.
+        // Read the clock now rather than trust the last tick, which can be up to a second old.
+        elapsedSeconds.value = readElapsed(current)
+        if (!CardioFinishGate.isOpen(elapsedSeconds = elapsedSeconds.value)) return
         finishing.value = true
         viewModelScope.launch {
             val now = clock.captureNow()
@@ -300,18 +305,22 @@ class LiveCardioViewModel @JvmOverloads constructor(
         }
         ensurePersisted(live)
         while (true) {
-            val persisted = recoverWith(TAG, "Reading the cardio timer row", null) {
-                container.cardioTimerPersistence.load()
-            }?.takeIf { it.sessionId == live.id }
-            elapsedSeconds.value = CardioElapsed.seconds(
-                persisted = persisted,
-                sessionStartedAtMs = live.performedStart.instantMillis,
-                nowElapsedMs = elapsedRealtime(),
-                nowWallMs = wallClock(),
-                nowBootCount = bootCount(),
-            )
+            elapsedSeconds.value = readElapsed(live)
             delay(1_000)
         }
+    }
+
+    private fun readElapsed(live: ActivitySession): Long {
+        val persisted = recoverWith(TAG, "Reading the cardio timer row", null) {
+            container.cardioTimerPersistence.load()
+        }?.takeIf { it.sessionId == live.id }
+        return CardioElapsed.seconds(
+            persisted = persisted,
+            sessionStartedAtMs = live.performedStart.instantMillis,
+            nowElapsedMs = elapsedRealtime(),
+            nowWallMs = wallClock(),
+            nowBootCount = bootCount(),
+        )
     }
 
     private fun ensurePersisted(live: ActivitySession) {

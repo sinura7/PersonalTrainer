@@ -70,16 +70,18 @@ class LiveCardioViewModelTest {
         val now = JvmTime.captureNow()
         val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
         val live = (started as ActivityWrite.Accepted).session
+        val clock = TestCardioClock(now.instantMillis)
         val vm = createViewModel(
             sessionId = live.id,
-            elapsedRealtime = { 60_000L },
-            wallClock = { now.instantMillis + 60_000L },
+            elapsedRealtime = { clock.elapsedMs },
+            wallClock = { clock.wallMs },
         )
         val loaded = vm.uiState.awaitFirst { it.session != null }
         assertFalse(loaded.missing)
         assertEquals(live.id, loaded.session?.id)
 
         vm.setDistanceKm("1.5")
+        vm.runPastTheGate(clock)
         vm.finish()
         val finishedId = vm.finishedId.first { it != null }
         assertEquals(live.id, finishedId)
@@ -99,14 +101,16 @@ class LiveCardioViewModelTest {
         val now = JvmTime.captureNow()
         val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
         val live = (started as ActivityWrite.Accepted).session
+        val clock = TestCardioClock(now.instantMillis)
         val vm = createViewModel(
             sessionId = live.id,
-            elapsedRealtime = { 60_000L },
-            wallClock = { now.instantMillis + 60_000L },
+            elapsedRealtime = { clock.elapsedMs },
+            wallClock = { clock.wallMs },
         )
         vm.uiState.awaitFirst { it.session != null }
 
         vm.setDistanceKm("-5")
+        vm.runPastTheGate(clock)
         vm.finish()
 
         // Both writes: distanceError lands a moment before finishing clears, on an IO thread.
@@ -132,13 +136,15 @@ class LiveCardioViewModelTest {
         val now = JvmTime.captureNow()
         val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
         val live = (started as ActivityWrite.Accepted).session
+        val clock = TestCardioClock(now.instantMillis)
         val vm = createViewModel(
             sessionId = live.id,
-            elapsedRealtime = { 60_000L },
-            wallClock = { now.instantMillis + 60_000L },
+            elapsedRealtime = { clock.elapsedMs },
+            wallClock = { clock.wallMs },
         )
         vm.uiState.awaitFirst { it.session != null }
         vm.setDistanceKm("1.5")
+        vm.runPastTheGate(clock)
         vm.finish()
         vm.finishedId.first { it != null }
         val completed = deps.activityRepository.get(live.id)
@@ -166,8 +172,10 @@ class LiveCardioViewModelTest {
         val now = JvmTime.captureNow()
         val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
         val live = (started as ActivityWrite.Accepted).session
-        val vm = createViewModel(live.id)
+        val clock = TestCardioClock(now.instantMillis)
+        val vm = createViewModel(live.id, elapsedRealtime = { clock.elapsedMs }, wallClock = { clock.wallMs })
         vm.uiState.awaitFirst { it.session != null }
+        vm.runPastTheGate(clock)
         vm.finish()
         vm.finishedId.first { it != null }
         vm.clearAndJoinForTest()
@@ -186,15 +194,17 @@ class LiveCardioViewModelTest {
         val now = JvmTime.captureNow()
         val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
         val live = (started as ActivityWrite.Accepted).session
+        val clock = TestCardioClock(now.instantMillis)
         val vm = createViewModel(
             sessionId = live.id,
-            elapsedRealtime = { 60_000L },
-            wallClock = { now.instantMillis + 60_000L },
+            elapsedRealtime = { clock.elapsedMs },
+            wallClock = { clock.wallMs },
         )
         vm.uiState.awaitFirst { it.session != null }
         vm.setDistanceKm("1.5", DistanceUnit.MI)
         deps.preferencesRepository.setDistanceUnit(DistanceUnit.KM)
         deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+        vm.runPastTheGate(clock)
         vm.finish()
         vm.finishedId.first { it != null }
         val completed = deps.activityRepository.get(live.id)
