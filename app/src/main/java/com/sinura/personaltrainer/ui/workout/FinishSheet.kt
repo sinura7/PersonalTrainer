@@ -48,9 +48,9 @@ internal fun FinishSheet(
     error: String? = null,
     onRetry: () -> Unit = {},
 ) {
-    val notesBlocking = notesSave.status == NotesSaveStatus.PENDING ||
-        notesSave.status == NotesSaveStatus.SAVING ||
-        notesSave.status == NotesSaveStatus.FAILED
+    // Only a failed notes write blocks Finish. A pending or saving note is waited for by
+    // finishWorkout itself, so the sheet does not hold the lifter back for it.
+    val notesBlocking = notesSave.status == NotesSaveStatus.FAILED
     val canSave = EndWorkoutCopy.canSave(loggedSets) && !notesBlocking
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(

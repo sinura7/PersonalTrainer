@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.workout
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -107,7 +108,28 @@ class FinishSheetRenderTest {
     }
 
     @Test
-    fun finishSheetBlocksSaveWhileNotesArePending() {
+    fun finishSheetBlocksSaveWhenNotesFailed() {
+        compose.setContent {
+            PersonalTrainerTheme {
+                FinishSheet(
+                    loggedSets = 2,
+                    plannedWorkingSets = 3,
+                    durationMinutes = 10,
+                    onFinish = {},
+                    onKeepTraining = {},
+                    onDiscard = {},
+                    onDismiss = {},
+                    editOpen = false,
+                    notesSave = NotesSaveState(status = NotesSaveStatus.FAILED),
+                )
+            }
+        }
+        compose.onNodeWithTag(EndWorkoutTags.NOTES_PENDING).assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsNotEnabled()
+    }
+
+    @Test
+    fun finishSheetAllowsSaveWhileNotesAreSaving() {
         compose.setContent {
             PersonalTrainerTheme {
                 FinishSheet(
@@ -123,7 +145,27 @@ class FinishSheetRenderTest {
                 )
             }
         }
-        compose.onNodeWithTag(EndWorkoutTags.NOTES_PENDING).assertIsDisplayed()
-        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsNotEnabled()
+        compose.onNodeWithTag(EndWorkoutTags.NOTES_PENDING).assertDoesNotExist()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsEnabled()
+    }
+
+    @Test
+    fun finishSheetAllowsSaveWhileNotesArePending() {
+        compose.setContent {
+            PersonalTrainerTheme {
+                FinishSheet(
+                    loggedSets = 2,
+                    plannedWorkingSets = 3,
+                    durationMinutes = 10,
+                    onFinish = {},
+                    onKeepTraining = {},
+                    onDiscard = {},
+                    onDismiss = {},
+                    editOpen = false,
+                    notesSave = NotesSaveState(status = NotesSaveStatus.PENDING),
+                )
+            }
+        }
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsEnabled()
     }
 }
