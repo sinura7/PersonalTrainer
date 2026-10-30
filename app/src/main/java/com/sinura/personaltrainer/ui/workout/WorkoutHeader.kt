@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -84,7 +85,7 @@ internal fun WorkoutHeader(
             contentPadding = PaddingValues(start = Metrics.space2, end = Metrics.space2),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(Metrics.control),
+                .heightIn(min = Metrics.control),
             trailing = { overflow?.invoke() },
         )
         if (headline.isNotBlank() && !planAsTitle) {
