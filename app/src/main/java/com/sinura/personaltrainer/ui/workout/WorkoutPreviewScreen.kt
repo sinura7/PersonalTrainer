@@ -68,6 +68,12 @@ data class PreviewLift(
     val warmup: Boolean,
 )
 
+/** Per-lift weights behind the preview, keyed by exercise id. */
+data class PreviewWeights(
+    val lastKg: Map<String, Double>,
+    val suggestedKg: Map<String, Double>,
+)
+
 data class WorkoutPreviewModel(
     val title: String,
     val minutes: Int,
@@ -87,6 +93,7 @@ object WorkoutPreview {
         minutes: Int,
         lastWeightKg: Map<String, Double>?,
         unit: WeightUnit,
+        suggestedWeightKg: Map<String, Double> = emptyMap(),
     ): WorkoutPreviewModel {
         val lifts = routine?.exercises.orEmpty().sortedBy { it.sortOrder }.map { planned ->
             val last = lastWeightKg?.get(planned.exercise.id)
@@ -95,7 +102,10 @@ object WorkoutPreview {
                 last != null && last > 0.0 -> PreviewHint.Last(last)
                 else -> PreviewHint.FirstTime
             }
-            val start = planned.targetWeightKg?.takeIf { it > 0.0 } ?: last?.takeIf { it > 0.0 }
+            // The live Log's own prefill order (spec section 6): the suggestion, then the
+            // planned target. Last time stays a hint, never the start weight.
+            val start = suggestedWeightKg[planned.exercise.id]?.takeIf { it > 0.0 }
+                ?: planned.targetWeightKg?.takeIf { it > 0.0 }
             val warmup = start != null && planned.targetSeconds == null && WarmupRamp.sets(
                 workingWeightKg = start,
                 loadType = planned.exercise.loadType,

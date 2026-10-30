@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.ui.workout.PreviewWeights
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,7 +24,7 @@ import com.sinura.personaltrainer.ui.workout.WorkoutPreviewScreen
 internal fun HomeStartPrompt(
     routine: Routine?,
     unit: WeightUnit,
-    loadLastWeights: suspend (Routine) -> Map<String, Double>,
+    loadWeights: suspend (Routine) -> PreviewWeights,
     onEditRoutine: (String) -> Unit,
     title: String,
     body: String,
@@ -48,14 +49,15 @@ internal fun HomeStartPrompt(
         )
         return
     }
-    var lastWeights by remember(routine.id) { mutableStateOf<Map<String, Double>?>(null) }
-    LaunchedEffect(routine.id) { lastWeights = loadLastWeights(routine) }
+    var weights by remember(routine.id) { mutableStateOf<PreviewWeights?>(null) }
+    LaunchedEffect(routine.id) { weights = loadWeights(routine) }
     val model = WorkoutPreview.build(
         title = routine.name,
         routine = routine,
         minutes = estimatedSessionMinutes(routine),
-        lastWeightKg = lastWeights,
+        lastWeightKg = weights?.lastKg,
         unit = unit,
+        suggestedWeightKg = weights?.suggestedKg.orEmpty(),
     )
     val leave = { if (canDismiss()) onDismiss() }
     val edit = {

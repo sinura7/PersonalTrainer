@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.ui.home
 
+import kotlinx.coroutines.flow.first
+import com.sinura.personaltrainer.ui.workout.PreviewWeights
+import com.sinura.personaltrainer.ui.workout.ProgressionHintLoader
 import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
@@ -148,21 +151,49 @@ class HomeViewModel @JvmOverloads constructor(
     private val actionError = MutableStateFlow<String?>(null)
 
     /**
-     * Last top-set weight per lift for the pre-workout preview (screen 06). Each lift is read on
-     * its own: a failed read drops only that lift, which then reads "First time", and Begin is
-     * never blocked.
+     * What the pre-workout preview (screen 06) shows per lift: the last top-set weight and the
+     * live Log's own first prefill, progression.suggestedWeightKg (spec section 6). Each lift is
+     * read on its own: a failed read drops only that lift, which then reads "First time" and
+     * falls back to its planned target, and Begin is never blocked.
      */
-    suspend fun previewLastWeights(routine: Routine): Map<String, Double> =
-        routine.exercises.mapNotNull { planned ->
-            val weight = try {
-                container.workoutRepository.lastPerformance(planned.exercise.id)?.topSet?.weightKg
-            } catch (thrown: CancellationException) {
-                throw thrown
-            } catch (_: Exception) {
-                null
+    suspend fun previewWeights(routine: Routine): PreviewWeights {
+        val settings = try {
+            ProgressionHintLoader(container = container, sessionId = "").settings().first()
+        } catch (thrown: CancellationException) {
+            throw thrown
+        } catch (_: Exception) {
+            null
+        }
+        val last = mutableMapOf<String, Double>()
+        val suggested = mutableMapOf<String, Double>()
+        for (planned in routine.exercises) {
+            val id = planned.exercise.id
+            perLift { container.workoutRepository.lastPerformance(id)?.topSet?.weightKg }?.let { last[id] = it }
+            if (settings != null) {
+                perLift {
+                    container.workoutRepository.progressionFor(
+                        exerciseId = id,
+                        exerciseName = planned.exercise.name,
+                        targetReps = planned.targetReps,
+                        excludeSessionId = "",
+                        loadType = planned.exercise.loadType,
+                        unit = settings.unit,
+                        lighterWeek = settings.lighterWeek,
+                        equipment = planned.exercise.equipment,
+                    )?.suggestedWeightKg
+                }?.let { suggested[id] = it }
             }
-            weight?.let { planned.exercise.id to it }
-        }.toMap()
+        }
+        return PreviewWeights(lastKg = last, suggestedKg = suggested)
+    }
+
+    private suspend fun perLift(read: suspend () -> Double?): Double? = try {
+        read()
+    } catch (thrown: CancellationException) {
+        throw thrown
+    } catch (_: Exception) {
+        null
+    }
     private val bodyweightSave = MutableStateFlow(BodyweightSave())
     private val _startState = MutableStateFlow(HomeStartState())
     val startState: StateFlow<HomeStartState> = _startState.asStateFlow()

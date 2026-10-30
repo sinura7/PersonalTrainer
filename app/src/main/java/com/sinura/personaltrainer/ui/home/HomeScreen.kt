@@ -526,7 +526,7 @@ fun HomeScreen(
             HomeStartPrompt(
                 routine = previewRoutine,
                 unit = unit,
-                loadLastWeights = viewModel::previewLastWeights,
+                loadWeights = viewModel::previewWeights,
                 onEditRoutine = onOpenRoutine,
                 pending = starting.pending,
                 labelOverridden = starting.pending || starting.error != null,
@@ -584,7 +584,7 @@ fun HomeScreen(
         HomeStartPrompt(
             routine = HomeToday.previewRoutine(confirmFallback.day, state.routines),
             unit = unit,
-            loadLastWeights = viewModel::previewLastWeights,
+            loadWeights = viewModel::previewWeights,
             onEditRoutine = onOpenRoutine,
             pending = starting.pending,
             labelOverridden = starting.pending || starting.error != null,
