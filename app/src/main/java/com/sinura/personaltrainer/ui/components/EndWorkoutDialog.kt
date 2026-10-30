@@ -109,4 +109,5 @@ object EndWorkoutTags {
     const val EDIT_OPEN = "workout-end-edit-open"
     const val BACK_TO_EDIT = "workout-end-back-to-edit"
     const val NOTES_PENDING = "workout-end-notes-pending"
+    const val NOTES_RETRY = "workout-end-notes-retry"
 }

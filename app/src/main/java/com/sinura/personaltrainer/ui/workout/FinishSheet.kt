@@ -47,11 +47,14 @@ internal fun FinishSheet(
     loading: Boolean = false,
     error: String? = null,
     onRetry: () -> Unit = {},
+    onRetryNotes: () -> Unit = {},
+    savePending: Boolean = false,
 ) {
     // Only a failed notes write blocks Finish. A pending or saving note is waited for by
     // finishWorkout itself, so the sheet does not hold the lifter back for it.
     val notesBlocking = notesSave.status == NotesSaveStatus.FAILED
-    val canSave = EndWorkoutCopy.canSave(loggedSets) && !notesBlocking
+    // A set save still in flight must land before the session can be finished (N6).
+    val canSave = EndWorkoutCopy.canSave(loggedSets) && !notesBlocking && !savePending
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = {
@@ -94,6 +97,13 @@ internal fun FinishSheet(
                     style = InstrumentType.body,
                     color = TextSecondary,
                     modifier = Modifier.testTag(EndWorkoutTags.NOTES_PENDING),
+                )
+                GhostButton(
+                    label = stringResource(R.string.finish_retry_notes),
+                    onClick = onRetryNotes,
+                    modifier = Modifier
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(EndWorkoutTags.NOTES_RETRY),
                 )
             } else {
                 Text(

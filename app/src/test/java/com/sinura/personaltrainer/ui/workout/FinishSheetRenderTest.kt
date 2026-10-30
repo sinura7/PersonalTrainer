@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.ui.workout
 
 import androidx.compose.ui.test.assertIsDisplayed
+import org.junit.Assert.assertEquals
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -167,5 +169,48 @@ class FinishSheetRenderTest {
             }
         }
         compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsEnabled()
+    }
+
+    @Test
+    fun finishSheetOffersNotesRetryWhenNotesFailed() {
+        var retried = 0
+        compose.setContent {
+            PersonalTrainerTheme {
+                FinishSheet(
+                    loggedSets = 2,
+                    plannedWorkingSets = 3,
+                    durationMinutes = 10,
+                    onFinish = {},
+                    onKeepTraining = {},
+                    onDiscard = {},
+                    onDismiss = {},
+                    editOpen = false,
+                    notesSave = NotesSaveState(status = NotesSaveStatus.FAILED),
+                    onRetryNotes = { retried += 1 },
+                )
+            }
+        }
+        compose.onNodeWithTag(EndWorkoutTags.NOTES_RETRY).performClick()
+        assertEquals(1, retried)
+    }
+
+    @Test
+    fun finishSheetDisablesFinishWhileASetSaveIsPending() {
+        compose.setContent {
+            PersonalTrainerTheme {
+                FinishSheet(
+                    loggedSets = 2,
+                    plannedWorkingSets = 3,
+                    durationMinutes = 10,
+                    onFinish = {},
+                    onKeepTraining = {},
+                    onDiscard = {},
+                    onDismiss = {},
+                    editOpen = false,
+                    savePending = true,
+                )
+            }
+        }
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsNotEnabled()
     }
 }

@@ -1372,6 +1372,8 @@ private fun ActiveWorkoutContent(
             loading = state.mutating,
             error = state.error?.takeIf { state.save.phase == WorkoutSavePhase.FAILED },
             onRetry = viewModel::retrySave,
+            onRetryNotes = viewModel::retryNotesSave,
+            savePending = state.save.pending,
         )
     }
 
