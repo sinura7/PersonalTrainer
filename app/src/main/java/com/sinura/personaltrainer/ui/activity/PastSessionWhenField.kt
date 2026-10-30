@@ -48,7 +48,12 @@ internal fun PastSessionWhenField(
 ) {
     var picking by rememberSaveable { mutableStateOf(false) }
     val label = stringResource(R.string.past_when)
-    val value = DateCopy.weekdayShort(LocalDate.ofEpochDay(epochDay))
+    // Within the last week the weekday reads best; further back, the plain civil date.
+    val value = if (todayEpochDay - epochDay > RECENT_DAYS) {
+        DateCopy.civilDate(epochDay)
+    } else {
+        DateCopy.weekdayShort(LocalDate.ofEpochDay(epochDay))
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -89,3 +94,5 @@ internal fun PastSessionWhenField(
         }
     }
 }
+
+private const val RECENT_DAYS = 6L
