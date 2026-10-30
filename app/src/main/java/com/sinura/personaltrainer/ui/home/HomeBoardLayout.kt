@@ -1,11 +1,13 @@
 package com.sinura.personaltrainer.ui.home
 
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import com.sinura.personaltrainer.ui.components.PrimaryButton
 import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -63,7 +65,8 @@ internal fun HomeBoardLayout(
             // With Today's own Start in front, the generic start sheet steps back to text.
             val rank = if (primary && startRank != FreeStartRank.HIDDEN) FreeStartRank.TEXT else startRank
             // A short window (landscape, large fonts) cannot spare two stacked rows of dock.
-            if (primary && LocalConfiguration.current.screenHeightDp < COMPACT_DOCK_HEIGHT_DP) {
+            val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+            if (primary && windowHeight < COMPACT_DOCK_HEIGHT) {
                 Row(modifier = padded, horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                     verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.weight(1f)) { TodayPrimaryAction(todayStart = todayStart, onResume = onResume) }
@@ -126,7 +129,7 @@ internal fun HomeStartAction(rank: FreeStartRank, onStartFree: () -> Unit) {
     }
 }
 
-private const val COMPACT_DOCK_HEIGHT_DP = 480
+private val COMPACT_DOCK_HEIGHT = 480.dp
 
 /** Today's planned strength start, the dock's primary (screen 01, A20). */
 internal data class TodayDockStart(
@@ -146,7 +149,7 @@ internal fun TodayPrimaryAction(todayStart: TodayDockStart?, onResume: (() -> Un
         )
         todayStart != null -> PrimaryButton(
             label = stringResource(R.string.today_start_cta),
-            subLabel = stringResource(R.string.today_start_sub, todayStart.dayName, todayStart.liftCount),
+            subLabel = pluralStringResource(R.plurals.today_start_sub, todayStart.liftCount, todayStart.dayName, todayStart.liftCount),
             onClick = todayStart.onStart,
             modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_START),
         )

@@ -20,6 +20,7 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
@@ -188,7 +189,7 @@ internal fun WorkoutPreviewContent(
                 )
                 if (model.lifts.isNotEmpty()) {
                     Text(
-                        stringResource(R.string.preview_subtitle, model.lifts.size, model.minutes),
+                        pluralStringResource(R.plurals.preview_subtitle, model.lifts.size, model.lifts.size, model.minutes),
                         style = InstrumentType.caption, color = TextSecondary,
                     )
                 }

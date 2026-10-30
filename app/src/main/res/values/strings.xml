@@ -106,7 +106,10 @@
     <string name="summary_done">Done</string>
     <string name="summary_history">View in History</string>
     <string name="summary_first">First workout saved</string>
-    <string name="preview_subtitle">%1$d lifts · about %2$d min</string>
+    <plurals name="preview_subtitle">
+        <item quantity="one">%1$d lift · about %2$d min</item>
+        <item quantity="other">%1$d lifts · about %2$d min</item>
+    </plurals>
     <string name="preview_begin">Begin with %1$s</string>
     <string name="preview_begin_sub">Warm-up 1 · %1$s</string>
     <string name="preview_begin_sub_working">Set 1 · %1$s</string>
@@ -116,7 +119,10 @@
     <string name="preview_add_lift">Add a lift</string>
     <string name="preview_back">Back to Today</string>
     <string name="today_start_cta">Start workout</string>
-    <string name="today_start_sub">%1$s · %2$d lifts</string>
+    <plurals name="today_start_sub">
+        <item quantity="one">%1$s · %2$d lift</item>
+        <item quantity="other">%1$s · %2$d lifts</item>
+    </plurals>
     <string name="today_resume_cta">Resume workout</string>
     <string name="today_in_progress">Workout in progress</string>
 </resources>
