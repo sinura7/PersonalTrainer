@@ -524,12 +524,12 @@ internal fun ExercisePickerContent(
             PrimaryGymButton(
                 text = when {
                     recoveringSelection -> checkNotNull(recovery).retryLabel()
-                    createStatus?.busy == true -> createStatus.message ?: "Saving lift…"
+                    createStatus?.busy == true -> createStatus.message ?: stringResource(R.string.picker_saving_lift)
                     createStatus?.phase == PickerCreatePhase.SAVED -> if (recovery?.retryLabel?.invoke() == "Continue") "Continue" else "Use saved lift"
                     createStatus?.phase == PickerCreatePhase.RETRYABLE -> "Retry exact Save"
                     state.progress.creating -> "Creating lift…"
-                    state.progress.busy -> "Saving lift…"
-                    creating -> "Create and select"
+                    state.progress.busy -> stringResource(R.string.picker_saving_lift)
+                    creating -> stringResource(R.string.picker_create_select)
                     state.cart.isEmpty() -> "Done"
                     else -> pluralStringResource(R.plurals.picker_add_n, state.cart.size, state.cart.size)
                 },

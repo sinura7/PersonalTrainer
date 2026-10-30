@@ -658,9 +658,9 @@ fun HomeScreen(
             title = sheetPreviewRoutine.name,
             body = "",
             confirmLabel = when {
-                starting.pending -> "Starting…"
-                starting.error != null -> "Start unavailable"
-                else -> "Begin"
+                starting.pending -> stringResource(R.string.home_preview_starting)
+                starting.error != null -> stringResource(R.string.home_preview_unavailable)
+                else -> stringResource(R.string.home_preview_begin)
             },
             onConfirm = {
                 if (sheetPreviewRoutineId == sheetPreviewRoutine.id &&
@@ -685,7 +685,10 @@ fun HomeScreen(
                 if (startSheet && startSheetRequestId == sheetOwner &&
                     viewModel.blockedByInProgress.value == null &&
                     viewModel.dismissStart(expectedAttemptId = renderedStartAttemptId)
-                ) startSheet = false
+                ) {
+                    startSheet = false
+                    sheetPreviewRoutineId = null
+                }
             },
             onStartFree = {
                 if (startSheet && startSheetRequestId == sheetOwner &&
