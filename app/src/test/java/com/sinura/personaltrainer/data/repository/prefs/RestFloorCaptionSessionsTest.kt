@@ -34,7 +34,10 @@ class RestFloorCaptionSessionsTest {
         }
         val restPrefs = RestPrefsStore(store)
         restPrefs.recordRestFloorCaptionForSession("legacy-b")
-        assertEquals(2, restPrefs.restFloorCaptionSessions.first())
+        // Two sessions were captioned before the migration; legacy-b is the third.
+        assertEquals(3, restPrefs.restFloorCaptionSessions.first())
+        restPrefs.recordRestFloorCaptionForSession("legacy-c")
+        assertEquals(4, restPrefs.restFloorCaptionSessions.first())
     }
 
     @Test
@@ -46,6 +49,23 @@ class RestFloorCaptionSessionsTest {
         restPrefs.recordRestFloorCaptionForSession("s3")
         assertEquals(3, restPrefs.restFloorCaptionSessions.first())
         restPrefs.recordRestFloorCaptionForSession("s4")
-        assertEquals(3, restPrefs.restFloorCaptionSessions.first())
+        // Session 4 is over the budget of 3, so the caption hides from here on.
+        assertEquals(4, restPrefs.restFloorCaptionSessions.first())
+        restPrefs.recordRestFloorCaptionForSession("s5")
+        assertEquals(4, restPrefs.restFloorCaptionSessions.first())
+        restPrefs.recordRestFloorCaptionForSession("s2")
+        assertEquals(4, restPrefs.restFloorCaptionSessions.first())
+    }
+
+    @Test
+    fun legacyCountAtTheBudgetMigratesOverTheBudget() = runBlocking {
+        val store = SettingsStore(PreferenceDataStoreFactory.create { temp.newFile("prefs4.preferences_pb") })
+        store.data.edit { prefs ->
+            prefs[REST_FLOOR_CAPTION_SESSIONS] = 3
+            prefs[REST_FLOOR_CAPTION_LAST_SESSION] = "legacy-a"
+        }
+        val restPrefs = RestPrefsStore(store)
+        restPrefs.recordRestFloorCaptionForSession("next")
+        assertEquals(4, restPrefs.restFloorCaptionSessions.first())
     }
 }

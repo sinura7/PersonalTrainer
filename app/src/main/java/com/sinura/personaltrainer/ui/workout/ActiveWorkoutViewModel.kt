@@ -115,6 +115,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import com.sinura.personaltrainer.data.repository.prefs.RestPrefsStore
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/ActiveWorkoutVM"
@@ -507,6 +508,10 @@ class ActiveWorkoutViewModel internal constructor(
     private val tempoCoachSheetVisible = MutableStateFlow(false)
     private val showRestFirstCaption = MutableStateFlow(false)
     val restFirstCaptionVisible: StateFlow<Boolean> = showRestFirstCaption.asStateFlow()
+
+    /** How many times the D13 caption was decided after a rest started; read by tests. */
+    private val restCaptionDecisions = MutableStateFlow(0)
+    internal val restCaptionDecisionCount: StateFlow<Int> = restCaptionDecisions.asStateFlow()
     /** Lift that owns the full-screen rest floor; cleared when rest stops. */
     private val restImmersionLiftIdStore = MutableStateFlow(
         privateSavedState.get<String?>(REST_IMMERSION_LIFT_KEY),
@@ -3047,7 +3052,9 @@ class ActiveWorkoutViewModel internal constructor(
             container.preferencesRepository.markRestAlarmEligible()
             container.preferencesRepository.recordRestFloorCaptionForSession(sessionId)
             val sessions = container.preferencesRepository.restFloorCaptionSessions.first()
-            showRestFirstCaption.value = sessions <= 3
+            showRestFirstCaption.value =
+                sessions <= RestPrefsStore.REST_FLOOR_CAPTION_SESSION_BUDGET
+            restCaptionDecisions.update { it + 1 }
             maybeOpenTempoCoachSheet()
         }
     }

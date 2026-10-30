@@ -429,6 +429,34 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun restCaptionShowsInTheThirdDistinctSession() = runBlocking {
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-1")
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-2")
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.logSetAndSettle()
+        awaitRestRunning()
+        vm.restCaptionDecisionCount.awaitFirst { it >= 1 }
+        assertTrue(vm.restFirstCaptionVisible.value)
+    }
+
+    @Test
+    fun restCaptionHidesFromTheFourthDistinctSession() = runBlocking {
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-1")
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-2")
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-3")
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.logSetAndSettle()
+        awaitRestRunning()
+        vm.restCaptionDecisionCount.awaitFirst { it >= 1 }
+        assertEquals(4, deps.preferencesRepository.restFloorCaptionSessions.first())
+        assertFalse(vm.restFirstCaptionVisible.value)
+    }
+
+    @Test
     fun loggingWithoutTheStopwatchLeavesDurationNull() = runBlocking {
         val fixture = seedWorkout(targetSets = 3)
         val vm = createViewModel(fixture.session.id)

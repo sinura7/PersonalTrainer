@@ -111,23 +111,26 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
             val existing = prefs[REST_FLOOR_CAPTION_SESSION_IDS]
             if (existing != null) {
                 if (sessionId in existing) return@edit
-                if (existing.size >= REST_FLOOR_CAPTION_SESSION_BUDGET) return@edit
+                // One past the budget is kept so session budget+1 reads as over the budget.
+                if (existing.size > REST_FLOOR_CAPTION_SESSION_BUDGET) return@edit
                 prefs[REST_FLOOR_CAPTION_SESSION_IDS] = existing + sessionId
                 return@edit
             }
             if (prefs[REST_FLOOR_CAPTION_LAST_SESSION] == sessionId) return@edit
             val legacyCount = prefs[REST_FLOOR_CAPTION_SESSIONS] ?: 0
             val previousLast = prefs[REST_FLOOR_CAPTION_LAST_SESSION]
-            val migrated = buildSet {
+            // The legacy count included the last session; pad with stand-in ids up to it so the
+            // sessions already captioned before the migration still use up the budget.
+            val padded = buildSet {
                 previousLast?.let { add(it) }
-                add(sessionId)
+                var pad = 0
+                while (size < legacyCount && size <= REST_FLOOR_CAPTION_SESSION_BUDGET) {
+                    add("legacy-$pad")
+                    pad += 1
+                }
             }
-            val capped = if (legacyCount >= REST_FLOOR_CAPTION_SESSION_BUDGET) {
-                migrated.take(REST_FLOOR_CAPTION_SESSION_BUDGET).toSet()
-            } else {
-                migrated
-            }
-            prefs[REST_FLOOR_CAPTION_SESSION_IDS] = capped
+            val migrated = if (padded.size > REST_FLOOR_CAPTION_SESSION_BUDGET) padded else padded + sessionId
+            prefs[REST_FLOOR_CAPTION_SESSION_IDS] = migrated
             prefs.remove(REST_FLOOR_CAPTION_SESSIONS)
             prefs.remove(REST_FLOOR_CAPTION_LAST_SESSION)
         }
