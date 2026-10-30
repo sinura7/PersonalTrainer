@@ -652,6 +652,12 @@ class PlanViewModel @JvmOverloads constructor(
 
     fun onErrorShown() = dismissError()
 
+    /** Try again on the Plan error panel: clear the message and re-publish the week. */
+    fun retry() {
+        dismissError()
+        write("Couldn't load the week. Try again.") { refreshPlanner() }
+    }
+
     private fun write(failureMessage: String, block: suspend () -> Unit) {
         viewModelScope.launch {
             runCatchingCancellable { block() }

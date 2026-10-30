@@ -148,4 +148,44 @@
         <item quantity="one">%d set</item>
         <item quantity="other">%d sets</item>
     </plurals>
+    <!-- R5 plan week (blueprint 4.2) -->
+    <string name="plan_empty_title">No week yet</string>
+    <string name="plan_empty_cta">Build the week</string>
+    <string name="plan_suggested_caption">Suggested. Change anything.</string>
+    <string name="plan_live_row">Workout in progress</string>
+    <string name="plan_error_retry">Try again</string>
+    <!-- R5 plan day (blueprint 4.3) -->
+    <string name="routine_add_exercise">Add exercise</string>
+    <string name="routine_add_first">Add your first lift</string>
+    <string name="routine_save">Save day</string>
+    <string name="routine_resumed">Resumed unfinished edits</string>
+    <string name="routine_unsaved_title">Unfinished edits</string>
+    <string name="routine_unsaved_keep">Keep editing</string>
+    <string name="routine_unsaved_discard">Discard changes</string>
+    <string name="routine_unsaved_keep_fields">Keep unfinished edits and return</string>
+    <string name="routine_missing">Routine missing</string>
+    <string name="routine_try_again">Try again</string>
+    <!-- R5 add exercise picker (blueprint 4.4) -->
+    <string name="picker_suggested">Suggested</string>
+    <plurals name="picker_add_n">
+        <item quantity="one">Add %1$d exercise</item>
+        <item quantity="other">Add %1$d exercises</item>
+    </plurals>
+    <string name="picker_add_sub">Then set targets</string>
+    <string name="picker_search_hint">Search lifts</string>
+    <string name="picker_none">No lifts match</string>
+    <string name="picker_clear">Clear filters</string>
+    <string name="picker_create_named">Create lift: %1$s</string>
+    <!-- R5 set targets sheet (blueprint 4.5) -->
+    <string name="targets_subtitle">Set targets</string>
+    <string name="targets_sets">Sets</string>
+    <string name="targets_reps">Reps</string>
+    <string name="targets_seconds">Seconds</string>
+    <string name="targets_rest">Rest</string>
+    <string name="targets_note">Start weight comes from Tempo after the first session.</string>
+    <string name="targets_save">Save targets</string>
+    <string name="targets_minus">−</string>
+    <string name="targets_plus">+</string>
+    <string name="targets_lower">%1$s down</string>
+    <string name="targets_raise">%1$s up</string>
 </resources>

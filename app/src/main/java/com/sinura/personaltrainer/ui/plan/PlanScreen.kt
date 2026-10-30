@@ -64,7 +64,6 @@ import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
-import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -77,7 +76,6 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeekStrip
 import com.sinura.personaltrainer.ui.components.rememberWeekStripState
 import com.sinura.personaltrainer.ui.workout.StartSheetOpener
@@ -282,6 +280,8 @@ fun PlanScreen(
     onOpenLibrary: () -> Unit,
     onOpenDay: (Long, Boolean) -> Unit,
     onOpenStartSheet: () -> Unit = {},
+    onBuildWeek: () -> Unit = {},
+    onOpenLive: (String, Boolean) -> Unit = { _, _ -> },
     viewModel: PlanViewModel = viewModel(),
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -309,8 +309,7 @@ fun PlanScreen(
             .background(Pit),
     ) {
         if (state.isLoading) {
-            PlanHeader(onOpenLibrary = onOpenLibrary, onOpenStartSheet = onOpenStartSheet)
-            ScreenLoading()
+            PlanWeekLoading(onOpenLibrary = onOpenLibrary, onOpenStartSheet = onOpenStartSheet)
             return@Column
         }
 
@@ -359,7 +358,19 @@ fun PlanScreen(
                 )
             }
             state.error?.let { message ->
-                item(key = "error") { GymErrorBanner(message, onDismiss = viewModel::dismissError) }
+                item(key = "error") { PlanWeekError(message = message, onRetry = viewModel::retry) }
+            }
+            val liveId = state.inProgress?.id ?: state.liveActivity?.id
+            if (liveId != null) {
+                item(key = "live-row") {
+                    PlanLiveRow(onOpen = { onOpenLive(liveId, state.inProgress == null) })
+                }
+            }
+            if (PlanWeekState.isEmpty(state)) {
+                item(key = "week-empty") { PlanWeekEmpty(onBuildWeek = onBuildWeek) }
+            }
+            if (state.proposals.isNotEmpty()) {
+                item(key = "suggested") { PlanSuggestedCaption() }
             }
 
             state.block?.let { block ->
@@ -466,7 +477,7 @@ fun PlanScreen(
                 )
             }
 
-            if (state.routines.isEmpty()) {
+            if (state.routines.isEmpty() && !PlanWeekState.isEmpty(state)) {
                 item(key = "routines-empty") {
                     EmptyState(
                         scene = EmptyScene.PLAN,
