@@ -132,4 +132,7 @@
     <string name="today_first_caption">Your first workout</string>
     <string name="cardio_finish">Finish %1$s</string>
     <string name="cardio_finish_wait">Available after 1 min</string>
+    <string name="history_effort_hint">Right side number is effort. Tap a set to edit.</string>
+    <string name="history_repeat">Repeat this workout</string>
+    <string name="history_warmup_mark">W</string>
 </resources>
