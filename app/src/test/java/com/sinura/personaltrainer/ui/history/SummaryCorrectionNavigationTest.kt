@@ -32,6 +32,7 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.forgetFirstApplication
 import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import com.sinura.personaltrainer.testutil.waitUntilFinishEnabledInOverflow
+import com.sinura.personaltrainer.ui.home.HomeTags
 import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
 import com.sinura.personaltrainer.ui.navigation.Route
 import com.sinura.personaltrainer.ui.summary.SummaryTags
@@ -118,8 +119,10 @@ class SummaryCorrectionNavigationTest {
         val intent = Intent(app, MainActivity::class.java)
         controller = Robolectric.buildActivity(MainActivity::class.java, intent).setup()
 
-        awaitTag(tag = LiveSessionBarTestTags.ROOT)
-        compose.onNodeWithTag(testTag = LiveSessionBarTestTags.ROOT).performClick()
+        // On Today the live workout is the Resume primary; the bar steps aside there.
+        awaitTag(tag = HomeTags.TODAY_RESUME)
+        compose.onNodeWithTag(testTag = LiveSessionBarTestTags.ROOT).assertDoesNotExist()
+        compose.onNodeWithTag(testTag = HomeTags.TODAY_RESUME).performClick()
         compose.waitUntilFinishEnabledInOverflow()
         compose.openFinishFromOverflow()
         compose.waitUntil(timeoutMillis = WAIT_MS, condition = {

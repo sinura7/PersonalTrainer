@@ -770,7 +770,9 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         awaitTag("navigation-home")
         compose.onNodeWithTag("navigation-home").assertIsSelected()
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).assertDoesNotExist()
-        compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).performClick()
+        // Today resumes the live workout from its own primary; the bar steps aside there.
+        compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.TODAY_RESUME).performClick()
         awaitTag(WorkoutTestTags.CONTENT)
         assertDraftNumbers(92.5, 6)
 

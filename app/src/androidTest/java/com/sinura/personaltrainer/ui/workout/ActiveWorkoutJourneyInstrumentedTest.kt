@@ -49,6 +49,7 @@ import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
 import com.sinura.personaltrainer.ui.history.SetEditTestTags
+import com.sinura.personaltrainer.testutil.awaitLiveEntry
 import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.util.UUID
@@ -322,10 +323,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
         compose.waitUntilFinishEnabledInOverflow(10_000)
 
         compose.onNodeWithContentDescription("Close").performClick()
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(hasTestTag(LiveSessionBarTestTags.ROOT))
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        val liveEntry = compose.awaitLiveEntry(timeoutMillis = 10_000)
         val leftOpen = runBlocking(Dispatchers.IO) {
             checkNotNull(container.workoutRepository.getSession(fixture.sessionId))
         }
@@ -334,7 +332,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
             container.workoutRepository.getInProgress()?.id
         })
 
-        compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).performClick()
+        compose.onNodeWithTag(liveEntry).performClick()
         compose.waitUntilFinishEnabledInOverflow(10_000)
         // The overflow is already open with Finish enabled; Close here would leave the session again.
         compose.openFinishFromOverflow()

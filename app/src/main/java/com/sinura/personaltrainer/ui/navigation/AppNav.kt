@@ -445,9 +445,12 @@ fun PersonalTrainerNav(
     DebugUpdateRequiredHost()
     // Presence only. Elapsed ticks inside LiveSessionBarHost so a 1 Hz
     // label cannot rebuild this NavHost.
-    val showLiveBar = hasLiveSession &&
-        currentDestination?.route !in LIVE_BAR_HIDDEN_ROUTES
-    val hidesLiveBar = currentDestination?.route in LIVE_BAR_HIDDEN_ROUTES
+    val hasLiveWorkout by liveBarViewModel.hasLiveWorkout.collectAsStateWithLifecycle()
+    // Today carries its own Resume workout primary for a live strength workout (blueprint 4.1),
+    // so the bar would only repeat it there.
+    val hidesLiveBar = currentDestination?.route in LIVE_BAR_HIDDEN_ROUTES ||
+        currentDestination?.route == Route.Home.path && hasLiveWorkout
+    val showLiveBar = hasLiveSession && !hidesLiveBar
     LaunchedEffect(hidesLiveBar) {
         liveBarViewModel.setRouteHidesBar(hidesLiveBar)
     }
