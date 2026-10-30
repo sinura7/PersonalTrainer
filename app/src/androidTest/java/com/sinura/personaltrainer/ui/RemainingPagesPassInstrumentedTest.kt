@@ -95,7 +95,10 @@ class RemainingPagesPassInstrumentedTest {
         compose.onNodeWithTag(SummaryTags.DONE).assertIsDisplayed()
         compose.onNodeWithText("Done").assertIsDisplayed()
         compose.onNodeWithTag(SummaryTags.OPEN_SESSION).assertIsDisplayed()
-        compose.onNodeWithText(com.sinura.personaltrainer.domain.SummaryCopy.OPEN_SESSION).assertIsDisplayed()
+        // R3 blueprint 4.14: the summary dock's secondary reads "View in History" (summary_history).
+        val history = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+            .targetContext.getString(com.sinura.personaltrainer.R.string.summary_history)
+        compose.onNodeWithText(history).assertIsDisplayed()
     }
 
     @Test
