@@ -130,4 +130,71 @@
     <string name="today_error">Could not load today</string>
     <string name="today_error_retry">Try again</string>
     <string name="today_first_caption">Your first workout</string>
+    <string name="cardio_finish">Finish %1$s</string>
+    <string name="cardio_finish_wait">Available after 1 min</string>
+    <string name="history_effort_hint">Right side number is effort. Tap a set to edit.</string>
+    <string name="history_repeat">Repeat this workout</string>
+    <string name="history_warmup_mark">W</string>
+    <string name="history_warmup_label">Warm-up</string>
+    <string name="past_when">When</string>
+    <string name="past_when_done">Done</string>
+    <string name="past_when_cancel">Cancel</string>
+    <string name="past_save_sub">%1$s · %2$s</string>
+    <string name="past_save_empty">Add a lift or cardio</string>
+    <plurals name="past_save_lifts">
+        <item quantity="one">%d exercise</item>
+        <item quantity="other">%d exercises</item>
+    </plurals>
+    <plurals name="past_save_sets">
+        <item quantity="one">%d set</item>
+        <item quantity="other">%d sets</item>
+    </plurals>
+    <!-- R5 plan week (blueprint 4.2) -->
+    <string name="plan_empty_title">No week yet</string>
+    <string name="plan_empty_cta">Build the week</string>
+    <string name="plan_suggested_caption">Suggested. Change anything.</string>
+    <string name="plan_live_row">Workout in progress</string>
+    <string name="plan_error_retry">Try again</string>
+    <!-- R5 plan day (blueprint 4.3) -->
+    <string name="routine_add_exercise">Add exercise</string>
+    <string name="routine_add_first">Add your first lift</string>
+    <string name="routine_save">Save day</string>
+    <string name="routine_resumed">Resumed unfinished edits</string>
+    <string name="routine_unsaved_title">Unfinished edits</string>
+    <string name="routine_unsaved_keep">Keep editing</string>
+    <string name="routine_unsaved_discard">Discard changes</string>
+    <string name="routine_unsaved_keep_fields">Keep unfinished edits and return</string>
+    <string name="routine_missing">Routine missing</string>
+    <string name="routine_try_again">Try again</string>
+    <!-- R5 add exercise picker (blueprint 4.4) -->
+    <string name="picker_suggested">Suggested</string>
+    <plurals name="picker_add_n">
+        <item quantity="one">Add %1$d exercise</item>
+        <item quantity="other">Add %1$d exercises</item>
+    </plurals>
+    <string name="picker_add_sub">Then set targets</string>
+    <string name="picker_search_hint">Search lifts</string>
+    <string name="picker_none">No lifts match</string>
+    <string name="picker_clear">Clear filters</string>
+    <string name="picker_create_named">Create lift: %1$s</string>
+    <!-- R5 set targets sheet (blueprint 4.5) -->
+    <string name="targets_subtitle">Set targets</string>
+    <string name="targets_sets">Sets</string>
+    <string name="targets_reps">Reps</string>
+    <string name="targets_seconds">Seconds</string>
+    <string name="targets_rest">Rest</string>
+    <string name="targets_note">Start weight comes from Tempo after the first session.</string>
+    <string name="targets_save">Save targets</string>
+    <string name="targets_minus">−</string>
+    <string name="targets_plus">+</string>
+    <string name="targets_lower">%1$s down</string>
+    <string name="targets_raise">%1$s up</string>
+    <string name="home_preview_starting">Starting…</string>
+    <string name="home_preview_unavailable">Start unavailable</string>
+    <string name="home_preview_begin">Begin</string>
+    <string name="routine_adding">Adding…</string>
+    <string name="routine_original_missing">Original routine missing</string>
+    <string name="picker_saving_lift">Saving lift…</string>
+    <string name="picker_create_select">Create and select</string>
+    <string name="preview_workout_title">Workout</string>
 </resources>

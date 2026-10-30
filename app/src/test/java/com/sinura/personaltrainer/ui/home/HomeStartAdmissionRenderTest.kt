@@ -160,6 +160,26 @@ class HomeStartAdmissionRenderTest {
         }
     }
 
+    /** R5: picking a routine in the start sheet opens the preview; Back starts nothing. */
+    @Test @Config(qualifiers = "w412dp-h840dp-xhdpi", fontScale = 1f)
+    fun routinePickOpensThePreviewAndBackStartsNothing() {
+        profile = "routine-preview"
+        createGraph()
+        show()
+        openRoutinePage()
+        val before = inventory()
+        reachable(compose.onNodeWithTag(HomeStartTags.routine(routineId))).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutPreviewTags.ROOT).assertExists()
+        assertEquals(0, writes.attempts.get())
+        compose.onNodeWithTag(WorkoutPreviewTags.BACK).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutPreviewTags.ROOT).assertDoesNotExist()
+        compose.onNodeWithTag(HomeStartTags.SHEET).assertExists()
+        assertEquals(before, inventory())
+        assertTrue(openedSessions.isEmpty())
+    }
+
     @Test @Config(fontScale = 1f) fun small10() = retryJourney("360x640-font10", 1f)
     @Test @Config(fontScale = 1.6f) fun small16() = retryJourney("360x640-font16", 1.6f)
     @Test @Config(fontScale = 2f) fun small20() = retryJourney("360x640-font20", 2f)
@@ -223,7 +243,7 @@ class HomeStartAdmissionRenderTest {
         show()
         openRoutinePage()
         val before = inventory()
-        val start = enabledClick(HomeStartTags.routine(routineId))
+        val start = previewBegin(routineId)
         val cancel = enabledClick(HomeStartTags.CANCEL)
         writes.held = CompletableDeferred()
         writes.failNext.set(1)
@@ -294,7 +314,7 @@ class HomeStartAdmissionRenderTest {
             vm.uiState.value.inProgress?.id == blocker.id
         }
         val before = inventory()
-        val routineStart = enabledClick(HomeStartTags.routine(routineId))
+        val routineStart = previewBegin(routineId)
         compose.runOnUiThread { routineStart() }
         await("the selected routine presents the actual blocker decision") {
             vm.blockedByInProgress.value?.sessionId == blocker.id && !vm.startState.value.pending
@@ -404,7 +424,7 @@ class HomeStartAdmissionRenderTest {
         val before = inventory()
         reads.held = CompletableDeferred()
         reads.failNext.set(1)
-        val start = enabledClick(HomeStartTags.routine(routineId))
+        val start = previewBegin(routineId)
         compose.runOnUiThread { start(); start() }
         await("one routine lookup waits") { vm.startState.value.pending && reads.attempts.get() == 1 }
         assertEquals(0, writes.attempts.get())
@@ -437,7 +457,7 @@ class HomeStartAdmissionRenderTest {
         show()
         openRoutinePage()
         val before = inventory()
-        val oldRoutineStart = enabledClick(HomeStartTags.routine(routineId))
+        val oldRoutineStart = previewBegin(routineId)
         val oldCancel = enabledClick(HomeStartTags.CANCEL)
         reads.failNext.set(1)
         compose.runOnUiThread {
@@ -489,7 +509,7 @@ class HomeStartAdmissionRenderTest {
         openRoutinePage()
         val blockerA = runBlocking { base.workoutRepository.startFreeWorkout() }
         await("Home observes the first real in-progress blocker") { vm.uiState.value.inProgress?.id == blockerA.id }
-        val startA = enabledClick(HomeStartTags.routine(routineId))
+        val startA = previewBegin(routineId)
         compose.runOnUiThread { startA() }
         await("the chosen routine is blocked by the first workout") {
             vm.blockedByInProgress.value?.sessionId == blockerA.id && !vm.startState.value.pending
@@ -505,7 +525,7 @@ class HomeStartAdmissionRenderTest {
         val blockerB = runBlocking { base.workoutRepository.startFreeWorkout() }
         assertNotEquals(blockerA.id, blockerB.id)
         await("Home observes the replacement in-progress workout") { vm.uiState.value.inProgress?.id == blockerB.id }
-        val startB = enabledClick(HomeStartTags.routine(routineId))
+        val startB = previewBegin(routineId)
         compose.runOnUiThread { startB() }
         await("the current choice is blocked by the replacement workout") {
             vm.blockedByInProgress.value?.sessionId == blockerB.id && !vm.startState.value.pending
@@ -866,6 +886,14 @@ class HomeStartAdmissionRenderTest {
     }
 
     private fun enabledClick(tag: String): () -> Boolean = enabledClick(compose.onNodeWithTag(tag))
+
+    /** R5: a routine pick opens the preview; its Begin is the start callback under test. */
+    private fun previewBegin(routineId: String): () -> Boolean {
+        reachable(compose.onNodeWithTag(HomeStartTags.routine(routineId))).performClick()
+        compose.waitForIdle()
+        val node = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsEnabled().fetchSemanticsNode()
+        return node.config[SemanticsActions.OnClick].action!!
+    }
 
     private fun enabledClick(interaction: SemanticsNodeInteraction): () -> Boolean {
         val node = assertTouchTarget(interaction).assertIsEnabled().fetchSemanticsNode()

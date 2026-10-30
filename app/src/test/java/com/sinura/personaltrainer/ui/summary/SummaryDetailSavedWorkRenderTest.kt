@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.summary
 
+import androidx.compose.ui.test.assert
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
@@ -486,7 +487,9 @@ class SummaryDetailSavedWorkRenderTest {
         host.capture("detail-recorded-working-set")
         val warm = FilledLiftCardTags.setRow(WARM_SET_ID)
         host.readable(host.words("60 kg × 5", warm), "60 kg × 5")
-        host.readable(host.words("Warm-up", warm), "Warm-up")
+        // A25: a warm-up carries the W mark, read aloud as "Warm-up".
+        host.tag(FilledLiftCardTags.warmupMark(WARM_SET_ID), unmerged = true)
+            .assert(hasContentDescription("Warm-up"))
         host.action(edit(WARM_SET_ID))
         host.action(host.tag(FilledLiftCardTags.addSet(exercise.id)))
         host.capture("detail-recorded-warmup-add-action")

@@ -26,6 +26,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.RepeatSessionPlan
+import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WarmupRamp
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -127,6 +129,33 @@ object WorkoutPreview {
         )
     }
 
+    /**
+     * History Repeat (4.15 → 06): the same lifts and set counts [RepeatSessionPlan] will copy.
+     * The copy carries no target weight (progression owns it), so the start weight is blank and
+     * the hint is this session's heaviest working set.
+     */
+    fun fromSession(session: WorkoutSession, fallbackTitle: String): WorkoutPreviewModel {
+        val names = (session.exercises.map { it.exercise } + session.filledLifts().map { it.exercise })
+            .associate { it.id to it.name }
+        val lifts = RepeatSessionPlan.from(session).map { item ->
+            val top = session.sets.filter { it.exerciseId == item.exerciseId && !it.isWarmup }
+                .maxOfOrNull { it.weightKg }?.takeIf { it > 0.0 }
+            PreviewLift(
+                name = names[item.exerciseId] ?: item.exerciseId,
+                sets = item.targetSets,
+                reps = item.targetReps,
+                seconds = item.targetSeconds,
+                startWeightKg = null,
+                hint = top?.let { PreviewHint.Last(it) } ?: PreviewHint.FirstTime,
+                warmup = false,
+            )
+        }
+        return WorkoutPreviewModel(
+            title = session.routineName ?: fallbackTitle, minutes = session.durationMinutes, lifts = lifts,
+            hintsLoading = false,
+        )
+    }
+
     fun target(lift: PreviewLift, unit: WeightUnit): String {
         val volume = lift.seconds?.let { "${lift.sets} × ${it}s" } ?: "${lift.sets} × ${lift.reps}"
         return lift.startWeightKg?.let { "$volume · ${it.toWeightLabel(unit)}" } ?: volume
@@ -150,6 +179,8 @@ fun WorkoutPreviewScreen(
     contextContent: (@Composable () -> Unit)? = null,
     actionKey: Any? = null,
     backEnabled: Boolean = true,
+    /** False hides Reorder, for a preview whose order is not editable (History Repeat). */
+    showReorder: Boolean = true,
 ) {
     Dialog(
         onDismissRequest = { if (backEnabled) onBack() },
@@ -157,7 +188,7 @@ fun WorkoutPreviewScreen(
     ) {
         WorkoutPreviewContent(
             model = model, unit = unit, onBegin = onBegin, onBack = onBack, onReorder = onReorder,
-            onAddLift = onAddLift, beginState = beginState, beginLabel = beginLabel,
+            onAddLift = onAddLift, beginState = beginState, beginLabel = beginLabel, showReorder = showReorder,
             contextContent = contextContent, actionKey = actionKey, backEnabled = backEnabled,
         )
     }
@@ -176,6 +207,7 @@ internal fun WorkoutPreviewContent(
     contextContent: (@Composable () -> Unit)? = null,
     actionKey: Any? = null,
     backEnabled: Boolean = true,
+    showReorder: Boolean = true,
 ) {
     Column(
         modifier = Modifier
@@ -250,12 +282,14 @@ internal fun WorkoutPreviewContent(
                     state = beginState,
                     modifier = Modifier.fillMaxWidth().testTag(WorkoutPreviewTags.BEGIN),
                 )
-                GhostButton(
-                    label = stringResource(R.string.preview_reorder),
-                    onClick = onReorder,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin)
-                        .testTag(WorkoutPreviewTags.REORDER),
-                )
+                if (showReorder) {
+                    GhostButton(
+                        label = stringResource(R.string.preview_reorder),
+                        onClick = onReorder,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin)
+                            .testTag(WorkoutPreviewTags.REORDER),
+                    )
+                }
             }
             }
         }

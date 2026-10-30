@@ -70,7 +70,10 @@ class DateCopyTest {
 
         val composer = readMain("ui/activity/ActivityComposerScreen.kt")
         assertFalse(composer.contains("Locale.US"))
-        assertTrue(composer.contains("DateCopy.weekdayShort"))
+        // R5 (A23): the composer's date line moved into its one When field.
+        val whenField = readMain("ui/activity/PastSessionWhenField.kt")
+        assertFalse(whenField.contains("Locale.US"))
+        assertTrue(whenField.contains("DateCopy.weekdayShort"))
         assertTrue(composer.contains("ComposerCopy.cardioEntry"))
 
         val history = readMain("ui/history/HistoryScreen.kt")

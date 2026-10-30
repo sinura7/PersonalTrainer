@@ -19,6 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.sinura.personaltrainer.R
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -48,6 +51,7 @@ internal object FilledLiftCardTags {
     fun plannedEntry(prescriptionId: String) = "session-detail-planned-entry-$prescriptionId"
     fun recorded(exerciseId: String) = "session-detail-recorded-$exerciseId"
     fun setRow(setId: String) = "session-detail-set-$setId"
+    fun warmupMark(setId: String) = "session-detail-warmup-$setId"
     fun addSet(exerciseId: String) = "session-detail-add-set-$exerciseId"
 }
 
@@ -265,9 +269,22 @@ private fun RecordedSetRow(row: SetTableLine, onEdit: () -> Unit) {
                 },
                 verticalArrangement = Arrangement.spacedBy(Metrics.space1),
             ) {
-                Text(row.line, style = InstrumentType.numeralSm, color = TextPrimary)
+                Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2), verticalAlignment = Alignment.CenterVertically) {
+                    // A25: warm-ups carry a W mark in RestCyan, the rest colour, never Volt.
+                    if (row.isWarmup) {
+                        val warmupLabel = stringResource(R.string.history_warmup_label)
+                        Text(
+                            stringResource(R.string.history_warmup_mark),
+                            style = InstrumentType.bodyStrong,
+                            color = RestCyan,
+                            modifier = Modifier
+                                .testTag(FilledLiftCardTags.warmupMark(row.id))
+                                .clearAndSetSemantics { contentDescription = warmupLabel },
+                        )
+                    }
+                    Text(row.line, style = InstrumentType.numeralSm, color = TextPrimary)
+                }
                 Text(row.extras, style = InstrumentType.caption, color = TextSecondary)
-                if (row.isWarmup) Text("Warm-up", style = InstrumentType.caption, color = RestCyan)
             }
         }
         val edit = @Composable {

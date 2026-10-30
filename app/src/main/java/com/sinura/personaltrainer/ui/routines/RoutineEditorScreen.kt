@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.ui.routines
 
+import com.sinura.personaltrainer.domain.HoldWork
+import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,7 +64,6 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenHeader
-import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -84,6 +86,13 @@ fun RoutineEditorScreen(
     var reviewDraft by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var expandedLiftRequest by rememberSaveable { mutableStateOf<String?>(null) }
+    // Picker -> Set targets (blueprint 5, Plan builder): the lifts the last Add N brought in,
+    // one sheet each, by exercise id. Back or swipe drops the rest of the queue.
+    var targetsQueue by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    var pickerBaseline by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    LaunchedEffect(state.showExercisePicker) {
+        if (state.showExercisePicker) pickerBaseline = state.pickedIds
+    }
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
 
     // Back is state, not a callback: leaving first deletes the empty stub routine, and if the
@@ -114,7 +123,7 @@ fun RoutineEditorScreen(
         },
     ) { padding ->
         if (state.isLoading) {
-            ScreenLoading(modifier = Modifier.padding(padding))
+            RoutineEditorLoading(modifier = Modifier.padding(padding))
             return@Scaffold
         }
         if (state.failed) {
@@ -150,7 +159,7 @@ fun RoutineEditorScreen(
             if (recovery.fields != null) {
                 Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
                     .padding(Metrics.gutter), verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-                    Text("Original routine missing", style = InstrumentType.title, color = TextPrimary)
+                    Text(stringResource(R.string.routine_original_missing), style = InstrumentType.title, color = TextPrimary)
                     Text("Your unfinished fields remain on this device. No routine has been recreated.",
                         style = InstrumentType.caption, color = TextTertiary)
                     Text(recovery.fields?.name.orEmpty(), style = InstrumentType.bodyStrong, color = TextPrimary)
@@ -163,7 +172,7 @@ fun RoutineEditorScreen(
             }
             EmptyState(
                 scene = EmptyScene.GONE,
-                title = "Routine missing",
+                title = stringResource(R.string.routine_missing),
                 body = "This routine was deleted. Create a new one from the list.",
                 actionLabel = "Back to routines",
                 onAction = { viewModel.leave() },
@@ -200,8 +209,7 @@ fun RoutineEditorScreen(
             }
             if (recovery.resumed || recovery.problem != null) {
                 item(key = "recovery") {
-                    Text(if (recovery.resumed) "Resumed unfinished edits" else "Unfinished edits",
-                        style = InstrumentType.caption, color = Volt)
+                    RoutineRecoveryBanner(resumed = recovery.resumed)
                     recovery.problem?.let { message ->
                         Text(message, style = InstrumentType.caption, color = TextTertiary)
                         SecondaryGymButton(text = "Read saved result", onClick = viewModel::readRecovery,
@@ -276,11 +284,12 @@ fun RoutineEditorScreen(
                 item(key = "empty") {
                     val selectedId = recovery.fields?.initialExerciseId?.takeUnless { recovery.fields?.initialExerciseAdded == true }
                     val selected = state.catalog.firstOrNull { it.id == selectedId }
+                    val addExercise = stringResource(R.string.routine_add_exercise)
                     EmptyState(
                         scene = EmptyScene.RACK,
-                        title = "Add your first lift",
+                        title = stringResource(R.string.routine_add_first),
                         body = SessionOrderCopy.EMPTY_EDITOR_BODY,
-                        actionLabel = selected?.let { "Add ${it.name}" } ?: "Add lifts",
+                        actionLabel = selected?.let { "Add ${it.name}" } ?: addExercise,
                         onAction = { if (selected != null) viewModel.resumeSelectedLift() else viewModel.setPickerVisible(true) },
                         compact = true,
                         actionEnabled = !state.addingLifts,
@@ -348,7 +357,7 @@ fun RoutineEditorScreen(
                 // Quiet, after the program. The empty state's filled action is the first add.
                 item(key = "add") {
                     SecondaryGymButton(
-                        text = if (state.addingLifts) "Adding…" else "Add lifts",
+                        text = if (state.addingLifts) stringResource(R.string.routine_adding) else stringResource(R.string.routine_add_exercise),
                         onClick = { viewModel.setPickerVisible(true) },
                         enabled = !state.addingLifts,
                         modifier = Modifier
@@ -404,12 +413,63 @@ fun RoutineEditorScreen(
                     is ExercisePickerEvent.Created ->
                         viewModel.createAndSelect(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> viewModel.togglePicked(event.exercise)
-                    ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
+                    ExercisePickerEvent.Dismissed -> {
+                        val added = state.pickedIds - pickerBaseline.toSet()
+                        // Only a picker that may close hands its lifts to Set targets.
+                        val closing = viewModel.canDismissPicker()
+                        viewModel.setPickerVisible(false)
+                        if (closing && added.isNotEmpty()) targetsQueue = added
+                    }
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissPickerError()
                     ExercisePickerEvent.Retry -> viewModel.retryPicker()
                 }
             },
         )
+    }
+
+    targetsQueue.firstOrNull()?.let { exerciseId ->
+        val row = state.routine?.exercises?.lastOrNull { it.exercise.id == exerciseId }
+        if (row == null) {
+            // Not written yet, or gone: wait for the routine to show it rather than drop it.
+            if (!state.addingLifts && state.routine != null) targetsQueue = targetsQueue.drop(1)
+        } else {
+            val hold = HoldWork.isHold(row.exercise)
+            val save by viewModel.targetsSheetSave.collectAsStateWithLifecycle()
+            val mine = save.itemId == row.id
+            // Move on only once the commit has landed; a refusal stays on this lift.
+            LaunchedEffect(save.savedItemId) {
+                if (save.savedItemId == row.id) {
+                    targetsQueue = targetsQueue.drop(1)
+                    viewModel.targetsSheetHandled()
+                }
+            }
+            TargetsSheet(
+                liftName = row.exercise.name,
+                initial = TargetsValues(
+                    sets = row.targetSets,
+                    reps = if (hold) row.targetSeconds ?: HoldWork.DEFAULT_SECONDS else row.targetReps,
+                    restSeconds = row.restSeconds,
+                ),
+                hold = hold,
+                saving = mine && save.saving,
+                error = save.error.takeIf { mine },
+                onSave = { values ->
+                    viewModel.saveTargetsFromSheet(
+                        itemId = row.id,
+                        targetSets = values.sets,
+                        targetReps = if (hold) row.targetReps else values.reps,
+                        targetWeightKg = row.targetWeightKg,
+                        restSeconds = values.restSeconds,
+                        targetSeconds = if (hold) values.reps else row.targetSeconds,
+                        targetSecondsMax = row.targetSecondsMax,
+                    )
+                },
+                onDismiss = {
+                    targetsQueue = emptyList()
+                    viewModel.targetsSheetHandled()
+                },
+            )
+        }
     }
 
     state.swapItemId?.let { itemId ->
@@ -446,14 +506,11 @@ fun RoutineEditorScreen(
     // dismissal, which also covers a tap outside the dialog: retrying is never the wrong
     // default when the alternative is losing work.
     state.unsavedOnBack?.let { unsaved ->
-        ConfirmActionDialog(
-            title = RoutineSaveCopy.UNSAVED_TITLE,
+        RoutineUnsavedDialog(
             body = unsaved.backPromptBody,
-            confirmLabel = if (recovery.fields != null) "Keep unfinished edits and return" else RoutineSaveCopy.LEAVE_ANYWAY,
-            destructive = recovery.fields == null,
-            onConfirm = viewModel::leaveAnyway,
-            onDismiss = viewModel::leave,
-            dismissLabel = RoutineSaveCopy.TRY_AGAIN,
+            keepsFields = recovery.fields != null,
+            onDiscard = viewModel::leaveAnyway,
+            onKeepEditing = viewModel::keepEditing,
         )
     }
     if (discardDraft) ConfirmActionDialog(title = "Discard unfinished fields?",
@@ -580,7 +637,7 @@ private fun UnmatchedPasteBlock(
  * so a second press cannot start a second exit.
  */
 @Composable
-private fun RoutineSaveDock(
+internal fun RoutineSaveDock(
     enabled: Boolean,
     saving: Boolean,
     error: String?,
@@ -602,10 +659,15 @@ private fun RoutineSaveDock(
         },
         volt = {
             PrimaryGymButton(
-                text = RoutineSaveCopy.saveLabel(saving),
+                text = when {
+                    saving -> RoutineSaveCopy.SAVING
+                    error != null -> stringResource(R.string.routine_try_again)
+                    else -> stringResource(R.string.routine_save)
+                },
                 onClick = onSave,
                 modifier = Modifier.testTag(RoutineEditorTags.SAVE),
                 enabled = enabled && !saving,
+                height = Metrics.commit,
             )
         },
     )

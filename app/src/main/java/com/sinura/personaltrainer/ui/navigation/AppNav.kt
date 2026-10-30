@@ -700,6 +700,11 @@ fun PersonalTrainerNav(
                             navController.navigate(Route.PlanDay.create(epochDay, add))
                         },
                         onOpenStartSheet = { showStartSheet = true },
+                        onBuildWeek = {
+                            container.pendingCustomWeek.value = null
+                            navController.navigate(Route.CustomWeek.path)
+                        },
+                        onOpenLive = openLive,
                     )
                 }
                 composable(Route.History.path) {

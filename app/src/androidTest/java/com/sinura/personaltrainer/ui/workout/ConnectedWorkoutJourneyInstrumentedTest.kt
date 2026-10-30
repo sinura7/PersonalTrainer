@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
 import android.content.Intent
 import android.accessibilityservice.AccessibilityService
 import android.graphics.BitmapFactory
@@ -167,6 +168,10 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(HomeStartTags.routine(fixture.routineId)).performScrollTo().assertIsDisplayed()
         captureWindow("home-routine")
         compose.onNodeWithTag(HomeStartTags.routine(fixture.routineId)).performClick()
+        awaitCondition("the routine pick opens the preview") {
+            compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
 
         awaitCondition("Home creates the live session") {
             runBlocking(Dispatchers.IO) {
@@ -454,6 +459,10 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
         compose.onNodeWithTag(HomeStartTags.routine(fixture.routineId)).performScrollTo().performClick()
+        awaitCondition("the routine pick opens the preview") {
+            compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
         awaitCondition("Home creates the synthetic swap session") {
             runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress()?.let {
                 if (it.routineId == fixture.routineId) sessionId = it.id

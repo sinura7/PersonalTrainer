@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.history
 
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.LocalDensity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -31,6 +33,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.res.stringResource
+import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.ui.components.ActionState
+import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.workout.WorkoutPreview
+import com.sinura.personaltrainer.ui.workout.WorkoutPreviewScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.units.DateCopy
@@ -72,6 +81,8 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
+private const val COMPACT_HEIGHT_DP = 480
+
 object SessionDetailTestTags {
     const val CONTENT = "session-detail-content"
     const val EDIT_SET = "session-detail-edit-set"
@@ -79,6 +90,8 @@ object SessionDetailTestTags {
     const val OPTIONS = "session-detail-options"
     const val DELETE = "session-detail-delete"
     const val RETRY = "session-detail-retry"
+    const val REPEAT = "session-detail-repeat"
+    const val EFFORT_HINT = "session-detail-effort-hint"
     fun liftCard(exerciseId: String) = "session-detail-lift-$exerciseId"
 }
 
@@ -127,6 +140,11 @@ fun SessionDetailScreen(
     val clock = LocalClockFormat.current
 
     var menuOpen by rememberSaveable { mutableStateOf(false) }
+    // R5 / 4.15: Repeat goes through the pre-workout preview; only Begin starts the session.
+    var repeatPreview by rememberSaveable { mutableStateOf(false) }
+    val compactHeight = with(LocalDensity.current) {
+        LocalWindowInfo.current.containerSize.height.toDp() < COMPACT_HEIGHT_DP.dp
+    }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var editingSetId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -223,7 +241,7 @@ fun SessionDetailScreen(
                                     leadingIcon = OutlinedMarks.PlaylistAdd,
                                     onClick = {
                                         menuOpen = false
-                                        viewModel.repeatSession()
+                                        repeatPreview = true
                                     },
                                 )
                                 InstrumentMenuItem(
@@ -294,7 +312,8 @@ fun SessionDetailScreen(
                     val workingSets = session.workingSetCount()
                     LazyColumn(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .weight(1f)
+                            .fillMaxWidth()
                             .testTag(SessionDetailTestTags.CONTENT),
                         contentPadding = PaddingValues(
                             start = Metrics.gutter,
@@ -330,6 +349,29 @@ fun SessionDetailScreen(
                                 } else null,
                             )
                         }
+                        if (session.isFinished && lifts.isNotEmpty() && compactHeight) {
+                            // Short landscape: Repeat scrolls with the content rather than
+                            // pinning a dock that would leave no room for the notes field.
+                            item(key = "repeat-inline") {
+                                PrimaryGymButton(
+                                    text = stringResource(R.string.history_repeat),
+                                    onClick = { repeatPreview = true },
+                                    modifier = Modifier.fillMaxWidth().testTag(SessionDetailTestTags.REPEAT),
+                                    enabled = !state.notesExiting,
+                                    height = Metrics.commit,
+                                )
+                            }
+                        }
+                        if (lifts.isNotEmpty()) {
+                            item {
+                                Text(
+                                    stringResource(R.string.history_effort_hint),
+                                    style = InstrumentType.caption,
+                                    color = TextSecondary,
+                                    modifier = Modifier.testTag(SessionDetailTestTags.EFFORT_HINT),
+                                )
+                            }
+                        }
                         if (lifts.isEmpty()) {
                             item {
                                 EmptyState(
@@ -358,6 +400,20 @@ fun SessionDetailScreen(
                                 },
                             )
                         }
+                    }
+                    if (session.isFinished && lifts.isNotEmpty() && !compactHeight) {
+                        HairlineDivider(startIndent = 0.dp)
+                        PrimaryGymButton(
+                            text = stringResource(R.string.history_repeat),
+                            onClick = { repeatPreview = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(Metrics.gutter)
+                                .testTag(SessionDetailTestTags.REPEAT),
+                            enabled = !state.notesExiting,
+                            height = Metrics.commit,
+                        )
                     }
                 }
             }
@@ -570,6 +626,22 @@ fun SessionDetailScreen(
             },
             onDismiss = { confirmDelete = false },
             destructive = true,
+        )
+    }
+
+    if (repeatPreview && session != null) {
+        WorkoutPreviewScreen(
+            model = WorkoutPreview.fromSession(session = session, fallbackTitle = stringResource(R.string.preview_workout_title)),
+            unit = unit,
+            onBegin = {
+                repeatPreview = false
+                viewModel.repeatSession()
+            },
+            onBack = { repeatPreview = false },
+            onReorder = {},
+            showReorder = false,
+            onAddLift = { repeatPreview = false },
+            beginState = if (state.notesExiting) ActionState.Disabled else ActionState.Enabled,
         )
     }
 

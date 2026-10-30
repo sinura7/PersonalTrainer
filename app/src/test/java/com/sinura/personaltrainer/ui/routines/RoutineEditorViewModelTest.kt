@@ -1254,6 +1254,73 @@ class RoutineEditorViewModelTest {
         assertEquals("", stored.notes)
     }
 
+    /**
+     * A22: Back with unsaved edits opens the dialog; Keep editing closes it, stays on the
+     * screen and keeps the typed notes; once the write can land, Back leaves with them saved.
+     */
+    @Test
+    fun unsavedBackKeepEditingStaysAndKeepsTheEdits() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val gate = FailureGate(shouldFail = false)
+        val dao = FailingUpdateRoutineDao(deps.database.routineDao(), gate)
+        val vm = createViewModel(fixture.routine.id, container = withRoutineDao(dao))
+        vm.uiState.awaitFirst { it.routine != null && it.name == fixture.routine.name }
+
+        gate.shouldFail = true
+        vm.onNotesChange("pause at the bottom")
+        vm.leave()
+        vm.uiState.awaitFirst { it.unsavedOnBack != null && !it.saving }
+
+        vm.keepEditing()
+        val kept = vm.uiState.awaitFirst { it.unsavedOnBack == null }
+        assertFalse(vm.exitRequested.value)
+        assertEquals("pause at the bottom", kept.notes)
+
+        gate.shouldFail = false
+        vm.leave()
+        vm.exitRequested.awaitFirst { it }
+        assertEquals("pause at the bottom", checkNotNull(deps.routineRepository.getById(fixture.routine.id)).notes)
+    }
+
+    /** A31: the Set targets sheet's save lands, then names the row so the sheet moves on. */
+    @Test
+    fun targetsSheetSaveLandsThenMovesOn() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        vm.saveTargetsFromSheet(itemId = itemId, targetSets = 4, targetReps = 8, targetWeightKg = null,
+            restSeconds = 120, targetSeconds = null, targetSecondsMax = null)
+        val saved = vm.targetsSheetSave.awaitFirst { it.savedItemId == itemId }
+        assertFalse(saved.saving)
+        assertEquals(null, saved.error)
+        val row = checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single()
+        assertEquals(4, row.targetSets)
+        assertEquals(8, row.targetReps)
+        assertEquals(120, row.restSeconds)
+        vm.targetsSheetHandled()
+        assertEquals(TargetsSheetSave(), vm.targetsSheetSave.value)
+    }
+
+    /** A31: a refused sheet save stays on the lift with its reason, and nothing moves on. */
+    @Test
+    fun targetsSheetRefusalStaysWithItsReason() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        vm.saveTargetsFromSheet(itemId = itemId, targetSets = 0, targetReps = 8, targetWeightKg = null,
+            restSeconds = 120, targetSeconds = null, targetSecondsMax = null)
+        val refused = vm.targetsSheetSave.awaitFirst { it.error != null }
+        assertEquals(null, refused.savedItemId)
+        assertEquals(3, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetSets)
+    }
+
     /** A card reading 0 sets is unsaved work too. Back asks; fixing it and trying again lands it. */
     @Test
     fun backWithARejectedTargetAsksInsteadOfDroppingIt() = runBlocking {

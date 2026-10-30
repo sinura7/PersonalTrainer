@@ -81,6 +81,7 @@ data class PlanUiState(
     /** True when this calendar week is the marked lighter week. */
     val lighterWeek: Boolean = false,
     val error: String? = null,
+    val readFailed: Boolean = false,
     val occurrences: List<com.sinura.personaltrainer.domain.ScheduleOccurrence> = emptyList(),
     val rules: List<com.sinura.personaltrainer.domain.ScheduleRule> = emptyList(),
     val missedWorkPrompt: Boolean = false,
@@ -222,6 +223,8 @@ class PlanViewModel @JvmOverloads constructor(
                     "Couldn’t read this week’s plan. Your pins are safe — try again."
                 else -> null
             },
+            // A failed read is answered by Try again; a refused write only needs dismissing.
+            readFailed = error == null && current.failed(InsightFailure.PLAN),
             occurrences = weekOcc,
             rules = planner.rules,
             // Not while a session is live — same guard as Home: the week's one
@@ -651,6 +654,12 @@ class PlanViewModel @JvmOverloads constructor(
     }
 
     fun onErrorShown() = dismissError()
+
+    /** Try again on the Plan error panel: clear the message and re-publish the week. */
+    fun retry() {
+        dismissError()
+        write("Couldn't load the week. Try again.") { refreshPlanner() }
+    }
 
     private fun write(failureMessage: String, block: suspend () -> Unit) {
         viewModelScope.launch {
