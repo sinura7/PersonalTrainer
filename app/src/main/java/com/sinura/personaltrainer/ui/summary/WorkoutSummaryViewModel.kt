@@ -8,7 +8,6 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
@@ -141,9 +140,9 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
         }
     }
 
+    // D11: a line only when the numbers move; a HOLD or a changed action alone is not a change.
     private fun progressionShowsChange(hint: ProgressionHint): Boolean =
-        hint.action != ProgressionAction.HOLD ||
-            kotlin.math.abs(hint.suggestedWeightKg - hint.lastWeightKg) > 1e-6 ||
+        kotlin.math.abs(hint.suggestedWeightKg - hint.lastWeightKg) > 1e-6 ||
             hint.suggestedReps != hint.lastReps
 
     private fun load() {
@@ -212,9 +211,9 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 val otherFinished = runCatchingCancellable {
                     container.workoutRepository.countOtherFinishedSessions(sessionId)
                 }.getOrElse { thrown ->
+                    // The first-workout line is a nicety; a failed count never blocks the receipt.
                     AppLog.w(TAG, "Reading finished-session history failed", thrown)
-                    settle(failed = true, savedConfirmed = saved)
-                    return@launch
+                    null
                 }
                 val firstSaved = otherFinished == 0
                 settle(
