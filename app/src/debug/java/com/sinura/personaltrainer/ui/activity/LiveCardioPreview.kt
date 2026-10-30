@@ -38,6 +38,8 @@ private fun LiveCardioActivePreview() {
             Kicker(CardioCopy.TYPE)
             Text(CardioCopy.name(CardioType.RUN), style = InstrumentType.body, color = TextPrimary)
             CardioActionDock(
+                elapsedSeconds = 90,
+                typeName = CardioCopy.name(CardioType.RUN),
                 finishing = false,
                 onFinish = {},
                 onLeaveRunning = {},
@@ -74,6 +76,8 @@ private fun LiveCardioErrorPreview() {
             ElapsedReadout(elapsedSeconds = 90)
             GymErrorBanner("Could not finish this session. Retry.")
             CardioActionDock(
+                elapsedSeconds = 90,
+                typeName = CardioCopy.name(CardioType.RUN),
                 finishing = false,
                 onFinish = {},
                 onLeaveRunning = {},

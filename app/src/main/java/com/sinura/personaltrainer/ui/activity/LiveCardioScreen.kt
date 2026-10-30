@@ -22,6 +22,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.sinura.personaltrainer.R
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.input.KeyboardType
@@ -113,6 +115,8 @@ fun LiveCardioScreen(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     HairlineDivider(startIndent = 0.dp)
                     CardioActionDock(
+                        elapsedSeconds = state.elapsedSeconds,
+                        typeName = CardioCopy.name(state.type),
                         finishing = state.finishing,
                         onFinish = viewModel::finish,
                         onLeaveRunning = onExit,
@@ -247,19 +251,25 @@ fun LiveCardioScreen(
  */
 @Composable
 internal fun CardioActionDock(
+    elapsedSeconds: Long,
+    typeName: String,
     finishing: Boolean,
     onFinish: () -> Unit,
     onLeaveRunning: () -> Unit,
     onDiscard: () -> Unit,
 ) {
+    val open = CardioFinishGate.isOpen(elapsedSeconds = elapsedSeconds)
+    val wait = stringResource(R.string.cardio_finish_wait)
     PinnedDock(
         volt = {
             PrimaryGymButton(
-                text = if (finishing) CardioCopy.FINISHING else CardioCopy.FINISH,
-                onClick = onFinish,
+                text = if (finishing) CardioCopy.FINISHING else stringResource(R.string.cardio_finish, typeName),
+                onClick = { if (open) onFinish() },
                 modifier = Modifier.testTag(CardioTags.FINISH),
-                enabled = !finishing,
+                enabled = open && !finishing,
                 height = Metrics.commit,
+                disabledReason = wait.takeUnless { open },
+                supporting = wait.takeUnless { open },
             )
         },
         secondary = {
@@ -299,6 +309,13 @@ internal fun ElapsedReadout(
                 contentDescription = "Elapsed $formatted"
             },
     )
+}
+
+/** D12 / A24: a session under a minute is almost always a mis-tap, so Finish waits for it. */
+object CardioFinishGate {
+    const val MIN_SECONDS = 60L
+
+    fun isOpen(elapsedSeconds: Long): Boolean = elapsedSeconds >= MIN_SECONDS
 }
 
 object CardioTags {

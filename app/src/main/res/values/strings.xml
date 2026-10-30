@@ -130,4 +130,6 @@
     <string name="today_error">Could not load today</string>
     <string name="today_error_retry">Try again</string>
     <string name="today_first_caption">Your first workout</string>
+    <string name="cardio_finish">Finish %1$s</string>
+    <string name="cardio_finish_wait">Available after 1 min</string>
 </resources>

@@ -619,7 +619,8 @@ class UxWalkthroughTest {
         }
         shot("cardio-live")
         dismissSoftKeyboard()
-        harnessWaitUntil(45_000) {
+        // A24: Finish opens once the clock passes one minute.
+        harnessWaitUntil(120_000) {
             compose.onAllNodes(hasTestTag(CardioTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(CardioTags.FINISH).performClick()
