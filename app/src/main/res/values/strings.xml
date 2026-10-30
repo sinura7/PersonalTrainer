@@ -135,6 +135,7 @@
     <string name="history_effort_hint">Right side number is effort. Tap a set to edit.</string>
     <string name="history_repeat">Repeat this workout</string>
     <string name="history_warmup_mark">W</string>
+    <string name="history_warmup_label">Warm-up</string>
     <string name="past_when">When</string>
     <string name="past_when_done">Done</string>
     <string name="past_when_cancel">Cancel</string>

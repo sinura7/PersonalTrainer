@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.sinura.personaltrainer.R
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -271,11 +272,14 @@ private fun RecordedSetRow(row: SetTableLine, onEdit: () -> Unit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2), verticalAlignment = Alignment.CenterVertically) {
                     // A25: warm-ups carry a W mark in RestCyan, the rest colour, never Volt.
                     if (row.isWarmup) {
+                        val warmupLabel = stringResource(R.string.history_warmup_label)
                         Text(
                             stringResource(R.string.history_warmup_mark),
                             style = InstrumentType.bodyStrong,
                             color = RestCyan,
-                            modifier = Modifier.testTag(FilledLiftCardTags.warmupMark(row.id)),
+                            modifier = Modifier
+                                .testTag(FilledLiftCardTags.warmupMark(row.id))
+                                .clearAndSetSemantics { contentDescription = warmupLabel },
                         )
                     }
                     Text(row.line, style = InstrumentType.numeralSm, color = TextPrimary)
