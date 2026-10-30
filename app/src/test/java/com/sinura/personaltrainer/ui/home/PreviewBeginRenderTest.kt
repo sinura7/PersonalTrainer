@@ -146,6 +146,13 @@ class PreviewBeginRenderTest {
         }
     }
 
+    @Test
+    fun todayPrimaryIsStartWorkoutWithDayAndLiftCountAndOpensThePreview() {
+        openPreview(viaAgendaRow = false)
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertTextContains("Begin with Bench Press", substring = true)
+        assertEquals(0, sessions())
+    }
+
     private fun await(what: String, condition: () -> Boolean) {
         val now: () -> Any? = { vm.uiState.value.readState to vm.startState.value }
         compose.awaitThat(what = what, now = now, condition = condition)
@@ -153,7 +160,7 @@ class PreviewBeginRenderTest {
 
     private fun sessions(): Int = runBlocking { deps.database.workoutDao().getAllSessions().size }
 
-    private fun openPreview() {
+    private fun openPreview(viaAgendaRow: Boolean = true) {
         compose.setContent {
             CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG, LocalTodayEpochDay provides today) {
                 PersonalTrainerTheme {
@@ -167,8 +174,15 @@ class PreviewBeginRenderTest {
             vm.uiState.value.readState == HomeReadState.CURRENT && !vm.uiState.value.isLoading
         }
         compose.settle()
-        compose.onNodeWithTag(HomeTags.BOARD).performScrollToNode(hasTestTag(HomeTags.agendaRow(occurrenceId)))
-        compose.onNodeWithTag(HomeTags.agendaRow(occurrenceId)).performClick()
+        if (viaAgendaRow) {
+            compose.onNodeWithTag(HomeTags.BOARD).performScrollToNode(hasTestTag(HomeTags.agendaRow(occurrenceId)))
+            compose.onNodeWithTag(HomeTags.agendaRow(occurrenceId)).performClick()
+        } else {
+            compose.onNodeWithTag(HomeTags.TODAY_START).assertIsDisplayed()
+                .assertTextContains("Start workout", substring = true)
+                .assertTextContains("$ROUTINE · 2 lifts", substring = true)
+                .performClick()
+        }
         compose.settle()
         compose.onNodeWithTag(WorkoutPreviewTags.ROOT).assertExists()
     }

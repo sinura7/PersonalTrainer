@@ -1,7 +1,13 @@
 package com.sinura.personaltrainer.ui.home
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import com.sinura.personaltrainer.ui.components.PrimaryButton
+import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +42,8 @@ internal fun HomeBoardLayout(
     startRank: FreeStartRank,
     onStartFree: () -> Unit,
     modifier: Modifier = Modifier,
+    todayStart: TodayDockStart? = null,
+    onResume: (() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -48,10 +56,26 @@ internal fun HomeBoardLayout(
             verticalArrangement = Arrangement.spacedBy(Metrics.space5),
             content = content,
         )
-        if (startRank != FreeStartRank.HIDDEN) {
+        val primary = onResume != null || todayStart != null
+        if (startRank != FreeStartRank.HIDDEN || primary) {
             HairlineDivider(startIndent = 0.dp)
-            Box(Modifier.fillMaxWidth().padding(horizontal = Metrics.gutter, vertical = Metrics.space2)) {
-                HomeStartAction(rank = startRank, onStartFree = onStartFree)
+            val padded = Modifier.fillMaxWidth().padding(horizontal = Metrics.gutter, vertical = Metrics.space2)
+            // With Today's own Start in front, the generic start sheet steps back to text.
+            val rank = if (primary && startRank != FreeStartRank.HIDDEN) FreeStartRank.TEXT else startRank
+            // A short window (landscape, large fonts) cannot spare two stacked rows of dock.
+            if (primary && LocalConfiguration.current.screenHeightDp < COMPACT_DOCK_HEIGHT_DP) {
+                Row(modifier = padded, horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.weight(1f)) { TodayPrimaryAction(todayStart = todayStart, onResume = onResume) }
+                    if (rank != FreeStartRank.HIDDEN) {
+                        Box(modifier = Modifier.weight(1f)) { HomeStartAction(rank = rank, onStartFree = onStartFree) }
+                    }
+                }
+            } else {
+                Column(modifier = padded, verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                    TodayPrimaryAction(todayStart = todayStart, onResume = onResume)
+                    HomeStartAction(rank = rank, onStartFree = onStartFree)
+                }
             }
         }
     }
@@ -99,5 +123,32 @@ internal fun HomeStartAction(rank: FreeStartRank, onStartFree: () -> Unit) {
             Text(text = SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong,
                 color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+    }
+}
+
+private const val COMPACT_DOCK_HEIGHT_DP = 480
+
+/** Today's planned strength start, the dock's primary (screen 01, A20). */
+internal data class TodayDockStart(
+    val dayName: String,
+    val liftCount: Int,
+    val onStart: () -> Unit,
+)
+
+@Composable
+internal fun TodayPrimaryAction(todayStart: TodayDockStart?, onResume: (() -> Unit)?) {
+    when {
+        onResume != null -> PrimaryButton(
+            label = stringResource(R.string.today_resume_cta),
+            subLabel = stringResource(R.string.today_in_progress),
+            onClick = onResume,
+            modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_RESUME),
+        )
+        todayStart != null -> PrimaryButton(
+            label = stringResource(R.string.today_start_cta),
+            subLabel = stringResource(R.string.today_start_sub, todayStart.dayName, todayStart.liftCount),
+            onClick = todayStart.onStart,
+            modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_START),
+        )
     }
 }

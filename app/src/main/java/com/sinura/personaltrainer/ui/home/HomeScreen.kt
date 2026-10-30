@@ -713,7 +713,37 @@ fun HomeScreen(
             startSheet = true
         }
     }
+    val todaySheetStart = if (selectedEpochDay == today && !sessionLive && state.readState == HomeReadState.CURRENT) {
+        HomeToday.sheetStart(selectedAgenda, leftoverDay, state.routines)
+    } else null
+    val todayStartRoutine = todaySheetStart?.let { start ->
+        start.occurrenceId?.let { id -> selectedAgenda.firstOrNull { it.occurrence.id == id } }
+            ?.let { HomeToday.previewRoutine(it, state.routines) }
+            ?: start.leftover?.let { HomeToday.previewRoutine(it, state.routines) }
+    }
+    val todayDockStart = if (todaySheetStart != null && todayStartRoutine != null) {
+        TodayDockStart(
+            dayName = todayStartRoutine.name,
+            liftCount = todayStartRoutine.exercises.size,
+            onStart = {
+                if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+                    val id = todaySheetStart.occurrenceId
+                    val day = todaySheetStart.leftover
+                    if (id != null) {
+                        fallbackStartPending = null
+                        plannedStartPending = HomePlannedStart(requestId = UUID.randomUUID().toString(), occurrenceId = id)
+                    } else if (day != null) {
+                        plannedStartPending = null
+                        fallbackStartPending = HomeFallbackStart(requestId = UUID.randomUUID().toString(), day = day)
+                    }
+                }
+            },
+        )
+    } else null
+    val liveSessionId = state.inProgress?.id
     HomeBoardLayout(
+        todayStart = todayDockStart,
+        onResume = liveSessionId?.let { id -> { onResumeWorkout(id) } },
         startRank = homeStartRank(
             surface = daySurface, sessionLive = sessionLive,
             quietStart = state.missedWorkPrompt, trainingToday = trainingToday,
@@ -1219,6 +1249,8 @@ internal fun HomeMasthead(
 
 object HomeTags {
     const val BOARD = "home-board"
+    const val TODAY_START = "today_start_cta"
+    const val TODAY_RESUME = "today_resume_cta"
     const val DATE = "home-selected-date"
     const val READ_PROBLEM = "home-read-problem"
     const val RETRY = "home-read-retry"

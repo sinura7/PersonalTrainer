@@ -115,4 +115,8 @@
     <string name="preview_last">Last %1$s</string>
     <string name="preview_add_lift">Add a lift</string>
     <string name="preview_back">Back to Today</string>
+    <string name="today_start_cta">Start workout</string>
+    <string name="today_start_sub">%1$s · %2$d lifts</string>
+    <string name="today_resume_cta">Resume workout</string>
+    <string name="today_in_progress">Workout in progress</string>
 </resources>
