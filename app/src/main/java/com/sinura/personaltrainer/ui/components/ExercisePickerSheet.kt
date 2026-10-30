@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.ui.components
 
+import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -288,7 +291,7 @@ internal fun ExercisePickerContent(
                         if (recovery == null) onEvent(ExercisePickerEvent.QueryChanged(it))
                         else recovery.change(recovery.view.fields.value.copy(query = it, anchor = null, index = 0, offsetDp = 0f))
                     } },
-                    placeholder = "Search lifts",
+                    placeholder = stringResource(R.string.picker_search_hint),
                     modifier = Modifier.testTag("picker-search"),
                     enabled = editable,
                 )
@@ -444,20 +447,37 @@ internal fun ExercisePickerContent(
                     }
                     state.suggestion?.takeIf { selectedMuscle == null || LibraryFilter.matches(it, selectedMuscle) }?.let { exercise ->
                         item(key = "suggestion") {
-                            Kicker("SUGGESTED", modifier = Modifier.padding(Metrics.gutter))
+                            Kicker(stringResource(R.string.picker_suggested).uppercase(), modifier = Modifier.padding(Metrics.gutter))
                             PickerLiftRow(exercise = exercise, selected = exercise.id in state.selectedIds, onClick = { choose(exercise) }, subtitle = state.suggestionReason,
                                 cartNumber = LiftCart.cartNumber(state.selectedOrder, exercise.id),
                                 enabled = !state.progress.busy, pending = exercise.id in state.progress.pendingIds)
                         }
                     }
                 }
-                if (visibleResults.isEmpty()) {
+                if (visibleResults.isEmpty() && state.progress.busy) {
+                    // Loading (blueprint 4.4): rows are on their way, so ghost rows rather than
+                    // a "No lifts match" that is not true yet.
+                    item(key = "busy-skeleton") {
+                        ScreenSkeleton(modifier = Modifier.testTag(PickerStateTags.LOADING), cards = 3)
+                    }
+                } else if (visibleResults.isEmpty()) {
                     item(key = "empty") {
+                        val filtered = selectedMuscle != null || needle.isNotEmpty()
                         EmptyState(
                             scene = EmptyScene.CATALOG,
-                            title = "No matching lifts",
+                            title = stringResource(R.string.picker_none),
                             body = if (selectedMuscle != null) "Try All or a different name." else "Try a different name, or create your own lift.",
-                            modifier = Modifier.padding(Metrics.gutter), compact = true,
+                            modifier = Modifier.padding(Metrics.gutter).testTag(PickerStateTags.EMPTY), compact = true,
+                            actionLabel = if (filtered && editable) stringResource(R.string.picker_clear) else null,
+                            onAction = if (filtered && editable) ({
+                                if (recovery == null) {
+                                    selectedMuscleName = ""
+                                    onEvent(ExercisePickerEvent.QueryChanged(""))
+                                } else {
+                                    recovery.change(recovery.view.fields.value.copy(query = "", muscle = null, anchor = null, index = 0, offsetDp = 0f))
+                                }
+                            }) else null,
+                            actionTag = PickerStateTags.CLEAR,
                         )
                     }
                 }
@@ -484,7 +504,7 @@ internal fun ExercisePickerContent(
                             },
                             enabled = !state.progress.busy && editable,
                             modifier = Modifier.fillMaxWidth().padding(Metrics.gutter).testTag("picker-create-entry"),
-                        ) { Text("Create custom lift: $needle", style = InstrumentType.bodyStrong, color = TextSecondary) }
+                        ) { Text(stringResource(R.string.picker_create_named, needle), style = InstrumentType.bodyStrong, color = TextSecondary) }
                     }
                 }
             }
@@ -511,9 +531,11 @@ internal fun ExercisePickerContent(
                     state.progress.busy -> "Saving lift…"
                     creating -> "Create and select"
                     state.cart.isEmpty() -> "Done"
-                    state.cart.size == 1 -> "Done · 1 lift"
-                    else -> "Done · ${state.cart.size} lifts"
+                    else -> pluralStringResource(R.plurals.picker_add_n, state.cart.size, state.cart.size)
                 },
+                supporting = if (state.multiSelect && state.cart.isNotEmpty() && !creating && !state.progress.busy &&
+                    !recoveringSelection && createStatus?.busy != true) stringResource(R.string.picker_add_sub) else null,
+                height = Metrics.commit,
                 enabled = !state.progress.busy && viewStatus?.busy != true && viewStatus?.changedElsewhere != true && createStatus?.busy != true && (recoveringSelection || continuingSavedCreate || editable && (!creating ||
                     if (recovery == null) MuscleGroups.resolved(group) != null else createStatus?.phase == PickerCreatePhase.SAVED ||
                         createStatus?.phase in setOf(PickerCreatePhase.EDITING, PickerCreatePhase.RETRYABLE) && createName.isNotBlank() && MuscleGroups.resolved(group) != null)),
@@ -768,3 +790,9 @@ internal fun ExerciseSearchField(
 
 /** Enough of the screen that the catalog is the sheet, with the scrim still legible above it. */
 private const val SHEET_HEIGHT_SHARE = 0.9f
+
+object PickerStateTags {
+    const val LOADING = "picker-loading"
+    const val EMPTY = "picker-empty"
+    const val CLEAR = "picker-clear"
+}

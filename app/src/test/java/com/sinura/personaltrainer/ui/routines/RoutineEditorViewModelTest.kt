@@ -1254,6 +1254,35 @@ class RoutineEditorViewModelTest {
         assertEquals("", stored.notes)
     }
 
+    /**
+     * A22: Back with unsaved edits opens the dialog; Keep editing closes it, stays on the
+     * screen and keeps the typed notes; once the write can land, Back leaves with them saved.
+     */
+    @Test
+    fun unsavedBackKeepEditingStaysAndKeepsTheEdits() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val gate = FailureGate(shouldFail = false)
+        val dao = FailingUpdateRoutineDao(deps.database.routineDao(), gate)
+        val vm = createViewModel(fixture.routine.id, container = withRoutineDao(dao))
+        vm.uiState.awaitFirst { it.routine != null && it.name == fixture.routine.name }
+
+        gate.shouldFail = true
+        vm.onNotesChange("pause at the bottom")
+        vm.leave()
+        vm.uiState.awaitFirst { it.unsavedOnBack != null && !it.saving }
+
+        vm.keepEditing()
+        val kept = vm.uiState.awaitFirst { it.unsavedOnBack == null }
+        assertFalse(vm.exitRequested.value)
+        assertEquals("pause at the bottom", kept.notes)
+
+        gate.shouldFail = false
+        vm.leave()
+        vm.exitRequested.awaitFirst { it }
+        assertEquals("pause at the bottom", checkNotNull(deps.routineRepository.getById(fixture.routine.id)).notes)
+    }
+
     /** A card reading 0 sets is unsaved work too. Back asks; fixing it and trying again lands it. */
     @Test
     fun backWithARejectedTargetAsksInsteadOfDroppingIt() = runBlocking {

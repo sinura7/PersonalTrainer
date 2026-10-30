@@ -1147,6 +1147,15 @@ class RoutineEditorViewModel internal constructor(
         }
     }
 
+    /**
+     * Keep editing on the unsaved-back dialog: close it and stay. Nothing is flushed or dropped;
+     * the staged edits stay staged for the next Save or Back.
+     */
+    fun keepEditing() {
+        if (exitState.value.unsavedOnBack == null) return
+        stayOnScreen(saveError = exitState.value.saveError)
+    }
+
     /** The attempt is over and the screen is not popping: re-arm every edit method. */
     private fun stayOnScreen(
         saveError: String? = null,
