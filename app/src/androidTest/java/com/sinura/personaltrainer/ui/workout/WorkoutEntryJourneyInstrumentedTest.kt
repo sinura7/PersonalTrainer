@@ -357,7 +357,8 @@ class WorkoutEntryJourneyInstrumentedTest {
             compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
             awaitSets(it + 1)
             compose.waitUntil(5_000) { fixture.vm.restTimerState.value.running }
-            compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
+            // At font 2 the rest floor scrolls; bring Skip on screen before tapping it.
+            compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performScrollTo().performClick()
             compose.waitUntil(5_000) { !fixture.vm.restTimerState.value.running }
         }
         val original = savedSets().first()
