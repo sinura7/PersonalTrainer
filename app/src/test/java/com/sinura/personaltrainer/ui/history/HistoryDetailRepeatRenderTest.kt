@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.history
 
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
@@ -79,7 +80,7 @@ class HistoryDetailRepeatRenderTest {
     fun warmupIsMarkedWAndTheEffortHintShows() {
         mount()
         val warmup = session.sets.single { it.isWarmup }
-        compose.onNodeWithTag(FilledLiftCardTags.warmupMark(warmup.id), useUnmergedTree = true).assertTextContains("W")
+        compose.onNodeWithTag(FilledLiftCardTags.warmupMark(warmup.id), useUnmergedTree = true).assertContentDescriptionEquals("Warm-up")
         compose.onNodeWithTag(FilledLiftCardTags.warmupMark(session.sets.single { !it.isWarmup }.id), useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag(SessionDetailTestTags.EFFORT_HINT)
             .assertTextContains("Right side number is effort. Tap a set to edit.")
