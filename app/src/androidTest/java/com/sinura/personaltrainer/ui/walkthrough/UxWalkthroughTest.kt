@@ -25,6 +25,8 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
+import com.sinura.personaltrainer.testutil.waitUntilFinishEnabledInOverflow
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -879,18 +881,25 @@ class UxWalkthroughTest {
 
     private fun advanceToNextExerciseIfShown() {
         harnessWaitUntil(30_000) {
-            val next = compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes()
-            val finish = compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled()).fetchSemanticsNodes()
-            next.isNotEmpty() || finish.isNotEmpty()
+            compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodes(hasTestTag(WorkoutTestTags.DOCK_FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
-        if (compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
+        if (compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
             harnessWaitUntil(30_000) {
-                compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag(WorkoutTestTags.LIFT_TRANSITION).fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithTag(WorkoutTestTags.CONTENT)
-                .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id)))
+            shot("strength-between-lifts")
+            compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).performClick()
+        } else if (compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
         }
+        harnessWaitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT)
+            .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id)))
     }
 
     private fun liveStrengthLoggedSetCount(): Int = runBlocking(Dispatchers.IO) {
@@ -925,7 +934,7 @@ class UxWalkthroughTest {
 
     private fun awaitSummaryScreenForCapture() {
         harnessWaitUntil(60_000) {
-            compose.onAllNodesWithText("WORKOUT COMPLETE").fetchSemanticsNodes().isNotEmpty() &&
+            compose.onAllNodesWithText("WORKOUT SAVED").fetchSemanticsNodes().isNotEmpty() &&
                 compose.onAllNodesWithTag(SummaryTags.CONTENT).fetchSemanticsNodes().isNotEmpty() &&
                 compose.onAllNodesWithTag(SummaryTags.FACTS).fetchSemanticsNodes().isNotEmpty()
         }
@@ -959,14 +968,12 @@ class UxWalkthroughTest {
     }
 
     private fun finishLiveWorkout() {
+        compose.waitUntilFinishEnabledInOverflow(30_000)
+        compose.openFinishFromOverflow()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
+        compose.onNodeWithText("Finish and see summary").performClick()
         harnessWaitUntil(30_000) {
-            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithText("End workout?").assertIsDisplayed()
-        compose.onNodeWithText("Save as is").performClick()
-        harnessWaitUntil(30_000) {
-            compose.onAllNodesWithText("WORKOUT COMPLETE").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithText("WORKOUT SAVED").fetchSemanticsNodes().isNotEmpty()
         }
     }
 

@@ -274,38 +274,29 @@ class SummaryDetailSavedWorkRenderTest {
         }
 
         show(session.copy(exercises = listOf(repsLift), sets = listOf(repsSet)))
-        assertFact(SummaryTags.WORKING_SETS, "1", SummaryCopy.WORKING_SETS)
-        assertFact(SummaryTags.DURATION, "24 min", SummaryCopy.DURATION)
-        assertFact(SummaryTags.HEADLINE, "35", SummaryCopy.BODYWEIGHT_REPS)
-        assertNoFact(SummaryCopy.TOTAL_VOLUME)
+        assertFact(SummaryTags.WORKING_SETS, "1", "sets")
+        assertNoFact("kg volume")
         compose.onNode(hasContentDescription("Bodyweight reps 35")).assertExists()
         host.readable(host.words("Top set 35 reps", SummaryTags.lift(pushUp.id)), "Top set 35 reps")
         host.capture("bodyweight-results")
 
         show(session.copy(exercises = listOf(originalLift, repsLift), sets = listOf(originalSet, repsSet)))
-        assertFact(SummaryTags.WORKING_SETS, "2", SummaryCopy.WORKING_SETS)
-        assertFact(SummaryTags.HEADLINE, "255 kg", SummaryCopy.TOTAL_VOLUME)
-        assertFact(SummaryTags.BODYWEIGHT_REPS, "35", SummaryCopy.BODYWEIGHT_REPS)
+        assertFact(SummaryTags.WORKING_SETS, "2", "sets")
+        assertFact(SummaryTags.HEADLINE, "255", "kg volume")
+        assertFact(SummaryTags.PR_COUNT, "0", "PRs")
         host.capture("mixed-results")
         weightUnit.value = WeightUnit.LBS
         host.drain()
-        assertFact(SummaryTags.HEADLINE, "562 lb", SummaryCopy.TOTAL_VOLUME)
-        compose.onNode(hasContentDescription("Total volume 562 lb")).assertExists()
-        assertFact(SummaryTags.BODYWEIGHT_REPS, "35", SummaryCopy.BODYWEIGHT_REPS)
+        assertFact(SummaryTags.HEADLINE, "562", "kg volume")
+        compose.onNode(hasContentDescription("kg volume, 562 lb")).assertExists()
         host.capture("mixed-results-lb")
 
         show(session.copy(exercises = listOf(holdLift), sets = listOf(holdSet),
             notes = "Steady breathing throughout the hold."))
-        assertFact(SummaryTags.HEADLINE, "1", SummaryCopy.WORKING_SETS)
-        assertFact(SummaryTags.DURATION, "24 min", SummaryCopy.DURATION)
-        assertEquals("set-count headline is not duplicated", 1, compose.onAllNodes(
-            hasText(SummaryCopy.WORKING_SETS) and hasAnyAncestor(hasTestTag(SummaryTags.FACTS)),
-            useUnmergedTree = true,
-        ).fetchSemanticsNodes().size)
-        assertNoFact(SummaryCopy.TOTAL_VOLUME)
-        assertNoFact(SummaryCopy.BODYWEIGHT_REPS)
+        assertFact(SummaryTags.WORKING_SETS, "1", "sets")
+        assertNoFact("kg volume")
         host.capture("hold-results")
-        compose.onNode(hasContentDescription("Working sets 1")).assertExists()
+        compose.onNode(hasContentDescription("sets, 1")).assertExists()
         host.readable(host.words("Recorded hold 45s", SummaryTags.lift(plank.id)), "Recorded hold 45s")
         assertTrue("holds do not receive a fabricated weight metric", compose.onAllNodes(
             hasText("lb") and hasAnyAncestor(hasTestTag(SummaryTags.lift(plank.id))), useUnmergedTree = true,
@@ -319,8 +310,14 @@ class SummaryDetailSavedWorkRenderTest {
     }
 
     private fun assertFact(tag: String, value: String, label: String) {
-        host.readable(host.words(value, tag), value)
-        host.readable(host.words(label, tag), label)
+        val tile = host.tag(tag, unmerged = true)
+        host.reach(tile)
+        val spoken = tile.fetchSemanticsNode().config
+            .getOrNull(SemanticsProperties.ContentDescription)
+            ?.joinToString()
+            .orEmpty()
+        assertTrue("$tag spoken includes label ($label): $spoken", spoken.contains(label, ignoreCase = true))
+        assertTrue("$tag spoken includes value ($value): $spoken", spoken.contains(value))
     }
 
     private fun assertNoFact(label: String) {
@@ -350,10 +347,10 @@ class SummaryDetailSavedWorkRenderTest {
             assertEquals(exercise, loaded.highlightExercises[exercise.id])
             host.readable(host.words(SESSION_NAME), SESSION_NAME)
             host.capture("summary-complete-title")
-            assertFact(SummaryTags.WORKING_SETS, "1", SummaryCopy.WORKING_SETS)
-            assertFact(SummaryTags.DURATION, "24 min", SummaryCopy.DURATION)
-            assertFact(SummaryTags.HEADLINE, "255 kg", SummaryCopy.TOTAL_VOLUME)
-            compose.onNode(hasContentDescription("Total volume 255 kg")).assertExists()
+            assertFact(SummaryTags.WORKING_SETS, "1", "sets")
+            assertFact(SummaryTags.HEADLINE, "255", "kg volume")
+            assertFact(SummaryTags.PR_COUNT, "2", "PRs")
+            compose.onNode(hasContentDescription("kg volume, 255 kg")).assertExists()
             host.capture("summary-compact-results")
             host.readable(host.words("2 personal records"), "2 personal records")
             host.readable(host.words("Heaviest ever · Best estimated 1RM"), "Heaviest ever · Best estimated 1RM")

@@ -240,6 +240,9 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions WHERE id = :id")
     suspend fun getSessionRow(id: String): WorkoutSessionEntity?
 
+    @Query("SELECT COUNT(*) FROM workout_sessions WHERE finishedAt IS NOT NULL AND id != :sessionId")
+    suspend fun countOtherFinishedSessions(sessionId: String): Int
+
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     fun observeInProgressSession(): Flow<WorkoutSessionEntity?>
 

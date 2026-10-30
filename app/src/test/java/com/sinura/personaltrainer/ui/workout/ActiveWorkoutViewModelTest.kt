@@ -429,6 +429,34 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun restCaptionShowsInTheThirdDistinctSession() = runBlocking {
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-1")
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-2")
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.logSetAndSettle()
+        awaitRestRunning()
+        vm.restCaptionDecisionCount.awaitFirst { it >= 1 }
+        assertTrue(vm.restFirstCaptionVisible.value)
+    }
+
+    @Test
+    fun restCaptionHidesFromTheFourthDistinctSession() = runBlocking {
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-1")
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-2")
+        deps.preferencesRepository.recordRestFloorCaptionForSession("earlier-3")
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.logSetAndSettle()
+        awaitRestRunning()
+        vm.restCaptionDecisionCount.awaitFirst { it >= 1 }
+        assertEquals(4, deps.preferencesRepository.restFloorCaptionSessions.first())
+        assertFalse(vm.restFirstCaptionVisible.value)
+    }
+
+    @Test
     fun loggingWithoutTheStopwatchLeavesDurationNull() = runBlocking {
         val fixture = seedWorkout(targetSets = 3)
         val vm = createViewModel(fixture.session.id)
@@ -606,6 +634,34 @@ class ActiveWorkoutViewModelTest {
         val recreated = createViewModel(fixture.session.id, handle)
         recreated.awaitState { it.loadState == SessionLoadState.FOUND }
         assertEquals(SQUAT, recreated.restImmersionLiftId.value)
+    }
+
+    @Test
+    fun tempoCoachSheetOpenAndRestImmersionClearWhenRestEnds() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id, handleFor(fixture.session.id))
+        vm.awaitPrefilled()
+        vm.setRpe(8)
+        vm.logSetAndSettle()
+        awaitRestRunning()
+        val timerId = deps.restTimerStore.current().timerId
+        assertTrue(deps.restTimerController.completeIfCurrent(timerId, fromService = true))
+        dispatcher.scheduler.runCurrent()
+        assertFalse(vm.tempoCoachSheetOpen.value)
+        assertNull(vm.restImmersionLiftId.value)
+    }
+
+    @Test
+    fun removingTheSelectedLiftClearsAPendingLiftTransition() = runBlocking {
+        val fixture = seedTwoLifts()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        val next = fixture.session.exercises.first { it.exercise.id != vm.uiState.value.selectedExerciseId }.exercise.id
+        vm.beginLiftTransition(next)
+        assertEquals(next, vm.liftTransitionNextId.value)
+        vm.removeSelectedLift()
+        vm.awaitState { it.session?.exercises?.size == 1 }
+        assertNull(vm.liftTransitionNextId.value)
     }
 
     @Test

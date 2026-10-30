@@ -68,10 +68,8 @@ class WorkoutFloorComponentsTest {
             WorkoutHeader(
                 routineName = "Lower B",
                 progress = progress,
-                canFinish = false,
                 compact = false,
                 onExit = {},
-                onFinish = {},
             )
         }
         compose.onNodeWithText("Lower B").assertIsDisplayed()
@@ -79,7 +77,6 @@ class WorkoutFloorComponentsTest {
         // The plan line wears the instrument-label voice, which is always uppercase.
         compose.onNodeWithText("1 OF 2 EXERCISES · 2 OF 6 SETS").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_BAR).assertExists()
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled()
         compose.onNodeWithContentDescription("Close").assertExists()
     }
 

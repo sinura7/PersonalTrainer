@@ -27,6 +27,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -74,6 +75,7 @@ import com.sinura.personaltrainer.testutil.isDisposableSdkEmulator
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.timer.AndroidPhoneCapabilities
 import com.sinura.personaltrainer.timer.RestTimerNotifications
+import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.components.SessionLogTags
 import com.sinura.personaltrainer.ui.components.SetTableLine
@@ -318,16 +320,17 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         awaitCondition("Undo restores the exact latest result") { session().sets.firstOrNull { it.id == latest.id } == latest }
         assertEquals(intended.sortedBy { it.id }, session().sets.sortedBy { it.id })
 
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled().performClick()
-        compose.onNodeWithText("End workout?").assertIsDisplayed()
-        compose.onNodeWithText("Save as is").performClick()
+        compose.openFinishFromOverflow()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
         awaitTag(SummaryTags.DONE)
         assertNoBlockingDialogs()
-        compose.onNodeWithText("WORKOUT COMPLETE").assertIsDisplayed()
+        compose.onNodeWithText("WORKOUT SAVED").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.LOG_READINESS).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertDoesNotExist()
         compose.onNodeWithText(fixture.routineName).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Total volume 451 kg").assertIsDisplayed()
+        compose.onNodeWithContentDescription("kg volume, 451 kg").assertIsDisplayed()
         captureWindow("summary")
         val finished = session()
         assertNotNull(finished.finishedAt)
@@ -912,7 +915,7 @@ internal fun ComposeContentTestRule.revealFloorControlAboveTempo(tag: String) {
         val target = onNodeWithTag(tag).assertIsDisplayed().fetchSemanticsNode()
         val bounds = target.boundsInRoot
         val content = onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
-        val tempo = onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
+        val tempo = this.onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
             !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT))).fetchSemanticsNodes()
             .singleOrNull()?.boundsInRoot
         val safeBottom = minOf(content.bottom, tempo?.top ?: content.bottom)

@@ -12,25 +12,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
-import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.ProgressSegment
 import com.sinura.personaltrainer.domain.ProgressSegmentState
 import com.sinura.personaltrainer.domain.WorkoutProgress
@@ -43,59 +34,30 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface3
-import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
 
 /**
- * Session chrome: back, the routine's name, where the session stands, and Finish.
+ * Session chrome: back, the routine's name, where the session stands, and overflow.
  *
- * Landscape gets the one-row compact form: the plan's words are the title, since the
- * routine name is context the lifter already has and the row is the header's whole budget
- * there.
- *
- * The second line and the segmented bar are the same numbers said twice — once as
- * words, once as shape — so a lifter walking back to the phone sees how much of the
- * day is left before reading anything. Session telemetry (elapsed time, tonnage) stays
- * behind the overflow's Session summary; the header is about the plan, not the clock.
+ * Finish lives in [LiftOverflowMenu] (D3); the dock owns Finish as the primary after the last
+ * planned set. Landscape gets the one-row compact form: the plan's words are the title.
  */
 @Composable
 internal fun WorkoutHeader(
     routineName: String,
     progress: WorkoutProgress,
-    canFinish: Boolean,
     compact: Boolean,
     onExit: () -> Unit,
-    onFinish: () -> Unit,
     overflow: (@Composable () -> Unit)? = null,
     focused: Boolean = false,
 ) {
-    // Two lines at display size so a long routine name wraps instead of losing its end;
-    // large text keeps the title to one, where a second display-size line would eat the
-    // room the log needs.
     val largeText = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val titleLines = if (compact || largeText) 1 else 2
-    val density = LocalDensity.current
-    val direction = LocalLayoutDirection.current
-    val measurer = rememberTextMeasurer()
-    val endActionPadding = ButtonDefaults.TextButtonContentPadding
-    val endActionWidth = remember(focused, density, direction, measurer, endActionPadding) {
-        if (focused) {
-            val labelWidth = measurer.measure(EndWorkoutCopy.HEADER_FINISH, style = InstrumentType.bodyStrong).size.width
-            maxOf(Metrics.headerActMin, with(density) { labelWidth.toDp() } +
-                endActionPadding.calculateLeftPadding(direction) + endActionPadding.calculateRightPadding(direction))
-        } else Metrics.headerActMin
-    }
     val headline = WorkoutProgressCalculator.headline(progress)
     val spoken = WorkoutProgressCalculator.spoken(progress)
-    // The compact landscape header is the one row LandscapeChrome budgets: the plan's
-    // words take the title and the routine name rides their spoken form (Session summary
-    // in the overflow still shows it). Portrait says the routine name at display size and
-    // the plan underneath, twice: as words and as the segmented bar.
     val planAsTitle = compact && headline.isNotBlank()
-    // One tag for the plan's words wherever they sit; the spoken form differs by row.
     fun progressLine(spokenForm: String): Modifier = Modifier
         .testTag(WorkoutTestTags.PROGRESS_LINE)
         .semantics { contentDescription = spokenForm }
@@ -103,8 +65,6 @@ internal fun WorkoutHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(Pit)
-            // The compact row is exactly the 56 dp LandscapeChrome budgets; portrait's
-            // progress block carries the gap under it.
             .then(if (compact) Modifier else Modifier.padding(bottom = Metrics.space2)),
     ) {
         ScreenHeader(
@@ -126,31 +86,7 @@ internal fun WorkoutHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = Metrics.control),
-            trailing = {
-                TextButton(
-                    onClick = onFinish,
-                    contentPadding = endActionPadding,
-                    enabled = canFinish,
-                    modifier = Modifier
-                        .widthIn(min = endActionWidth)
-                        .heightIn(min = Metrics.touchMin)
-                        .testTag(WorkoutTestTags.FINISH)
-                        .semantics {
-                            // The name stays Finish; the reason it waits is its state.
-                            if (!canFinish) {
-                                disabled()
-                                stateDescription = EndWorkoutCopy.LOG_FIRST
-                            }
-                        },
-                ) {
-                    Text(
-                        EndWorkoutCopy.HEADER_FINISH,
-                        style = InstrumentType.bodyStrong,
-                        color = if (canFinish) TextPrimary else TextTertiary,
-                    )
-                }
-                overflow?.invoke()
-            },
+            trailing = { overflow?.invoke() },
         )
         if (headline.isNotBlank() && !planAsTitle) {
             if (focused && !largeText) {
@@ -160,16 +96,10 @@ internal fun WorkoutHeader(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        // Aligned with the title, which sits after the 48 dp back control.
                         .padding(start = if (focused) Metrics.gutter else Metrics.space2 + Metrics.touchMin, end = Metrics.gutter),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                 ) {
                     Text(
-                        // The instrument-label voice, which is what this line is: a meta label
-                        // over the plan, the same register as REST or LAST 7 DAYS. Uppercased
-                        // at the call site because the kicker style is never set in mixed case.
-                        // The `Kicker` composable itself is not used here: it caps at one line,
-                        // and large text needs the second one to keep the word "sets".
                         if (focused) headline else headline.uppercase(),
                         modifier = progressLine(spoken),
                         style = if (focused) InstrumentType.caption else InstrumentType.kicker,
@@ -184,11 +114,6 @@ internal fun WorkoutHeader(
     }
 }
 
-/**
- * One segment per lift: done lifts are Volt, the current lift fills as its sets land
- * on a dim Volt track, and lifts still to come stay graphite. Decorative — the line
- * above already says it in words, and reading it twice would be noise for TalkBack.
- */
 @Composable
 internal fun WorkoutProgressBar(
     segments: List<ProgressSegment>,

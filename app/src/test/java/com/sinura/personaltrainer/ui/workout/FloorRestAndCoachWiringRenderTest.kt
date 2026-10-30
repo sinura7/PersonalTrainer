@@ -24,6 +24,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -613,8 +614,9 @@ class FloorRestAndCoachWiringRenderTest {
     fun finishOwnsTheEndOfTheWorkout() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithText("End workout?").assertIsDisplayed()
+        compose.openFinishFromOverflow()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
         assertEquals("Finish is not an exit", 0, exits)
     }
 
@@ -624,18 +626,23 @@ class FloorRestAndCoachWiringRenderTest {
         // being written. Mid-save it waits, so a workout cannot be ended over a write in flight.
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
         val gate = CompletableDeferred<Unit>().also { insertGate = it }
         vm.pickEffortIfNeeded()
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.entryLocked }
         compose.waitForIdle()
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled().performClick()
-        compose.onAllNodesWithText("End workout?").assertCountEquals(0)
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.onAllNodesWithTag(WorkoutTestTags.FINISH).assertCountEquals(0)
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.onAllNodesWithTag(WorkoutTestTags.FINISH_SHEET).assertCountEquals(0)
         gate.complete(Unit)
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }
         compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled()
     }
 

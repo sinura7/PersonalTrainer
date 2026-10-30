@@ -357,7 +357,8 @@ class WorkoutEntryJourneyInstrumentedTest {
             compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
             awaitSets(it + 1)
             compose.waitUntil(5_000) { fixture.vm.restTimerState.value.running }
-            compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
+            // At font 2 the rest floor scrolls; bring Skip on screen before tapping it.
+            compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performScrollTo().performClick()
             compose.waitUntil(5_000) { !fixture.vm.restTimerState.value.running }
         }
         val original = savedSets().first()
@@ -525,8 +526,10 @@ class WorkoutEntryJourneyInstrumentedTest {
         pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
+        compose.waitUntil(15_000) { fixture.vm.whatNextVisible.value }
+        compose.onNodeWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.WHAT_NEXT_ADD_SET).assertIsDisplayed()
     }
 
     @Test fun switcherNamesProgressAndRequiresConfirmationToInterruptTimingAtLargeText() {

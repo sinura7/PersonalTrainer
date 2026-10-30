@@ -336,6 +336,7 @@ class WorkoutSaveRecoveryTest {
         assertFalse(vm.performPrimary(next))
         clock.advance(android.view.ViewConfiguration.getDoubleTapTimeout().toLong())
         assertTrue(vm.performPrimary(next))
+        vm.completeLiftTransition()
         // The other lift's prefill must have landed (40 kg × 8) before the effort is picked, or
         // the prefill's write takes it back; CI showed that race once.
         vm.uiState.awaitFirst {

@@ -1514,6 +1514,9 @@ class WorkoutRepository(
      * this runs, so its own sets are in the finished-history query, and a set cannot be part
      * of the history it is judged against.
      */
+    suspend fun countOtherFinishedSessions(sessionId: String): Int =
+        workoutDao.countOtherFinishedSessions(sessionId)
+
     suspend fun historyBefore(sessionId: String, exerciseIds: Collection<String>): Map<String, List<ExerciseSetRecord>> {
         val ids = exerciseIds.distinct()
         if (ids.isEmpty()) return emptyMap()

@@ -115,6 +115,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import com.sinura.personaltrainer.data.repository.prefs.RestPrefsStore
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/ActiveWorkoutVM"
@@ -288,6 +289,8 @@ data class PersonalRecordMoment(
 )
 
 private const val REST_IMMERSION_LIFT_KEY = "workout.restImmersionLiftId"
+private const val WHAT_NEXT_VISIBLE_KEY = "workout.whatNextVisible"
+private const val LIFT_TRANSITION_NEXT_KEY = "workout.liftTransitionNextId"
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActiveWorkoutViewModel internal constructor(
@@ -505,6 +508,10 @@ class ActiveWorkoutViewModel internal constructor(
     private val tempoCoachSheetVisible = MutableStateFlow(false)
     private val showRestFirstCaption = MutableStateFlow(false)
     val restFirstCaptionVisible: StateFlow<Boolean> = showRestFirstCaption.asStateFlow()
+
+    /** How many times the D13 caption was decided after a rest started; read by tests. */
+    private val restCaptionDecisions = MutableStateFlow(0)
+    internal val restCaptionDecisionCount: StateFlow<Int> = restCaptionDecisions.asStateFlow()
     /** Lift that owns the full-screen rest floor; cleared when rest stops. */
     private val restImmersionLiftIdStore = MutableStateFlow(
         privateSavedState.get<String?>(REST_IMMERSION_LIFT_KEY),
@@ -518,6 +525,64 @@ class ActiveWorkoutViewModel internal constructor(
         } else {
             privateSavedState[REST_IMMERSION_LIFT_KEY] = liftId
         }
+    }
+
+    private val whatNextVisibleStore = MutableStateFlow(
+        privateSavedState.get<Boolean>(WHAT_NEXT_VISIBLE_KEY) ?: false,
+    )
+    val whatNextVisible: StateFlow<Boolean> = whatNextVisibleStore.asStateFlow()
+
+    private val liftTransitionNextIdStore = MutableStateFlow(
+        privateSavedState.get<String?>(LIFT_TRANSITION_NEXT_KEY),
+    )
+    val liftTransitionNextId: StateFlow<String?> = liftTransitionNextIdStore.asStateFlow()
+
+    private fun setWhatNextVisible(visible: Boolean) {
+        whatNextVisibleStore.value = visible
+        if (visible) {
+            privateSavedState[WHAT_NEXT_VISIBLE_KEY] = true
+        } else {
+            privateSavedState.remove<Boolean>(WHAT_NEXT_VISIBLE_KEY)
+        }
+    }
+
+    private fun setLiftTransitionNextId(nextId: String?) {
+        liftTransitionNextIdStore.value = nextId
+        if (nextId == null) {
+            privateSavedState.remove<String?>(LIFT_TRANSITION_NEXT_KEY)
+        } else {
+            privateSavedState[LIFT_TRANSITION_NEXT_KEY] = nextId
+        }
+    }
+
+    fun dismissWhatNext() {
+        setWhatNextVisible(false)
+    }
+
+    fun openWhatNext() {
+        if (editingSetId.value != null) return
+        setWhatNextVisible(true)
+    }
+
+    fun beginLiftTransition(nextExerciseId: String) {
+        setLiftTransitionNextId(nextExerciseId)
+        setWhatNextVisible(false)
+    }
+
+    fun completeLiftTransition() {
+        val next = liftTransitionNextIdStore.value ?: return
+        setLiftTransitionNextId(null)
+        selectExerciseInternal(next)
+    }
+
+    fun cancelLiftTransition() {
+        setLiftTransitionNextId(null)
+    }
+
+    /** Elapsed whole minutes for the finish sheet; uses [TimePort], not composition clock. */
+    fun sessionDurationMinutes(): Int {
+        val started = session.value?.startedAt ?: return 1
+        return ((time.nowMillis() - started).coerceAtLeast(0L) / 60_000L).toInt().coerceAtLeast(1)
     }
 
     fun closeTempoCoachSheet() {
@@ -833,6 +898,18 @@ class ActiveWorkoutViewModel internal constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = RestTimerUiState(),
         )
+
+    init {
+        viewModelScope.launch {
+            var restWasRunning = false
+            restTimerState.collect { rest ->
+                if (restWasRunning && !rest.running) {
+                    setRestImmersionLiftId(null)
+                }
+                restWasRunning = rest.running
+            }
+        }
+    }
 
     val tempoCoachSheetOpen: StateFlow<Boolean> = combine(
         tempoCoachSheetVisible,
@@ -1505,6 +1582,8 @@ class ActiveWorkoutViewModel internal constructor(
     }
 
     private fun selectExerciseInternal(exerciseId: String) {
+        setLiftTransitionNextId(null)
+        setWhatNextVisible(false)
         if (selectedExerciseId.value == exerciseId) return
         if (clocks.timing) {
             _pendingLiftSwitch.value = PendingLiftSwitch(exerciseId)
@@ -1540,6 +1619,7 @@ class ActiveWorkoutViewModel internal constructor(
             }
         }
         wantAnotherSet.value = true
+        setWhatNextVisible(false)
         persistDraft()
     }
 
@@ -1838,7 +1918,10 @@ class ActiveWorkoutViewModel internal constructor(
                 savedDraft.removeLift(selectedId)
                 // Room can select and prefill a survivor before this mutation resumes.
                 // Clear only the removed selection; keep that newer entry ready.
-                if (selectedExerciseId.value == selectedId) clearLiftSelection()
+                if (selectedExerciseId.value == selectedId) {
+                    cancelLiftTransition()
+                    clearLiftSelection()
+                }
                 error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
             } catch (thrown: CancellationException) {
                 throw thrown
@@ -2271,7 +2354,7 @@ class ActiveWorkoutViewModel internal constructor(
             WorkoutPrimaryKind.START_HOLD -> startHoldSet()
             WorkoutPrimaryKind.LOG_SET, WorkoutPrimaryKind.LOG_WARMUP, WorkoutPrimaryKind.LOG_HOLD, WorkoutPrimaryKind.SAVE_CHANGES ->
                 logSetWithDuration(action.durationSeconds, freezeDisplayedDuration = true)
-            WorkoutPrimaryKind.NEXT_EXERCISE -> action.identity.nextExerciseId?.let(::selectExercise)
+            WorkoutPrimaryKind.NEXT_EXERCISE -> action.identity.nextExerciseId?.let(::beginLiftTransition)
             WorkoutPrimaryKind.RETRY_SAVE -> retrySave()
             WorkoutPrimaryKind.FINISH, WorkoutPrimaryKind.REVIEW_SAVE -> Unit // The screen opens its confirmation/details.
             WorkoutPrimaryKind.START_SET_NOW -> skipRest()
@@ -2494,6 +2577,9 @@ class ActiveWorkoutViewModel internal constructor(
             } else if (complete) {
                 restTimer.stop()
             }
+            // The lift is complete after its last planned set and after any extra set: offer
+            // What next again so Next lift and Finish stay one tap away while an extra rest runs.
+            if (complete) openWhatNext()
         } catch (failure: Exception) {
             AppLog.w(TAG, "Set saved; subsequent workout feedback failed", failure)
             error.fail(source = ERR_LOAD, message = "Set saved. Timer or feedback could not update.")
@@ -2968,7 +3054,9 @@ class ActiveWorkoutViewModel internal constructor(
             container.preferencesRepository.markRestAlarmEligible()
             container.preferencesRepository.recordRestFloorCaptionForSession(sessionId)
             val sessions = container.preferencesRepository.restFloorCaptionSessions.first()
-            showRestFirstCaption.value = sessions <= 3
+            showRestFirstCaption.value =
+                sessions <= RestPrefsStore.REST_FLOOR_CAPTION_SESSION_BUDGET
+            restCaptionDecisions.update { it + 1 }
             maybeOpenTempoCoachSheet()
         }
     }

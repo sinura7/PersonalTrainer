@@ -14,6 +14,8 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
+import com.sinura.personaltrainer.testutil.waitUntilFinishEnabledInOverflow
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -43,6 +45,7 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.testutil.NativeArtifacts
+import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
 import com.sinura.personaltrainer.ui.history.SetEditTestTags
@@ -238,32 +241,30 @@ class ActiveWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().performClick()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_USE).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_KEEP).assertIsDisplayed().performClick()
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.waitUntilFinishEnabledInOverflow(10_000)
         assertFalse(container.restTimerStore.current().running)
 
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithText("End workout?").assertIsDisplayed()
-        compose.onNodeWithText("Save as is").performClick()
+        compose.openFinishFromOverflow()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
         compose.waitUntil(10_000) {
             runBlocking(Dispatchers.IO) {
                 container.workoutRepository.getSession(fixture.sessionId)?.finishedAt != null
             }
         }
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithText("WORKOUT COMPLETE")
+            compose.onAllNodesWithText("WORKOUT SAVED")
                 .fetchSemanticsNodes().isNotEmpty()
         }
 
-        compose.onNodeWithText("WORKOUT COMPLETE").assertIsDisplayed()
+        compose.onNodeWithText("WORKOUT SAVED").assertIsDisplayed()
         compose.onNodeWithText(fixture.routineName).assertIsDisplayed()
         val volumeLabel = WeightConverter.formatVolumeLabel(
             live.work().volumeKg,
             WeightUnit.KG,
         )
-        compose.onNodeWithContentDescription("Total volume $volumeLabel").assertIsDisplayed()
+        compose.onNodeWithContentDescription("kg volume, $volumeLabel").assertIsDisplayed()
         captureWindow("summary")
         // The lift breakdown is the fourth item of the summary's list, below the fold of a
         // 731 dp screen. Scroll the LIST to it rather than the node: a node's own
@@ -293,7 +294,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
             compose.onAllNodes(hasTestTag("navigation-home")).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag("navigation-home").assertIsSelected()
-        compose.onNodeWithText("WORKOUT COMPLETE").assertDoesNotExist()
+        compose.onNodeWithText("WORKOUT SAVED").assertDoesNotExist()
         compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertDoesNotExist()
         assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
         assertEquals(finished, runBlocking(Dispatchers.IO) { container.workoutRepository.getSession(fixture.sessionId) })
@@ -318,10 +319,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
                 isWarmup = false,
             )
         }
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
-                .fetchSemanticsNodes().isNotEmpty()
-        }
+        compose.waitUntilFinishEnabledInOverflow(10_000)
 
         compose.onNodeWithContentDescription("Close").performClick()
         compose.waitUntil(10_000) {
@@ -337,13 +335,11 @@ class ActiveWorkoutJourneyInstrumentedTest {
         })
 
         compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).performClick()
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH))
-                .fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNodeWithContentDescription("Close").performClick()
-        compose.onNodeWithContentDescription("Workout actions").performClick()
-        compose.onNodeWithText("Finish workout").performClick()
+        compose.waitUntilFinishEnabledInOverflow(10_000)
+        // The overflow is already open with Finish enabled; Close here would leave the session again.
+        compose.openFinishFromOverflow()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
 
         compose.waitUntil(15_000) {
             runBlocking(Dispatchers.IO) {
@@ -351,23 +347,23 @@ class ActiveWorkoutJourneyInstrumentedTest {
             }
         }
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithText("WORKOUT COMPLETE")
+            compose.onAllNodesWithText("WORKOUT SAVED")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("WORKOUT COMPLETE").assertIsDisplayed()
+        compose.onNodeWithText("WORKOUT SAVED").assertIsDisplayed()
         compose.activityRule.scenario.recreate()
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithText("WORKOUT COMPLETE")
+            compose.onAllNodesWithText("WORKOUT SAVED")
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithContentDescription("Total volume 500 kg").assertIsDisplayed()
+        compose.onNodeWithContentDescription("kg volume, 500 kg").assertIsDisplayed()
         compose.onAllNodes(isDialog()).assertCountEquals(0)
         assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
 
         val original = runBlocking(Dispatchers.IO) {
             checkNotNull(container.workoutRepository.getSession(fixture.sessionId)).sets.single()
         }
-        compose.onNodeWithText("See full session").performClick()
+        compose.onNodeWithText("View in History").performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodes(hasTestTag(SessionDetailTestTags.EDIT_SET))
                 .fetchSemanticsNodes().isNotEmpty()

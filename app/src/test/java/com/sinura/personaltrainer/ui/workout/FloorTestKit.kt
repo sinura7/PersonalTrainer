@@ -25,6 +25,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -33,7 +34,6 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
@@ -580,7 +580,7 @@ internal fun ComposeContentTestRule.silentSquaresUnder(under: SemanticsMatcher, 
             node.size.width == side && node.size.height == side
     }
     val still = SemanticsMatcher(description = "a silent $size still", matcher = silentSquare)
-    return onAllNodes(still and hasAnyAncestor(under), useUnmergedTree = true).fetchSemanticsNodes()
+    return this.onAllNodes(still and hasAnyAncestor(under), useUnmergedTree = true).fetchSemanticsNodes()
 }
 
 /**
@@ -773,14 +773,14 @@ private const val FRAME_MS = 16L
 
 /** Drive the actual native disclosure rather than reaching a hidden floor control. */
 internal fun ComposeContentTestRule.openWorkoutSetOptions() {
-    if (onAllNodes(hasTestTag(WorkoutTestTags.SET_OPTIONS_SHEET)).fetchSemanticsNodes().isNotEmpty()) return
+    if (onAllNodesWithTag(WorkoutTestTags.SET_OPTIONS_SHEET).fetchSemanticsNodes().isNotEmpty()) return
     onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
     onNodeWithText("Set options").performClick()
     onNodeWithTag(WorkoutTestTags.SET_OPTIONS_SHEET).assertIsDisplayed()
 }
 
 internal fun ComposeContentTestRule.closeWorkoutSetOptions() {
-    if (onAllNodes(hasTestTag(WorkoutTestTags.SET_OPTIONS_DONE)).fetchSemanticsNodes().isNotEmpty()) {
+    if (onAllNodesWithTag(WorkoutTestTags.SET_OPTIONS_DONE).fetchSemanticsNodes().isNotEmpty()) {
         onNodeWithTag(WorkoutTestTags.SET_OPTIONS_DONE).performClick()
         waitForIdle()
     }

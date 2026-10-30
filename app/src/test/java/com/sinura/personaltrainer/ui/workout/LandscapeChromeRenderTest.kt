@@ -169,11 +169,11 @@ class LandscapeChromeRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_HISTORY))
         compose.waitForIdle()
         assertEquals("the commit does not move when the floor scrolls", commitBefore, compose.onNodeWithTag(WorkoutTestTags.LOG_SET).getBoundsInRoot())
-        // Top to bottom: the header's Finish, the floor, then the dock's row and its commit.
-        val finish = compose.onNodeWithTag(WorkoutTestTags.FINISH).getBoundsInRoot()
+        // Top to bottom: the header overflow, the floor, then the dock's row and its commit.
+        val options = compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).getBoundsInRoot()
         val floor = compose.onNodeWithTag(WorkoutTestTags.CONTENT).getBoundsInRoot()
         val row = compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).getBoundsInRoot()
-        assertTrue("the header sits above the floor: $finish over $floor", finish.bottom <= floor.top)
+        assertTrue("the header sits above the floor: $options over $floor", options.bottom <= floor.top)
         assertTrue("the dock sits under the floor: $row under $floor", row.top >= floor.bottom)
         assertTrue("the commit is the last thing on screen", commitBefore.bottom >= floor.bottom && commitBefore.bottom <= 800.dp)
     }

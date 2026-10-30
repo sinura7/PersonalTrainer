@@ -75,23 +75,32 @@ class WorkoutCompletionJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
         // Next needs a tap, and the commit names where it goes.
-        compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed().assertTextContains("Next exercise")
-            .assert(hasContentDescription(next.name, substring = true))
-        assertEquals(first, fixture.vm.uiState.value.selectedExerciseId)
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
+        compose.waitUntil(15_000) { fixture.vm.whatNextVisible.value }
+        compose.onNodeWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.WHAT_NEXT_ADD_SET).performClick()
         pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(2)
         assertTrue(session().sets.all { it.exerciseId == first })
+        compose.waitUntil(15_000) { fixture.vm.whatNextVisible.value }
         compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
-        compose.waitUntil(15_000) { fixture.vm.uiState.value.selectedExerciseId == next.id && fixture.vm.uiState.value.draft.weightKg == 40.0 }
+        compose.waitUntil(15_000) { fixture.vm.liftTransitionNextId.value == next.id }
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_TRANSITION).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).performClick()
+        compose.waitUntil(15_000) {
+            fixture.vm.liftTransitionNextId.value == null &&
+                fixture.vm.uiState.value.selectedExerciseId == next.id &&
+                fixture.vm.uiState.value.draft.weightKg == 40.0
+        }
         SystemClock.sleep(android.view.ViewConfiguration.getDoubleTapTimeout().toLong() + 20)
         pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(3)
+        compose.waitUntil(15_000) { fixture.vm.whatNextVisible.value }
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         assertFalse(session().isFinished)
-        compose.onNodeWithText("Save as is").performClick()
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.EndWorkoutTags.SAVE).performClick()
         compose.waitUntil(15_000) { session().isFinished }
         assertEquals(3, session().sets.size)
         assertEquals(1, session().sets.count { it.exerciseId == next.id })

@@ -240,7 +240,8 @@ class DockCommitRenderTest {
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed().performClick()
-        compose.onNodeWithText(EndWorkoutCopy.TITLE).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
         assertTrue("asking is not ending", vm.uiState.value.session?.finishedAt == null)
     }
 

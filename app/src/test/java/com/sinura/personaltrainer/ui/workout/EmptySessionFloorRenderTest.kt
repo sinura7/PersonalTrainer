@@ -10,6 +10,7 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -102,8 +103,10 @@ class EmptySessionFloorRenderTest {
     @Test
     fun anEmptySessionOffersDiscardNotFinishAndAsksBeforeDeleting() {
         val vm = openEmptyFreeWorkout()
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled()
         compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).assertIsDisplayed().performClick()
+        compose.onAllNodesWithTag(WorkoutTestTags.FINISH).assertCountEquals(0)
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
         compose.onNodeWithText(EndWorkoutCopy.HEADER_DISCARD).assertIsDisplayed().performClick()
         compose.onNodeWithText(DISCARD_TITLE).assertIsDisplayed()
         val sessionId = checkNotNull(vm.uiState.value.session).id

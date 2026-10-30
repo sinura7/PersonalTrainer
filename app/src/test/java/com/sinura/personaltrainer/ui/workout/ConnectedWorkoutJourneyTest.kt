@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
@@ -45,6 +46,7 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.insertTestExercise
+import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.components.SessionLogTags
 import com.sinura.personaltrainer.ui.components.SetTableLine
 import com.sinura.personaltrainer.ui.history.HistoryScreen
@@ -222,9 +224,10 @@ class ConnectedWorkoutJourneyTest {
 
         // Finish the partial plan through its real confirmation. An unlogged draft and
         // the untouched second exercise must not turn into extra work in the receipt.
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled().performClick()
-        compose.onNodeWithText("End workout?").assertIsDisplayed()
-        compose.onNodeWithText("Save as is").performClick()
+        compose.openFinishFromOverflow()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
+        compose.onNodeWithText("Finish workout?").assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
         compose.awaitThat("Finish opens this session's summary", { finishedIds }) { finishedIds.size == 1 }
         assertEquals(listOf(sessionId), finishedIds)
         compose.awaitThat("Summary reads the finished row", { summary.uiState.value }) {
@@ -247,7 +250,7 @@ class ConnectedWorkoutJourneyTest {
         assertEquals(FLOOR_LIFT_ID, highlight.exerciseId)
         assertEquals(kg(80.0), checkNotNull(highlight.topSet).weightKg, EPSILON)
         assertEquals(11, checkNotNull(highlight.topSet).reps)
-        compose.onNodeWithText("WORKOUT COMPLETE").assertIsDisplayed()
+        compose.onNodeWithText("WORKOUT SAVED").assertIsDisplayed()
         val setLine = SetCopy.setLine(kg(80.0), 11, LoadClass.LOADED, WeightUnit.LBS)
         compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Top set $setLine"))
         compose.onNodeWithText("Top set $setLine").assertIsDisplayed()

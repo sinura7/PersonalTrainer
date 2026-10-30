@@ -29,8 +29,9 @@ fun UpNextCard(
     reason: String? = null,
     loading: Boolean = false,
     showEdit: Boolean = true,
+    emphasis: PanelEmphasis = PanelEmphasis.None,
 ) {
-    Panel(modifier = modifier.testTag(WorkoutTestTags.UP_NEXT_CARD)) {
+    Panel(modifier = modifier.testTag(WorkoutTestTags.UP_NEXT_CARD), emphasis = emphasis) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),

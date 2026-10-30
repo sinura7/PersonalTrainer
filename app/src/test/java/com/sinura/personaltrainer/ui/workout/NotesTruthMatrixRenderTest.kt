@@ -23,6 +23,7 @@ import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -208,14 +209,18 @@ class NotesTruthMatrixRenderTest {
             action(node = compose.onNodeWithText("Done"), modal = true).performTouchInput { click() }
             compose.settle()
 
-            compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+            compose.openFinishFromOverflow()
             compose.settle()
             capture("end-before-notes-toggle")
             dumpEndSemantics("end-before-notes-toggle")
+            compose.onNodeWithTag(WorkoutTestTags.FINISH_KEEP).performTouchInput { click() }
+            compose.settle()
+            compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+            compose.waitForIdle()
             // At landscape font 2 the real scroll viewport ends one pixel above this
             // toggle. Reach its whole 48 dp target before injecting an actual touch;
             // tapping its offscreen semantics does not open the editor.
-            val endNotesToggle = action(node = compose.onNodeWithText("Session notes"), modal = true)
+            val endNotesToggle = action(node = compose.onNodeWithText("Session notes"), modal = false)
             capture("end-notes-toggle-reached")
             dumpEndSemantics("end-notes-toggle-reached")
             endNotesToggle.performTouchInput { click() }
@@ -228,10 +233,11 @@ class NotesTruthMatrixRenderTest {
             )
             assertEquals("Seat 6", storedNotes(sessionId))
             clearAndConfirm(state = { active.uiState.value.notesSave }, flush = active::persistDraftForExit, prefix = "end")
-            action(node = compose.onNodeWithTag(EndWorkoutTags.SAVE), modal = true)
-            action(node = compose.onNodeWithTag(EndWorkoutTags.DISCARD), modal = true)
+            compose.openFinishFromOverflow()
+            compose.settle()
+            action(node = compose.onNodeWithTag(EndWorkoutTags.SAVE), modal = false)
             capture("end-actions-cleared")
-            action(node = compose.onNodeWithTag(EndWorkoutTags.SAVE), modal = true).performTouchInput { click() }
+            action(node = compose.onNodeWithTag(EndWorkoutTags.SAVE), modal = false).performTouchInput { click() }
             // Room and the VM complete without Compose frames. Navigation is a lifecycle
             // collection followed by LaunchedEffect, so draw its frame after that result.
             compose.awaitThat("Finish completed in the actual VM", { active.exitRequested.value to finishedId }) {
@@ -615,7 +621,8 @@ class NotesTruthMatrixRenderTest {
     /** Keep the measured modal and its clipped/unclipped geometry before a failed edit. */
     private fun dumpEndSemantics(state: String) {
         val window = compose.runOnUiThread {
-            val decor = checkNotNull(ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }?.window?.decorView)
+            val decor = ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }?.window?.decorView
+                ?: compose.activity.window.decorView
             "modal=${decor.width}x${decor.height} font=${decor.resources.configuration.fontScale}"
         }
         val nodes = compose.onAllNodes(SemanticsMatcher("all measured nodes") { true }, useUnmergedTree = true)

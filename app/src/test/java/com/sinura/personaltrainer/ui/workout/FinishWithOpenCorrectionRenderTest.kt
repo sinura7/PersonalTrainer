@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
@@ -67,7 +69,7 @@ class FinishWithOpenCorrectionRenderTest {
     fun finishWhileASetIsBeingCorrectedSaysTheChangeIsNotSavedAndLeadsBackToIt() {
         val (vm, session) = openACorrection()
 
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.openFinishFromOverflow()
         compose.onNodeWithTag(EndWorkoutTags.EDIT_OPEN).assertIsDisplayed()
         compose.onNodeWithTag(EndWorkoutTags.BACK_TO_EDIT).performClick()
         compose.waitForIdle()
@@ -89,8 +91,8 @@ class FinishWithOpenCorrectionRenderTest {
     fun saveAsIsEndsTheWorkoutWithTheSetAsItWasSaved() {
         val (vm, session) = openACorrection()
 
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
+        compose.openFinishFromOverflow()
+        compose.onNodeWithText("Finish and see summary").performClick()
 
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.finished }
         val saved = checkNotNull(runBlocking { deps.workoutRepository.getSession(session.id) })
@@ -122,7 +124,7 @@ class FinishWithOpenCorrectionRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = floorSets(1))
         compose.showWorkoutScreen(vm)
 
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.openFinishFromOverflow()
 
         compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsDisplayed()
         compose.onNodeWithTag(EndWorkoutTags.EDIT_OPEN).assertDoesNotExist()
