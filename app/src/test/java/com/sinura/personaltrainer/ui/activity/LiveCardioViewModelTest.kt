@@ -151,6 +151,23 @@ class LiveCardioViewModelTest {
         assertEquals(2_414.016, completed?.cardioBlocks?.single()?.distanceMeters!!, 0.001)
     }
 
+    /** The ViewModel's own gate: a finish at 59 s writes nothing and the run stays live. */
+    @Test
+    fun finishAtFiftyNineSecondsSavesNothing() = runBlocking {
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        val clock = TestCardioClock(now.instantMillis)
+        val vm = createViewModel(live.id, elapsedRealtime = { clock.elapsedMs }, wallClock = { clock.wallMs })
+        vm.uiState.awaitFirst { it.session != null }
+        clock.advance((CardioFinishGate.MIN_SECONDS - 1) * 1_000L)
+        vm.finish()
+        assertFalse(vm.uiState.value.finishing)
+        assertNull(vm.finishedId.value)
+        assertTrue(deps.activityRepository.get(live.id)!!.isLive)
+        assertEquals(live.id, deps.activityRepository.getLive()?.id)
+    }
+
     @Test
     fun discardRemovesTheLiveRow() = runBlocking {
         val now = JvmTime.captureNow()
