@@ -100,6 +100,19 @@ object HomeToday {
      * is untimed, so there is no clock line and it is never a leftover
      * move — the session simply starts on today.
      */
+    /**
+     * The routine a strength start previews (screen 06, D6). Cardio and auxiliary packs keep
+     * the plain confirm; they have no lifts to preview.
+     */
+    fun previewRoutine(item: AgendaItem, routines: List<Routine>): Routine? {
+        if (ScheduleKind.auxPackId(item.rule?.templateId) != null) return null
+        if ((item.rule?.modality ?: ScheduleModality.STRENGTH) != ScheduleModality.STRENGTH) return null
+        return item.rule?.routineId?.let { id -> routines.firstOrNull { it.id == id } }
+    }
+
+    fun previewRoutine(day: SuggestedTrainingDay, routines: List<Routine>): Routine? =
+        day.routineId?.let { id -> routines.firstOrNull { it.id == id } }
+
     fun fallbackStartConfirm(
         day: SuggestedTrainingDay,
         routines: List<Routine>,

@@ -146,6 +146,21 @@ class HomeViewModel @JvmOverloads constructor(
         viewModelScope,
     )
     private val actionError = MutableStateFlow<String?>(null)
+
+    /**
+     * Last top-set weight per lift for the pre-workout preview (screen 06). A failed read
+     * returns an empty map, so every lift reads "First time" and Begin is never blocked.
+     */
+    suspend fun previewLastWeights(routine: Routine): Map<String, Double> = try {
+        routine.exercises.mapNotNull { planned ->
+            container.workoutRepository.lastPerformance(planned.exercise.id)?.topSet?.weightKg
+                ?.let { planned.exercise.id to it }
+        }.toMap()
+    } catch (thrown: CancellationException) {
+        throw thrown
+    } catch (_: Exception) {
+        emptyMap()
+    }
     private val bodyweightSave = MutableStateFlow(BodyweightSave())
     private val _startState = MutableStateFlow(HomeStartState())
     val startState: StateFlow<HomeStartState> = _startState.asStateFlow()

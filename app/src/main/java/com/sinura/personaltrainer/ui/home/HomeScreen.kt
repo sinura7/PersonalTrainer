@@ -521,7 +521,15 @@ fun HomeScreen(
         }
         if (confirm != null) {
             val plannedDay = heldPlanned?.plannedEpochDay ?: pendingItem?.occurrence?.localEpochDay ?: today
-            ConfirmActionDialog(
+            val previewRoutine = heldPlanned?.routineId?.let { id -> state.routines.firstOrNull { it.id == id } }
+                ?: pendingItem?.let { HomeToday.previewRoutine(it, state.routines) }
+            HomeStartPrompt(
+                routine = previewRoutine,
+                unit = unit,
+                loadLastWeights = viewModel::previewLastWeights,
+                onEditRoutine = onOpenRoutine,
+                pending = starting.pending,
+                labelOverridden = starting.pending || starting.error != null,
                 title = confirm.heading,
                 body = confirm.body,
                 confirmLabel = when {
@@ -538,7 +546,10 @@ fun HomeScreen(
                             viewModel.retryStart(expectedAttemptId = renderedStartAttemptId)
                         } else viewModel.startOccurrence(plannedOwner.occurrenceId)
                         if (accepted && plannedStartPending?.requestId == plannedOwner.requestId) {
-                            plannedStartPending = plannedOwner.copy(accepted = true, confirm = confirm, plannedEpochDay = plannedDay)
+                            plannedStartPending = plannedOwner.copy(
+                                accepted = true, confirm = confirm, plannedEpochDay = plannedDay,
+                                routineId = previewRoutine?.id,
+                            )
                         }
                     }
                 },
@@ -570,7 +581,13 @@ fun HomeScreen(
     }
     if (confirmFallback != null) {
         val confirm = confirmFallback.confirm ?: HomeToday.fallbackStartConfirm(confirmFallback.day, state.routines)
-        ConfirmActionDialog(
+        HomeStartPrompt(
+            routine = HomeToday.previewRoutine(confirmFallback.day, state.routines),
+            unit = unit,
+            loadLastWeights = viewModel::previewLastWeights,
+            onEditRoutine = onOpenRoutine,
+            pending = starting.pending,
+            labelOverridden = starting.pending || starting.error != null,
             title = confirm.heading,
             body = confirm.body,
             confirmLabel = when {
@@ -954,6 +971,8 @@ private data class HomePlannedStart(
     val accepted: Boolean = false,
     val confirm: StartSessionConfirm? = null,
     val plannedEpochDay: Long? = null,
+    /** The routine the preview showed when Begin was accepted; kept through a held Retry. */
+    val routineId: String? = null,
 )
 
 private val HomePlannedStartSaver = mapSaver<HomePlannedStart?>(
@@ -963,6 +982,7 @@ private val HomePlannedStartSaver = mapSaver<HomePlannedStart?>(
             "occurrenceId" to pending.occurrenceId,
             "accepted" to pending.accepted,
             "plannedEpochDay" to pending.plannedEpochDay,
+            "routineId" to pending.routineId,
         ) + saveStartConfirm(pending.confirm)
     },
     restore = { saved ->
@@ -972,6 +992,7 @@ private val HomePlannedStartSaver = mapSaver<HomePlannedStart?>(
             accepted = saved["accepted"] as? Boolean ?: false,
             confirm = restoreStartConfirm(saved),
             plannedEpochDay = saved["plannedEpochDay"] as? Long,
+            routineId = saved["routineId"] as? String,
         )
     },
 )

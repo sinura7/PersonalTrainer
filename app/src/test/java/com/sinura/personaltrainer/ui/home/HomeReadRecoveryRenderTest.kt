@@ -30,6 +30,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -63,7 +64,7 @@ import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.testutil.insertTestExercise
-import com.sinura.personaltrainer.ui.components.ConfirmActionTags
+import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.components.WeekStripTags
 import com.sinura.personaltrainer.ui.plan.AuxiliaryPackTags
@@ -197,7 +198,7 @@ class HomeReadRecoveryRenderTest {
         compose.mainClock.autoAdvance = false
         try {
             compose.settle()
-            val oldConfirm = compose.onNodeWithTag(ConfirmActionTags.CONFIRM)
+            val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
                 .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
             val before = inventory()
             failRead()
@@ -205,7 +206,7 @@ class HomeReadRecoveryRenderTest {
             // clearing the confirmation. It must refuse against the authoritative read state.
             compose.runOnUiThread { oldConfirm() }
             compose.settle()
-            compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsNotEnabled()
+            compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsNotEnabled()
             assertEquals(before, inventory())
             assertNull(openedSession)
             proveRecovery("planned-confirm-stale")
@@ -213,13 +214,13 @@ class HomeReadRecoveryRenderTest {
             retry(held = true)
             assertEquals(lastBoard.occurrences, vm.uiState.value.occurrences)
             assertEquals(lastBoard.routines, vm.uiState.value.routines)
-            compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsNotEnabled()
+            compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsNotEnabled()
             capture("planned-confirm-retry-held")
             read.held!!.complete(Unit)
             await(HomeReadState.CURRENT)
             compose.settle()
-            reachable(compose.onNodeWithTag(ConfirmActionTags.CONFIRM)).assertIsEnabled()
-            reachable(compose.onNodeWithText("Cancel")).performClick()
+            reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled()
+            reachable(compose.onNodeWithTag(WorkoutPreviewTags.BACK)).performClick()
             compose.settle()
         } finally { compose.mainClock.autoAdvance = true }
         failRead()
@@ -515,26 +516,26 @@ class HomeReadRecoveryRenderTest {
         }
         addVirtualizationBoundary()
         scrollTo(HomeTags.SESSION).performClick()
-        val oldConfirm = compose.onNodeWithTag(ConfirmActionTags.CONFIRM)
+        val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
         failRead()
         scrollBoardBy(amount = -100_000f)
         compose.onNodeWithTag(HomeTags.SESSION).assertDoesNotExist()
         compose.runOnUiThread { oldConfirm() }
-        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsNotEnabled()
         assertEquals(before, inventory())
         assertNull(openedSession)
         retry(held = true)
         restoration.emulateSavedInstanceStateRestore()
-        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsNotEnabled()
-        compose.onNodeWithText("Start Upper B?").assertExists()
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsNotEnabled()
+        compose.onNode(hasText("Upper B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
         assertEquals(before, inventory())
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
-        reachable(compose.onNodeWithTag(ConfirmActionTags.CONFIRM)).assertIsEnabled().performClick()
+        reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         compose.awaitThat("the deliberately accepted fallback start", { openedSession }) { openedSession != null }
-        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertDoesNotExist()
         val session = runBlocking { checkNotNull(deps.workoutRepository.getSession(checkNotNull(openedSession))) }
         assertEquals(routineId, session.routineId)
         assertEquals(1, runBlocking { deps.database.workoutDao().getAllSessions().size })
@@ -555,13 +556,13 @@ class HomeReadRecoveryRenderTest {
         val oldSecondCell = scrollTo(WeekStripTags.cell(secondDay))
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         scrollTo(HomeTags.SESSION).performClick()
-        val oldConfirm = compose.onNodeWithTag(ConfirmActionTags.CONFIRM)
+        val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
         compose.runOnUiThread { oldSecondCell() }
         compose.settle()
-        compose.onNodeWithText("Start Upper B?").assertExists()
-        compose.onNodeWithText("Start Lower B?").assertDoesNotExist()
+        compose.onNode(hasText("Upper B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
+        compose.onNode(hasText("Lower B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertDoesNotExist()
         assertEquals(before, inventory())
         assertNull(openedSession)
         // The callback belongs to the still-open original target, regardless of the cell
@@ -584,7 +585,7 @@ class HomeReadRecoveryRenderTest {
         show()
         awaitFallbackPlan(plan = original)
         scrollTo(HomeTags.SESSION).performClick()
-        val oldConfirm = compose.onNodeWithTag(ConfirmActionTags.CONFIRM)
+        val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
         compose.mainClock.autoAdvance = false
@@ -599,18 +600,18 @@ class HomeReadRecoveryRenderTest {
             compose.settle()
             assertNull(openedSession)
             assertEquals(before, inventory())
-            compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertDoesNotExist()
+            compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertDoesNotExist()
             scrollTo(HomeTags.SESSION).performClick()
             compose.settle()
-            compose.onNodeWithText("Start Lower B?").assertExists()
+            compose.onNode(hasText("Lower B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
             // A replaced owner's callback cannot dismiss or admit the new confirmation.
             compose.runOnUiThread { oldConfirm() }
             compose.settle()
-            compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsEnabled()
-            compose.onNodeWithText("Start Lower B?").assertExists()
+            compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsEnabled()
+            compose.onNode(hasText("Lower B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
             assertNull(openedSession)
             assertEquals(before, inventory())
-            reachable(compose.onNodeWithTag(ConfirmActionTags.CONFIRM)).performClick()
+            reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).performClick()
             compose.awaitThat(
                 what = "the newly reviewed replacement commits and requests navigation",
                 now = vm.navigateToSession::value,
@@ -648,30 +649,30 @@ class HomeReadRecoveryRenderTest {
                 vm.uiState.value.occurrences.any { it.id == secondOccurrence }
         }
         scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
-        val oldConfirm = compose.onNodeWithTag(ConfirmActionTags.CONFIRM)
+        val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
-        val oldDismiss = compose.onNodeWithText("Cancel")
+        val oldDismiss = compose.onNodeWithTag(WorkoutPreviewTags.BACK)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
-        reachable(compose.onNodeWithText("Cancel")).performClick()
+        reachable(compose.onNodeWithTag(WorkoutPreviewTags.BACK)).performClick()
         // Reopening the same occurrence creates another modal owner. Its ID alone cannot
         // authorize the old owner's queued confirmation or cancellation.
         scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
         compose.runOnUiThread { oldConfirm(); oldDismiss() }
         compose.settle()
-        compose.onNodeWithText("Start Upper B?").assertExists()
-        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsEnabled()
+        compose.onNode(hasText("Upper B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsEnabled()
         assertNull(openedSession)
         assertEquals(before, inventory())
-        reachable(compose.onNodeWithText("Cancel")).performClick()
+        reachable(compose.onNodeWithTag(WorkoutPreviewTags.BACK)).performClick()
         scrollTo(HomeTags.agendaRow(secondOccurrence)).performClick()
         compose.runOnUiThread { oldConfirm(); oldDismiss() }
         compose.settle()
-        compose.onNodeWithText("Start Lower B?").assertExists()
-        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsEnabled()
+        compose.onNode(hasText("Lower B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsEnabled()
         assertNull(openedSession)
         assertEquals(before, inventory())
-        reachable(compose.onNodeWithTag(ConfirmActionTags.CONFIRM)).performClick()
+        reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).performClick()
         compose.awaitThat("the current planned owner starts its own workout", { openedSession }) { openedSession != null }
         val saved = runBlocking { checkNotNull(deps.workoutRepository.getSession(checkNotNull(openedSession))) }
         assertEquals(secondRoutine, saved.routineId)
@@ -722,7 +723,7 @@ class HomeReadRecoveryRenderTest {
         await(HomeReadState.CURRENT)
         addVirtualizationBoundary()
         scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
-        val oldConfirm = compose.onNodeWithTag(ConfirmActionTags.CONFIRM)
+        val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
         failRead()
@@ -731,16 +732,16 @@ class HomeReadRecoveryRenderTest {
         scrollBoardBy(amount = -100_000f)
         compose.onNodeWithTag(HomeTags.agendaRow(occurrenceId)).assertDoesNotExist()
         compose.runOnUiThread { oldConfirm() }
-        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsNotEnabled()
         assertEquals(before, inventory())
         assertNull(openedSession)
         retry(held = true)
         restoration.emulateSavedInstanceStateRestore()
-        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsNotEnabled()
         assertEquals(before, inventory())
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
-        reachable(compose.onNodeWithTag(ConfirmActionTags.CONFIRM)).assertIsEnabled().performClick()
+        reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         compose.awaitThat("the deliberate recovered planned start", { openedSession }) { openedSession != null }
         val saved = runBlocking { checkNotNull(deps.workoutRepository.getSession(checkNotNull(openedSession))) }
         assertEquals(routineId, saved.routineId)
