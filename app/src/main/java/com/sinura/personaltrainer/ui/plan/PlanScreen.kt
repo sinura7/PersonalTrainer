@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.plan
 
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -358,7 +359,13 @@ fun PlanScreen(
                 )
             }
             state.error?.let { message ->
-                item(key = "error") { PlanWeekError(message = message, onRetry = viewModel::retry) }
+                item(key = "error") {
+                    if (state.readFailed) {
+                        PlanWeekError(message = message, onRetry = viewModel::retry)
+                    } else {
+                        GymErrorBanner(message = message, onDismiss = viewModel::dismissError)
+                    }
+                }
             }
             val liveId = state.inProgress?.id ?: state.liveActivity?.id
             if (liveId != null) {
