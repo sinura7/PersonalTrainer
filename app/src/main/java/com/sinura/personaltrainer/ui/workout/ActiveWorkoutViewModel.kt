@@ -2576,8 +2576,10 @@ class ActiveWorkoutViewModel internal constructor(
                 ))
             } else if (complete) {
                 restTimer.stop()
-                openWhatNext()
             }
+            // The lift is complete after its last planned set and after any extra set: offer
+            // What next again so Next lift and Finish stay one tap away while an extra rest runs.
+            if (complete) openWhatNext()
         } catch (failure: Exception) {
             AppLog.w(TAG, "Set saved; subsequent workout feedback failed", failure)
             error.fail(source = ERR_LOAD, message = "Set saved. Timer or feedback could not update.")
