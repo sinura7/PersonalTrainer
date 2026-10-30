@@ -775,6 +775,50 @@ class RoutineEditorViewModel internal constructor(
      * every other write-through edit complains; the exit flush reports through the dock
      * instead, which is why the surfacing lives here and not in [commitTargetsNow].
      */
+    private val sheetSave = MutableStateFlow(TargetsSheetSave())
+
+    /** The Set targets sheet's own save: in flight, refused, or landed (A31). */
+    val targetsSheetSave: StateFlow<TargetsSheetSave> = sheetSave
+
+    /**
+     * Save targets from the sheet. Same staging and commit as a card's targets; the sheet
+     * only moves on once [TargetsSheetSave.savedItemId] names this row.
+     */
+    fun saveTargetsFromSheet(
+        itemId: String,
+        targetSets: Int,
+        targetReps: Int,
+        targetWeightKg: Double?,
+        restSeconds: Int,
+        targetSeconds: Int?,
+        targetSecondsMax: Int?,
+    ) {
+        if (leaving || sheetSave.value.saving) return
+        stageTargets(
+            itemId = itemId, targetSets = targetSets, targetReps = targetReps, targetWeightKg = targetWeightKg,
+            restSeconds = restSeconds, invalidReason = null, targetSeconds = targetSeconds,
+            targetSecondsMax = targetSecondsMax,
+        )
+        sheetSave.value = TargetsSheetSave(itemId = itemId, saving = true)
+        launchWrite {
+            val commit = commitTargetsNow(itemId)
+            sheetSave.value = when (val outcome = commit?.outcome?.outcome) {
+                null, RoutineWriteOutcome.Stored, RoutineWriteOutcome.NothingToWrite ->
+                    TargetsSheetSave(itemId = itemId, savedItemId = itemId)
+                is RoutineWriteOutcome.Rejected -> TargetsSheetSave(itemId = itemId, error = outcome.reason)
+                RoutineWriteOutcome.Failed -> TargetsSheetSave(
+                    itemId = itemId,
+                    error = RoutineSaveCopy.targetsFailed(commit.outcome.liftName),
+                )
+            }
+        }
+    }
+
+    /** The sheet moved on or closed; forget its last save. */
+    fun targetsSheetHandled() {
+        if (!sheetSave.value.saving) sheetSave.value = TargetsSheetSave()
+    }
+
     fun commitTargets(itemId: String) {
         if (leaving) return
         // Taken at the focus change, before anything suspends: a refusal raised after this
@@ -2171,3 +2215,11 @@ class RoutineEditorViewModel internal constructor(
         const val KEY_INITIAL_EXERCISE_ADDED = "editor.initialExerciseAdded"
     }
 }
+
+/** One Set targets sheet save, as the sheet shows it. */
+data class TargetsSheetSave(
+    val itemId: String? = null,
+    val saving: Boolean = false,
+    val error: String? = null,
+    val savedItemId: String? = null,
+)

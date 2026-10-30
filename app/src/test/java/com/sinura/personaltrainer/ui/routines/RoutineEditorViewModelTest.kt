@@ -1283,6 +1283,44 @@ class RoutineEditorViewModelTest {
         assertEquals("pause at the bottom", checkNotNull(deps.routineRepository.getById(fixture.routine.id)).notes)
     }
 
+    /** A31: the Set targets sheet's save lands, then names the row so the sheet moves on. */
+    @Test
+    fun targetsSheetSaveLandsThenMovesOn() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        vm.saveTargetsFromSheet(itemId = itemId, targetSets = 4, targetReps = 8, targetWeightKg = null,
+            restSeconds = 120, targetSeconds = null, targetSecondsMax = null)
+        val saved = vm.targetsSheetSave.awaitFirst { it.savedItemId == itemId }
+        assertFalse(saved.saving)
+        assertEquals(null, saved.error)
+        val row = checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single()
+        assertEquals(4, row.targetSets)
+        assertEquals(8, row.targetReps)
+        assertEquals(120, row.restSeconds)
+        vm.targetsSheetHandled()
+        assertEquals(TargetsSheetSave(), vm.targetsSheetSave.value)
+    }
+
+    /** A31: a refused sheet save stays on the lift with its reason, and nothing moves on. */
+    @Test
+    fun targetsSheetRefusalStaysWithItsReason() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        vm.saveTargetsFromSheet(itemId = itemId, targetSets = 0, targetReps = 8, targetWeightKg = null,
+            restSeconds = 120, targetSeconds = null, targetSecondsMax = null)
+        val refused = vm.targetsSheetSave.awaitFirst { it.error != null }
+        assertEquals(null, refused.savedItemId)
+        assertEquals(3, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetSets)
+    }
+
     /** A card reading 0 sets is unsaved work too. Back asks; fixing it and trying again lands it. */
     @Test
     fun backWithARejectedTargetAsksInsteadOfDroppingIt() = runBlocking {

@@ -159,7 +159,7 @@ fun RoutineEditorScreen(
             if (recovery.fields != null) {
                 Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())
                     .padding(Metrics.gutter), verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-                    Text("Original routine missing", style = InstrumentType.title, color = TextPrimary)
+                    Text(stringResource(R.string.routine_original_missing), style = InstrumentType.title, color = TextPrimary)
                     Text("Your unfinished fields remain on this device. No routine has been recreated.",
                         style = InstrumentType.caption, color = TextTertiary)
                     Text(recovery.fields?.name.orEmpty(), style = InstrumentType.bodyStrong, color = TextPrimary)
@@ -357,7 +357,7 @@ fun RoutineEditorScreen(
                 // Quiet, after the program. The empty state's filled action is the first add.
                 item(key = "add") {
                     SecondaryGymButton(
-                        text = if (state.addingLifts) "Adding…" else stringResource(R.string.routine_add_exercise),
+                        text = if (state.addingLifts) stringResource(R.string.routine_adding) else stringResource(R.string.routine_add_exercise),
                         onClick = { viewModel.setPickerVisible(true) },
                         enabled = !state.addingLifts,
                         modifier = Modifier
@@ -415,8 +415,10 @@ fun RoutineEditorScreen(
                     is ExercisePickerEvent.Toggled -> viewModel.togglePicked(event.exercise)
                     ExercisePickerEvent.Dismissed -> {
                         val added = state.pickedIds - pickerBaseline.toSet()
+                        // Only a picker that may close hands its lifts to Set targets.
+                        val closing = viewModel.canDismissPicker()
                         viewModel.setPickerVisible(false)
-                        if (added.isNotEmpty()) targetsQueue = added
+                        if (closing && added.isNotEmpty()) targetsQueue = added
                     }
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissPickerError()
                     ExercisePickerEvent.Retry -> viewModel.retryPicker()
@@ -432,6 +434,15 @@ fun RoutineEditorScreen(
             if (!state.addingLifts && state.routine != null) targetsQueue = targetsQueue.drop(1)
         } else {
             val hold = HoldWork.isHold(row.exercise)
+            val save by viewModel.targetsSheetSave.collectAsStateWithLifecycle()
+            val mine = save.itemId == row.id
+            // Move on only once the commit has landed; a refusal stays on this lift.
+            LaunchedEffect(save.savedItemId) {
+                if (save.savedItemId == row.id) {
+                    targetsQueue = targetsQueue.drop(1)
+                    viewModel.targetsSheetHandled()
+                }
+            }
             TargetsSheet(
                 liftName = row.exercise.name,
                 initial = TargetsValues(
@@ -440,23 +451,23 @@ fun RoutineEditorScreen(
                     restSeconds = row.restSeconds,
                 ),
                 hold = hold,
-                saving = false,
-                error = null,
+                saving = mine && save.saving,
+                error = save.error.takeIf { mine },
                 onSave = { values ->
-                    viewModel.stageTargets(
+                    viewModel.saveTargetsFromSheet(
                         itemId = row.id,
                         targetSets = values.sets,
                         targetReps = if (hold) row.targetReps else values.reps,
                         targetWeightKg = row.targetWeightKg,
                         restSeconds = values.restSeconds,
-                        invalidReason = null,
                         targetSeconds = if (hold) values.reps else row.targetSeconds,
                         targetSecondsMax = row.targetSecondsMax,
                     )
-                    viewModel.commitTargets(row.id)
-                    targetsQueue = targetsQueue.drop(1)
                 },
-                onDismiss = { targetsQueue = emptyList() },
+                onDismiss = {
+                    targetsQueue = emptyList()
+                    viewModel.targetsSheetHandled()
+                },
             )
         }
     }
