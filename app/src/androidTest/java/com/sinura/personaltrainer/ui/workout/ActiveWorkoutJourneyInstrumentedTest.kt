@@ -336,7 +336,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
 
         compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).performClick()
         compose.waitUntilFinishEnabledInOverflow(10_000)
-        compose.onNodeWithContentDescription("Close").performClick()
+        // The overflow is already open with Finish enabled; Close here would leave the session again.
         compose.openFinishFromOverflow()
         compose.onNodeWithTag(WorkoutTestTags.FINISH_SHEET).assertIsDisplayed()
         compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
