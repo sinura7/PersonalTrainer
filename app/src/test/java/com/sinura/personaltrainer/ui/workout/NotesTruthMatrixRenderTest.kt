@@ -319,7 +319,8 @@ class NotesTruthMatrixRenderTest {
         heldWrite = CompletableDeferred()
         // History detail is a lazy list: bring the notes field into composition first
         // (landscape fonts 1.0-2.0 start with it below the fold).
-        if (compose.onAllNodes(hasTestTag(SessionDetailTestTags.CONTENT)).fetchSemanticsNodes().isNotEmpty()) {
+        val fieldComposed = compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
+        if (!fieldComposed && compose.onAllNodes(hasTestTag(SessionDetailTestTags.CONTENT)).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(hasSetTextAction())
             compose.settle()
         }
