@@ -171,6 +171,8 @@ fun HomeScreen(
     var lastToday by rememberSaveable { mutableLongStateOf(today) }
     var startSheet by rememberSaveable { mutableStateOf(false) }
     var startSheetRequestId by rememberSaveable { mutableStateOf("") }
+    // R5: a routine picked in the start sheet opens the preview first; Begin is the start.
+    var sheetPreviewRoutineId by rememberSaveable { mutableStateOf<String?>(null) }
     // Modal ownership must outlive a LazyColumn item leaving composition. Inserting the
     // recovery banner or scrolling the underlying board must never dismiss a pending start.
     var plannedStartPending by rememberSaveable(stateSaver = HomePlannedStartSaver) {
@@ -183,6 +185,7 @@ fun HomeScreen(
     LaunchedEffect(startedSessionId) {
         val id = startedSessionId ?: return@LaunchedEffect
         startSheet = false
+        sheetPreviewRoutineId = null
         plannedStartPending = null
         fallbackStartPending = null
         onResumeWorkout(id)
@@ -191,6 +194,7 @@ fun HomeScreen(
     LaunchedEffect(cardioId) {
         val id = cardioId ?: return@LaunchedEffect
         startSheet = false
+        sheetPreviewRoutineId = null
         plannedStartPending = null
         fallbackStartPending = null
         onOpenLiveCardio(id)
@@ -199,6 +203,7 @@ fun HomeScreen(
     LaunchedEffect(composerMode) {
         val mode = composerMode ?: return@LaunchedEffect
         startSheet = false
+        sheetPreviewRoutineId = null
         plannedStartPending = null
         fallbackStartPending = null
         onLogActivity(mode)
@@ -207,6 +212,7 @@ fun HomeScreen(
     LaunchedEffect(blocked) {
         if (blocked != null) {
             startSheet = false
+            sheetPreviewRoutineId = null
             plannedStartPending = null
             fallbackStartPending = null
         }
@@ -640,6 +646,37 @@ fun HomeScreen(
         )
     }
 
+    val sheetPreviewRoutine = sheetPreviewRoutineId?.let { id -> state.routines.firstOrNull { it.id == id } }
+    if (startSheet && sheetPreviewRoutine != null) {
+        HomeStartPrompt(
+            routine = sheetPreviewRoutine,
+            unit = unit,
+            loadWeights = viewModel::previewWeights,
+            onEditRoutine = onOpenRoutine,
+            pending = starting.pending,
+            labelOverridden = starting.pending || starting.error != null,
+            title = sheetPreviewRoutine.name,
+            body = "",
+            confirmLabel = when {
+                starting.pending -> "Starting…"
+                starting.error != null -> "Start unavailable"
+                else -> "Begin"
+            },
+            onConfirm = {
+                if (sheetPreviewRoutineId == sheetPreviewRoutine.id &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId
+                ) viewModel.startRoutine(sheetPreviewRoutine.id)
+            },
+            onDismiss = { sheetPreviewRoutineId = null },
+            confirmEnabled = !starting.pending && starting.error == null,
+            dismissEnabled = !starting.pending,
+            canDismiss = { !viewModel.startState.value.pending },
+            canConfirm = { viewModel.startState.value.attemptId == renderedStartAttemptId },
+            // The sheet underneath already shows the pending and error lines.
+            contextContent = {},
+            actionKey = renderedStartAttemptId,
+        )
+    }
     if (startSheet) {
         val sheetOwner = startSheetRequestId
         HomeStartSheet(
@@ -657,8 +694,10 @@ fun HomeScreen(
             },
             onStartRoutine = { routineId ->
                 if (startSheet && startSheetRequestId == sheetOwner &&
-                    viewModel.startState.value.attemptId == renderedStartAttemptId
-                ) viewModel.startRoutine(routineId)
+                    viewModel.startState.value.attemptId == renderedStartAttemptId &&
+                    // A stale tap after a failed read opens nothing, as the start would refuse.
+                    viewModel.uiState.value.mutationEnabled
+                ) sheetPreviewRoutineId = routineId
             },
             onStartCardio = { type ->
                 if (startSheet && startSheetRequestId == sheetOwner &&

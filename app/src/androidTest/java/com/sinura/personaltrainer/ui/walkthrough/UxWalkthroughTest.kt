@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.walkthrough
 
+import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -575,6 +576,10 @@ class UxWalkthroughTest {
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
         compose.onNodeWithTag(HomeStartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
+        harnessWaitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -769,6 +774,10 @@ class UxWalkthroughTest {
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
         compose.onNodeWithTag(HomeStartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
+        harnessWaitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
         harnessWaitUntil(60_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
