@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -19,6 +18,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.sinura.personaltrainer.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,9 +40,7 @@ import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioEntry
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CatalogMeta
-import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.ComposerCopy
-import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
@@ -135,6 +135,7 @@ fun ActivityComposerScreen(
                 ComposerSaveDock(
                     saving = state.saving,
                     canSave = state.canSave,
+                    supporting = composerSaveSupport(state),
                     onSave = viewModel::save,
                     onCancel = leave,
                     onDiscardDraft = if (viewModel.formRecovery != null) {
@@ -174,29 +175,12 @@ fun ActivityComposerScreen(
                 )
             }
             item {
-                Kicker("When")
-                Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-                    TextButton(onClick = { viewModel.shiftDay(-1) }) {
-                        Text(ComposerCopy.EARLIER)
-                    }
-                    Text(
-                        DateCopy.weekdayShort(
-                            CivilDate.fromEpochDay(state.epochDay).toJavaLocalDate(),
-                        ),
-                        style = InstrumentType.bodyStrong,
-                        color = TextPrimary,
-                        modifier = Modifier.padding(top = Metrics.space3),
-                    )
-                    TextButton(
-                        onClick = { viewModel.shiftDay(1) },
-                        enabled = state.canShiftLater,
-                    ) {
-                        Text(
-                            ComposerCopy.LATER,
-                            color = if (state.canShiftLater) TextPrimary else TextSecondary,
-                        )
-                    }
-                }
+                PastSessionWhenField(
+                    epochDay = state.epochDay,
+                    todayEpochDay = state.todayEpochDay,
+                    enabled = formEditable,
+                    onPick = viewModel::setEpochDay,
+                )
             }
             if (state.mode != ComposerMode.CARDIO) {
                 item { Kicker("Strength") }
@@ -294,6 +278,7 @@ internal fun ComposerSaveDock(
     onCancel: () -> Unit,
     onDiscardDraft: (() -> Unit)? = null,
     enabled: Boolean = true,
+    supporting: String? = null,
 ) {
     val saveEnabled = !saving && enabled && canSave
     PinnedDock(
@@ -303,6 +288,7 @@ internal fun ComposerSaveDock(
                 onClick = { if (saveEnabled) onSave() },
                 modifier = Modifier.testTag(ComposerTags.SAVE),
                 enabled = saveEnabled,
+                supporting = supporting.takeUnless { saving },
             )
         },
         secondary = {
@@ -669,10 +655,21 @@ private fun composerTitle(mode: ComposerMode): String = when (mode) {
     ComposerMode.MIXED -> "Log a mixed session"
 }
 
-private fun CivilDate.toJavaLocalDate(): java.time.LocalDate =
-    java.time.LocalDate.ofEpochDay(epochDay)
+
+/** 4.16: what Save will write, or why it cannot yet. */
+@Composable
+internal fun composerSaveSupport(state: ActivityComposerUiState): String {
+    if (state.strength.isEmpty() && state.cardio.isEmpty()) return stringResource(R.string.past_save_empty)
+    val lifts = state.strength.map { it.exercise.id }.distinct().size
+    val sets = state.strength.size
+    val liftText = pluralStringResource(R.plurals.past_save_lifts, lifts, lifts)
+    val setText = pluralStringResource(R.plurals.past_save_sets, sets, sets)
+    return stringResource(R.string.past_save_sub, liftText, setText)
+}
 
 object ComposerTags {
+    const val WHEN = "activity-composer-when"
+    const val WHEN_CONFIRM = "activity-composer-when-confirm"
     const val SAVE = "activity-composer-save"
     const val CANCEL = "activity-composer-cancel"
     const val ADD_SET = "activity-composer-add-set"

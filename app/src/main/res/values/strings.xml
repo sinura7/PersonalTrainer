@@ -135,4 +135,17 @@
     <string name="history_effort_hint">Right side number is effort. Tap a set to edit.</string>
     <string name="history_repeat">Repeat this workout</string>
     <string name="history_warmup_mark">W</string>
+    <string name="past_when">When</string>
+    <string name="past_when_done">Done</string>
+    <string name="past_when_cancel">Cancel</string>
+    <string name="past_save_sub">%1$s · %2$s</string>
+    <string name="past_save_empty">Add a lift or cardio</string>
+    <plurals name="past_save_lifts">
+        <item quantity="one">%d exercise</item>
+        <item quantity="other">%d exercises</item>
+    </plurals>
+    <plurals name="past_save_sets">
+        <item quantity="one">%d set</item>
+        <item quantity="other">%d sets</item>
+    </plurals>
 </resources>
