@@ -1,0 +1,269 @@
+{
+ "trunk": "2db47c2c",
+ "items": [
+  {
+   "id": "A01",
+   "text": "Plan tab shows content after load, never blank",
+   "evidence": "screenshot flow03_step02_tab-plan + PlanLoadsRenderTest (NEW)",
+   "packet": "R0"
+  },
+  {
+   "id": "A02",
+   "text": "Summary screen renders, never black",
+   "evidence": "screenshot flow04_step10_strength-finished-summary + SummaryRendersRenderTest (NEW)",
+   "packet": "R0"
+  },
+  {
+   "id": "A03",
+   "text": "Primary button is 64dp tall and full width minus 16dp",
+   "evidence": "DockCommitRenderTest",
+   "packet": "R1"
+  },
+  {
+   "id": "A04",
+   "text": "Every tappable is at least 48dp",
+   "evidence": "checker + LargeTextEntryRenderTest",
+   "packet": "R1"
+  },
+  {
+   "id": "A05",
+   "text": "Effort prefilled from the last working set, dotted",
+   "evidence": "EffortPrefillTest (NEW)",
+   "packet": "R1"
+  },
+  {
+   "id": "A06",
+   "text": "Log stays disabled with \"Pick an effort\" when no effort and none prefilled",
+   "evidence": "FirstWorkingSetRenderTest",
+   "packet": "R1"
+  },
+  {
+   "id": "A07",
+   "text": "Warm-ups show no effort chips and never start rest",
+   "evidence": "screenshot flow04_step01 + ActiveWorkoutViewModelTest",
+   "packet": "R1"
+  },
+  {
+   "id": "A08",
+   "text": "Font scale 1.3: numerals scale, nothing truncated, Log visible",
+   "evidence": "screenshot flow09_step01_strength-live-font-1-3 + LargeTextEntryRenderTest",
+   "packet": "R1"
+  },
+  {
+   "id": "A09",
+   "text": "Font scale 2.0: effort chips wrap to two rows",
+   "evidence": "LargeTextEntryRenderTest",
+   "packet": "R1"
+  },
+  {
+   "id": "A10",
+   "text": "Set pills show done, now, next, warm-up",
+   "evidence": "SetPillRenderTest (NEW)",
+   "packet": "R1"
+  },
+  {
+   "id": "A11",
+   "text": "No checker baseline increases",
+   "evidence": "tools/checker-baselines.toml diff",
+   "packet": "R1-R5"
+  },
+  {
+   "id": "A12",
+   "text": "Rest primary uses RestCyan and says Start set N now",
+   "evidence": "screenshot flow04_step03 + FloorCompactRestBarTest",
+   "packet": "R2"
+  },
+  {
+   "id": "A13",
+   "text": "Rest ring done turns Volt with holdDone haptic",
+   "evidence": "RestCompletionLayoutInstrumentedTest",
+   "packet": "R2"
+  },
+  {
+   "id": "A14",
+   "text": "Tempo sheet opens only when next target changes",
+   "evidence": "TempoSheetRenderTest (NEW)",
+   "packet": "R2"
+  },
+  {
+   "id": "A15",
+   "text": "Using Tempo can be undone within the undo window",
+   "evidence": "FloorPacketGUndoTest",
+   "packet": "R2"
+  },
+  {
+   "id": "A16",
+   "text": "After the last planned set, What next sheet opens",
+   "evidence": "screenshot flow04_step06",
+   "packet": "R3"
+  },
+  {
+   "id": "A17",
+   "text": "Between lifts shows next lift and keeps rest running",
+   "evidence": "screenshot flow04_step06",
+   "packet": "R3"
+  },
+  {
+   "id": "A18",
+   "text": "Finish blocked while a correction is open",
+   "evidence": "FinishWithOpenCorrectionRenderTest",
+   "packet": "R3"
+  },
+  {
+   "id": "A19",
+   "text": "Summary shows sets, volume, PRs; Tempo card only on change",
+   "evidence": "screenshot flow04_step10",
+   "packet": "R3"
+  },
+  {
+   "id": "A20",
+   "text": "Today primary is Start workout with day and lift count",
+   "evidence": "screenshot flow03_step01_tab-home",
+   "packet": "R4"
+  },
+  {
+   "id": "A21",
+   "text": "Preview Begin creates exactly one session",
+   "evidence": "PreviewBeginRenderTest (NEW) + WorkoutEntryJourneyInstrumentedTest",
+   "packet": "R4"
+  },
+  {
+   "id": "A22",
+   "text": "Plan day save handles back with unsaved edits",
+   "evidence": "RoutineEditor tests",
+   "packet": "R5"
+  },
+  {
+   "id": "A23",
+   "text": "Past session uses one When field",
+   "evidence": "screenshot flow06_step02",
+   "packet": "R5"
+  },
+  {
+   "id": "A24",
+   "text": "Cardio Finish enabled only after 60 s",
+   "evidence": "screenshot flow05_step02 + CardioFinishGateTest (NEW)",
+   "packet": "R5"
+  },
+  {
+   "id": "A25",
+   "text": "History detail shows warm-ups marked W and effort hint",
+   "evidence": "screenshot flow03_step04",
+   "packet": "R5"
+  },
+  {
+   "id": "A26",
+   "text": "All strings on touched screens come from strings.xml ids",
+   "evidence": "lint grep in review",
+   "packet": "R1-R5"
+  },
+  {
+   "id": "A27",
+   "text": "Today: all six states implemented as specced",
+   "evidence": "render test per state for 01_today",
+   "packet": "R4"
+  },
+  {
+   "id": "A28",
+   "text": "Plan week: all six states implemented as specced",
+   "evidence": "render test per state for 02_plan_week",
+   "packet": "R5"
+  },
+  {
+   "id": "A29",
+   "text": "Plan day (routine editor): all six states implemented as specced",
+   "evidence": "render test per state for 03_plan_day",
+   "packet": "R5"
+  },
+  {
+   "id": "A30",
+   "text": "Add exercise (picker): all six states implemented as specced",
+   "evidence": "render test per state for 04_picker",
+   "packet": "R5"
+  },
+  {
+   "id": "A31",
+   "text": "Set targets sheet: all six states implemented as specced",
+   "evidence": "render test per state for 05_targets",
+   "packet": "R5"
+  },
+  {
+   "id": "A32",
+   "text": "Pre-workout preview: all six states implemented as specced",
+   "evidence": "render test per state for 06_preview",
+   "packet": "R4"
+  },
+  {
+   "id": "A33",
+   "text": "Live set, warm-up: all six states implemented as specced",
+   "evidence": "render test per state for 07_live_warmup",
+   "packet": "R1"
+  },
+  {
+   "id": "A34",
+   "text": "Live set, working: all six states implemented as specced",
+   "evidence": "render test per state for 08_live_working",
+   "packet": "R1"
+  },
+  {
+   "id": "A35",
+   "text": "Rest state: all six states implemented as specced",
+   "evidence": "render test per state for 09_rest",
+   "packet": "R2"
+  },
+  {
+   "id": "A36",
+   "text": "Tempo suggestion sheet: all six states implemented as specced",
+   "evidence": "render test per state for 10_tempo",
+   "packet": "R2"
+  },
+  {
+   "id": "A37",
+   "text": "What next sheet: all six states implemented as specced",
+   "evidence": "render test per state for 11_set_options",
+   "packet": "R3"
+  },
+  {
+   "id": "A38",
+   "text": "Between lifts: all six states implemented as specced",
+   "evidence": "render test per state for 12_between",
+   "packet": "R3"
+  },
+  {
+   "id": "A39",
+   "text": "Finish confirm: all six states implemented as specced",
+   "evidence": "render test per state for 13_finish",
+   "packet": "R3"
+  },
+  {
+   "id": "A40",
+   "text": "Summary: all six states implemented as specced",
+   "evidence": "render test per state for 14_summary",
+   "packet": "R3"
+  },
+  {
+   "id": "A41",
+   "text": "History detail: all six states implemented as specced",
+   "evidence": "render test per state for 15_history_detail",
+   "packet": "R5"
+  },
+  {
+   "id": "A42",
+   "text": "Past-session logger: all six states implemented as specced",
+   "evidence": "render test per state for 16_past_session",
+   "packet": "R5"
+  },
+  {
+   "id": "A43",
+   "text": "Cardio live: all six states implemented as specced",
+   "evidence": "render test per state for 17_cardio",
+   "packet": "R5"
+  },
+  {
+   "id": "A44",
+   "text": "Live set at font scale 1.3: all six states implemented as specced",
+   "evidence": "render test per state for 18_live_font13",
+   "packet": "R1"
+  }
+ ]
+}
