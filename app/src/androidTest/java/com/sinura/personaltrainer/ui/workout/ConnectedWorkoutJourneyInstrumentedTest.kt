@@ -459,6 +459,10 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
         compose.onNodeWithTag(HomeStartTags.routine(fixture.routineId)).performScrollTo().performClick()
+        awaitCondition("the routine pick opens the preview") {
+            compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
         awaitCondition("Home creates the synthetic swap session") {
             runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress()?.let {
                 if (it.routineId == fixture.routineId) sessionId = it.id
