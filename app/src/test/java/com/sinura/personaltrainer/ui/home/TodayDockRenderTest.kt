@@ -44,9 +44,9 @@ class TodayDockRenderTest {
                 TodayPrimaryAction(todayStart = TodayDockStart(dayName = "Upper A", liftCount = 5, onStart = {}), onResume = { resumed++ })
             }
         }
+        compose.onNodeWithTag(HomeTags.TODAY_HERO).assertTextContains("Workout in progress")
         compose.onNodeWithTag(HomeTags.TODAY_RESUME).assertIsDisplayed()
             .assertTextContains("Resume workout", substring = true)
-            .assertTextContains("Workout in progress", substring = true)
             .performClick()
         assertEquals(1, resumed)
         compose.onNodeWithTag(HomeTags.TODAY_START).assertDoesNotExist()
@@ -59,5 +59,57 @@ class TodayDockRenderTest {
         }
         compose.onNodeWithTag(HomeTags.TODAY_START).assertDoesNotExist()
         compose.onNodeWithTag(HomeTags.TODAY_RESUME).assertDoesNotExist()
+    }
+
+    @Test
+    fun emptyStateShowsNoPlanYetAndBuildYourWeek() {
+        var built = 0
+        compose.setContent {
+            PersonalTrainerTheme {
+                TodayPrimaryAction(todayStart = null, onResume = null, onBuildWeek = { built++ })
+            }
+        }
+        compose.onNodeWithTag(HomeTags.TODAY_HERO).assertTextContains("No plan yet")
+        compose.onNodeWithTag(HomeTags.TODAY_BUILD_WEEK).assertIsDisplayed()
+            .assertTextContains("Build your week", substring = true)
+            .performClick()
+        assertEquals(1, built)
+    }
+
+    @Test
+    fun firstTimeStateCaptionsTheStartWithYourFirstWorkout() {
+        compose.setContent {
+            PersonalTrainerTheme {
+                TodayPrimaryAction(
+                    todayStart = TodayDockStart(dayName = "Upper A", liftCount = 5, onStart = {}, firstTime = true),
+                    onResume = null,
+                )
+            }
+        }
+        compose.onNodeWithTag(HomeTags.TODAY_HERO).assertTextContains("Your first workout")
+        compose.onNodeWithTag(HomeTags.TODAY_START).assertIsDisplayed()
+    }
+
+    @Test
+    fun aReturningUserHasNoFirstWorkoutCaption() {
+        compose.setContent {
+            PersonalTrainerTheme {
+                TodayPrimaryAction(todayStart = TodayDockStart(dayName = "Upper A", liftCount = 5, onStart = {}), onResume = null)
+            }
+        }
+        compose.onNodeWithTag(HomeTags.TODAY_HERO).assertDoesNotExist()
+    }
+
+    @Test
+    fun errorStateIsAnInlineCouldNotLoadTodayWithTryAgain() {
+        var retries = 0
+        compose.setContent {
+            PersonalTrainerTheme {
+                HomeReadRecovery(state = HomeUiState(readProblem = "Your plan could not be read."), onRetry = { retries++ })
+            }
+        }
+        compose.onNodeWithTag(HomeTags.TODAY_ERROR).assertTextContains("Could not load today")
+        compose.onNodeWithTag(HomeTags.RETRY).assertTextContains("Try again").performClick()
+        assertEquals(1, retries)
     }
 }

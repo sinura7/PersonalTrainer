@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -725,6 +727,7 @@ fun HomeScreen(
         TodayDockStart(
             dayName = todayStartRoutine.name,
             liftCount = todayStartRoutine.exercises.size,
+            firstTime = state.loggedEpochDays.isEmpty(),
             onStart = {
                 if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
                     val id = todaySheetStart.occurrenceId
@@ -744,6 +747,10 @@ fun HomeScreen(
     HomeBoardLayout(
         todayStart = todayDockStart,
         onResume = liveSessionId?.let { id -> { onResumeWorkout(id) } },
+        onBuildWeek = onOpenPlan.takeIf {
+            selectedEpochDay == today && !sessionLive && state.readState == HomeReadState.CURRENT &&
+                state.rules.isEmpty() && selectedAgenda.isEmpty() && !trainingToday && nextDay == null
+        },
         startRank = homeStartRank(
             surface = daySurface, sessionLive = sessionLive,
             quietStart = state.missedWorkPrompt, trainingToday = trainingToday,
@@ -1145,6 +1152,12 @@ internal fun HomeReadRecovery(state: HomeUiState, onRetry: () -> Unit) {
     val problem = state.readProblem ?: return
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         Text(
+            text = stringResource(R.string.today_error),
+            modifier = Modifier.testTag(HomeTags.TODAY_ERROR),
+            style = InstrumentType.bodyStrong,
+            color = TextPrimary,
+        )
+        Text(
             problem,
             modifier = Modifier
                 .testTag(HomeTags.READ_PROBLEM)
@@ -1160,7 +1173,7 @@ internal fun HomeReadRecovery(state: HomeUiState, onRetry: () -> Unit) {
                 .testTag(HomeTags.RETRY),
         ) {
             Text(
-                if (state.retryPending) "Reading again…" else "Retry",
+                if (state.retryPending) "Reading again…" else stringResource(R.string.today_error_retry),
                 style = InstrumentType.bodyStrong,
                 color = TextSecondary,
             )
@@ -1251,6 +1264,9 @@ object HomeTags {
     const val BOARD = "home-board"
     const val TODAY_START = "today_start_cta"
     const val TODAY_RESUME = "today_resume_cta"
+    const val TODAY_BUILD_WEEK = "today_build_week_cta"
+    const val TODAY_HERO = "today_hero"
+    const val TODAY_ERROR = "today_error"
     const val DATE = "home-selected-date"
     const val READ_PROBLEM = "home-read-problem"
     const val RETRY = "home-read-retry"

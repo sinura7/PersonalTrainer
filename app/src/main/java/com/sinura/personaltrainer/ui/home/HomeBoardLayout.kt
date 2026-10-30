@@ -46,6 +46,7 @@ internal fun HomeBoardLayout(
     modifier: Modifier = Modifier,
     todayStart: TodayDockStart? = null,
     onResume: (() -> Unit)? = null,
+    onBuildWeek: (() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -58,7 +59,7 @@ internal fun HomeBoardLayout(
             verticalArrangement = Arrangement.spacedBy(Metrics.space5),
             content = content,
         )
-        val primary = onResume != null || todayStart != null
+        val primary = onResume != null || todayStart != null || onBuildWeek != null
         if (startRank != FreeStartRank.HIDDEN || primary) {
             HairlineDivider(startIndent = 0.dp)
             val padded = Modifier.fillMaxWidth().padding(horizontal = Metrics.gutter, vertical = Metrics.space2)
@@ -69,14 +70,14 @@ internal fun HomeBoardLayout(
             if (primary && windowHeight < COMPACT_DOCK_HEIGHT) {
                 Row(modifier = padded, horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                     verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.weight(1f)) { TodayPrimaryAction(todayStart = todayStart, onResume = onResume) }
+                    Box(modifier = Modifier.weight(1f)) { TodayPrimaryAction(todayStart = todayStart, onResume = onResume, onBuildWeek = onBuildWeek) }
                     if (rank != FreeStartRank.HIDDEN) {
                         Box(modifier = Modifier.weight(1f)) { HomeStartAction(rank = rank, onStartFree = onStartFree) }
                     }
                 }
             } else {
                 Column(modifier = padded, verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                    TodayPrimaryAction(todayStart = todayStart, onResume = onResume)
+                    TodayPrimaryAction(todayStart = todayStart, onResume = onResume, onBuildWeek = onBuildWeek)
                     HomeStartAction(rank = rank, onStartFree = onStartFree)
                 }
             }
@@ -136,22 +137,50 @@ internal data class TodayDockStart(
     val dayName: String,
     val liftCount: Int,
     val onStart: () -> Unit,
+    /** No workout logged yet: the hero carries "Your first workout". */
+    val firstTime: Boolean = false,
 )
 
 @Composable
-internal fun TodayPrimaryAction(todayStart: TodayDockStart?, onResume: (() -> Unit)?) {
-    when {
-        onResume != null -> PrimaryButton(
-            label = stringResource(R.string.today_resume_cta),
-            subLabel = stringResource(R.string.today_in_progress),
-            onClick = onResume,
-            modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_RESUME),
-        )
-        todayStart != null -> PrimaryButton(
-            label = stringResource(R.string.today_start_cta),
-            subLabel = pluralStringResource(R.plurals.today_start_sub, todayStart.liftCount, todayStart.dayName, todayStart.liftCount),
-            onClick = todayStart.onStart,
-            modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_START),
-        )
+internal fun TodayPrimaryAction(
+    todayStart: TodayDockStart?,
+    onResume: (() -> Unit)?,
+    onBuildWeek: (() -> Unit)? = null,
+) {
+    // Blueprint 4.1 states: Resume, First time (a caption on Start), Start, Empty.
+    val hero = when {
+        onResume != null -> stringResource(R.string.today_in_progress)
+        todayStart != null -> if (todayStart.firstTime) stringResource(R.string.today_first_caption) else null
+        onBuildWeek != null -> stringResource(R.string.today_no_plan)
+        else -> null
+    }
+    if (hero == null && onResume == null && todayStart == null) return
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+        if (hero != null) {
+            Text(
+                text = hero,
+                modifier = Modifier.testTag(HomeTags.TODAY_HERO),
+                style = InstrumentType.bodyStrong,
+                color = TextSecondary,
+            )
+        }
+        when {
+            onResume != null -> PrimaryButton(
+                label = stringResource(R.string.today_resume_cta),
+                onClick = onResume,
+                modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_RESUME),
+            )
+            todayStart != null -> PrimaryButton(
+                label = stringResource(R.string.today_start_cta),
+                subLabel = pluralStringResource(R.plurals.today_start_sub, todayStart.liftCount, todayStart.dayName, todayStart.liftCount),
+                onClick = todayStart.onStart,
+                modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_START),
+            )
+            onBuildWeek != null -> PrimaryButton(
+                label = stringResource(R.string.today_build_week_cta),
+                onClick = onBuildWeek,
+                modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_BUILD_WEEK),
+            )
+        }
     }
 }

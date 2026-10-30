@@ -125,4 +125,9 @@
     </plurals>
     <string name="today_resume_cta">Resume workout</string>
     <string name="today_in_progress">Workout in progress</string>
+    <string name="today_build_week_cta">Build your week</string>
+    <string name="today_no_plan">No plan yet</string>
+    <string name="today_error">Could not load today</string>
+    <string name="today_error_retry">Try again</string>
+    <string name="today_first_caption">Your first workout</string>
 </resources>
