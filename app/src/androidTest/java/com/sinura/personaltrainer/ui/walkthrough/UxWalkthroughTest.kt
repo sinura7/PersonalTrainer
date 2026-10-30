@@ -527,14 +527,14 @@ class UxWalkthroughTest {
     private fun flowMainTabs() {
         preparePopulatedApp()
         val tabRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
-        for (label in listOf("Home", "Plan", "Body", "History", "Settings")) {
+        for (label in listOf("Today", "Plan", "Body", "History", "Settings")) {
             dismissTransientOverlays()
             compose.onNode(hasText(label.uppercase()) and tabRole).performClick()
             when (label) {
                 "Plan" -> awaitPlanTabReadyForCapture()
                 else -> {
                     val loaded = when (label) {
-                        "Home" -> hasTestTag(HomeTags.START)
+                        "Today" -> hasTestTag(HomeTags.START)
                         "Body" -> hasTestTag(BodyTags.MAP)
                         "History" -> hasTestTag("history-horizon-readout")
                         else -> hasTestTag(SettingsTags.HOME)
@@ -1042,7 +1042,7 @@ class UxWalkthroughTest {
         dismissSystemNotRespondingDialogs()
         val tabRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
         val label = when (path) {
-            "home" -> "Home"
+            "home" -> "Today"
             "progress" -> "Body"
             "routines" -> "Plan"
             "history" -> "History"

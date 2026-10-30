@@ -9,7 +9,7 @@ class ShippingTabsTest {
     @Test
     fun settingsIsTheFifthTabAndLibraryIsNotATab() {
         assertEquals(
-            listOf("Home", "Body", "Plan", "History", "Settings"),
+            listOf("Today", "Body", "Plan", "History", "Settings"),
             shippingTabs.map { it.label },
         )
         assertEquals(

@@ -199,11 +199,13 @@ class HomeDayContinuityInstrumentedTest {
         val live = read { checkNotNull(container.workoutRepository.getSession(checkNotNull(sessionId))) }
         assertEquals(LocalDate.ofEpochDay(today), Instant.ofEpochMilli(live.startedAt).atZone(ZoneId.systemDefault()).toLocalDate())
         compose.onNodeWithContentDescription("Close").assertIsDisplayed().performClick()
-        await(LiveSessionBarTestTags.ROOT)
+        // Today resumes the live workout from its own primary; the bar steps aside there.
+        await(HomeTags.TODAY_RESUME)
+        compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertDoesNotExist()
         assertDate(selected)
         compose.onNodeWithTag(HomeTags.START).assertDoesNotExist()
-        compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).performClick()
-        compose.waitUntil(30000) { compose.onAllNodes(hasTestTag(LiveSessionBarTestTags.ROOT)).fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithTag(HomeTags.TODAY_RESUME).performClick()
+        compose.waitUntil(30000) { compose.onAllNodes(hasTestTag(HomeTags.TODAY_RESUME)).fetchSemanticsNodes().isEmpty() }
         assertEquals(sessionId, read { container.workoutRepository.getInProgress()?.id })
         assertTrue(read { container.workoutRepository.getSession(checkNotNull(sessionId))!!.sets.isEmpty() })
         capture("same-live-workout")

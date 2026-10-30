@@ -1,7 +1,15 @@
 package com.sinura.personaltrainer.ui.home
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import com.sinura.personaltrainer.ui.components.PrimaryButton
+import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +44,9 @@ internal fun HomeBoardLayout(
     startRank: FreeStartRank,
     onStartFree: () -> Unit,
     modifier: Modifier = Modifier,
+    todayStart: TodayDockStart? = null,
+    onResume: (() -> Unit)? = null,
+    onBuildWeek: (() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -48,10 +59,27 @@ internal fun HomeBoardLayout(
             verticalArrangement = Arrangement.spacedBy(Metrics.space5),
             content = content,
         )
-        if (startRank != FreeStartRank.HIDDEN) {
+        val primary = onResume != null || todayStart != null || onBuildWeek != null
+        if (startRank != FreeStartRank.HIDDEN || primary) {
             HairlineDivider(startIndent = 0.dp)
-            Box(Modifier.fillMaxWidth().padding(horizontal = Metrics.gutter, vertical = Metrics.space2)) {
-                HomeStartAction(rank = startRank, onStartFree = onStartFree)
+            val padded = Modifier.fillMaxWidth().padding(horizontal = Metrics.gutter, vertical = Metrics.space2)
+            // With Today's own Start in front, the generic start sheet steps back to text.
+            val rank = if (primary && startRank != FreeStartRank.HIDDEN) FreeStartRank.TEXT else startRank
+            // A short window (landscape, large fonts) cannot spare two stacked rows of dock.
+            val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+            if (primary && windowHeight < COMPACT_DOCK_HEIGHT) {
+                Row(modifier = padded, horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.weight(1f)) { TodayPrimaryAction(todayStart = todayStart, onResume = onResume, onBuildWeek = onBuildWeek) }
+                    if (rank != FreeStartRank.HIDDEN) {
+                        Box(modifier = Modifier.weight(1f)) { HomeStartAction(rank = rank, onStartFree = onStartFree) }
+                    }
+                }
+            } else {
+                Column(modifier = padded, verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                    TodayPrimaryAction(todayStart = todayStart, onResume = onResume, onBuildWeek = onBuildWeek)
+                    HomeStartAction(rank = rank, onStartFree = onStartFree)
+                }
             }
         }
     }
@@ -98,6 +126,61 @@ internal fun HomeStartAction(rank: FreeStartRank, onStartFree: () -> Unit) {
         ) {
             Text(text = SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong,
                 color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+private val COMPACT_DOCK_HEIGHT = 480.dp
+
+/** Today's planned strength start, the dock's primary (screen 01, A20). */
+internal data class TodayDockStart(
+    val dayName: String,
+    val liftCount: Int,
+    val onStart: () -> Unit,
+    /** No workout logged yet: the hero carries "Your first workout". */
+    val firstTime: Boolean = false,
+)
+
+@Composable
+internal fun TodayPrimaryAction(
+    todayStart: TodayDockStart?,
+    onResume: (() -> Unit)?,
+    onBuildWeek: (() -> Unit)? = null,
+) {
+    // Blueprint 4.1 states: Resume, First time (a caption on Start), Start, Empty.
+    val hero = when {
+        onResume != null -> stringResource(R.string.today_in_progress)
+        todayStart != null -> if (todayStart.firstTime) stringResource(R.string.today_first_caption) else null
+        onBuildWeek != null -> stringResource(R.string.today_no_plan)
+        else -> null
+    }
+    if (hero == null && onResume == null && todayStart == null) return
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+        if (hero != null) {
+            Text(
+                text = hero,
+                modifier = Modifier.testTag(HomeTags.TODAY_HERO),
+                style = InstrumentType.bodyStrong,
+                color = TextSecondary,
+            )
+        }
+        when {
+            onResume != null -> PrimaryButton(
+                label = stringResource(R.string.today_resume_cta),
+                onClick = onResume,
+                modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_RESUME),
+            )
+            todayStart != null -> PrimaryButton(
+                label = stringResource(R.string.today_start_cta),
+                subLabel = pluralStringResource(R.plurals.today_start_sub, todayStart.liftCount, todayStart.dayName, todayStart.liftCount),
+                onClick = todayStart.onStart,
+                modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_START),
+            )
+            onBuildWeek != null -> PrimaryButton(
+                label = stringResource(R.string.today_build_week_cta),
+                onClick = onBuildWeek,
+                modifier = Modifier.fillMaxWidth().testTag(HomeTags.TODAY_BUILD_WEEK),
+            )
         }
     }
 }

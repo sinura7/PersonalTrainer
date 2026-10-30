@@ -15,6 +15,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -44,11 +45,17 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.GoldenCapture
+import com.sinura.personaltrainer.ui.home.HomeViewModel
+import com.sinura.personaltrainer.ui.home.HomeStartPrompt
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -252,6 +259,43 @@ class WorkoutEntryJourneyInstrumentedTest {
             println("NATIVE_LOG_GEOMETRY label=$label tag=$tag bounds=${node.boundsInRoot} size=${node.size} " +
                 "text=$text scroll=${scroll?.value?.invoke()} maxScroll=${scroll?.maxValue?.invoke()}")
         }
+    }
+
+    /** A21: Begin on the real preview, through Home's single start path, creates exactly one session. */
+    @Test fun previewBeginTwiceFromOneFrameCreatesExactlyOneSession() {
+        fixture.seed(startViewModel = false, startSession = false)
+        val routine = fixture.routine()
+        val home = HomeViewModel(application = ApplicationProvider.getApplicationContext(), container = fixture.container)
+        assertNull(runBlocking(Dispatchers.IO) { fixture.container.workoutRepository.getInProgress() })
+        compose.setContent {
+            CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG) {
+                HomeStartPrompt(
+                    routine = routine, unit = WeightUnit.KG, loadWeights = home::previewWeights,
+                    onEditRoutine = {}, title = routine.name, body = "", confirmLabel = "Begin",
+                    pending = false, onConfirm = { home.startRoutine(routineId = routine.id) }, onDismiss = {},
+                    confirmEnabled = true, dismissEnabled = true, canDismiss = { true },
+                    canConfirm = { !home.startState.value.pending }, contextContent = {}, actionKey = null,
+                    labelOverridden = false,
+                )
+            }
+        }
+        val begin = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsDisplayed().assertIsEnabled()
+        val action = checkNotNull(begin.fetchSemanticsNode().config[SemanticsActions.OnClick].action)
+        compose.runOnUiThread { action(); action() }
+        compose.waitUntil(DEVICE_WAIT_MS) {
+            !home.startState.value.pending &&
+                runBlocking(Dispatchers.IO) { fixture.container.workoutRepository.getInProgress() } != null
+        }
+        compose.waitForIdle()
+        val live = checkNotNull(runBlocking(Dispatchers.IO) { fixture.container.workoutRepository.getInProgress() })
+        fixture.adopt(live.id)
+        assertEquals(routine.name, live.routineName)
+        assertNull(home.startState.value.error)
+        val started = runBlocking(Dispatchers.IO) {
+            fixture.container.workoutRepository.observeHistory().first().count { it.routineName == routine.name }
+        }
+        assertEquals("Begin must not finish or add a second session", 0, started)
+        runBlocking { home.viewModelScope.coroutineContext[Job]?.cancelAndJoin() }
     }
 
     @Test fun eightSavesKeepEntryAndCommitPositionsAndPersistExactlyTheirPayloads() {

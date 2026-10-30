@@ -16,8 +16,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.domain.CivilDate
-import com.sinura.personaltrainer.domain.LiveBarCopy
-import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.ReminderCopy
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
@@ -26,7 +24,11 @@ import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.testutil.forgetFirstApplication
 import com.sinura.personaltrainer.ui.activity.ComposerTags
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
+import com.sinura.personaltrainer.testutil.openFinishFromOverflow
+import com.sinura.personaltrainer.testutil.waitUntilFinishEnabledInOverflow
+import com.sinura.personaltrainer.ui.home.HomeTags
 import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
+import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.navigation.Route
 import com.sinura.personaltrainer.ui.summary.SummaryTags
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
@@ -153,7 +155,7 @@ class ReminderStartOverAScreenTest {
             .single { it.ruleId == rule.id && it.localEpochDay == today }
     }
 
-    /** A workout with one set, finished from the live bar on Home: its summary is over Home. */
+    /** A workout with one set, finished from Today's Resume: its summary is over Home. */
     private fun finishAWorkoutFromTheBar() {
         runBlocking {
             val container = app.container
@@ -169,10 +171,15 @@ class ReminderStartOverAScreenTest {
             )
         }
         launch(Intent(app, MainActivity::class.java))
-        awaitTag(LiveSessionBarTestTags.ROOT)
-        awaitTag(ACTIONS)
-        compose.onNodeWithTag(ACTIONS).performClick()
-        compose.onNodeWithText(LiveBarCopy.finish(LiveBarKind.WORKOUT)).performClick()
+        // Today shows the live workout as its Resume primary and hides the bar there (R4), so
+        // the workout is finished from its own page; its summary still lands over Home.
+        awaitTag(HomeTags.TODAY_RESUME)
+        compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.TODAY_RESUME).performClick()
+        compose.waitUntilFinishEnabledInOverflow()
+        compose.openFinishFromOverflow()
+        awaitTag(WorkoutTestTags.FINISH_SHEET)
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
         awaitTag(SummaryTags.DONE)
         assertNull("nothing is live on the summary", runBlocking { app.container.workoutRepository.getInProgress() })
     }
@@ -228,7 +235,6 @@ class ReminderStartOverAScreenTest {
     private companion object {
         const val DELIVERY = "rem-occ-start-over-a-screen"
         const val MIXED_DELIVERY = "rem-occ-mixed-start-over-a-screen"
-        const val ACTIONS = "live-session-actions"
         const val WAIT_MS = 20_000L
         const val NEVER_MS = 2_000L
         val PLAN_TAB = "navigation-${Route.Routines.path}"

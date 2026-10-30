@@ -22,6 +22,7 @@ import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.home.HomeTags
 import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import kotlinx.coroutines.Dispatchers
@@ -74,10 +75,11 @@ class FrontendBaselineCaptureTest {
     @Test
     fun populatedTabsKeepLiveSessionAndCaptureCompleteChrome() {
         val tabRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
-        for (label in listOf("Home", "Body", "Plan", "History", "Settings")) {
+        for (label in listOf("Today", "Body", "Plan", "History", "Settings")) {
+            // Today shows the live workout as its own Resume primary and hides the bar there.
             compose.waitUntil(30_000) {
-                compose.onAllNodesWithTag(LiveSessionBarTestTags.ROOT)
-                    .fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag(LiveSessionBarTestTags.ROOT).fetchSemanticsNodes().isNotEmpty() ||
+                    compose.onAllNodesWithTag(HomeTags.TODAY_RESUME).fetchSemanticsNodes().isNotEmpty()
             }
             // Startup preferences load asynchronously. Dismiss any first-open
             // explanation through its actual UI before documenting the page.
@@ -89,7 +91,7 @@ class FrontendBaselineCaptureTest {
             }
             compose.onNode(hasText(label.uppercase()) and tabRole).performClick()
             val loaded = when (label) {
-                "Home" -> hasText("TRAINED TODAY")
+                "Today" -> hasText("TRAINED TODAY")
                 "Body" -> hasTestTag("body-map")
                 "Plan" -> hasTestTag("plan-add-session")
                 "History" -> hasTestTag("history-horizon-readout")
@@ -101,7 +103,12 @@ class FrontendBaselineCaptureTest {
             compose.onNode(loaded).assertIsDisplayed()
             compose.waitForIdle()
             compose.onNodeWithText("Not now").assertDoesNotExist()
-            compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertIsDisplayed()
+            if (label == "Today") {
+                compose.onNodeWithTag(HomeTags.TODAY_RESUME).assertExists()
+                compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertDoesNotExist()
+            } else {
+                compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertIsDisplayed()
+            }
             capture(label.lowercase())
         }
     }

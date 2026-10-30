@@ -29,7 +29,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
-import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
+import com.sinura.personaltrainer.testutil.awaitLiveEntry
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
@@ -96,8 +96,7 @@ class WorkoutPrivateProcessInstrumentedTest {
     @get:Rule val rules: RuleChain = RuleChain.outerRule(seed).around(compose)
 
     @Test fun privateEntryAndFrozenSaveReturnToTheSameWorkout() {
-        awaitTag(LiveSessionBarTestTags.ROOT)
-        tap(LiveSessionBarTestTags.ROOT)
+        tap(compose.awaitLiveEntry())
         awaitTag(WorkoutTestTags.CONTENT)
         if (phase == "resume-pending") {
             compose.waitUntil(30000) { compose.onAllNodes(hasTestTag(WorkoutTestTags.LOG_SET) and hasText("Retry save")).fetchSemanticsNodes().isNotEmpty() }
@@ -139,7 +138,7 @@ class WorkoutPrivateProcessInstrumentedTest {
             assertEquals("Synthetic notes retained", read { container.workoutRepository.getSession(sessionId)!!.notes })
             capture("resume-clock-and-entry")
             compose.onNodeWithContentDescription("Close").performClick()
-            awaitTag(LiveSessionBarTestTags.ROOT)
+            compose.awaitLiveEntry()
             val entry = read { (container.workoutDraftCache.persistence!!.open(sessionId) as com.sinura.personaltrainer.workout.WorkoutDraftRestore.ReadyEntry).entry!! }
             assertEquals(82.0, entry.lifts.getValue(EXERCISE).weightKg, 0.0)
             assertTrue(entry.numbers.isEmpty())
@@ -159,7 +158,7 @@ class WorkoutPrivateProcessInstrumentedTest {
         }
         compose.waitUntil(30000) { compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD)).fetchSemanticsNodes().isEmpty() }
         compose.onNodeWithContentDescription("Close").performClick()
-        awaitTag(LiveSessionBarTestTags.ROOT)
+        compose.awaitLiveEntry()
         assertTrue(read { container.workoutRepository.getSession(sessionId)!!.sets.isEmpty() })
         read {
             val restored = container.workoutDraftCache.persistence!!.open(sessionId) as com.sinura.personaltrainer.workout.WorkoutDraftRestore.ReadyEntry
@@ -177,7 +176,7 @@ class WorkoutPrivateProcessInstrumentedTest {
         marker.writeText("$sessionId\n$routineId\n")
         capture("$phase-kept")
         if (phase.startsWith("stage")) { kept = true; return }
-        tap(LiveSessionBarTestTags.ROOT)
+        tap(compose.awaitLiveEntry())
         compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
         tap(WorkoutTestTags.WEIGHT_STEPPER)
         assertEquals("82.", compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)

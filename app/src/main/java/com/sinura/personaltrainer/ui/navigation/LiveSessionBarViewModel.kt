@@ -161,6 +161,15 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    /**
+     * A live strength workout. Today shows its own Resume workout primary for one (blueprint
+     * 4.1), so the bar steps aside there; live cardio keeps the bar on Today.
+     */
+    val hasLiveWorkout: StateFlow<Boolean> = container.workoutRepository.observeInProgress()
+        .map { it != null }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     /** Consumed by the host composition, so a finish survives Activity recreation. */
     private val _finishedNavigation = MutableStateFlow<String?>(null)
     val finishedNavigation: StateFlow<String?> = _finishedNavigation.asStateFlow()

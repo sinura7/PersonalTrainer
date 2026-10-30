@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -521,7 +523,15 @@ fun HomeScreen(
         }
         if (confirm != null) {
             val plannedDay = heldPlanned?.plannedEpochDay ?: pendingItem?.occurrence?.localEpochDay ?: today
-            ConfirmActionDialog(
+            val previewRoutine = heldPlanned?.routineId?.let { id -> state.routines.firstOrNull { it.id == id } }
+                ?: pendingItem?.let { HomeToday.previewRoutine(it, state.routines) }
+            HomeStartPrompt(
+                routine = previewRoutine,
+                unit = unit,
+                loadWeights = viewModel::previewWeights,
+                onEditRoutine = onOpenRoutine,
+                pending = starting.pending,
+                labelOverridden = starting.pending || starting.error != null,
                 title = confirm.heading,
                 body = confirm.body,
                 confirmLabel = when {
@@ -538,7 +548,10 @@ fun HomeScreen(
                             viewModel.retryStart(expectedAttemptId = renderedStartAttemptId)
                         } else viewModel.startOccurrence(plannedOwner.occurrenceId)
                         if (accepted && plannedStartPending?.requestId == plannedOwner.requestId) {
-                            plannedStartPending = plannedOwner.copy(accepted = true, confirm = confirm, plannedEpochDay = plannedDay)
+                            plannedStartPending = plannedOwner.copy(
+                                accepted = true, confirm = confirm, plannedEpochDay = plannedDay,
+                                routineId = previewRoutine?.id,
+                            )
                         }
                     }
                 },
@@ -570,7 +583,13 @@ fun HomeScreen(
     }
     if (confirmFallback != null) {
         val confirm = confirmFallback.confirm ?: HomeToday.fallbackStartConfirm(confirmFallback.day, state.routines)
-        ConfirmActionDialog(
+        HomeStartPrompt(
+            routine = HomeToday.previewRoutine(confirmFallback.day, state.routines),
+            unit = unit,
+            loadWeights = viewModel::previewWeights,
+            onEditRoutine = onOpenRoutine,
+            pending = starting.pending,
+            labelOverridden = starting.pending || starting.error != null,
             title = confirm.heading,
             body = confirm.body,
             confirmLabel = when {
@@ -696,7 +715,42 @@ fun HomeScreen(
             startSheet = true
         }
     }
+    val todaySheetStart = if (selectedEpochDay == today && !sessionLive && state.readState == HomeReadState.CURRENT) {
+        HomeToday.sheetStart(selectedAgenda, leftoverDay, state.routines)
+    } else null
+    val todayStartRoutine = todaySheetStart?.let { start ->
+        start.occurrenceId?.let { id -> selectedAgenda.firstOrNull { it.occurrence.id == id } }
+            ?.let { HomeToday.previewRoutine(it, state.routines) }
+            ?: start.leftover?.let { HomeToday.previewRoutine(it, state.routines) }
+    }
+    val todayDockStart = if (todaySheetStart != null && todayStartRoutine != null) {
+        TodayDockStart(
+            dayName = todayStartRoutine.name,
+            liftCount = todayStartRoutine.exercises.size,
+            firstTime = state.loggedEpochDays.isEmpty(),
+            onStart = {
+                if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+                    val id = todaySheetStart.occurrenceId
+                    val day = todaySheetStart.leftover
+                    if (id != null) {
+                        fallbackStartPending = null
+                        plannedStartPending = HomePlannedStart(requestId = UUID.randomUUID().toString(), occurrenceId = id)
+                    } else if (day != null) {
+                        plannedStartPending = null
+                        fallbackStartPending = HomeFallbackStart(requestId = UUID.randomUUID().toString(), day = day)
+                    }
+                }
+            },
+        )
+    } else null
+    val liveSessionId = state.inProgress?.id
     HomeBoardLayout(
+        todayStart = todayDockStart,
+        onResume = liveSessionId?.let { id -> { onResumeWorkout(id) } },
+        onBuildWeek = onOpenPlan.takeIf {
+            selectedEpochDay == today && !sessionLive && state.readState == HomeReadState.CURRENT &&
+                state.rules.isEmpty() && selectedAgenda.isEmpty() && !trainingToday && nextDay == null
+        },
         startRank = homeStartRank(
             surface = daySurface, sessionLive = sessionLive,
             quietStart = state.missedWorkPrompt, trainingToday = trainingToday,
@@ -954,6 +1008,8 @@ private data class HomePlannedStart(
     val accepted: Boolean = false,
     val confirm: StartSessionConfirm? = null,
     val plannedEpochDay: Long? = null,
+    /** The routine the preview showed when Begin was accepted; kept through a held Retry. */
+    val routineId: String? = null,
 )
 
 private val HomePlannedStartSaver = mapSaver<HomePlannedStart?>(
@@ -963,6 +1019,7 @@ private val HomePlannedStartSaver = mapSaver<HomePlannedStart?>(
             "occurrenceId" to pending.occurrenceId,
             "accepted" to pending.accepted,
             "plannedEpochDay" to pending.plannedEpochDay,
+            "routineId" to pending.routineId,
         ) + saveStartConfirm(pending.confirm)
     },
     restore = { saved ->
@@ -972,6 +1029,7 @@ private val HomePlannedStartSaver = mapSaver<HomePlannedStart?>(
             accepted = saved["accepted"] as? Boolean ?: false,
             confirm = restoreStartConfirm(saved),
             plannedEpochDay = saved["plannedEpochDay"] as? Long,
+            routineId = saved["routineId"] as? String,
         )
     },
 )
@@ -1094,6 +1152,12 @@ internal fun HomeReadRecovery(state: HomeUiState, onRetry: () -> Unit) {
     val problem = state.readProblem ?: return
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         Text(
+            text = stringResource(R.string.today_error),
+            modifier = Modifier.testTag(HomeTags.TODAY_ERROR),
+            style = InstrumentType.bodyStrong,
+            color = TextPrimary,
+        )
+        Text(
             problem,
             modifier = Modifier
                 .testTag(HomeTags.READ_PROBLEM)
@@ -1109,7 +1173,7 @@ internal fun HomeReadRecovery(state: HomeUiState, onRetry: () -> Unit) {
                 .testTag(HomeTags.RETRY),
         ) {
             Text(
-                if (state.retryPending) "Reading again…" else "Retry",
+                if (state.retryPending) "Reading again…" else stringResource(R.string.today_error_retry),
                 style = InstrumentType.bodyStrong,
                 color = TextSecondary,
             )
@@ -1198,6 +1262,11 @@ internal fun HomeMasthead(
 
 object HomeTags {
     const val BOARD = "home-board"
+    const val TODAY_START = "today_start_cta"
+    const val TODAY_RESUME = "today_resume_cta"
+    const val TODAY_BUILD_WEEK = "today_build_week_cta"
+    const val TODAY_HERO = "today_hero"
+    const val TODAY_ERROR = "today_error"
     const val DATE = "home-selected-date"
     const val READ_PROBLEM = "home-read-problem"
     const val RETRY = "home-read-retry"

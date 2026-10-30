@@ -70,7 +70,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.insertTestExercise
-import com.sinura.personaltrainer.ui.components.ConfirmActionTags
+import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
 import com.sinura.personaltrainer.ui.components.WeekStripTags
 import com.sinura.personaltrainer.ui.navigation.InstrumentNavBar
 import com.sinura.personaltrainer.ui.navigation.Route
@@ -551,7 +551,7 @@ class HomeStartAdmissionRenderTest {
         date.assertTextContains("Planned: ${DateCopy.civilDate(selectedDay)}", substring = true)
         date.assertTextContains("Starts now · ${DateCopy.civilDate(today)}", substring = true)
         capture("planned-date-confirm")
-        reachable(compose.onNodeWithTag(ConfirmActionTags.CONFIRM)).assertIsEnabled().performClick()
+        reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         assertOneSavedStart()
         val saved = runBlocking { base.database.workoutDao().getAllSessions().single() }
         assertEquals(nowMs, saved.date)
@@ -586,7 +586,7 @@ class HomeStartAdmissionRenderTest {
         boardNode(HomeTags.agendaRow(originalId)).performClick()
         writes.held = CompletableDeferred()
         writes.failNext.set(1)
-        val confirm = enabledClick(ConfirmActionTags.CONFIRM)
+        val confirm = enabledClick(WorkoutPreviewTags.BEGIN)
         compose.runOnUiThread { confirm(); confirm() }
         await("the relocated leftover owns one pending insert") {
             vm.startState.value.pending && writes.attempts.get() == 1
@@ -628,7 +628,7 @@ class HomeStartAdmissionRenderTest {
         assertEquals(failedAttempt, vm.startState.value.attemptId)
         assertEquals(inventoryAfterFailure, inventory())
         reachable(compose.onNodeWithTag(HomeStartTags.ERROR)).assertIsDisplayed()
-        val retry = enabledClick(ConfirmActionTags.CONFIRM)
+        val retry = enabledClick(WorkoutPreviewTags.BEGIN)
         capture("leftover-failed-confirmation")
         writes.held = CompletableDeferred()
         writes.failNext.set(1)
@@ -666,9 +666,9 @@ class HomeStartAdmissionRenderTest {
         assertTrue(openedSessions.isEmpty())
         reachable(compose.onNodeWithTag(HomeStartTags.ERROR))
             .assertTextContains(checkNotNull(currentStart.error), substring = true)
-        reachable(compose.onNodeWithTag(ConfirmActionTags.CONFIRM))
+        reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN))
             .assertIsEnabled().assertTextContains("Retry start", substring = true)
-        val freshRetry = enabledClick(ConfirmActionTags.CONFIRM)
+        val freshRetry = enabledClick(WorkoutPreviewTags.BEGIN)
         capture("leftover-second-failed-confirmation")
         writes.held = CompletableDeferred()
         compose.runOnUiThread { freshRetry(); freshRetry() }
@@ -726,7 +726,7 @@ class HomeStartAdmissionRenderTest {
             assertTrue(file.length() > 100)
         } finally { bitmap.recycle() }
         planned.performClick()
-        reachable(compose.onNodeWithTag(ConfirmActionTags.CONFIRM)).assertIsEnabled().performClick()
+        reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         assertOneSavedStart()
         val saved = runBlocking { checkNotNull(base.workoutRepository.getSession(openedSessions.single())) }
         assertEquals(listOf("Incline Dumbbell Bench Press", "Seated Cable Row"), saved.exercises.map { it.exercise.name })

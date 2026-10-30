@@ -27,7 +27,7 @@ import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.testutil.forgetFirstApplication
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
-import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
+import com.sinura.personaltrainer.ui.home.HomeTags
 import com.sinura.personaltrainer.ui.navigation.Route
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
 import com.sinura.personaltrainer.util.JvmTime
@@ -126,7 +126,7 @@ class ReminderTapDuringAWorkoutTest {
         val planned = plannedEarlierToday()
         ReminderNotifications.show(app, planned, DELIVERY, "Push")
         launch(Intent(app, MainActivity::class.java))
-        awaitTag(LiveSessionBarTestTags.ROOT)
+        awaitTag(HomeTags.TODAY_RESUME)
 
         tapStart(planned)
 
