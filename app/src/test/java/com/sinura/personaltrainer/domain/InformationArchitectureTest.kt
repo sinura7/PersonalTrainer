@@ -10,7 +10,7 @@ class InformationArchitectureTest {
     fun fourTabsAndPushedLibrary() {
         assertEquals(4, InformationArchitecture.tabs.size)
         assertEquals(
-            listOf("Home", "Body", "Plan", "History"),
+            listOf("Today", "Body", "Plan", "History"),
             InformationArchitecture.tabs.map { it.label },
         )
         assertTrue(InformationArchitecture.tabs.all { it.isTab })

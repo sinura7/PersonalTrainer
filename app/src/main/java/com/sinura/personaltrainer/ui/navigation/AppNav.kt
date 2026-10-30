@@ -225,7 +225,7 @@ internal data class Tab(
  * Shipping tab order. Settings is a tab (ADR-014). Library stays pushed. Goals UI is gone (ADR-016).
  */
 internal val shippingTabs = listOf(
-    Tab(Route.Home, "Home", TemperIcons.Home),
+    Tab(Route.Home, "Today", TemperIcons.Home),
     Tab(Route.Progress, "Body", TemperIcons.Body),
     Tab(Route.Routines, "Plan", TemperIcons.Plan),
     Tab(Route.History, "History", TemperIcons.History),

@@ -16,7 +16,7 @@ enum class CanonicalTask(val id: String, val label: String) {
 }
 
 enum class LandingSurface(val label: String, val isTab: Boolean) {
-    HOME("Home", isTab = true),
+    HOME("Today", isTab = true),
     BODY("Body", isTab = true),
     PLAN("Plan", isTab = true),
     HISTORY("History", isTab = true),

@@ -74,7 +74,7 @@ class FrontendBaselineCaptureTest {
     @Test
     fun populatedTabsKeepLiveSessionAndCaptureCompleteChrome() {
         val tabRole = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
-        for (label in listOf("Home", "Body", "Plan", "History", "Settings")) {
+        for (label in listOf("Today", "Body", "Plan", "History", "Settings")) {
             compose.waitUntil(30_000) {
                 compose.onAllNodesWithTag(LiveSessionBarTestTags.ROOT)
                     .fetchSemanticsNodes().isNotEmpty()
@@ -89,7 +89,7 @@ class FrontendBaselineCaptureTest {
             }
             compose.onNode(hasText(label.uppercase()) and tabRole).performClick()
             val loaded = when (label) {
-                "Home" -> hasText("TRAINED TODAY")
+                "Today" -> hasText("TRAINED TODAY")
                 "Body" -> hasTestTag("body-map")
                 "Plan" -> hasTestTag("plan-add-session")
                 "History" -> hasTestTag("history-horizon-readout")
