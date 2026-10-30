@@ -27,9 +27,14 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
-/** Empty session: Discard lives in overflow, not the Finish slot (UX blueprint P-6). */
+/** No lift selected: Finish (when allowed) and Discard (empty session, P-6) live in one overflow. */
 @Composable
-internal fun SessionDiscardOverflowMenu(onDiscardWorkout: () -> Unit) {
+internal fun SessionOverflowMenu(
+    showDiscardWorkout: Boolean,
+    onDiscardWorkout: () -> Unit,
+    canFinish: Boolean = false,
+    onFinish: () -> Unit = {},
+) {
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     Box {
         IconButton(
@@ -41,22 +46,35 @@ internal fun SessionDiscardOverflowMenu(onDiscardWorkout: () -> Unit) {
             Icon(OutlinedMarks.MoreVert, contentDescription = "Workout options")
         }
         InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            InstrumentMenuItem(
-                spokenLabel = EndWorkoutCopy.HEADER_DISCARD,
-                leadingIcon = TemperIcons.Delete,
-                iconTint = Danger,
-                onClick = {
-                    menuOpen = false
-                    onDiscardWorkout()
-                },
-                text = {
-                    Text(
-                        EndWorkoutCopy.HEADER_DISCARD,
-                        style = InstrumentType.bodyStrong,
-                        color = Danger,
-                    )
-                },
-            )
+            if (canFinish) {
+                InstrumentMenuItem(
+                    spokenLabel = LogBarCopy.FINISH_WORKOUT,
+                    leadingIcon = TemperIcons.Check,
+                    onClick = {
+                        menuOpen = false
+                        onFinish()
+                    },
+                    modifier = Modifier.testTag(WorkoutTestTags.FINISH),
+                )
+            }
+            if (showDiscardWorkout) {
+                InstrumentMenuItem(
+                    spokenLabel = EndWorkoutCopy.HEADER_DISCARD,
+                    leadingIcon = TemperIcons.Delete,
+                    iconTint = Danger,
+                    onClick = {
+                        menuOpen = false
+                        onDiscardWorkout()
+                    },
+                    text = {
+                        Text(
+                            EndWorkoutCopy.HEADER_DISCARD,
+                            style = InstrumentType.bodyStrong,
+                            color = Danger,
+                        )
+                    },
+                )
+            }
         }
     }
 }

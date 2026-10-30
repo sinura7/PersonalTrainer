@@ -559,8 +559,12 @@ private fun ActiveWorkoutContent(
                             canFinish = state.canFinish,
                             onFinish = { confirmEnd = true },
                         )
-                        state.showDiscard -> SessionDiscardOverflowMenu(
+                        // No lift selected: Finish still lives in the session overflow (D3).
+                        state.showDiscard || state.canFinish -> SessionOverflowMenu(
+                            showDiscardWorkout = state.showDiscard,
                             onDiscardWorkout = { confirmDiscard = true },
+                            canFinish = state.canFinish,
+                            onFinish = { confirmEnd = true },
                         )
                     }
                 },
