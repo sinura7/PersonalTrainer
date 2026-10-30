@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.history
 
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.LocalDensity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -79,6 +81,8 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
+private const val COMPACT_HEIGHT_DP = 480
+
 object SessionDetailTestTags {
     const val CONTENT = "session-detail-content"
     const val EDIT_SET = "session-detail-edit-set"
@@ -138,6 +142,9 @@ fun SessionDetailScreen(
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     // R5 / 4.15: Repeat goes through the pre-workout preview; only Begin starts the session.
     var repeatPreview by rememberSaveable { mutableStateOf(false) }
+    val compactHeight = with(LocalDensity.current) {
+        LocalWindowInfo.current.containerSize.height.toDp() < COMPACT_HEIGHT_DP.dp
+    }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var editingSetId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -342,6 +349,19 @@ fun SessionDetailScreen(
                                 } else null,
                             )
                         }
+                        if (session.isFinished && lifts.isNotEmpty() && compactHeight) {
+                            // Short landscape: Repeat scrolls with the content rather than
+                            // pinning a dock that would leave no room for the notes field.
+                            item(key = "repeat-inline") {
+                                PrimaryGymButton(
+                                    text = stringResource(R.string.history_repeat),
+                                    onClick = { repeatPreview = true },
+                                    modifier = Modifier.fillMaxWidth().testTag(SessionDetailTestTags.REPEAT),
+                                    enabled = !state.notesExiting,
+                                    height = Metrics.commit,
+                                )
+                            }
+                        }
                         if (lifts.isNotEmpty()) {
                             item {
                                 Text(
@@ -381,7 +401,7 @@ fun SessionDetailScreen(
                             )
                         }
                     }
-                    if (session.isFinished && lifts.isNotEmpty()) {
+                    if (session.isFinished && lifts.isNotEmpty() && !compactHeight) {
                         HairlineDivider(startIndent = 0.dp)
                         PrimaryGymButton(
                             text = stringResource(R.string.history_repeat),
@@ -611,7 +631,7 @@ fun SessionDetailScreen(
 
     if (repeatPreview && session != null) {
         WorkoutPreviewScreen(
-            model = WorkoutPreview.fromSession(session = session),
+            model = WorkoutPreview.fromSession(session = session, fallbackTitle = stringResource(R.string.preview_workout_title)),
             unit = unit,
             onBegin = {
                 repeatPreview = false

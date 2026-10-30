@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasTestTag
 import android.app.Application
 import android.database.sqlite.SQLiteFullException
 import android.graphics.Bitmap
@@ -315,6 +317,12 @@ class NotesTruthMatrixRenderTest {
         val before = runBlocking { checkNotNull(deps.workoutRepository.getSession(workoutId)) }
         failures.set(1)
         heldWrite = CompletableDeferred()
+        // History detail is a lazy list: bring the notes field into composition first
+        // (landscape fonts 1.0-2.0 start with it below the fold).
+        if (compose.onAllNodes(hasTestTag(SessionDetailTestTags.CONTENT)).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(hasSetTextAction())
+            compose.settle()
+        }
         noteField().performTextReplacement(draft)
         compose.settle()
         compose.awaitThat("$prefix pending text", state) { state().status == NotesSaveStatus.PENDING }

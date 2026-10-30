@@ -189,4 +189,12 @@
     <string name="targets_plus">+</string>
     <string name="targets_lower">%1$s down</string>
     <string name="targets_raise">%1$s up</string>
+    <string name="home_preview_starting">Starting…</string>
+    <string name="home_preview_unavailable">Start unavailable</string>
+    <string name="home_preview_begin">Begin</string>
+    <string name="routine_adding">Adding…</string>
+    <string name="routine_original_missing">Original routine missing</string>
+    <string name="picker_saving_lift">Saving lift…</string>
+    <string name="picker_create_select">Create and select</string>
+    <string name="preview_workout_title">Workout</string>
 </resources>

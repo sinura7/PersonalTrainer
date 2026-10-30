@@ -134,7 +134,7 @@ object WorkoutPreview {
      * The copy carries no target weight (progression owns it), so the start weight is blank and
      * the hint is this session's heaviest working set.
      */
-    fun fromSession(session: WorkoutSession): WorkoutPreviewModel {
+    fun fromSession(session: WorkoutSession, fallbackTitle: String): WorkoutPreviewModel {
         val names = (session.exercises.map { it.exercise } + session.filledLifts().map { it.exercise })
             .associate { it.id to it.name }
         val lifts = RepeatSessionPlan.from(session).map { item ->
@@ -151,7 +151,7 @@ object WorkoutPreview {
             )
         }
         return WorkoutPreviewModel(
-            title = session.routineName ?: "Workout", minutes = session.durationMinutes, lifts = lifts,
+            title = session.routineName ?: fallbackTitle, minutes = session.durationMinutes, lifts = lifts,
             hintsLoading = false,
         )
     }
