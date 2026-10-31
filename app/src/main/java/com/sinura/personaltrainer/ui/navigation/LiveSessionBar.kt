@@ -36,12 +36,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.LiveBarCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -69,6 +71,7 @@ private const val ACTION_ERROR_DWELL_MS = 6_000L
 
 object LiveSessionBarTestTags {
     const val ROOT = "live-session-bar"
+    const val PAUSED = "live-session-bar-paused"
 }
 
 /**
@@ -187,8 +190,14 @@ fun LiveSessionBar(
                             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
                         ) {
                             Text(
-                                text = "${state.elapsedLabel} elapsed",
-                                modifier = Modifier.testTag("live-session-elapsed"),
+                                text = if (state.paused) {
+                                    stringResource(R.string.live_bar_paused, state.elapsedLabel)
+                                } else {
+                                    "${state.elapsedLabel} elapsed"
+                                },
+                                modifier = Modifier.testTag(
+                                    if (state.paused) LiveSessionBarTestTags.PAUSED else "live-session-elapsed",
+                                ),
                                 style = InstrumentType.caption,
                                 color = TextSecondary,
                             )

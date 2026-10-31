@@ -12,6 +12,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
@@ -119,6 +121,11 @@ class TargetsSheetScreenTest {
         assertEquals(120, stored.restSeconds)
     }
 
+    /**
+     * v4 V1b (A-V1-12): dismissal is a real swipe down on the sheet content, not the test
+     * flipping its own flag. Under Robolectric the swipe reaches the ModalBottomSheet's
+     * onDismissRequest (back press does not), so no fallback to the editor's dismissal is used.
+     */
     @Test fun dismissingTheSheetWritesNothing() {
         val routineId = mount()
         val model = vm!!
@@ -126,9 +133,10 @@ class TargetsSheetScreenTest {
         show(model)
         compose.onNodeWithContentDescription("Sets up").performClick()
         compose.onNodeWithTag(TargetsSheetTags.value(TargetsSheetTags.SETS)).assertTextEquals("4")
-        // The editor drops the queue (as its onDismiss does) without Save targets.
-        open.value = false
+        compose.onNodeWithTag(TargetsSheetTags.CONTENT).performTouchInput { swipeDown(durationMillis = 300) }
+        compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
+        assertFalse("a swipe down dismisses the sheet through onDismiss", open.value)
         compose.onNodeWithTag(TargetsSheetTags.CONTENT).assertDoesNotExist()
         assertEquals(before, runBlocking { deps.database.routineDao().getAllRoutineExercises() })
         assertFalse(model.targetsSheetSave.value.saving)

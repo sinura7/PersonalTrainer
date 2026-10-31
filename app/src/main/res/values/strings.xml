@@ -207,4 +207,8 @@
     <string name="plan_open_day">Open this day</string>
     <string name="plan_add">Add</string>
     <string name="plan_add_day">Add to %1$s</string>
+    <!-- v4 cardio -->
+    <string name="cardio_paused_under_minute">Resume to reach one minute</string>
+    <string name="cardio_leave_paused">Leave paused</string>
+    <string name="live_bar_paused">Paused, %1$s</string>
 </resources>

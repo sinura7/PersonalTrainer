@@ -43,6 +43,8 @@ data class LiveSessionBarUiState(
     val stale: Boolean,
     val staleHours: Long,
     val kind: LiveBarKind = LiveBarKind.WORKOUT,
+    /** v4 V1b: a cardio session whose timer row is paused (CardioTimerPersistence). */
+    val paused: Boolean = false,
 ) {
     /** A session with nothing logged can never be finished — discard is its only exit. */
     val canFinish: Boolean get() = totalSets >= 1
@@ -143,6 +145,7 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                             stale = false,
                             staleHours = 0,
                             kind = LiveBarKind.ACTIVITY,
+                            paused = persisted?.paused == true,
                         )
                     }
                     else -> flowOf(null)

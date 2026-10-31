@@ -260,6 +260,32 @@ class LiveSessionBarViewModelTest {
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
     }
 
+    @Test
+    fun pausedCardioReportsPaused() = runBlocking {
+        val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
+        val block = com.sinura.personaltrainer.domain.CardioBlock(
+            id = "blk-bar", sortOrder = 0, type = com.sinura.personaltrainer.domain.CardioType.RUN,
+            indoor = false, elapsedSeconds = 0L, movingSeconds = 0L, distanceMeters = null,
+            elevationMeters = null, heartRateBpm = null, energyKj = null, rpe = null, routeRef = null,
+        )
+        val started = deps.startLiveActivity("Easy run", listOf(block), now)
+        val live = (started as com.sinura.personaltrainer.domain.ActivityWrite.Accepted).session
+        deps.cardioTimerPersistence.save(
+            com.sinura.personaltrainer.timer.PersistedCardioTimer(
+                sessionId = live.id,
+                startedAtElapsedRealtime = 0L,
+                startedAtWallClockMillis = now.instantMillis,
+                bootMarker = 0L,
+                baselineElapsedSeconds = 42L,
+                paused = true,
+            ),
+        )
+        val vm = createViewModel(FakeClock(now.instantMillis + 600_000L))
+        val state = checkNotNull(vm.uiState.awaitFirst { it?.sessionId == live.id })
+        assertTrue("a paused cardio timer row reaches the bar", state.paused)
+        assertEquals("0:42", state.elapsedLabel)
+    }
+
     private fun createViewModel(clock: FakeClock): LiveSessionBarViewModel =
         LiveSessionBarViewModel(
             application = ApplicationProvider.getApplicationContext<Application>(),
