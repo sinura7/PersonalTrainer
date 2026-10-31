@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.ui.start.StartOptionsViewModel
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
