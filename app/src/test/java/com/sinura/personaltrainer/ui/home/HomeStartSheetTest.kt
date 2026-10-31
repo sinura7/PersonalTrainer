@@ -24,8 +24,9 @@ class HomeStartSheetTest {
         assertFalse(agenda.contains("PlanDayCopy.ADD"))
 
         val home = readOwned("ui/home/HomeScreen.kt")
-        assertTrue(home.contains("HomeStartSheet("))
-        assertTrue(home.contains("startSheet = true"))
+        // V2: Home's Start opens the one shared StartChooser through AppNav.
+        assertTrue(home.contains("onOpenStartSheet()"))
+        assertFalse(home.contains("HomeStartSheet("))
         assertFalse(home.contains("HomeTags.ADD"))
         assertFalse(home.contains("GetStartedSheet"))
         assertFalse(home.contains("Get started"))
@@ -33,13 +34,14 @@ class HomeStartSheetTest {
 
     @Test
     fun sheetOffersFreeRoutinesCardioAndExtraAndStartsFree() {
-        val sheet = readOwned("ui/home/HomeStartSheet.kt")
-        assertTrue(sheet.contains("HomeStartCopy.FREE"))
-        assertTrue(sheet.contains("HomeStartCopy.ROUTINE"))
+        val sheet = readOwned("ui/start/StartChooser.kt")
+        assertTrue(sheet.contains("R.string.start_empty"))
+        assertTrue(sheet.contains("R.string.start_group_routine"))
         assertTrue(sheet.contains("HomeStartCopy.CARDIO"))
         assertTrue(sheet.contains("HomeStartCopy.EXTRA"))
-        assertTrue(sheet.contains("onStartFree"))
-        assertTrue(sheet.contains("HomeStart.namedRoutines"))
+        assertTrue(sheet.contains("gate.startFreeWorkout()"))
+        assertTrue(sheet.contains("StartGroups.routines"))
+        assertTrue(readOwned("ui/start/StartGroups.kt").contains("HomeStart.namedRoutines"))
         assertTrue(sheet.contains("CardioPickCard("))
         assertTrue(sheet.contains("AuxiliaryPackList("))
         assertTrue(sheet.contains("suggestedKit"))

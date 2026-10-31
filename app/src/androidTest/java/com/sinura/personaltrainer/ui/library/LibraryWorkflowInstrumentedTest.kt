@@ -371,7 +371,9 @@ class LibraryWorkflowInstrumentedTest {
     }
     private fun openMixedComposer() {
         tap(PlanTags.START_SHEET)
-        clickLabel("Mixed session")
+        // V2: past mixed logging sits under the chooser's Other page.
+        tap(com.sinura.personaltrainer.ui.start.StartTags.START_OTHER)
+        tap(com.sinura.personaltrainer.ui.start.StartTags.LOG_MIXED)
         awaitTag("composer-title")
         compose.waitUntil(30_000) { compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
     }

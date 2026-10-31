@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.ui.start.startGateFor
+import com.sinura.personaltrainer.ui.start.StartChooserHost
+import com.sinura.personaltrainer.ui.start.StartOptionsViewModel
 import android.app.Application
 import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
@@ -144,6 +147,12 @@ class ConnectedWorkoutJourneyTest {
             compose.onAllNodes(hasText(ROUTINE) and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNode(hasText(ROUTINE) and hasClickAction()).performScrollTo().performClick()
+        // R5: the routine tap opens its preview; Begin is the one start.
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {
+            compose.onAllNodesWithTag(WorkoutPreviewTags.BEGIN).fetchSemanticsNodes().isNotEmpty()
+        }
+        assertTrue("the routine tap alone starts nothing", startedIds.isEmpty())
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
         compose.awaitThat("Start opens one live workout", { startedIds }) { startedIds.size == 1 }
         val sessionId = startedIds.single()
         awaitEntry("the first lift is ready") { it.selectedExerciseId == FLOOR_LIFT_ID }
@@ -302,17 +311,20 @@ class ConnectedWorkoutJourneyTest {
 
     private fun showJourney() {
         val start = rememberModel(StartOptionsViewModel(application(), deps))
+        val gate = rememberModel(startGateFor(deps))
         compose.showFloor {
             Box(Modifier.width(360.dp).height(800.dp)) {
                 when (destination) {
-                    Destination.START -> StartOptionsSheet(
+                    Destination.START -> StartChooserHost(
+                        gate = gate,
+                        deps = deps,
                         onDismiss = {},
                         onWorkoutStarted = { id ->
                             startedIds += id
                             active = rememberModel(floorViewModel(deps, id))
                             destination = Destination.WORKOUT
                         },
-                        viewModel = start,
+                        options = start,
                     )
                     Destination.WORKOUT -> ActiveWorkoutScreen(
                         onExit = { error("The journey unexpectedly exited its live workout") },

@@ -80,8 +80,8 @@ object LiveSessionBarTestTags {
  * The one live-session surface in the app.
  *
  * Docked above the tab bar whenever a session is in progress, on every screen except the
- * workout itself and its summary. Stays visible behind [com.sinura.personaltrainer.ui.workout
- * .StartOptionsSheet] — that sheet offers “Go to session”, not a second Resume. While the
+ * workout itself and its summary. Stays visible behind [com.sinura.personaltrainer.ui.start
+ * .StartChooser] — that sheet offers “Go to session”, not a second Resume. While the
  * bar is visible no other surface may offer to resume, finish or discard — the app used to
  * answer "where is my workout" in three different places, each with its own quirks, and
  * none of them present once the user had navigated away.

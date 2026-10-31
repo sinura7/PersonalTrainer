@@ -137,7 +137,8 @@ import com.sinura.personaltrainer.ui.workout.LocalRestCooldownActive
 import com.sinura.personaltrainer.ui.workout.LocalRestExteriorAsk
 import com.sinura.personaltrainer.ui.workout.RestAlertsAsk
 import com.sinura.personaltrainer.ui.workout.RestExteriorAsk
-import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
+import com.sinura.personaltrainer.ui.home.HomeViewModel
+import com.sinura.personaltrainer.ui.start.StartChooser
 
 private const val SUMMARY_CORRECTION_RESULT = "summary.acknowledgedCorrection.v1"
 
@@ -290,7 +291,7 @@ private val LIVE_BAR_HIDDEN_ROUTES = setOf(
     Route.LiveCardio.path,
     Route.ActivitySummary.path,
     // The start interstitial that used to be listed here is gone (amends Phase 1a's settled
-    // decision 2). Its replacement, StartOptionsSheet, is a MODAL surface the user deliberately
+    // decision 2). Its replacement, StartChooser, is a MODAL surface the user deliberately
     // opened, not ambient chrome — so the bar staying visible behind it is still exactly one
     // live-session affordance, and the sheet itself shows "Go to session" rather than any start.
 )
@@ -426,6 +427,13 @@ fun PersonalTrainerNav(
     // Settings *is* a tab (ADR-014): a dedicated space, not a gear on Home or Plan.
     val tabs = shippingTabs
     val liveBarViewModel: LiveSessionBarViewModel = viewModel()
+    // V2: the one start gate. Activity-scoped and shared by Today and the StartChooser on
+    // every tab, so each start gets the same admission (StartGate).
+    val startGate: HomeViewModel = viewModel()
+    val startGateUi by startGate.uiState.collectAsStateWithLifecycle()
+    val gateSession by startGate.navigateToSession.collectAsStateWithLifecycle()
+    val gateCardio by startGate.navigateToCardio.collectAsStateWithLifecycle()
+    val gateComposer by startGate.navigateToComposer.collectAsStateWithLifecycle()
     val hasLiveSession by liveBarViewModel.hasLiveSession.collectAsStateWithLifecycle()
     val finishedNavigation by liveBarViewModel.finishedNavigation.collectAsStateWithLifecycle()
     val finishedActivityNavigation by liveBarViewModel.finishedActivityNavigation.collectAsStateWithLifecycle()
@@ -533,6 +541,39 @@ fun PersonalTrainerNav(
     val restSnapshot by container.restTimerController.snapshot.collectAsStateWithLifecycle()
     val restCooldownActive = RestTimerMarkers.isCooldown(restSnapshot)
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
+    // Same guard Today used: a stale attempt is released before a fresh chooser opens.
+    var startsNowFrom by rememberSaveable { mutableStateOf<Long?>(null) }
+    val openStartSheet = {
+        startsNowFrom = null
+        if (startGate.canEditStartChoice() && startGate.dismissStart()) showStartSheet = true
+    }
+    val openStartSheetFrom: (Long?) -> Unit = { day ->
+        openStartSheet()
+        if (showStartSheet) startsNowFrom = day
+    }
+    // Today consumes its own starts. Anywhere else the host does, so a start from Plan,
+    // History or Body still lands on the workout it opened.
+    val onHome = currentDestination?.route == Route.Home.path
+    LaunchedEffect(gateSession, onHome) {
+        val id = gateSession ?: return@LaunchedEffect
+        if (onHome) return@LaunchedEffect
+        navController.navigate(Route.ActiveWorkout.create(id)) { launchSingleTop = true }
+        startGate.onSessionNavigationHandled()
+    }
+    LaunchedEffect(gateCardio, onHome) {
+        val id = gateCardio ?: return@LaunchedEffect
+        if (onHome) return@LaunchedEffect
+        navController.navigate(Route.LiveCardio.create(id)) { launchSingleTop = true }
+        startGate.onCardioNavigationHandled()
+    }
+    // A mixed Today start (no plannable session) opens the composer; off Home the host consumes it,
+    // so it is never left queued to block the next start. On Home, HomeScreen consumes it.
+    LaunchedEffect(gateComposer, onHome) {
+        val mode = gateComposer ?: return@LaunchedEffect
+        if (onHome) return@LaunchedEffect
+        navController.navigate(Route.ActivityComposer.create(mode)) { launchSingleTop = true }
+        startGate.onComposerNavigationHandled()
+    }
     val openPermissionsSettings = {
         settingsViewModel.requestSettingsSubpage(SettingsPage.PERMISSIONS)
     }
@@ -618,6 +659,9 @@ fun PersonalTrainerNav(
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
                         onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
                         onOpenActivity = { navController.navigate(Route.ActivityDetail.create(it)) },
+                        onOpenStartSheet = openStartSheet,
+                        onOpenStartSheetFrom = openStartSheetFrom,
+                        viewModel = startGate,
                     )
                 }
                 composable(Route.Progress.path) {
@@ -625,7 +669,7 @@ fun PersonalTrainerNav(
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenLibrary = { muscle -> navController.navigate(Route.Library.create(muscle)) },
                         onOpenRoutines = { goToTab(Route.Routines.path) },
-                        onOpenStartSheet = { showStartSheet = true },
+                        onOpenStartSheet = openStartSheet,
                     )
                 }
                 composable(
@@ -702,7 +746,7 @@ fun PersonalTrainerNav(
                         onOpenDay = { epochDay, add ->
                             navController.navigate(Route.PlanDay.create(epochDay, add))
                         },
-                        onOpenStartSheet = { showStartSheet = true },
+                        onOpenStartSheet = openStartSheet,
                         onBuildWeek = {
                             container.pendingCustomWeek.value = null
                             navController.navigate(Route.CustomWeek.path)
@@ -721,7 +765,7 @@ fun PersonalTrainerNav(
                             }
                         },
                         onOpenActivity = { navController.navigate(Route.ActivityDetail.create(it)) },
-                        onOpenStartSheet = { showStartSheet = true },
+                        onOpenStartSheet = openStartSheet,
                     )
                 }
                 composable(
@@ -878,8 +922,14 @@ fun PersonalTrainerNav(
             }
         }
         if (showStartSheet) {
-            StartOptionsSheet(
+            StartChooser(
                 onDismiss = { showStartSheet = false },
+                gate = startGate,
+                startsNowFrom = startsNowFrom,
+                suggestedKit = startGateUi.suggestedExtraEquipment,
+                onEditRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
+                onOpenPlan = { goToTab(Route.Routines.path) },
+                onOpenRoutines = { navController.navigate(Route.RoutineLibrary.create()) },
                 onWorkoutStarted = { sessionId ->
                     navController.navigate(StartOptionsNav.workout(sessionId)) {
                         launchSingleTop = true

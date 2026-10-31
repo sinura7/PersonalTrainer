@@ -165,6 +165,20 @@ class RestBarRenderTest {
     }
 
     @Test
+    fun aSkipTappedAfterAPlusFifteenEndsTheRest() {
+        // A +15 is the same rest under a new id; the Skip the bar draws next must still end it.
+        val vm = startRestOnTheFloor()
+        val before = vm.restTimerState.value.timerId
+        compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).performClick()
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.restTimerState.value.timerId != before }
+        compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { !vm.restTimerState.value.running }
+        assertTrue("a skip is not a finish", deps.restTimerController.lastCompletedTimerId.value == null)
+    }
+
+    @Test
     fun fontScaleTwoWraps() {
         showBar(fontScale = 2f)
         val width = 360.dp

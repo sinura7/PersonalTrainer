@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.ui.start.StartSheetOpener
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.Canvas

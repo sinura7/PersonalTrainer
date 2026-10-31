@@ -11,8 +11,9 @@ state_members = 1
 # 182 -> 181 in W2a: NumeralWell's compact branch (its `Kicker(label, asHeading = false)`) went
 # with SetEntryPanel's unused compact path.
 # Compact History uses fully named metric/layout arguments, reducing skipped calls.
-required_args_mixed = 180
-required_args_lambda = 45
+# 179 -> 178 and 44 -> 43 on V2 (#571): the retired start sheets took one mixed and one lambda call site with them.
+required_args_mixed = 178
+required_args_lambda = 43
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
 when_exhaustive = 46

@@ -86,7 +86,7 @@ import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
-import com.sinura.personaltrainer.ui.workout.StartSheetOpener
+import com.sinura.personaltrainer.ui.start.StartSheetOpener
 import com.sinura.personaltrainer.util.toYearMonth
 import java.time.LocalDate
 
