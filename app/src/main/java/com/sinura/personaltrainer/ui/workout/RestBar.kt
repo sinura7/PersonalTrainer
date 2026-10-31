@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -86,7 +87,11 @@ internal fun RestBar(
     val spoken = if (completed) {
         stringResource(R.string.rest_done)
     } else {
-        stringResource(R.string.rest_spoken, bucket / 60, bucket % 60)
+        stringResource(
+            R.string.rest_spoken,
+            pluralStringResource(R.plurals.rest_spoken_minutes, bucket / 60, bucket / 60),
+            pluralStringResource(R.plurals.rest_spoken_seconds, bucket % 60, bucket % 60),
+        )
     }
     val fraction = if (completed) 0f else RestBarCopy.fraction(remainingSeconds, totalSeconds, overtime)
     Column(
