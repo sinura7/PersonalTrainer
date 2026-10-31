@@ -30,6 +30,8 @@ class LogLoopBringIntoViewTest {
     fun resumeAndLiftSwitchFocusTheEntryNotAVanishedListOffset() {
         assertEquals(0, LogLoopBringIntoView.entryListIndex())
         assertEquals("identity, then the numerals", 1, LogLoopBringIntoView.editRevealIndex())
+        assertEquals("the rest bar sits between header and entry", 2, LogLoopBringIntoView.editRevealIndex(restBarShown = true))
+        assertEquals("rest start brings the header and bar back", 0, LogLoopBringIntoView.restBarRevealIndex())
         assertFalse(ownedSource("ui/workout/ActiveWorkoutScreen.kt").contains("itemsIndexed("))
     }
 }

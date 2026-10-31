@@ -370,7 +370,14 @@ private fun ActiveWorkoutContent(
     }
     // An edit deliberately reveals the entry; ordinary saves keep the viewport where it is.
     LaunchedEffect(state.editingSetId) {
-        if (state.editingSetId != null) listState.animateScrollToItem(LogLoopBringIntoView.editRevealIndex())
+        if (state.editingSetId != null) {
+            listState.animateScrollToItem(LogLoopBringIntoView.editRevealIndex(restBarShown))
+        }
+    }
+    // v4 V4: the rest bar sits under the header; when it appears, bring it on screen so the
+    // running clock is never composed off the top of the list.
+    LaunchedEffect(restBarShown) {
+        if (restBarShown) listState.animateScrollToItem(LogLoopBringIntoView.restBarRevealIndex())
     }
 
     DisposableEffect(Unit) {

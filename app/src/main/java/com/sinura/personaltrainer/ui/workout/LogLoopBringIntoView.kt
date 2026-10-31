@@ -14,5 +14,8 @@ object LogLoopBringIntoView {
      * ADR-027: an edit scrolls the entry itself under the header, not the identity. The
      * Quiet puts the entry immediately after exercise-header, so the numerals are item 1.
      */
-    fun editRevealIndex(): Int = 1
+    fun editRevealIndex(restBarShown: Boolean = false): Int = if (restBarShown) 2 else 1
+
+    /** v4 V4: when rest starts, the header and the inline RestBar under it come back into view. */
+    fun restBarRevealIndex(): Int = 0
 }
