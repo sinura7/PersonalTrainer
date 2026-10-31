@@ -29,8 +29,6 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.PinnedDock
-import com.sinura.personaltrainer.ui.components.ActionTone
-import com.sinura.personaltrainer.ui.components.PrimaryButton
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestDurationSheet
 import com.sinura.personaltrainer.ui.components.RestHonestyRow
@@ -93,9 +91,10 @@ internal data class WorkoutDockState(
     val timer: WorkoutDockTimer,
     val keepEntry: Boolean = false,
     val keepingEntry: Boolean = false,
-    /** Full-screen rest floor: companion hides the dock rest card. */
+    /** v4 V4: the inline rest bar owns rest, so the companion hides the dock rest card. */
     val restImmersion: Boolean = false,
-    val restPrimarySubLabel: String? = null,
+    /** v4 V4: bumped by the rest bar's clock to open the duration sheet. */
+    val restDurationRequest: Int = 0,
     /** What-next sheet owns Next / Finish; hide the dock duplicate. */
     val hideAdvancePrimary: Boolean = false,
 )
@@ -118,7 +117,6 @@ internal data class WorkoutDockEvents(
     /** Ends GET READY before a hold; no hold starts (P2b). */
     val onCancelLeadIn: () -> Unit = {},
     val onDismissRestBatteryHint: () -> Unit,
-    val onOpenRest: () -> Unit,
     val onOpenNotifications: () -> Unit,
     val onKeepEntry: () -> Boolean = { false },
 )
@@ -142,6 +140,7 @@ internal fun WorkoutDock(
     var timingDetails by rememberSaveable { mutableStateOf(false) }
     val retainedRest = retainedNumber(WorkoutNumberField.REST_SECONDS)
     LaunchedEffect(retainedRest?.open) { if (retainedRest?.open == true) durationSheet = true }
+    LaunchedEffect(state.restDurationRequest) { if (state.restDurationRequest > 0) durationSheet = true }
     val timer = state.timer
     val action = state.primaryAction
     LaunchedEffect(timer.show, timer.restRunning) {
@@ -230,7 +229,6 @@ internal fun WorkoutDock(
                         onNudge = events.onNudgeRest,
                         onEditDuration = { durationSheet = true },
                         onStartSetClock = events.onStartSetClock,
-                        onOpenRest = events.onOpenRest,
                         focused = true,
                     )
                 }
@@ -242,7 +240,6 @@ internal fun WorkoutDock(
             onClick = {
                 when {
                     holdActive || timer.stopwatchRunning -> timingDetails = true
-                    timer.restRunning -> events.onOpenRest()
                     else -> durationSheet = true
                 }
             },
@@ -368,20 +365,7 @@ internal fun WorkoutDock(
                     } else {
                         Metrics.logFloorCommit
                     }
-                if (action.kind == WorkoutPrimaryKind.START_SET_NOW) {
-                    PrimaryButton(
-                        label = verb,
-                        subLabel = state.restPrimarySubLabel,
-                        tone = ActionTone.Rest,
-                        onClick = {
-                            val accepted = events.onPrimary(action)
-                            if (accepted && action.kind == WorkoutPrimaryKind.REVIEW_SAVE) saveDetails = true
-                        },
-                        modifier = Modifier
-                            .testTag(WorkoutTestTags.REST_START_NOW)
-                            .semantics { contentDescription = spokenAction },
-                    )
-                } else {
+                run {
                     PrimaryGymButton(
                         text = verb,
                         supporting = payload,

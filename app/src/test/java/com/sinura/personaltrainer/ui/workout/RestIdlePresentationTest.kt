@@ -17,8 +17,7 @@ import org.junit.Test
  * rendered in RestTimerCardRenderTest, RestDurationSheetRenderTest and
  * WorkoutDockTimerRenderTest, and tapped through the screen in
  * FloorRestAndCoachWiringRenderTest. The empty ring and the chevron are read from the drawn
- * pixels in RestCardDrawingRenderTest; the rest page's ring, room and honesty lines in
- * RestPageFitRenderTest (audit T1c-1). The bans stay here, with the metrics and the spoken
+ * pixels in RestCardDrawingRenderTest; the inline rest bar in RestBarRenderTest (v4 V4). The bans stay here, with the metrics and the spoken
  * words the idle card is built from.
  */
 class RestIdlePresentationTest {
@@ -47,8 +46,9 @@ class RestIdlePresentationTest {
     }
 
     @Test
-    fun theRestPageNeverPromisesPrecisionOrANextRest() {
-        val floor = ownedSource("ui/workout/RestTimerScreen.kt")
+    fun theRestBarNeverPromisesPrecisionOrANextRest() {
+        // v4 V4: the rest page was replaced by the inline RestBar; the same bans apply to it.
+        val floor = ownedSource("ui/workout/RestBar.kt")
         assertFalse(floor.contains("precise", ignoreCase = true))
         assertFalse(floor.contains("\"Next rest\""))
     }

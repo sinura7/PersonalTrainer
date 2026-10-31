@@ -137,7 +137,6 @@ import com.sinura.personaltrainer.ui.workout.LocalRestCooldownActive
 import com.sinura.personaltrainer.ui.workout.LocalRestExteriorAsk
 import com.sinura.personaltrainer.ui.workout.RestAlertsAsk
 import com.sinura.personaltrainer.ui.workout.RestExteriorAsk
-import com.sinura.personaltrainer.ui.workout.RestTimerScreen
 import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 
 private const val SUMMARY_CORRECTION_RESULT = "summary.acknowledgedCorrection.v1"
@@ -158,9 +157,6 @@ sealed class Route(val path: String) {
     }
     data object ActiveWorkout : Route("session/{sessionId}") {
         fun create(sessionId: String): String = "session/$sessionId"
-    }
-    data object RestTimer : Route("session/{sessionId}/rest") {
-        fun create(sessionId: String): String = "session/$sessionId/rest"
     }
     data object WorkoutSummary : Route("summary/{sessionId}") {
         fun create(sessionId: String) = "summary/$sessionId"
@@ -290,7 +286,6 @@ private val ScreenExit: ExitTransition = fadeOut(tween(Motion.TAP, easing = Moti
  */
 private val LIVE_BAR_HIDDEN_ROUTES = setOf(
     Route.ActiveWorkout.path,
-    Route.RestTimer.path,
     Route.WorkoutSummary.path,
     Route.LiveCardio.path,
     Route.ActivitySummary.path,
@@ -749,11 +744,6 @@ fun PersonalTrainerNav(
                     ActiveWorkoutScreen(
                         onExit = { navController.popBackStack() },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                        onOpenRest = { sessionId ->
-                            navController.navigate(Route.RestTimer.create(sessionId)) {
-                                launchSingleTop = true
-                            }
-                        },
                         onFinished = { sessionId ->
                             // The finished workout leaves the stack: back from the summary goes
                             // Home, never into a session that no longer accepts sets.
@@ -762,14 +752,6 @@ fun PersonalTrainerNav(
                                 launchSingleTop = true
                             }
                         },
-                    )
-                }
-                composable(
-                    route = Route.RestTimer.path,
-                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
-                ) {
-                    RestTimerScreen(
-                        onClose = { navController.popBackStack() },
                     )
                 }
                 composable(

@@ -11,7 +11,6 @@ import com.sinura.personaltrainer.data.repository.WorkoutPickerSwap
 import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
 
 import android.app.Application
-import com.sinura.personaltrainer.R
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -900,6 +899,9 @@ class ActiveWorkoutViewModel internal constructor(
         )
 
     init {
+        // A restored lift id outlives its rest after process death; with no rest running it
+        // would draw the bar again and replay "Rest done".
+        if (!container.restTimerStore.snapshot.value.running) setRestImmersionLiftId(null)
         viewModelScope.launch {
             var restWasRunning = false
             restTimerState.collect { rest ->
@@ -2276,19 +2278,7 @@ class ActiveWorkoutViewModel internal constructor(
             Triple(hold, stopwatch, generation)
         },
         primaryActivation,
-        restTimerState,
-    ) { state, extra, timing, activation, rest ->
-        val session = state.session
-        val lift = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
-        val workingLogged = session?.sets?.count {
-            it.exerciseId == state.selectedExerciseId && !it.isWarmup
-        } ?: 0
-        val nextSet = workingLogged + 1
-        val immersionLiftId = restImmersionLiftIdStore.value
-        val onRestLift = rest.running && state.selectedExerciseId == immersionLiftId
-        val startNowLabel = nextSet.takeIf { onRestLift && lift != null }?.let { ordinal ->
-            getApplication<Application>().getString(R.string.rest_start_now, ordinal)
-        }
+    ) { state, extra, timing, activation ->
         WorkoutPrimaryActions.derive(
             state.copy(mutating = state.mutating || !privateDrafts.recovery.value.canCommit && !state.save.pending),
             extra,
@@ -2296,9 +2286,6 @@ class ActiveWorkoutViewModel internal constructor(
             timing.second,
             timing.third,
             activation,
-            restRunning = rest.running,
-            restImmersionLiftId = immersionLiftId,
-            startSetNowLabel = startNowLabel,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, currentPrimaryAction())
 
@@ -2310,15 +2297,6 @@ class ActiveWorkoutViewModel internal constructor(
         val hold = lift?.exercise?.let { HoldWork.isHold(it) } == true
         val effortApplies = !draftValue.isWarmup && !hold
         val source = effortSource.value
-        val rest = restTimerState.value
-        val immersionLiftId = restImmersionLiftIdStore.value
-        val workingLogged = read.session?.sets?.count {
-            it.exerciseId == selected && !it.isWarmup
-        } ?: 0
-        val onRestLift = rest.running && selected == immersionLiftId
-        val startNowLabel = (workingLogged + 1).takeIf { onRestLift && lift != null }?.let { ordinal ->
-            getApplication<Application>().getString(R.string.rest_start_now, ordinal)
-        }
         return WorkoutPrimaryActions.derive(
             state = ActiveWorkoutUiState(
                 loadState = read.loadState, session = read.session,
@@ -2331,9 +2309,6 @@ class ActiveWorkoutViewModel internal constructor(
             ),
             extraSet = wantAnotherSet.value, hold = clocks.hold.value, stopwatch = clocks.stopwatch.value,
             timedGeneration = clocks.generation.value, activation = primaryActivation.value,
-            restRunning = rest.running,
-            restImmersionLiftId = immersionLiftId,
-            startSetNowLabel = startNowLabel,
         )
     }
 
@@ -2357,7 +2332,6 @@ class ActiveWorkoutViewModel internal constructor(
             WorkoutPrimaryKind.NEXT_EXERCISE -> action.identity.nextExerciseId?.let(::beginLiftTransition)
             WorkoutPrimaryKind.RETRY_SAVE -> retrySave()
             WorkoutPrimaryKind.FINISH, WorkoutPrimaryKind.REVIEW_SAVE -> Unit // The screen opens its confirmation/details.
-            WorkoutPrimaryKind.START_SET_NOW -> skipRest()
             WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING, WorkoutPrimaryKind.UPDATING, WorkoutPrimaryKind.GET_READY -> return false
         }
         return true
@@ -2775,6 +2749,17 @@ class ActiveWorkoutViewModel internal constructor(
     fun skipRest() {
         cancelPendingRest()
         restTimer.stop()
+        tempoCoachSheetVisible.value = false
+        setRestImmersionLiftId(null)
+    }
+
+    /**
+     * The rest bar's Skip, for the rest the bar drew ([shownTimerId]): a rest that ran out as
+     * Skip was tapped stays complete, and a newer rest keeps running (W2b-3).
+     */
+    fun skipShownRest(shownTimerId: String) {
+        if (!restTimer.skipIfShown(shownTimerId)) return
+        cancelPendingRest()
         tempoCoachSheetVisible.value = false
         setRestImmersionLiftId(null)
     }

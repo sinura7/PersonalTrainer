@@ -40,7 +40,6 @@ internal fun WorkoutReadiness(action: WorkoutPrimaryAction, effortMissing: Boole
         }
         WorkoutPrimaryKind.UNAVAILABLE -> stringResource(R.string.workout_readiness_unavailable)
         WorkoutPrimaryKind.ADD_EXERCISE -> stringResource(R.string.workout_readiness_add_exercise)
-        WorkoutPrimaryKind.START_SET_NOW -> stringResource(R.string.workout_readiness_start_set_now)
     }
     Text(
         text = when {

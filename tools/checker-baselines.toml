@@ -12,7 +12,7 @@ state_members = 1
 # with SetEntryPanel's unused compact path.
 # Compact History uses fully named metric/layout arguments, reducing skipped calls.
 required_args_mixed = 180
-required_args_lambda = 46
+required_args_lambda = 45
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
 when_exhaustive = 46

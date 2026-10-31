@@ -131,7 +131,6 @@ class ReducedMotionRenderTest {
                         onNudge = {},
                         onEditDuration = {},
                         onStartSetClock = {},
-                        onOpenRest = {},
                     )
                 }
             }

@@ -18,7 +18,6 @@ class GymChromeTest {
             "exercise/ExerciseDetailScreen.kt",
             "onboarding/OnboardingScreen.kt",
             "workout/WorkoutHeader.kt",
-            "workout/RestTimerScreen.kt",
         )
         // The workout has two docks on the shared chrome: WorkoutDock while a lift is
         // selected, and the screen's own Add exercise dock for an empty session.
@@ -37,7 +36,7 @@ class GymChromeTest {
         dockSites.forEach { path ->
             assertTrue(path, readUi(path).contains("PinnedDock("))
         }
-        assertEquals(10, headerSites.size)
+        assertEquals(9, headerSites.size)
         assertEquals(7, dockSites.size)
         assertTrue(readOwned("ScreenHeader.kt").contains("fun ScreenHeader("))
         val pinned = readOwned("PinnedDock.kt")

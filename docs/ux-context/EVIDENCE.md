@@ -111,7 +111,7 @@ The attachment names are the source of each copied file. Copying preserves bytes
 
 **Visible facts:** A top-left ×, large cyan ring, REST, 1:54; Incline Dumbbell Bench Press; Last set · 60 lb × 8; Next: 60 lb × 8 · RPE 9; Planned rest · 2:00. Bottom controls are -15, +15, Skip.
 
-**Code-supported context:** [RestTimerScreen](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RestTimerScreen.kt) and [RestCommands](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RestCommands.kt) provide shared rest state/commands. [AppNav](../../app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt) makes Close return from the rest route.
+**Code-supported context:** [RestBar](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RestBar.kt) (the rest page was removed in v4 V4) and [RestCommands](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RestCommands.kt) provide shared rest state/commands. [AppNav](../../app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt) makes Close return from the rest route.
 
 **Strength:** Remaining time is immediately readable; the exercise and previous/next values keep the timer connected to training.
 

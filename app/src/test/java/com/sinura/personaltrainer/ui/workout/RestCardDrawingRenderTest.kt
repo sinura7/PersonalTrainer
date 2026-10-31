@@ -264,7 +264,6 @@ class RestCardDrawingRenderTest {
                     onNudge = { nudges += it },
                     onEditDuration = {},
                     onStartSetClock = {},
-                    onOpenRest = {},
                 )
             }
         }

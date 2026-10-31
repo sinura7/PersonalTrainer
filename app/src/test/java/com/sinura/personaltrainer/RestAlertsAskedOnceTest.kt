@@ -28,7 +28,6 @@ import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.testutil.forgetFirstApplication
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.timer.RestTimerService
-import com.sinura.personaltrainer.ui.workout.RestFloorTags
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
 import kotlinx.coroutines.flow.first
 import java.time.Duration
@@ -97,7 +96,7 @@ class RestAlertsAskedOnceTest {
     }
 
     @Test
-    fun notNowOnTheWorkoutIsNotAskedAgainOnTheNextWorkoutOrTheRestPage() {
+    fun notNowOnTheWorkoutIsNotAskedAgainOnTheNextWorkoutOrTheRunningRest() {
         val live = startAWorkout()
         launch(floorTap(live))
         awaitText(RestNotificationCopy.SENTENCE)
@@ -111,7 +110,7 @@ class RestAlertsAskedOnceTest {
         assertNeverShown(RestNotificationCopy.SENTENCE)
 
         app.container.restTimerController.start(90, live)
-        openTheRestPage()
+        seeTheRunningRest()
         assertNeverShown(RestNotificationCopy.SENTENCE)
         compose.onNodeWithText(RestNotificationCopy.RECOVERY_TITLE, useUnmergedTree = true).assertExists()
     }
@@ -145,11 +144,11 @@ class RestAlertsAskedOnceTest {
     }
 
     /**
-     * The rest page opened a moment after Not now, while the answer is still being written (the
+     * A rest started a moment after Not now, while the answer is still being written (the
      * settings file busy with another write): it does not ask, then or once the write lands.
      */
     @Test
-    fun theRestPageDoesNotAskWhileTheAnswerIsStillBeingSaved() {
+    fun theRunningRestDoesNotAskWhileTheAnswerIsStillBeingSaved() {
         val live = startAWorkout()
         launch(floorTap(live))
         awaitText(RestNotificationCopy.SENTENCE)
@@ -157,7 +156,7 @@ class RestAlertsAskedOnceTest {
         try {
             compose.onNodeWithText(RestNotificationCopy.NOT_NOW).performClick()
             app.container.restTimerController.start(90, live)
-            openTheRestPage()
+            seeTheRunningRest()
             assertNeverShown(RestNotificationCopy.SENTENCE)
         } finally {
             letTheSettingsFileGo()
@@ -298,19 +297,13 @@ class RestAlertsAskedOnceTest {
         }
     }
 
-    /** The running rest's clock on the workout opens the rest page. */
-    private fun openTheRestPage() {
+    /** v4: there is no rest page. The running rest shows on the workout itself. */
+    private fun seeTheRunningRest() {
         compose.waitUntil(timeoutMillis = WAIT_MS) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.COMPANION_CLOCK)).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodes(hasTestTag(WorkoutTestTags.REST_FLOOR_RING)).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodes(hasTestTag(WorkoutTestTags.REST_BAR)).fetchSemanticsNodes().isNotEmpty()
         }
-        val clock = compose.onAllNodes(hasTestTag(WorkoutTestTags.COMPANION_CLOCK))
-        if (clock.fetchSemanticsNodes().isNotEmpty()) {
-            clock[0].performClick()
-        } else {
-            compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR_RING).performClick()
-        }
-        awaitTag(RestFloorTags.ROOT)
+        compose.waitForIdle()
     }
 
     /**

@@ -95,7 +95,6 @@ internal fun RestTimerCard(
     onNudge: (Int) -> Unit,
     onEditDuration: () -> Unit,
     onStartSetClock: () -> Unit,
-    onOpenRest: () -> Unit,
     modifier: Modifier = Modifier,
     focused: Boolean = false,
 ) {
@@ -152,7 +151,7 @@ internal fun RestTimerCard(
         running -> buildString {
             append("Rest $clock remaining. $sourceLine.")
             if (urgent) append(" Last ten seconds.")
-            append(" Open rest timer.")
+            append(" Change rest length.")
         }
         else -> RestIdleCopy.dockSpokenWithSource(restSourceTag, clock, afterWarmup)
     }
@@ -207,7 +206,7 @@ internal fun RestTimerCard(
                     .widthIn(min = Metrics.touchMin)
                     .heightIn(min = Metrics.touchMin)
                     .clip(RoundedCornerShape(Radius.sm))
-                    .clickable(role = Role.Button, onClick = if (idle) onEditDuration else onOpenRest)
+                    .clickable(role = Role.Button, onClick = onEditDuration)
                     .semantics {
                         contentDescription = spoken
                         if (TalkBackPolicy.announceRestKicker(justFinished)) {

@@ -13,7 +13,7 @@ import com.sinura.personaltrainer.workout.WorkoutDraft
 
 /**
  * Everything the coach is asked about the next set, beside the clock. The Log
- * ([ActiveWorkoutViewModel.microRec]) and the rest page's Next line ([RestTimerViewModel]) each
+ * ([ActiveWorkoutViewModel.microRec]) and the former rest page's Next line each
  * fill one of these and ask through [coachKey], so both ask one question. The rest page's planned
  * length still asks the question it asked before, with three of these set aside (see there).
  *

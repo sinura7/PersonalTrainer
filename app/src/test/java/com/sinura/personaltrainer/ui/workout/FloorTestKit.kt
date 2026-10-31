@@ -183,7 +183,6 @@ internal fun floorDockState(
     undoMessage: String? = null,
     timer: WorkoutDockTimer = WorkoutDockTimer(show = true, restTotalSeconds = 120),
     restImmersion: Boolean = false,
-    restPrimarySubLabel: String? = null,
 ): WorkoutDockState = WorkoutDockState(
     primaryAction = action,
     verb = action.verb(includeNextName = false),
@@ -201,7 +200,6 @@ internal fun floorDockState(
     undoDwellMs = 60_000L,
     timer = timer,
     restImmersion = restImmersion,
-    restPrimarySubLabel = restPrimarySubLabel,
 )
 
 /** Dock callbacks that do nothing unless a test hands one in. */
@@ -209,7 +207,6 @@ internal fun floorDockEvents(
     onPrimary: (WorkoutPrimaryAction) -> Boolean = { false },
     onAnotherSet: () -> Unit = {},
     onCancelEdit: () -> Unit = {},
-    onOpenRest: () -> Unit = {},
     onUndoDismissed: () -> Unit = {},
     onSkipRest: () -> Unit = {},
     onStartRest: () -> Unit = {},
@@ -236,7 +233,6 @@ internal fun floorDockEvents(
     onStartSetClock = onStartSetClock,
     onStopSetClock = onStopSetClock,
     onDismissRestBatteryHint = onDismissRestBatteryHint,
-    onOpenRest = onOpenRest,
     onOpenNotifications = onOpenNotifications,
 )
 

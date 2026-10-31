@@ -35,8 +35,8 @@ data class RestTimerUiState(
 )
 
 /**
- * The rest commands the Log's dock ([ActiveWorkoutViewModel]) and the rest page
- * ([RestTimerViewModel]) both give: one clock, one saved last preset, one battery line.
+ * The rest commands the Log ([ActiveWorkoutViewModel]) and its inline
+ * [RestBar] give: one clock, one saved last preset, one battery line.
  *
  * What a page plans to start next stays with the page, and so does the rule that merges a
  * seed, a pick and the echo of a pick into that plan. The two rules differ on purpose (X4,

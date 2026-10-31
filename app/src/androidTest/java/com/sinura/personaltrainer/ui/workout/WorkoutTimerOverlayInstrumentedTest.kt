@@ -66,7 +66,7 @@ class WorkoutTimerOverlayInstrumentedTest {
                                 if (seconds != null) { applied = seconds; commits++ }
                                 seconds != null
                             },
-                            onStartSetClock = {}, onStopSetClock = {}, onDismissRestBatteryHint = {}, onOpenRest = {},
+                            onStartSetClock = {}, onStopSetClock = {}, onDismissRestBatteryHint = {},
                             onOpenNotifications = {},
                         ),
                     )

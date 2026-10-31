@@ -16,10 +16,9 @@ class PlanDayConfirmTest {
         assertTrue(planDay.contains("destructive = true"))
         assertTrue(planDay.contains("color = Danger"))
         assertTrue(planDay.contains("viewModel.deleteSession"))
-        val rest = readOwned("ui/workout/RestTimerScreen.kt")
-        assertTrue(rest.contains("text = \"Start rest\""))
-        assertTrue(rest.contains("PrimaryGymButton("))
-        assertTrue(!rest.contains("label = \"Start rest\""))
+        // v4 V4: the rest page is gone; the inline RestBar carries no Volt of its own.
+        val restBar = readOwned("ui/workout/RestBar.kt")
+        assertTrue(!restBar.contains("PrimaryGymButton("))
     }
 
     private fun readOwned(relative: String): String {

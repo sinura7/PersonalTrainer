@@ -127,22 +127,4 @@ class ManualRestStartTest {
         assertFalse("Finishing preference IO cannot restart canceled rest", deps.restTimerStore.current().running)
         if (timeSet) assertTrue(vm.setStopwatch.value.running)
     }
-
-    @Test fun expandedRestSkipCannotBeUndoneByDelayedPreferences() = runBlocking {
-        val session = seedTestWorkout(deps).session
-        val vm = RestTimerViewModel(ApplicationProvider.getApplicationContext(), SavedStateHandle(mapOf("sessionId" to session.id)), deps)
-        models += vm
-        vm.uiState.awaitFirst { it.loadState == SessionLoadState.FOUND && it.floor.exerciseName != null }
-        vm.selectRestDuration(135)
-        deps.preferencesRepository.restTimerPreferences.awaitFirst { it.lastPresetSeconds == 135 }
-        writeGate = CompletableDeferred()
-        vm.startSelectedRest()
-        withTimeout(5_000) { entered.await() }
-        assertTrue(deps.restTimerStore.current().running)
-        // The page's Skip names the running rest it shows (W2b-3).
-        vm.skipRest(vm.uiState.awaitFirst { it.rest.running }.rest.timerId)
-        writeGate!!.complete(Unit)
-        deps.preferencesRepository.restAlarmEligible.awaitFirst { it }
-        assertFalse(deps.restTimerStore.current().running)
-    }
 }

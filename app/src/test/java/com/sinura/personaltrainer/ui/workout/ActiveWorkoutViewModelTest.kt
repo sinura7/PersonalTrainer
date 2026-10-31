@@ -496,6 +496,20 @@ class ActiveWorkoutViewModelTest {
         assertFalse(deps.restTimerStore.current().running)
     }
 
+    /** v4 V4: the next set stays editable under the inline rest bar; editing never stops rest. */
+    @Test
+    fun editingDuringRestKeepsRestRunning() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3, restSeconds = 75)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.startSelectedRest()
+        awaitRestRunning()
+        vm.setReps(7)
+        vm.awaitState { it.draft.reps == 7 }
+        assertTrue("editing the next set keeps rest running", deps.restTimerStore.current().running)
+        assertEquals(WorkoutPrimaryKind.LOG_SET, vm.primaryAction.value.kind)
+    }
+
     @Test
     fun holdClockFollowsElapsedRealtimeAndDoesNotAutoLog() = runBlocking {
         val clock = ControllableTimePort()
@@ -634,6 +648,56 @@ class ActiveWorkoutViewModelTest {
         val recreated = createViewModel(fixture.session.id, handle)
         recreated.awaitState { it.loadState == SessionLoadState.FOUND }
         assertEquals(SQUAT, recreated.restImmersionLiftId.value)
+    }
+
+    @Test
+    fun aSkipTappedAsTheRestRanOutKeepsItComplete() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id, handleFor(fixture.session.id))
+        vm.awaitPrefilled()
+        vm.logSetAndSettle()
+        awaitRestRunning()
+        val shown = deps.restTimerStore.current().timerId
+        assertTrue("the rest runs out first", deps.restTimerController.completeIfCurrent(shown, fromService = true))
+        vm.skipShownRest(shown)
+        dispatcher.scheduler.runCurrent()
+        assertEquals("still done, not skipped", shown, deps.restTimerController.lastCompletedTimerId.value)
+    }
+
+    @Test
+    fun aSkipForTheRestItDrewLeavesANewerRestRunning() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id, handleFor(fixture.session.id))
+        vm.awaitPrefilled()
+        vm.logSetAndSettle()
+        awaitRestRunning()
+        val shown = deps.restTimerStore.current().timerId
+        deps.restTimerController.start(120, fixture.session.id)
+        val next = deps.restTimerStore.current().timerId
+        vm.skipShownRest(shown)
+        dispatcher.scheduler.runCurrent()
+        assertTrue("the newer rest keeps running", deps.restTimerStore.current().running)
+        assertEquals(next, deps.restTimerStore.current().timerId)
+    }
+
+    @Test
+    fun aRestoredLiftIdWithNoRunningRestIsDroppedSoRestDoneIsNotReplayed() = runBlocking {
+        val fixture = seedWorkout()
+        val handle = handleFor(fixture.session.id)
+        val first = createViewModel(fixture.session.id, handle)
+        first.awaitPrefilled()
+        first.setRpe(8)
+        first.logSetAndSettle()
+        awaitRestRunning()
+        assertEquals(SQUAT, first.restImmersionLiftId.value)
+        first.clearAndJoinForTest()
+        viewModels.remove(first)
+        // The rest ends while the process is gone; the saved lift id is still in the handle.
+        deps.restTimerController.stop()
+
+        val recreated = createViewModel(fixture.session.id, handle)
+        recreated.awaitState { it.loadState == SessionLoadState.FOUND }
+        assertNull(recreated.restImmersionLiftId.value)
     }
 
     @Test

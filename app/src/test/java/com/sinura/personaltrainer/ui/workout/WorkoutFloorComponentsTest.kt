@@ -514,7 +514,6 @@ class WorkoutFloorComponentsTest {
                 onNudge = { nudged = it },
                 onEditDuration = {},
                 onStartSetClock = {},
-                onOpenRest = {},
             )
         }
         compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
@@ -547,7 +546,6 @@ class WorkoutFloorComponentsTest {
                 onNudge = {},
                 onEditDuration = { edits += 1 },
                 onStartSetClock = {},
-                onOpenRest = {},
             )
         }
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertExists()

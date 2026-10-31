@@ -124,7 +124,7 @@ If reconciliation finds that the set already saved, the recovered path clears th
 
 **Exit/recovery:** Closing expanded rest pops its route. Hiding a surface is distinct from Skip. Natural completion and Skip have different outcomes. A user may log while rest is running if entry is otherwise ready.
 
-**Source:** [ADR-012](../architecture/ADR-012-rest-and-reminders.md), [post-log handling](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModel.kt), [RestTimer rules](../../app/src/main/java/com/sinura/personaltrainer/domain/RestTimer.kt), [RestCommands](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RestCommands.kt), [rest screen](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RestTimerScreen.kt).
+**Source:** [ADR-012](../architecture/ADR-012-rest-and-reminders.md), [post-log handling](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModel.kt), [RestTimer rules](../../app/src/main/java/com/sinura/personaltrainer/domain/RestTimer.kt), [RestCommands](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RestCommands.kt), [RestBar](../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RestBar.kt).
 
 **Open research:** What should dominate rest: a quiet countdown, next-set preparation, or advice? Do the planned and actual durations have clear meaning? Extra-set planned-rest alignment and dock Skip scoping need source/decision review before any behaviour change.
 
