@@ -110,6 +110,7 @@ fun StartChooser(
     val navigateToComposer by viewModel.navigateToComposer.collectAsStateWithLifecycle()
     val starting by gate.startState.collectAsStateWithLifecycle()
     val blocked by gate.blockedByInProgress.collectAsStateWithLifecycle()
+    val readsCurrent by gate.readsCurrent.collectAsStateWithLifecycle()
     val gateSession by gate.navigateToSession.collectAsStateWithLifecycle()
     val gateCardio by gate.navigateToCardio.collectAsStateWithLifecycle()
     var pageName by rememberSaveable { mutableStateOf(StartPage.CHOOSER_PAGE.name) }
@@ -121,7 +122,7 @@ fun StartChooser(
     val renderedAttemptId = starting.attemptId
     val owns = { gate.startState.value.attemptId == renderedAttemptId }
     val startsEnabled = StartGroups.startsEnabled(state) && !starting.pending && starting.error == null &&
-        blocked == null
+        blocked == null && readsCurrent
     val mayStart = { owns() && gate.canEditStartChoice() }
 
     // The sheet is going away; nothing it staged may outlive it.

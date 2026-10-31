@@ -260,7 +260,7 @@ class HomeStartAdmissionRenderTest {
         compose.onNodeWithTag(StartTags.CANCEL).assertIsNotEnabled()
         compose.onNodeWithTag(StartTags.routine(routineId)).assertExists()
         compose.onNodeWithTag(StartTags.START_EMPTY).assertIsNotEnabled()
-        reachable(compose.onNodeWithTag(HomeStartTags.PENDING)).assertIsDisplayed()
+        reachable(startStatus(HomeStartTags.PENDING)).assertIsDisplayed()
         capture("insert-pending")
         attemptNativeDismiss()
         compose.onNodeWithTag(StartTags.SHEET).assertExists()
@@ -276,18 +276,18 @@ class HomeStartAdmissionRenderTest {
         assertTrue(openedSessions.isEmpty())
         compose.onNodeWithTag(StartTags.routine(routineId)).assertExists()
         compose.onNodeWithTag(StartTags.START_EMPTY).assertIsNotEnabled()
-        reachable(compose.onNodeWithTag(HomeStartTags.ERROR)).assertIsDisplayed()
+        reachable(startStatus(HomeStartTags.ERROR)).assertIsDisplayed()
         capture("insert-failed")
-        reachable(compose.onNodeWithTag(HomeStartTags.RETRY)).assertIsEnabled()
+        reachable(startStatus(HomeStartTags.RETRY)).assertIsEnabled()
         capture("insert-failed-actions")
 
         writes.held = CompletableDeferred()
-        val retry = enabledClick(HomeStartTags.RETRY)
+        val retry = enabledClick(startStatus(HomeStartTags.RETRY))
         compose.runOnUiThread { retry(); retry() }
         await("one explicit retry waits") { vm.startState.value.pending && writes.attempts.get() == 2 }
         assertTrue(openedSessions.isEmpty())
         compose.onNodeWithTag(StartTags.CANCEL).assertIsNotEnabled()
-        reachable(compose.onNodeWithTag(HomeStartTags.PENDING)).assertIsDisplayed()
+        reachable(startStatus(HomeStartTags.PENDING)).assertIsDisplayed()
         capture("retry-pending")
         writes.held!!.complete(Unit)
         assertOneSavedStart()
@@ -311,12 +311,13 @@ class HomeStartAdmissionRenderTest {
         createGraph()
         show()
         openRoutinePage()
+        // V2: the routine's preview is open when the blocker appears; its Begin is the start.
+        val routineStart = previewBegin(routineId)
         val blocker = runBlocking { base.workoutRepository.startFreeWorkout() }
         await("Home observes the real workout that blocks the open routine choice") {
             vm.uiState.value.inProgress?.id == blocker.id
         }
         val before = inventory()
-        val routineStart = previewBegin(routineId)
         compose.runOnUiThread { routineStart() }
         await("the selected routine presents the actual blocker decision") {
             vm.blockedByInProgress.value?.sessionId == blocker.id && !vm.startState.value.pending
@@ -342,7 +343,7 @@ class HomeStartAdmissionRenderTest {
         assertEquals(before, inventory())
         assertTouchTarget(dialogAction(LiveBarCopy.RESUME)).assertIsNotEnabled()
         assertTouchTarget(dialogAction("Starting…")).assertIsNotEnabled()
-        reachable(compose.onNodeWithTag(HomeStartTags.PENDING)).assertIsDisplayed()
+        reachable(startStatus(HomeStartTags.PENDING)).assertIsDisplayed()
         capture("discard-pending")
         attemptNativeDismiss()
         assertEquals(blocker.id, vm.blockedByInProgress.value?.sessionId)
@@ -378,7 +379,7 @@ class HomeStartAdmissionRenderTest {
         dialogAction(LiveBarCopy.RESUME).assertDoesNotExist()
         assertFalse(vm.canResumeBlockedStart())
         reachable(compose.onNodeWithText(DISCARDED_BODY)).assertIsDisplayed()
-        reachable(compose.onNodeWithTag(HomeStartTags.ERROR)).assertIsDisplayed()
+        reachable(startStatus(HomeStartTags.ERROR)).assertIsDisplayed()
         capture("acknowledged-discard-replacement-failed")
         val retry = enabledClick(dialogAction("Retry start"))
         capture("acknowledged-discard-retry-actions")
@@ -400,7 +401,7 @@ class HomeStartAdmissionRenderTest {
         assertTrue(openedSessions.isEmpty())
         dialogAction(LiveBarCopy.RESUME).assertDoesNotExist()
         assertTouchTarget(dialogAction("Starting…")).assertIsNotEnabled()
-        reachable(compose.onNodeWithTag(HomeStartTags.PENDING)).assertIsDisplayed()
+        reachable(startStatus(HomeStartTags.PENDING)).assertIsDisplayed()
         capture("acknowledged-discard-retry-pending")
         writes.held!!.complete(Unit)
         assertOneSavedStart()
@@ -441,7 +442,7 @@ class HomeStartAdmissionRenderTest {
         compose.onNodeWithTag(StartTags.START_EMPTY).assertIsNotEnabled()
         capture("lookup-failed")
         reads.held = CompletableDeferred()
-        val retry = enabledClick(HomeStartTags.RETRY)
+        val retry = enabledClick(startStatus(HomeStartTags.RETRY))
         compose.runOnUiThread { retry(); retry() }
         await("the exact lookup retry waits once") { vm.startState.value.pending && reads.attempts.get() == 2 }
         assertEquals(0, writes.attempts.get())
@@ -509,9 +510,9 @@ class HomeStartAdmissionRenderTest {
         createGraph()
         show()
         openRoutinePage()
+        val startA = previewBegin(routineId)
         val blockerA = runBlocking { base.workoutRepository.startFreeWorkout() }
         await("Home observes the first real in-progress blocker") { vm.uiState.value.inProgress?.id == blockerA.id }
-        val startA = previewBegin(routineId)
         compose.runOnUiThread { startA() }
         await("the chosen routine is blocked by the first workout") {
             vm.blockedByInProgress.value?.sessionId == blockerA.id && !vm.startState.value.pending
@@ -649,7 +650,7 @@ class HomeStartAdmissionRenderTest {
             .config[SemanticsActions.OnClick].action!!
         assertEquals(failedAttempt, vm.startState.value.attemptId)
         assertEquals(inventoryAfterFailure, inventory())
-        reachable(compose.onNodeWithTag(HomeStartTags.ERROR)).assertIsDisplayed()
+        reachable(startStatus(HomeStartTags.ERROR)).assertIsDisplayed()
         val retry = enabledClick(WorkoutPreviewTags.BEGIN)
         capture("leftover-failed-confirmation")
         writes.held = CompletableDeferred()
@@ -686,7 +687,7 @@ class HomeStartAdmissionRenderTest {
         assertEquals(inventoryAfterFailure, inventory())
         assertEquals(2, writes.attempts.get())
         assertTrue(openedSessions.isEmpty())
-        reachable(compose.onNodeWithTag(HomeStartTags.ERROR))
+        reachable(startStatus(HomeStartTags.ERROR))
             .assertTextContains(checkNotNull(currentStart.error), substring = true)
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN))
             .assertIsEnabled().assertTextContains("Retry start", substring = true)
@@ -912,7 +913,11 @@ class HomeStartAdmissionRenderTest {
     }
 
     private fun dialogAction(label: String): SemanticsNodeInteraction =
-        compose.onNode(hasText(label) and hasClickAction() and hasAnyAncestor(isDialog()))
+        compose.onNode(
+            hasText(label) and hasClickAction() and hasAnyAncestor(isDialog()) and
+                // V2: the routine preview's own Begin also reads "Starting…"; the decision is the blocker dialog's.
+                !hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT)),
+        )
 
     private fun await(what: String, condition: () -> Boolean) {
         val now: () -> Any? = { vm.uiState.value to vm.startState.value }
@@ -928,8 +933,8 @@ class HomeStartAdmissionRenderTest {
         assertFalse(vm.startState.value.canRetry)
         assertEquals(openedSessions.single(), runBlocking { base.database.workoutDao().getAllSessions().single().id })
         compose.onNodeWithTag(StartTags.SHEET).assertDoesNotExist()
-        compose.onNodeWithTag(HomeStartTags.PENDING).assertDoesNotExist()
-        compose.onNodeWithTag(HomeStartTags.ERROR).assertDoesNotExist()
+        startStatus(HomeStartTags.PENDING).assertDoesNotExist()
+        startStatus(HomeStartTags.ERROR).assertDoesNotExist()
         compose.settle()
         assertEquals("the acknowledged start is delivered only once", 1, openedSessions.size)
     }
@@ -1093,4 +1098,15 @@ class HomeStartAdmissionRenderTest {
         const val ROUTINE_NAME = "Upper B · incline bench and controlled working sets"
         const val DISCARDED_BODY = "The previous workout was discarded. The selected workout has not opened yet."
     }
+
+    /** V2: start status lives in the shared chooser (START_*) or in Home's own dialogs (HomeStartTags). */
+    private fun startStatus(homeTag: String): SemanticsNodeInteraction {
+        val chooserTag = when (homeTag) {
+            HomeStartTags.PENDING -> StartTags.START_PENDING
+            HomeStartTags.ERROR -> StartTags.START_ERROR
+            else -> StartTags.START_RETRY
+        }
+        return compose.onNode(hasTestTag(homeTag) or hasTestTag(chooserTag))
+    }
+
 }

@@ -445,6 +445,11 @@ class HomeViewModel @JvmOverloads constructor(
     private val _blockedByInProgress = MutableStateFlow<BlockedStart?>(null)
     override val blockedByInProgress: StateFlow<BlockedStart?> = _blockedByInProgress.asStateFlow()
 
+    /** Starts are offered only over a current read; a stale or failed board offers none. */
+    override val readsCurrent: StateFlow<Boolean> = uiState
+        .map { it.readState == HomeReadState.CURRENT }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, uiState.value.readState == HomeReadState.CURRENT)
+
     private val _navigateToCardio = MutableStateFlow<String?>(null)
     override val navigateToCardio: StateFlow<String?> = _navigateToCardio.asStateFlow()
     private val _navigateToComposer = MutableStateFlow<String?>(null)

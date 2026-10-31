@@ -95,7 +95,7 @@ class StartOptionsRoutineCardRenderTest {
         val lifts = compose.onAllNodesWithTag(WorkoutPreviewTags.LIFT).fetchSemanticsNodes()
         assertEquals("the preview shows every lift", LIFTS.size, lifts.size)
         val tops = LIFTS.map { (_, name, _) ->
-            compose.onNode(hasText(name) and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.LIFT)), useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y
+            compose.onNode(hasText(name, substring = true, ignoreCase = true) and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.LIFT)), useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y
         }
         assertEquals("lifts appear in routine order", tops.sorted(), tops)
     }

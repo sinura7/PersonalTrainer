@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.StateFlow
 interface StartGate {
     val startState: StateFlow<HomeStartState>
     val blockedByInProgress: StateFlow<HomeViewModel.BlockedStart?>
+    /** False while the start board's reads are stale or failed: no start row is offered. */
+    val readsCurrent: StateFlow<Boolean>
     val navigateToSession: StateFlow<String?>
     val navigateToCardio: StateFlow<String?>
     val navigateToComposer: StateFlow<String?>
