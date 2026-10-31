@@ -29,6 +29,19 @@ import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.R
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.SheetValue
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.ExtraEquipment
+import com.sinura.personaltrainer.domain.HomeStartCopy
+import com.sinura.personaltrainer.domain.ScheduleKind
+import com.sinura.personaltrainer.ui.home.HomeStartPrompt
+import com.sinura.personaltrainer.ui.plan.AuxiliaryPackList
+import com.sinura.personaltrainer.ui.plan.CardioPickCard
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.domain.ActivityDetailCopy
 import com.sinura.personaltrainer.domain.LiveBarCopy
 import com.sinura.personaltrainer.domain.LiveBarKind
@@ -52,37 +65,67 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
-private enum class StartPage { CHOOSER_PAGE, OTHER_PAGE }
+
+private enum class StartPage { CHOOSER_PAGE, OTHER_PAGE, CARDIO_PAGE, EXTRA_PAGE }
 
 /**
  * v4 blueprint 3.1 (F1): the one Start chooser. Today, Plan, History and Body all open this
  * sheet, and it is the only UI that starts a workout. Groups, top to bottom: today (Planned,
- * Resume, Rest day or No plan), routines, an empty workout, and Other (cardio or a past log).
- * While a workout or activity is live, Resume comes first and every new start is disabled (D2).
+ * Resume, Rest day or No plan), routines, an empty workout, and Other (cardio, Extra kit or a
+ * past log). While a workout or activity is live, Resume comes first and every new start is
+ * disabled (D2).
+ *
+ * Every start goes through [gate], the one shared [StartGate], so every tab gets Today's
+ * admission: one reserved attempt at a time, callbacks bound to the attempt they rendered,
+ * and a start refused by a live workout held until the user resolves it. A routine opens its
+ * preview first; Begin is the start.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StartChooser(
     onDismiss: () -> Unit,
     onWorkoutStarted: (String) -> Unit,
+    gate: StartGate,
     onLogPast: () -> Unit = {},
     onLogCardio: () -> Unit = {},
     onLogMixed: () -> Unit = {},
     onOpenLiveActivity: (String) -> Unit = {},
     onOpenPlan: () -> Unit = {},
     onOpenRoutines: () -> Unit = {},
+    onEditRoutine: (String) -> Unit = {},
+    suggestedKit: ExtraEquipment = ExtraEquipment.MIXED,
     viewModel: StartOptionsViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val navigateToCardio by viewModel.navigateToCardio.collectAsStateWithLifecycle()
     val navigateToComposer by viewModel.navigateToComposer.collectAsStateWithLifecycle()
-    var page by rememberSaveable { mutableStateOf(StartPage.CHOOSER_PAGE) }
+    val starting by gate.startState.collectAsStateWithLifecycle()
+    val blocked by gate.blockedByInProgress.collectAsStateWithLifecycle()
+    val gateSession by gate.navigateToSession.collectAsStateWithLifecycle()
+    val gateCardio by gate.navigateToCardio.collectAsStateWithLifecycle()
+    var pageName by rememberSaveable { mutableStateOf(StartPage.CHOOSER_PAGE.name) }
+    val page = runCatching { StartPage.valueOf(pageName) }.getOrDefault(StartPage.CHOOSER_PAGE)
+    var kitName by rememberSaveable { mutableStateOf<String?>(null) }
+    var previewRoutineId by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    // Capture the attempt this frame presents: a callback from an older frame acts on nothing.
+    val renderedAttemptId = starting.attemptId
+    val owns = { gate.startState.value.attemptId == renderedAttemptId }
+    val startsEnabled = StartGroups.startsEnabled(state) && !starting.pending && starting.error == null &&
+        blocked == null
+    val mayStart = { owns() && gate.canEditStartChoice() }
 
     // The sheet is going away; nothing it staged may outlive it.
     DisposableEffect(Unit) {
         onDispose { viewModel.clearPendingNavigation() }
+    }
+    // A start the gate opened leaves the sheet; the host that owns the route navigates.
+    LaunchedEffect(gateSession, gateCardio) {
+        if (gateSession != null || gateCardio != null) {
+            previewRoutineId = null
+            onDismiss()
+        }
     }
     LaunchedEffect(navigateToSession) {
         val target = navigateToSession ?: return@LaunchedEffect
@@ -107,9 +150,19 @@ fun StartChooser(
         }
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val leave = {
+        val held = gate.blockedByInProgress.value
+        if (held != null) gate.dismissBlockedStart(expectedBlocked = held, expectedAttemptId = renderedAttemptId)
+        if (gate.blockedByInProgress.value == null && gate.dismissStart(expectedAttemptId = renderedAttemptId)) {
+            onDismiss()
+        }
+    }
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { it != SheetValue.Hidden || gate.canDismissStart() },
+    )
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = leave,
         containerColor = Surface3,
         sheetState = sheetState,
         modifier = Modifier.testTag(StartTags.SHEET),
@@ -128,22 +181,33 @@ fun StartChooser(
                 style = InstrumentType.title,
                 color = TextPrimary,
             )
-            state.error?.let { message ->
-                Column(
-                    modifier = Modifier.testTag(StartTags.START_ERROR),
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                ) {
-                    GymErrorBanner(message = message, onDismiss = viewModel::dismissError)
-                    GhostButton(
-                        label = stringResource(R.string.start_retry),
-                        onClick = viewModel::dismissError,
-                        modifier = Modifier.testTag(StartTags.START_RETRY),
-                    )
-                }
-            }
+            GateStatus(
+                pending = starting.pending,
+                error = starting.error ?: state.error,
+                canRetry = starting.error != null && starting.canRetry,
+                blocked = blocked != null,
+                onRetry = {
+                    if (gate.startState.value.error != null) {
+                        gate.retryStart(expectedAttemptId = renderedAttemptId)
+                    } else {
+                        viewModel.dismissError()
+                    }
+                },
+                onDismissError = {
+                    if (gate.startState.value.error != null) {
+                        gate.dismissStart(expectedAttemptId = renderedAttemptId)
+                    } else {
+                        viewModel.dismissError()
+                    }
+                },
+                onResumeBlocked = {
+                    gate.resumeBlocked(expectedBlocked = blocked, expectedAttemptId = renderedAttemptId)
+                },
+            )
             when (page) {
                 StartPage.CHOOSER_PAGE -> MainPage(
                     state = state,
+                    enabled = startsEnabled,
                     onResume = {
                         onDismiss()
                         onWorkoutStarted(it)
@@ -153,10 +217,13 @@ fun StartChooser(
                         onOpenLiveActivity(it)
                     },
                     onDiscard = { confirmDiscard = true },
-                    onStartToday = viewModel::startToday,
-                    onStartRoutine = viewModel::startRoutine,
-                    onStartEmpty = viewModel::startFree,
-                    onOther = { page = StartPage.OTHER_PAGE },
+                    onStartToday = {
+                        val today = state.todayStart
+                        if (today != null && mayStart()) gate.startToday(start = today)
+                    },
+                    onStartRoutine = { if (mayStart()) previewRoutineId = it },
+                    onStartEmpty = { if (mayStart()) gate.startFreeWorkout() },
+                    onOther = { if (mayStart()) pageName = StartPage.OTHER_PAGE.name },
                     onOpenPlan = {
                         onDismiss()
                         onOpenPlan()
@@ -167,8 +234,8 @@ fun StartChooser(
                     },
                 )
                 StartPage.OTHER_PAGE -> OtherPage(
-                    enabled = StartGroups.startsEnabled(state),
-                    onBack = { page = StartPage.CHOOSER_PAGE },
+                    enabled = startsEnabled,
+                    onBack = { pageName = StartPage.CHOOSER_PAGE.name },
                     onLogPast = {
                         onDismiss()
                         onLogPast()
@@ -182,10 +249,61 @@ fun StartChooser(
                         onDismiss()
                         onLogCardio()
                     },
-                    onStartCardio = viewModel::startCardio,
+                    onCardio = { if (mayStart()) pageName = StartPage.CARDIO_PAGE.name },
+                    onExtra = { if (mayStart()) pageName = StartPage.EXTRA_PAGE.name },
+                )
+                StartPage.CARDIO_PAGE -> CardioPage(
+                    enabled = startsEnabled,
+                    onBack = { pageName = StartPage.OTHER_PAGE.name },
+                    onStartCardio = { if (mayStart()) gate.startCardio(type = it) },
+                )
+                StartPage.EXTRA_PAGE -> AuxiliaryPackList(
+                    usedPackIds = emptySet(),
+                    onPick = { if (mayStart()) gate.startAux(packId = it) },
+                    onCancel = { pageName = StartPage.OTHER_PAGE.name },
+                    suggestedKit = suggestedKit,
+                    modifier = Modifier.testTag(StartTags.EXTRA_PAGE),
+                    pickEnabled = startsEnabled,
+                    equipment = kitName?.let { ExtraEquipment.fromStorage(it) },
+                    onEquipmentChanged = { kitName = it?.name },
+                    navigationEnabled = !starting.pending,
                 )
             }
         }
+    }
+
+    val previewRoutine = previewRoutineId?.let { id -> state.routines.firstOrNull { it.id == id } }
+    if (previewRoutine != null) {
+        HomeStartPrompt(
+            routine = previewRoutine,
+            unit = LocalWeightUnit.current,
+            loadWeights = gate::previewWeights,
+            onEditRoutine = { id ->
+                previewRoutineId = null
+                onDismiss()
+                onEditRoutine(id)
+            },
+            pending = starting.pending,
+            labelOverridden = starting.pending || starting.error != null,
+            title = previewRoutine.name,
+            body = "",
+            confirmLabel = when {
+                starting.pending -> stringResource(R.string.home_preview_starting)
+                starting.error != null -> stringResource(R.string.home_preview_unavailable)
+                else -> stringResource(R.string.home_preview_begin)
+            },
+            onConfirm = {
+                if (previewRoutineId == previewRoutine.id && owns()) gate.startRoutine(routineId = previewRoutine.id)
+            },
+            onDismiss = { previewRoutineId = null },
+            confirmEnabled = !starting.pending && starting.error == null && blocked == null,
+            dismissEnabled = !starting.pending,
+            canDismiss = { !gate.startState.value.pending },
+            canConfirm = owns,
+            // The sheet underneath already shows the pending and error lines.
+            contextContent = {},
+            actionKey = renderedAttemptId,
+        )
     }
 
     val inProgress = state.inProgress
@@ -207,8 +325,53 @@ fun StartChooser(
 }
 
 @Composable
+private fun GateStatus(
+    pending: Boolean,
+    error: String?,
+    canRetry: Boolean,
+    blocked: Boolean,
+    onRetry: () -> Unit,
+    onDismissError: () -> Unit,
+    onResumeBlocked: () -> Unit,
+) {
+    if (pending) {
+        Text(
+            stringResource(R.string.home_preview_starting),
+            modifier = Modifier.testTag(StartTags.START_PENDING).semantics { liveRegion = LiveRegionMode.Polite },
+            style = InstrumentType.caption,
+            color = TextSecondary,
+        )
+    }
+    if (blocked) {
+        Column(
+            modifier = Modifier.testTag(StartTags.START_BLOCKED),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            Text(stringResource(R.string.start_blocked), style = InstrumentType.body, color = TextSecondary)
+            GhostButton(label = stringResource(R.string.start_go_to_live), onClick = onResumeBlocked)
+        }
+    }
+    if (error != null) {
+        Column(
+            modifier = Modifier.testTag(StartTags.START_ERROR),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            GymErrorBanner(message = error, onDismiss = onDismissError)
+            if (canRetry) {
+                GhostButton(
+                    label = stringResource(R.string.start_retry),
+                    onClick = onRetry,
+                    modifier = Modifier.testTag(StartTags.START_RETRY),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun MainPage(
     state: StartOptionsUiState,
+    enabled: Boolean,
     onResume: (String) -> Unit,
     onResumeActivity: (String) -> Unit,
     onDiscard: () -> Unit,
@@ -219,13 +382,12 @@ private fun MainPage(
     onOpenPlan: () -> Unit,
     onOpenRoutines: () -> Unit,
 ) {
-    val enabled = StartGroups.startsEnabled(state)
     Group(kicker = stringResource(R.string.start_group_today)) {
         if (state.isLoading) {
             // Never blank: a quiet placeholder holds the row's place until the plan is read.
             Column(modifier = Modifier.fillMaxWidth().height(Metrics.commit).background(Surface2)) {}
         } else {
-            TodayRow(state, onResume, onResumeActivity, onDiscard, onStartToday, onOpenPlan)
+            TodayRow(state, enabled, onResume, onResumeActivity, onDiscard, onStartToday, onOpenPlan)
         }
     }
     Group(kicker = stringResource(R.string.start_group_routine)) {
@@ -289,6 +451,7 @@ private fun MainPage(
 @Composable
 private fun TodayRow(
     state: StartOptionsUiState,
+    enabled: Boolean,
     onResume: (String) -> Unit,
     onResumeActivity: (String) -> Unit,
     onDiscard: () -> Unit,
@@ -335,6 +498,7 @@ private fun TodayRow(
             PrimaryGymButton(
                 text = stringResource(R.string.start_today, today.title),
                 onClick = onStartToday,
+                enabled = enabled,
                 height = Metrics.commit,
                 modifier = Modifier.fillMaxWidth().testTag(StartTags.START_TODAY),
             )
@@ -376,13 +540,33 @@ private fun OtherPage(
     onLogPast: () -> Unit,
     onLogMixed: () -> Unit,
     onLogCardio: () -> Unit,
-    onStartCardio: () -> Unit,
+    onCardio: () -> Unit,
+    onExtra: () -> Unit,
 ) {
     GhostButton(
         label = stringResource(R.string.start_other_back),
         onClick = onBack,
         modifier = Modifier.testTag(StartTags.OTHER_BACK),
     )
+    Group(kicker = stringResource(R.string.start_live_cardio_kicker)) {
+        GroupedList {
+            InstrumentRow(
+                title = stringResource(R.string.start_live_cardio),
+                subtitle = HomeStartCopy.CARDIO_SUBTITLE,
+                onClick = onCardio,
+                enabled = enabled,
+                modifier = Modifier.heightIn(min = Metrics.rowMin).testTag(StartTags.LIVE_CARDIO),
+            )
+            HairlineDivider()
+            InstrumentRow(
+                title = HomeStartCopy.EXTRA,
+                subtitle = HomeStartCopy.EXTRA_SUBTITLE,
+                onClick = onExtra,
+                enabled = enabled,
+                modifier = Modifier.heightIn(min = Metrics.rowMin).testTag(StartTags.EXTRA),
+            )
+        }
+    }
     Group(kicker = stringResource(R.string.start_log_kicker)) {
         GroupedList {
             InstrumentRow(
@@ -407,15 +591,32 @@ private fun OtherPage(
             )
         }
     }
-    Group(kicker = stringResource(R.string.start_live_cardio_kicker)) {
-        GroupedList {
-            InstrumentRow(
-                title = stringResource(R.string.start_live_cardio),
-                subtitle = stringResource(R.string.start_live_cardio_sub),
-                onClick = onStartCardio,
-                enabled = enabled,
-                modifier = Modifier.testTag(StartTags.LIVE_CARDIO),
-            )
+}
+
+/** Home's cardio page, moved here whole: one card per plannable type, one tap starts it. */
+@Composable
+private fun CardioPage(
+    enabled: Boolean,
+    onBack: () -> Unit,
+    onStartCardio: (CardioType) -> Unit,
+) {
+    GhostButton(
+        label = stringResource(R.string.start_other_back),
+        onClick = onBack,
+        modifier = Modifier.testTag(StartTags.OTHER_BACK),
+    )
+    Group(kicker = HomeStartCopy.CARDIO) {
+        LazyRow(
+            modifier = Modifier.testTag(StartTags.CARDIO_PAGE),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            items(ScheduleKind.planCardioTypes, key = { it.name }) { type ->
+                CardioPickCard(
+                    type = type,
+                    onClick = { onStartCardio(type) },
+                    enabled = enabled,
+                )
+            }
         }
     }
 }

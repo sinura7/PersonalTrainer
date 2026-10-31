@@ -21,6 +21,11 @@ object StartTags {
     const val LOG_MIXED = "start-log-mixed"
     const val LOG_CARDIO = "start-log-cardio"
     const val LIVE_CARDIO = "start-live-cardio"
+    const val CARDIO_PAGE = "start-cardio-page"
+    const val EXTRA = "start-extra"
+    const val EXTRA_PAGE = "start-extra-page"
+    const val START_PENDING = "start-pending"
+    const val START_BLOCKED = "start-blocked"
 
     fun routine(id: String): String = "start-routine-$id"
 }

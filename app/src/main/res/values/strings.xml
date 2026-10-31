@@ -261,6 +261,7 @@
     <string name="start_empty">Empty workout</string>
     <string name="start_other">Cardio or log past</string>
     <string name="start_blocked">Finish or discard the live workout first</string>
+    <string name="start_go_to_live">Go to the live workout</string>
     <string name="start_discard_workout">Discard workout</string>
     <string name="start_discard_activity">Discard activity</string>
     <string name="start_other_back">Back</string>

@@ -193,7 +193,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
     /**
      * Nothing may be left pointing somewhere once the sheet is gone.
      *
-     * This view model is scoped to the Activity, not to the sheet — [StartOptionsSheet] takes it
+     * This view model is scoped to the Activity, not to the sheet — [com.sinura.personaltrainer.ui.start.StartChooser] takes it
      * with `viewModel()` from a composable hosted outside the NavHost — so a value left in one of
      * these three flows outlives the close and fires on the NEXT open, before the user has chosen
      * anything. That is how a dead "Mixed session" tap became a jump to the composer the next time
