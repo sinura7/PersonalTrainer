@@ -95,8 +95,8 @@ class FrontendBaselineCaptureTest {
                 "Body" -> hasTestTag("body-map")
                 // The loaded week draws seven day rows; their headers carry plan-day-header-<epochDay>.
                 "Plan" -> androidx.compose.ui.test.SemanticsMatcher("a Plan day row header") { node ->
-                    node.config.getOrElse(androidx.compose.ui.semantics.SemanticsProperties.TestTag) { null }
-                        ?.startsWith("plan-day-header-") == true
+                    node.config.getOrElse(androidx.compose.ui.semantics.SemanticsProperties.TestTag) { "" }
+                        .startsWith("plan-day-header-") == true
                 }
                 "History" -> hasTestTag("history-horizon-readout")
                 else -> hasText("Display")
