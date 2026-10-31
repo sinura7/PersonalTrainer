@@ -200,4 +200,11 @@
     <string name="picker_saving_lift">Saving lift…</string>
     <string name="picker_create_select">Create and select</string>
     <string name="preview_workout_title">Workout</string>
+    <!-- v4 plan -->
+    <string name="plan_suggested">Suggested %1$s</string>
+    <string name="plan_suggested_rest_spoken">suggested rest day</string>
+    <string name="plan_today">today</string>
+    <string name="plan_open_day">Open this day</string>
+    <string name="plan_add">Add</string>
+    <string name="plan_add_day">Add to %1$s</string>
 </resources>

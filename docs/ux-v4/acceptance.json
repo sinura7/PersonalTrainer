@@ -1,0 +1,311 @@
+{
+ "trunk": "2610f40c",
+ "items": [
+  {
+   "id": "A-V1-1",
+   "text": "Plan training day row min height 72dp, rest row 56dp; both are minimums (v3 4.2 confirmed)",
+   "evidence": "PlanWeekRowsRenderTest.trainingRowIsAtLeast72AndRestRowAtLeast56",
+   "packet": "V1a"
+  },
+  {
+   "id": "A-V1-2",
+   "text": "Rows grow at font scale 2.0 with nothing clipped and Add still 48dp",
+   "evidence": "PlanWeekRowsRenderTest.rowsGrowAtFontScaleTwo",
+   "packet": "V1a"
+  },
+  {
+   "id": "A-V1-3",
+   "text": "A suggested rest day speaks 'Rest. Suggested rest day.'",
+   "evidence": "PlanWeekRowsRenderTest.suggestedRestDaySpeaksItsStatus",
+   "packet": "V1a"
+  },
+  {
+   "id": "A-V1-4",
+   "text": "suggestFills writes no schedule slot until Use week",
+   "evidence": "PlanWeekRowsRenderTest.suggestFillsWritesNothing",
+   "packet": "V1a"
+  },
+  {
+   "id": "A-V1-5",
+   "text": "Each day row's Add opens that day in add mode, not today",
+   "evidence": "PlanWeekRowsRenderTest.rowAddOpensThatDay",
+   "packet": "V1a"
+  },
+  {
+   "id": "A-V1-6",
+   "text": "'Suggested', 'today', 'Open this day', 'Rest' come from string resources",
+   "evidence": "grep: no literal in ui/plan/PlanWeekRows.kt + strings.xml ids plan_suggested, plan_today, plan_open_day, plan_rest",
+   "packet": "V1a"
+  },
+  {
+   "id": "A-V1-7",
+   "text": "Pause toggles within 300ms of the last accepted toggle are ignored",
+   "evidence": "LiveCardioViewModelTest.pauseTogglesWithin300msAreIgnored",
+   "packet": "V1b"
+  },
+  {
+   "id": "A-V1-8",
+   "text": "Paused under 60s shows 'Resume to reach one minute'",
+   "evidence": "LiveCardioRenderTest.pausedUnderAMinuteShowsResumeCue",
+   "packet": "V1b"
+  },
+  {
+   "id": "A-V1-9",
+   "text": "While paused the leave action reads 'Leave paused'",
+   "evidence": "LiveCardioRenderTest.pausedShowsLeavePaused",
+   "packet": "V1b"
+  },
+  {
+   "id": "A-V1-10",
+   "text": "Live session bar shows 'Paused, {elapsed}' for a paused cardio session",
+   "evidence": "LiveSessionBarRenderTest.pausedLabelShows + LiveSessionBarViewModelTest.pausedCardioReportsPaused",
+   "packet": "V1b"
+  },
+  {
+   "id": "A-V1-11",
+   "text": "TargetsSheet dismissed by a real swipe or the editor's own dismissal writes nothing",
+   "evidence": "TargetsSheetScreenTest.dismissingTheSheetWritesNothing",
+   "packet": "V1b"
+  },
+  {
+   "id": "A-V1-12",
+   "text": "No real sleeps or delays added (baselines 27 / 6)",
+   "evidence": "tools/preflight.sh static output",
+   "packet": "V1b"
+  },
+  {
+   "id": "A-F1-1",
+   "text": "Today, Plan, History and Body all open the same StartChooser (StartTags.SHEET)",
+   "evidence": "StartChooserRenderTest.sameChooserFromEveryTab",
+   "packet": "V2"
+  },
+  {
+   "id": "A-F1-2",
+   "text": "Group order top to bottom: today's planned session, routines, empty workout",
+   "evidence": "StartChooserRenderTest.routinesThenEmptyOrder + plannedTodayIsFirst",
+   "packet": "V2"
+  },
+  {
+   "id": "A-F1-3",
+   "text": "Rest day shows 'Rest day. Nothing planned.' and the next planned day",
+   "evidence": "StartChooserRenderTest.restDayShowsNextHint",
+   "packet": "V2"
+  },
+  {
+   "id": "A-F1-4",
+   "text": "A live session shows Resume first and disables new starts",
+   "evidence": "StartChooserRenderTest.liveSessionShowsResumeAndDisablesOthers",
+   "packet": "V2"
+  },
+  {
+   "id": "A-F1-5",
+   "text": "No plan shows 'No plan this week' with Plan week",
+   "evidence": "StartChooserRenderTest.noPlanOffersPlanWeek",
+   "packet": "V2"
+  },
+  {
+   "id": "A-F1-6",
+   "text": "HomeStartSheet.kt and StartOptionsSheet.kt are deleted; no HomeStartTags reference remains",
+   "evidence": "grep in app/src",
+   "packet": "V2"
+  },
+  {
+   "id": "A-F1-7",
+   "text": "Walkthrough starts a workout through the chooser",
+   "evidence": "screenshot v4_start_planned + UxWalkthroughTest pass",
+   "packet": "V2"
+  },
+  {
+   "id": "A-F2-1",
+   "text": "Plan tab shows no routine rows and no Library button",
+   "evidence": "PlanScreenRenderTest.planShowsNoRoutineRows",
+   "packet": "V3"
+  },
+  {
+   "id": "A-F2-2",
+   "text": "Plan TopBar Routines opens RoutinesScreen",
+   "evidence": "RoutinesScreenRenderTest + screenshot v4_routines_list",
+   "packet": "V3"
+  },
+  {
+   "id": "A-F2-3",
+   "text": "Routine options edit and delete work from RoutinesScreen",
+   "evidence": "RoutinesScreenRenderTest.optionsEditAndDelete",
+   "packet": "V3"
+  },
+  {
+   "id": "A-F2-4",
+   "text": "Pick mode from the chooser starts the routine and pops",
+   "evidence": "RoutinesScreenRenderTest.pickModeStartsAndPops",
+   "packet": "V3"
+  },
+  {
+   "id": "A-F2-5",
+   "text": "Instrumented routine and library flows pass via the Routines entry",
+   "evidence": "LibraryWorkflowInstrumentedTest, RoutineWorkflowInstrumentedTest, PlanRoutineActionsInstrumentedTest (no new smoke failures)",
+   "packet": "V3"
+  },
+  {
+   "id": "A-F3-1",
+   "text": "During rest the bar sits directly above the next set entry",
+   "evidence": "RestBarRenderTest.countsDownAboveNextSet",
+   "packet": "V4"
+  },
+  {
+   "id": "A-F3-2",
+   "text": "The next set stays editable during rest and rest keeps counting",
+   "evidence": "RestBarRenderTest.nextSetEditableDuringRest + ActiveWorkoutViewModelTest.editingDuringRestKeepsRestRunning",
+   "packet": "V4"
+  },
+  {
+   "id": "A-F3-3",
+   "text": "Overtime counts up in Warn",
+   "evidence": "RestBarRenderTest.overtimeShowsWarn",
+   "packet": "V4"
+  },
+  {
+   "id": "A-F3-4",
+   "text": "-15, +15 and Skip work from the bar",
+   "evidence": "RestBarRenderTest.nudgeAndSkip",
+   "packet": "V4"
+  },
+  {
+   "id": "A-F3-5",
+   "text": "No pushed rest route exists",
+   "evidence": "NavGraphTest.noRestRoute",
+   "packet": "V4"
+  },
+  {
+   "id": "A-F3-6",
+   "text": "Notification tap opens the live workout",
+   "evidence": "RestTimerNotifications intent test .contentIntentOpensSession",
+   "packet": "V4"
+  },
+  {
+   "id": "A-F3-7",
+   "text": "Overlay, lock widget and service tests stay green",
+   "evidence": "existing timer/* tests in Tests, lint, debug build",
+   "packet": "V4"
+  },
+  {
+   "id": "A-F3-8",
+   "text": "Font scale 2.0: bar wraps, clock not truncated",
+   "evidence": "RestBarRenderTest.fontScaleTwoWraps + screenshot",
+   "packet": "V4"
+  },
+  {
+   "id": "A-F4-1",
+   "text": "Read mode rows are not clickable; Edit enters Edit mode",
+   "evidence": "SessionDetailEditRenderTest.readModeRowsAreNotClickable",
+   "packet": "V5"
+  },
+  {
+   "id": "A-F4-2",
+   "text": "Editing weight and reps updates the stored set, keeping completedAt and setNumber",
+   "evidence": "SessionDetailEditRenderTest.editChangesWeightAndReps",
+   "packet": "V5"
+  },
+  {
+   "id": "A-F4-3",
+   "text": "Lowering the PR set's weight removes that PR",
+   "evidence": "PersonalRecordsAfterEditTest.loweringThePrSetRemovesThePr",
+   "packet": "V5"
+  },
+  {
+   "id": "A-F4-4",
+   "text": "History totals and the next progression hint follow an edit",
+   "evidence": "HistoryViewModelTest.periodTotalsFollowAnEdit + ProgressionAfterEditTest.nextHintReadsTheCorrectedSet",
+   "packet": "V5"
+  },
+  {
+   "id": "A-F4-5",
+   "text": "Delete offers undo; deleting the last set of a session is blocked",
+   "evidence": "SessionDetailEditRenderTest.deleteSetOffersUndo + deleteLastSetOfSessionIsBlocked",
+   "packet": "V5"
+  },
+  {
+   "id": "A-F4-6",
+   "text": "No Room schema change",
+   "evidence": "git diff --exit-code app/schemas",
+   "packet": "V5"
+  },
+  {
+   "id": "A-F5-1",
+   "text": "Summary shows 'Up next: {day}, {routine}' for the next planned day",
+   "evidence": "WorkoutSummaryRenderTest.upNextNamesTheNextPlannedDay",
+   "packet": "V6"
+  },
+  {
+   "id": "A-F5-2",
+   "text": "Tomorrow reads 'Up next: tomorrow, {routine}'",
+   "evidence": "WorkoutSummaryRenderTest.upNextTomorrowCopy",
+   "packet": "V6"
+  },
+  {
+   "id": "A-F5-3",
+   "text": "No plan reads 'Up next: plan your week'",
+   "evidence": "WorkoutSummaryRenderTest.noPlanSaysPlanYourWeek",
+   "packet": "V6"
+  },
+  {
+   "id": "A-F5-4",
+   "text": "Tapping Up next opens Plan with that day in view",
+   "evidence": "WorkoutSummaryRenderTest.tapOpensPlanOnThatDay",
+   "packet": "V6"
+  },
+  {
+   "id": "A-F6-1",
+   "text": "Body shows bodyweight trend",
+   "evidence": "BodyTrendsRenderTest.bodyweightTrendShowsEntries",
+   "packet": "V7"
+  },
+  {
+   "id": "A-F6-2",
+   "text": "Body shows records (top 5, expandable)",
+   "evidence": "BodyTrendsRenderTest.recordsCardListsTopFive",
+   "packet": "V7"
+  },
+  {
+   "id": "A-F6-3",
+   "text": "Weekly volume per muscle counts working sets only",
+   "evidence": "BodyTrendsRenderTest.weeklyVolumeCountsWorkingSetsOnly + WeeklyVolumeQueryTest",
+   "packet": "V7"
+  },
+  {
+   "id": "A-F6-4",
+   "text": "Body has no session list",
+   "evidence": "BodyTrendsRenderTest.bodyHasNoSessionList",
+   "packet": "V7"
+  },
+  {
+   "id": "A-F6-5",
+   "text": "History has no records list; PR count links to Body",
+   "evidence": "HistoryRenderTest.historyHasNoRecordsList + prCountLinksToBody",
+   "packet": "V7"
+  },
+  {
+   "id": "A-F6-6",
+   "text": "No Room schema change",
+   "evidence": "git diff --exit-code app/schemas",
+   "packet": "V7"
+  },
+  {
+   "id": "A-INV-1",
+   "text": "Metrics.commit is 72dp and Metrics.logFloorCommit 64dp",
+   "evidence": "grep ui/theme/Metrics.kt + DockCommitRenderTest",
+   "packet": "all"
+  },
+  {
+   "id": "A-INV-2",
+   "text": "Checker baselines do not rise",
+   "evidence": "tools/preflight.sh static output vs tools/checker-baselines.toml",
+   "packet": "all"
+  },
+  {
+   "id": "A-INV-3",
+   "text": "Both required checks green; no new smoke failures vs latest trunk",
+   "evidence": "gh pr checks + smoke FAILED line diff",
+   "packet": "all"
+  }
+ ]
+}
