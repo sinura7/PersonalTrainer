@@ -212,7 +212,8 @@ class WeekStripGeometryRenderTest {
         scale = font
         graph()
         show()
-        for (targetScreen in listOf(Screen.HOME, Screen.PLAN)) {
+        // Plan is seven day rows now (blueprint 4.2, R6); the strip lives on Home only.
+        for (targetScreen in listOf(Screen.HOME)) {
             changeScreen(targetScreen)
             awaitScreen()
             val stored = inventory()
@@ -307,57 +308,12 @@ class WeekStripGeometryRenderTest {
     }
 
     @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
-    fun planRestoresExplorationAndKeepsStableWidthsWhenRealCountsAndProposalsChange() {
-        profile = "plan-restoration-counts-proposals-font20"
-        scale = 2f
-        graph()
-        screen = Screen.PLAN
-        val restoration = StateRestorationTester(compose)
-        show(restoration)
-        awaitScreen()
-        tapDay(weekStart)
-        boardTo(WeekStripTags.cell(weekStart + 6))
-        val explored = stripOffset()
-        val width = cell(weekStart + 6).fetchSemanticsNode().size.width
-        restoration.emulateSavedInstanceStateRestore()
-        drainLayout()
-        assertEquals("actual Plan restores the user's explored offset", explored, stripOffset(), 1f)
-        assertSelected(weekStart)
-        val sunday = runBlocking { deps.database.plannerDao().getAllOccurrences() }.single { it.id == "geometry-6-2" }
-        runBlocking { deps.database.plannerDao().upsertOccurrence(sunday.copy(status = OccurrenceStatus.DONE.name)) }
-        compose.awaitThat("real Room completion count reaches Plan", { plan.uiState.value }) {
-            plan.uiState.value.occurrences.firstOrNull { it.id == sunday.id }?.status == OccurrenceStatus.DONE
-        }
-        drainLayout()
-        assertEquals("count wrapping does not alter width", width, cell(weekStart + 6).fetchSemanticsNode().size.width)
-        assertEquals("count refresh preserves exploration", explored, stripOffset(), 1f)
-        val stored = inventory()
-        plan.suggestFills()
-        compose.awaitThat("real Plan VM proposes remaining days", { plan.uiState.value }) { plan.uiState.value.proposals.isNotEmpty() }
-        drainLayout()
-        assertEquals("proposal wrapping preserves explored offset", explored, stripOffset(), 1f)
-        assertEquals("proposal wrapping does not change the fixed cell width", width, cell(weekStart + 6).fetchSemanticsNode().size.width)
-        val proposal = plan.uiState.value.proposals.first { day ->
-            plan.uiState.value.occurrences.none { it.localEpochDay == day.epochDay && it.status != OccurrenceStatus.MOVED }
-        }
-        boardTo(WeekStripTags.cell(proposal.epochDay))
-        val caption = "Suggested ${proposal.focusTitle}"
-        assertWords(text(WeekStripTags.caption(proposal.epochDay)), caption)
-        val spoken = speech(cell(proposal.epochDay).fetchSemanticsNode())
-        assertTrue(spoken.contains("suggested", ignoreCase = true))
-        assertTrue(spoken.contains(proposal.focusTitle))
-        assertFalse("a suggestion is not accepted planned work", spoken.contains("1 planned"))
-        assertTrue(spoken.contains(DateCopy.weekdayFullDate(LocalDate.ofEpochDay(proposal.epochDay))))
-        assertEquals("preview generation writes nothing", stored, inventory())
-        capture("real-plan-proposal")
-    }
-
-    @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
     fun changedFontDirectionWeekAndSelectionRevealTheActualSelectedCell() {
         profile = "geometry-changes"
         graph()
         show()
-        for (targetScreen in listOf(Screen.HOME, Screen.PLAN)) {
+        // Plan is seven day rows now (blueprint 4.2, R6); the strip lives on Home only.
+        for (targetScreen in listOf(Screen.HOME)) {
             changeScreen(targetScreen)
             awaitScreen()
             tapDay(weekStart)
@@ -380,15 +336,6 @@ class WeekStripGeometryRenderTest {
             scale = 1f
             direction = LayoutDirection.Ltr
         }
-        weekStart += 7
-        insights.value = insights.value.copy(weekPlan = restWeek(weekStart))
-        drainLayout()
-        boardTo(WeekStripTags.STRIP)
-        // Today lies outside the new window, so the caller clamps selection to its start.
-        assertFullyVisible(cell(weekStart))
-        assertSelected(weekStart)
-        assertDateHeading(weekStart)
-        capture("plan-new-civil-week")
     }
 
     @Test @Config(qualifiers = "w412dp-h840dp-xhdpi", fontScale = 1f)
@@ -396,7 +343,8 @@ class WeekStripGeometryRenderTest {
         profile = "actual-parent-constraints-and-density"
         graph()
         show()
-        for (targetScreen in listOf(Screen.HOME, Screen.PLAN)) {
+        // Plan is seven day rows now (blueprint 4.2, R6); the strip lives on Home only.
+        for (targetScreen in listOf(Screen.HOME)) {
             changeScreen(targetScreen)
             awaitScreen()
             tapDay(weekStart)
@@ -426,19 +374,10 @@ class WeekStripGeometryRenderTest {
     @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
     fun homeChangedWeekOriginRevealsTheSameSelectedDate() = changedWeekOrigin(Screen.HOME)
 
-    @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
-    fun planChangedWeekOriginRevealsTheSameSelectedDate() = changedWeekOrigin(Screen.PLAN)
-
     @Test @Config(qualifiers = "ldrtl-w360dp-h640dp-xhdpi", fontScale = 2f)
     fun homeChangedWeekOriginRevealsTheSameSelectedDateInRtl() {
         direction = LayoutDirection.Rtl
         changedWeekOrigin(Screen.HOME)
-    }
-
-    @Test @Config(qualifiers = "ldrtl-w360dp-h640dp-xhdpi", fontScale = 2f)
-    fun planChangedWeekOriginRevealsTheSameSelectedDateInRtl() {
-        direction = LayoutDirection.Rtl
-        changedWeekOrigin(Screen.PLAN)
     }
 
     private fun changedWeekOrigin(targetScreen: Screen) {

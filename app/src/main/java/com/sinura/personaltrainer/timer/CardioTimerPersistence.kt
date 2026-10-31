@@ -20,6 +20,12 @@ data class PersistedCardioTimer(
      * start-site constructors stay clock-only.
      */
     val bootCount: Long = BootSession.UNKNOWN,
+    /**
+     * Paused (D12): the clock is frozen at [baselineElapsedSeconds] and the start
+     * fields are not read. Resume re-anchors the start fields to now and keeps the
+     * frozen total as the baseline, so paused time never counts.
+     */
+    val paused: Boolean = false,
 )
 
 /**
@@ -50,6 +56,7 @@ class SharedPrefsCardioTimerPersistence(context: Context) : CardioTimerPersisten
             .putLong(KEY_BOOT_MARKER, state.bootMarker)
             .putLong(KEY_BASELINE, state.baselineElapsedSeconds)
             .putLong(KEY_BOOT_COUNT, bootCount)
+            .putBoolean(KEY_PAUSED, state.paused)
             .commit()
     }
 
@@ -62,6 +69,7 @@ class SharedPrefsCardioTimerPersistence(context: Context) : CardioTimerPersisten
             bootMarker = prefs.getLong(KEY_BOOT_MARKER, 0L),
             baselineElapsedSeconds = prefs.getLong(KEY_BASELINE, 0L),
             bootCount = prefs.getLong(KEY_BOOT_COUNT, BootSession.UNKNOWN),
+            paused = prefs.getBoolean(KEY_PAUSED, false),
         )
     }
 
@@ -75,10 +83,31 @@ class SharedPrefsCardioTimerPersistence(context: Context) : CardioTimerPersisten
         const val KEY_BOOT_MARKER = "boot_marker"
         const val KEY_BASELINE = "baseline_seconds"
         const val KEY_BOOT_COUNT = "boot_count"
+        const val KEY_PAUSED = "paused"
     }
 }
 
 object CardioElapsed {
+    /** The row frozen at [elapsedSeconds]. Already paused rows are returned unchanged. */
+    fun paused(row: PersistedCardioTimer, elapsedSeconds: Long): PersistedCardioTimer =
+        if (row.paused) row else row.copy(baselineElapsedSeconds = elapsedSeconds, paused = true)
+
+    /**
+     * The row running again from now, carrying the frozen total forward. [BootSession.UNKNOWN]
+     * makes the persistence layer stamp the current boot.
+     */
+    fun resumed(
+        row: PersistedCardioTimer,
+        nowElapsedMs: Long,
+        nowWallMs: Long,
+    ): PersistedCardioTimer = if (!row.paused) row else row.copy(
+        startedAtElapsedRealtime = nowElapsedMs,
+        startedAtWallClockMillis = nowWallMs,
+        bootMarker = bootMarker(nowWallMs, nowElapsedMs),
+        bootCount = BootSession.UNKNOWN,
+        paused = false,
+    )
+
     fun bootMarker(
         wallClockMillis: Long = System.currentTimeMillis(),
         elapsedRealtimeMs: Long = SystemClock.elapsedRealtime(),
@@ -101,6 +130,7 @@ object CardioElapsed {
         nowBootCount: Long = BootSession.UNKNOWN,
     ): Long {
         if (persisted != null) {
+            if (persisted.paused) return persisted.baselineElapsedSeconds
             // The boot counter, when both sides carry it, is definitive: the
             // marker heuristic misreads a wall-clock step as a reboot, and the
             // monotonic heuristic misreads a second reboot as the same boot
