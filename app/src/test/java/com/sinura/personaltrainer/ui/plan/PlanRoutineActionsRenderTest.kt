@@ -284,7 +284,7 @@ class PlanRoutineActionsRenderTest {
         reach(PlanTags.agendaThumb(plannedOccurrence.id), unmerged = true).assertIsDisplayed()
         tap(dayRow)
         assertEquals("the scheduled row edits the exact selected day", listOf(today to false), openedDays)
-        val add = reach(PlanTags.ADD_SESSION)
+        val add = reach(PlanTags.dayAdd(today))
         target(add)
         tap(add)
         assertEquals("Add opens the selected day with its picker", listOf(today to false, today to true), openedDays)

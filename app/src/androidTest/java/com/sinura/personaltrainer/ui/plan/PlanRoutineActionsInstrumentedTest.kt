@@ -178,8 +178,8 @@ class PlanRoutineActionsInstrumentedTest {
     @Test
     fun weeklyRemoveExplainsScopeAndKeepsRoutineAndCapturedWorkout() {
         openRoutines()
-        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.ADD_SESSION))
-        tap(PlanTags.ADD_SESSION)
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.dayAdd(java.time.LocalDate.now().toEpochDay())))
+        tap(PlanTags.dayAdd(java.time.LocalDate.now().toEpochDay()))
         val weekday = Weekday.fromEpochDay(java.time.LocalDate.now().toEpochDay())
         compose.onNodeWithText(com.sinura.personaltrainer.domain.PlanDayCopy.addScope(weekday)).assertIsDisplayed()
         capture("plan-weekly-add-scope-font20")
@@ -225,8 +225,8 @@ class PlanRoutineActionsInstrumentedTest {
         val historyBefore = history()
         val slotsBefore = read { container.scheduleRepository.slots() }
         val today = java.time.LocalDate.now().toEpochDay()
-        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.ADD_SESSION))
-        tap(PlanTags.ADD_SESSION)
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.dayAdd(java.time.LocalDate.now().toEpochDay())))
+        tap(PlanTags.dayAdd(java.time.LocalDate.now().toEpochDay()))
         compose.onNodeWithText(com.sinura.personaltrainer.domain.PlanDayCopy.WORKOUT).performScrollTo()
             .performTouchInput { click(center) }
         compose.waitForIdle()

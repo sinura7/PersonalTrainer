@@ -133,8 +133,14 @@ object Metrics {
     /** Scroll clearance when Tempo shows the full card above the dock. */
     val logFloorTempoFull: Dp = 128.dp
 
+    /** Plan week rest day row minimum height (v3 blueprint 4.2). */
+    val planRestRow: Dp = rowMin
+
     /** Primary commit control app-wide (recovery Keep, rest card, cardio, dock Next/Finish): 72 dp. */
     val commit: Dp = 72.dp
+
+    /** Plan week training day row minimum height (v3 blueprint 4.2; a minimum, rows grow with text). */
+    val planTrainingRow: Dp = commit
 
     /**
      * Round − / + plates beside the hero numerals on the active workout: the area a thumb

@@ -53,7 +53,6 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.OneFilledVolt
-import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.StartOptionsCopy
@@ -320,7 +319,6 @@ fun PlanScreen(
             state.proposals.associateBy { it.epochDay }
         }
         val hasProposals = state.proposals.isNotEmpty()
-        val addSessionVolt = !hasProposals && !state.missedWorkPrompt
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag(PlanTags.CONTENT),
             contentPadding = PaddingValues(
@@ -426,40 +424,10 @@ fun PlanScreen(
                     proposal = proposalsByDay[cell.epochDay],
                     isToday = cell.epochDay == today,
                     onOpenDay = { onOpenDay(cell.epochDay, false) },
+                    // Add follows the row it sits on, never today (R6 Critic). Past days take no add.
+                    onAddToDay = { onOpenDay(cell.epochDay, true) }.takeIf { cell.epochDay >= today },
                 )
             }
-            item(key = "add-session") {
-                if (addSessionVolt) {
-                    PrimaryGymButton(
-                        text = PlanDayCopy.ADD_SESSION,
-                        onClick = { onOpenDay(selectedEpochDay, true) },
-                        height = Metrics.touchMin,
-                        modifier = Modifier
-                            .testTag(PlanTags.ADD_SESSION)
-                            .semantics { contentDescription = PlanDayCopy.ADD_SESSION },
-                    )
-                } else {
-                    TextButton(
-                        onClick = { onOpenDay(selectedEpochDay, true) },
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier
-                            .testTag(PlanTags.ADD_SESSION)
-                            .semantics { contentDescription = PlanDayCopy.ADD_SESSION },
-                    ) {
-                        Text(
-                            PlanDayCopy.ADD_SESSION,
-                            style = InstrumentType.bodyStrong,
-                            color = TextSecondary,
-                        )
-                    }
-                }
-                Text(
-                    PlanDayCopy.ADD_SESSION_SUBTITLE,
-                    style = InstrumentType.caption,
-                    color = TextTertiary,
-                )
-            }
-
             if (state.routines.isEmpty() && !PlanWeekState.isEmpty(state)) {
                 item(key = "routines-empty") {
                     EmptyState(
@@ -854,7 +822,7 @@ object PlanTags {
     const val SUGGEST = "plan-suggest"
     const val USE_WEEK = "plan-use-week"
     const val DISMISS = "plan-dismiss"
-    const val ADD_SESSION = "plan-add-session"
+    fun dayAdd(epochDay: Long): String = "plan-day-add-$epochDay"
     const val LIGHTER = "plan-lighter"
     const val LIBRARY_SPOKEN = "Library"
     const val ROUTINES = "plan-routines"
