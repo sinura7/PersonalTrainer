@@ -29,8 +29,6 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.PinnedDock
-import com.sinura.personaltrainer.ui.components.ActionTone
-import com.sinura.personaltrainer.ui.components.PrimaryButton
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestDurationSheet
 import com.sinura.personaltrainer.ui.components.RestHonestyRow

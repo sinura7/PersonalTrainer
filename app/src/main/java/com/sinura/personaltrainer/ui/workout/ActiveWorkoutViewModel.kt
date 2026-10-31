@@ -11,7 +11,6 @@ import com.sinura.personaltrainer.data.repository.WorkoutPickerSwap
 import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
 
 import android.app.Application
-import com.sinura.personaltrainer.R
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope

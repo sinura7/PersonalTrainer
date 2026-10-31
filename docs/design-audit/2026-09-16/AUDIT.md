@@ -134,7 +134,7 @@ Images 02–03 place a rest duration, a stopwatch icon, and “Start” together
 
 **Acceptance:** idle rest, running rest, elapsed rest, stopwatch, hold, paused/editing, and completed states each communicate one meaning. Verify countdown/notification continuity and the effects of Skip and ±15. No new floating overlay timer.
 
-Evidence: [RestTimerUi.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/components/RestTimerUi.kt), [RestTimerScreen.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RestTimerScreen.kt), [RestFloorCopy.kt](../../../app/src/main/java/com/sinura/personaltrainer/domain/RestFloorCopy.kt).
+Evidence: [RestTimerUi.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/components/RestTimerUi.kt), RestTimerScreen.kt (removed in v4 V4), [RestFloorCopy.kt](../../../app/src/main/java/com/sinura/personaltrainer/domain/RestFloorCopy.kt).
 
 ### D12 · P2 · RPE needs understandable, persistent help · S/C
 
