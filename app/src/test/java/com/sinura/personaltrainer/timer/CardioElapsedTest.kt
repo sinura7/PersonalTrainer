@@ -152,4 +152,27 @@ class CardioElapsedTest {
         )
         assertEquals(30L, seconds)
     }
+
+    @Test
+    fun aPausedRowReadsItsFrozenTotalWhateverTheClocksSay() {
+        val running = PersistedCardioTimer(
+            sessionId = "c1",
+            startedAtElapsedRealtime = 10_000L,
+            startedAtWallClockMillis = 1_000_000L,
+            bootMarker = 990_000L,
+            baselineElapsedSeconds = 5L,
+        )
+        val paused = CardioElapsed.paused(running, elapsedSeconds = 42L)
+        assertEquals(42L, CardioElapsed.seconds(paused, 1_000_000L, nowElapsedMs = 900_000L, nowWallMs = 9_000_000L))
+        assertEquals("pausing twice keeps the first total", paused, CardioElapsed.paused(paused, elapsedSeconds = 99L))
+        val resumed = CardioElapsed.resumed(paused, nowElapsedMs = 900_000L, nowWallMs = 9_000_000L)
+        assertEquals(false, resumed.paused)
+        assertEquals(
+            52L,
+            CardioElapsed.seconds(
+                resumed, 1_000_000L, nowElapsedMs = 910_000L, nowWallMs = 9_010_000L,
+                currentBootMarker = resumed.bootMarker,
+            ),
+        )
+    }
 }

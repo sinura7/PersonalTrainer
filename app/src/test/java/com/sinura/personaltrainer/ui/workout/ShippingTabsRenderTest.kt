@@ -35,6 +35,7 @@ import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.home.HomeTags
 import com.sinura.personaltrainer.ui.home.HomeViewModel
 import com.sinura.personaltrainer.ui.plan.PlanScreen
+import com.sinura.personaltrainer.ui.plan.PlanTags
 import com.sinura.personaltrainer.ui.plan.PlanViewModel
 import com.sinura.personaltrainer.ui.progress.BodyTags
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
@@ -138,14 +139,14 @@ class ShippingTabsRenderTest {
         capture("body", compose.onNodeWithTag(BodyTags.MAP))
     }
 
-    @Test fun planDrawsItsLoadedSelectedDay() {
+    @Test fun planDrawsItsLoadedWeek() {
         val vm = PlanViewModel(app, deps).also(models::add)
         compose.showFloor {
             PlanScreen(onOpenRoutine = {}, onOpenLibrary = {}, onOpenDay = { _, _ -> }, viewModel = vm)
         }
-        compose.awaitThat("Plan's loaded empty selected day", vm.uiState::value) { !vm.uiState.value.isLoading }
+        compose.awaitThat("Plan's loaded week", vm.uiState::value) { !vm.uiState.value.isLoading }
         assertNull(vm.uiState.value.error)
-        capture("plan", compose.onNodeWithText(PlanDayCopy.EMPTY))
+        capture("plan", compose.onNodeWithTag(PlanTags.CONTENT))
     }
 
     @Test fun historyDrawsItsLoadedEmptyCurrentMonth() {

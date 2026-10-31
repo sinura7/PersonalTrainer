@@ -93,14 +93,18 @@ class FrontendBaselineCaptureTest {
             val loaded = when (label) {
                 "Today" -> hasText("TRAINED TODAY")
                 "Body" -> hasTestTag("body-map")
-                "Plan" -> hasTestTag("plan-add-session")
+                // The loaded week draws seven day rows; their headers carry plan-day-header-<epochDay>.
+                "Plan" -> androidx.compose.ui.test.SemanticsMatcher("a Plan day row header") { node ->
+                    node.config.getOrElse(androidx.compose.ui.semantics.SemanticsProperties.TestTag) { "" }
+                        .startsWith("plan-day-header-") == true
+                }
                 "History" -> hasTestTag("history-horizon-readout")
                 else -> hasText("Display")
             }
             compose.waitUntil(30_000) {
                 compose.onAllNodes(loaded).fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNode(loaded).assertIsDisplayed()
+            compose.onAllNodes(loaded)[0].assertIsDisplayed()
             compose.waitForIdle()
             compose.onNodeWithText("Not now").assertDoesNotExist()
             if (label == "Today") {

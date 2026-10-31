@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -50,8 +50,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.ScheduleKind
-import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.OneFilledVolt
@@ -77,8 +75,6 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.components.WeekStrip
-import com.sinura.personaltrainer.ui.components.rememberWeekStripState
 import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -93,11 +89,8 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Volt
-import com.sinura.personaltrainer.ui.units.DateCopy
-import java.time.LocalDate
 import java.text.DateFormat
 import java.util.Date
-import java.util.Locale
 
 /**
  * Where you are in the block, and — at the end of it — what to do about that.
@@ -295,8 +288,6 @@ fun PlanScreen(
     val today = LocalTodayEpochDay.current
 
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
-    val weekStripState = rememberWeekStripState()
 
     LaunchedEffect(navigateToEditor) {
         val id = navigateToEditor ?: return@LaunchedEffect
@@ -317,12 +308,9 @@ fun PlanScreen(
         val week = state.week
         val weekStart = week?.weekStartEpochDay
             ?: WeekBoard.weekStartEpochDay(today, state.preferences.weekStart)
-        LaunchedEffect(weekStart, today) {
-            val end = weekStart + 6
-            if (selectedEpochDay !in weekStart..end) {
-                selectedEpochDay = today.coerceIn(weekStart, end)
-            }
-        }
+        // Add session and "Create a routine" act on today, or the week's first day when
+        // today lies outside the shown week.
+        val selectedEpochDay = today.coerceIn(weekStart, weekStart + 6)
         val names = remember(state.routines) { state.routines.associate { it.id to it.name } }
         val routinesById = remember(state.routines) { state.routines.associateBy { it.id } }
         val cells = remember(weekStart, state.occurrences, state.rules, names) {
@@ -331,14 +319,8 @@ fun PlanScreen(
         val proposalsByDay = remember(state.proposals) {
             state.proposals.associateBy { it.epochDay }
         }
-        val selectedAgenda = remember(selectedEpochDay, state.occurrences, state.rules, names) {
-            DailyAgenda.forDay(selectedEpochDay, state.occurrences, state.rules, names)
-        }
         val hasProposals = state.proposals.isNotEmpty()
         val addSessionVolt = !hasProposals && !state.missedWorkPrompt
-        val selectedDate = DateCopy.weekdayFullDate(LocalDate.ofEpochDay(selectedEpochDay))
-        val selectedTitle = if (selectedEpochDay == today) "Today · $selectedDate" else selectedDate
-
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag(PlanTags.CONTENT),
             contentPadding = PaddingValues(
@@ -423,33 +405,27 @@ fun PlanScreen(
                 }
             }
 
-            item(key = "strip") {
-                WeekStrip(
-                    cells = cells,
-                    today = today,
-                    selected = selectedEpochDay,
-                    onSelectDay = { selectedEpochDay = it },
-                    proposals = proposalsByDay,
-                    stripState = weekStripState,
-                    flat = true,
+            item(key = "summary") {
+                Text(
+                    WeekBoard.summary(cells),
+                    style = InstrumentType.caption,
+                    color = TextTertiary,
                 )
             }
-            item(key = "summary") {
-                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    Text(
-                        WeekBoard.summary(cells),
-                        style = InstrumentType.caption,
-                        color = TextTertiary,
-                    )
+            // Blueprint 4.2: the week is seven day rows, Monday to Sunday (or the owner's
+            // week start), each showing what that civil day holds. No strip to scrub and
+            // no hidden selected day: every planned row is visible at once.
+            items(items = cells, key = { cell -> "day:${cell.epochDay}" }) { cell ->
+                val dayItems = remember(cell.epochDay, state.occurrences, state.rules, names) {
+                    DailyAgenda.forDay(cell.epochDay, state.occurrences, state.rules, names)
                 }
-            }
-            item(key = "day-board") {
-                PlanSelectedDayBoard(
-                    title = selectedTitle,
-                    items = selectedAgenda,
+                PlanWeekDayRow(
+                    cell = cell,
+                    items = dayItems,
                     routines = routinesById,
-                    empty = selectedAgenda.isEmpty(),
-                    onOpenDay = { onOpenDay(selectedEpochDay, false) },
+                    proposal = proposalsByDay[cell.epochDay],
+                    isToday = cell.epochDay == today,
+                    onOpenDay = { onOpenDay(cell.epochDay, false) },
                 )
             }
             item(key = "add-session") {
@@ -608,51 +584,7 @@ internal fun PlanLighterChip(
 }
 
 @Composable
-private fun PlanSelectedDayBoard(
-    title: String,
-    items: List<AgendaItem>,
-    routines: Map<String, Routine>,
-    empty: Boolean,
-    onOpenDay: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-        Text(
-            text = title.uppercase(Locale.ENGLISH),
-            style = InstrumentType.kicker,
-            color = TextSecondary,
-            modifier = Modifier.testTag(PlanTags.SELECTED_DATE).semantics {
-                heading()
-                contentDescription = title
-            },
-        )
-        if (empty) {
-            Text(
-                PlanDayCopy.EMPTY,
-                style = InstrumentType.body,
-                color = TextPrimary,
-            )
-            Text(
-                PlanDayCopy.EMPTY_BODY,
-                style = InstrumentType.caption,
-                color = TextSecondary,
-            )
-        } else {
-            Column {
-                items.forEachIndexed { index, item ->
-                    if (index > 0) HairlineDivider(startIndent = 0.dp)
-                    val routine = item.rule?.takeUnless {
-                        it.modality == ScheduleModality.CARDIO || ScheduleKind.cardioType(it.templateId) != null
-                    }?.routineId?.let(routines::get)
-                    PlanAgendaRow(item = item, exercise = routine?.exercises?.firstOrNull()?.exercise, onOpen = onOpenDay)
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
-private fun PlanAgendaRow(item: AgendaItem, exercise: Exercise?, onOpen: () -> Unit) {
+internal fun PlanAgendaRow(item: AgendaItem, exercise: Exercise?, onOpen: () -> Unit) {
     val view = LocalView.current
     Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin)
@@ -914,6 +846,8 @@ object PlanTags {
     const val CONTENT = "plan-content"
     const val TITLE = "plan-heading"
     const val SELECTED_DATE = "plan-selected-date"
+    fun day(epochDay: Long): String = "plan-day-$epochDay"
+    fun dayHeader(epochDay: Long): String = "plan-day-header-$epochDay"
     const val LIBRARY = "plan-library"
     const val START_SHEET = "plan-start-sheet"
     const val REPLAY = "plan-replay"

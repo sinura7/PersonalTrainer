@@ -57,6 +57,8 @@ data class LiveCardioUiState(
     val distanceError: String? = null,
     val error: String? = null,
     val finishing: Boolean = false,
+    /** D12: the clock is frozen; paused time is not counted. Read back from the timer row. */
+    val paused: Boolean = false,
 )
 
 class LiveCardioViewModel @JvmOverloads constructor(
@@ -93,6 +95,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
     private val distanceError = MutableStateFlow<String?>(null)
     private val error = ErrorSlot()
     private val finishing = MutableStateFlow(false)
+    private val paused = MutableStateFlow(false)
 
     val uiState: StateFlow<LiveCardioUiState> = combine(
         combine(session, missing, finished, failed, elapsedSeconds) { current, gone, done, broken, elapsed ->
@@ -101,8 +104,8 @@ class LiveCardioViewModel @JvmOverloads constructor(
         combine(type, indoor, distanceKm, distanceEntryUnit) { cardioType, isIndoor, distance, unit ->
             CardioInputs(cardioType, isIndoor, distance, unit)
         },
-        combine(error.messages, finishing, distanceError) { err, busy, distanceProblem ->
-            Flags(err, busy, distanceProblem)
+        combine(error.messages, finishing, distanceError, paused) { err, busy, distanceProblem, frozen ->
+            Flags(err, busy, distanceProblem, frozen)
         },
     ) { loaded, cardioTriple, flags ->
         LiveCardioUiState(
@@ -118,6 +121,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
             distanceError = flags.distanceError,
             error = flags.error,
             finishing = flags.finishing,
+            paused = flags.paused,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveCardioUiState())
 
@@ -267,6 +271,34 @@ class LiveCardioViewModel @JvmOverloads constructor(
         }
     }
 
+    /**
+     * D12 Pause / Resume. The timer row (SharedPreferences, not Room) carries the frozen
+     * total, so a pause survives leaving the screen and process death, and the live bar
+     * reads the same frozen clock.
+     */
+    fun togglePause() {
+        val live = session.value ?: return
+        if (finishing.value) return
+        ensurePersisted(live)
+        val row = recoverWith(TAG, "Reading the cardio timer row", null) {
+            container.cardioTimerPersistence.load()
+        }?.takeIf { it.sessionId == live.id } ?: return
+        val next = if (row.paused) {
+            CardioElapsed.resumed(row, nowElapsedMs = elapsedRealtime(), nowWallMs = wallClock())
+        } else {
+            CardioElapsed.paused(row, elapsedSeconds = readElapsed(live))
+        }
+        val saved = recoverWith(TAG, "Saving the cardio timer row", false) {
+            container.cardioTimerPersistence.save(next)
+        }
+        if (!saved) {
+            AppLog.w(TAG, "Cardio pause state did not commit")
+            return
+        }
+        paused.value = next.paused
+        elapsedSeconds.value = readElapsed(live)
+    }
+
     fun onFinishedHandled() {
         _finishedId.value = null
     }
@@ -314,6 +346,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
         val persisted = recoverWith(TAG, "Reading the cardio timer row", null) {
             container.cardioTimerPersistence.load()
         }?.takeIf { it.sessionId == live.id }
+        paused.value = persisted?.paused == true
         return CardioElapsed.seconds(
             persisted = persisted,
             sessionStartedAtMs = live.performedStart.instantMillis,
@@ -389,6 +422,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
         val error: String?,
         val finishing: Boolean,
         val distanceError: String?,
+        val paused: Boolean,
     )
 
     private data class Loaded(

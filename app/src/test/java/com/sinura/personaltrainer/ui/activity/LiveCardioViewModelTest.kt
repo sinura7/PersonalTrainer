@@ -293,6 +293,46 @@ class LiveCardioViewModelTest {
         assertEquals(live.id, deps.activityRepository.getLive()?.id)
     }
 
+    /** D12: paused time is not counted, and the pause survives a new ViewModel (process death). */
+    @Test
+    fun pauseFreezesTheClockAcrossRecreationAndResumeCarriesOn() = runBlocking {
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        deps.cardioTimerPersistence.clear()
+        val clock = TestCardioClock(now.instantMillis)
+        val first = createViewModel(
+            sessionId = live.id,
+            elapsedRealtime = { clock.elapsedMs },
+            wallClock = { clock.wallMs },
+        )
+        first.uiState.awaitFirst { it.session != null }
+        clock.advance(10_000L)
+        first.togglePause()
+        val paused = first.uiState.awaitFirst { it.paused }
+        assertEquals(10L, paused.elapsedSeconds)
+        assertTrue(deps.cardioTimerPersistence.load()!!.paused)
+
+        clock.advance(300_000L)
+        first.clearAndJoinForTest()
+        val second = createViewModel(
+            sessionId = live.id,
+            elapsedRealtime = { clock.elapsedMs },
+            wallClock = { clock.wallMs },
+        )
+        val restored = second.uiState.awaitFirst { it.session != null && it.paused }
+        assertEquals("five paused minutes do not count", 10L, restored.elapsedSeconds)
+
+        second.togglePause()
+        assertFalse(second.uiState.awaitFirst { !it.paused }.paused)
+        clock.advance(60_000L)
+        second.finish()
+        val finishedId = withTimeout(5_000) { second.finishedId.first { it != null } }
+        assertEquals(live.id, finishedId)
+        assertEquals(70L, deps.activityRepository.get(live.id)!!.cardioBlocks.single().elapsedSeconds)
+    }
+
     private fun createViewModel(
         sessionId: String,
         elapsedRealtime: () -> Long = { 0L },

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -118,6 +119,8 @@ fun LiveCardioScreen(
                         elapsedSeconds = state.elapsedSeconds,
                         typeName = CardioCopy.name(state.type),
                         finishing = state.finishing,
+                        paused = state.paused,
+                        onTogglePause = viewModel::togglePause,
                         onFinish = viewModel::finish,
                         onLeaveRunning = onExit,
                         onDiscard = { confirmDiscard = true },
@@ -186,6 +189,14 @@ fun LiveCardioScreen(
         ) {
             Text(state.session?.title ?: "Cardio", style = InstrumentType.title, color = TextPrimary)
             ElapsedReadout(elapsedSeconds = state.elapsedSeconds)
+            if (state.paused) {
+                Text(
+                    stringResource(R.string.cardio_paused_caption),
+                    style = InstrumentType.caption,
+                    color = TextPrimary,
+                    modifier = Modifier.testTag(CardioTags.PAUSED),
+                )
+            }
             Text(CardioCopy.CLOCK_CAPTION, style = InstrumentType.caption, color = TextSecondary)
             state.error?.let { GymErrorBanner(it, onDismiss = viewModel::dismissError) }
             Kicker(CardioCopy.TYPE)
@@ -257,6 +268,8 @@ internal fun CardioActionDock(
     onFinish: () -> Unit,
     onLeaveRunning: () -> Unit,
     onDiscard: () -> Unit,
+    paused: Boolean = false,
+    onTogglePause: (() -> Unit)? = null,
 ) {
     val open = CardioFinishGate.isOpen(elapsedSeconds = elapsedSeconds)
     val wait = stringResource(R.string.cardio_finish_wait)
@@ -273,11 +286,24 @@ internal fun CardioActionDock(
             )
         },
         secondary = {
-            SecondaryGymButton(
-                text = CardioCopy.LEAVE_RUNNING,
-                onClick = onLeaveRunning,
-                modifier = Modifier.testTag(CardioTags.LEAVE),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                if (onTogglePause != null) {
+                    SecondaryGymButton(
+                        text = stringResource(if (paused) R.string.cardio_resume else R.string.cardio_pause),
+                        onClick = onTogglePause,
+                        modifier = Modifier.weight(1f).testTag(CardioTags.PAUSE),
+                        enabled = !finishing,
+                    )
+                }
+                SecondaryGymButton(
+                    text = CardioCopy.LEAVE_RUNNING,
+                    onClick = onLeaveRunning,
+                    modifier = Modifier.weight(1f).testTag(CardioTags.LEAVE),
+                )
+            }
         },
         tertiary = {
             SecondaryGymButton(
@@ -324,4 +350,6 @@ object CardioTags {
     const val LEAVE = "live-cardio-leave"
     const val DISCARD = "live-cardio-discard"
     const val RETRY = "live-cardio-retry"
+    const val PAUSE = "live-cardio-pause"
+    const val PAUSED = "live-cardio-paused"
 }
