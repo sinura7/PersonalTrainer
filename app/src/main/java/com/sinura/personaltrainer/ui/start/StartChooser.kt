@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import com.sinura.personaltrainer.ui.home.HomeReadRecovery
+import com.sinura.personaltrainer.ui.home.HomeReadState
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.ui.theme.TextDisabled
 import androidx.compose.ui.unit.dp
@@ -124,11 +126,12 @@ fun StartChooser(
     val owns = { gate.startState.value.attemptId == renderedAttemptId }
     val homeReads by gate.homeReads.collectAsStateWithLifecycle()
     // No start of any kind over a failed or stale read: the blocker check depends on it.
-    val readsCurrent = homeReads.readState == com.sinura.personaltrainer.ui.home.HomeReadState.CURRENT
+    val readsCurrent = homeReads.readState == HomeReadState.CURRENT
     val startsEnabled = StartGroups.startsEnabled(state) && !starting.pending && starting.error == null &&
         blocked == null && readsCurrent
-    val freshEnabled = startsEnabled
     val mayStart = { owns() && gate.canEditStartChoice() }
+    // A tap from an older enabled frame must not open a start route over a read that has since failed.
+    val mayOpenStart = { mayStart() && gate.homeReads.value.readState == HomeReadState.CURRENT }
 
     // The sheet is going away; nothing it staged may outlive it.
     DisposableEffect(Unit) {
@@ -218,7 +221,7 @@ fun StartChooser(
                 )
             }
             if (!readsCurrent) {
-                com.sinura.personaltrainer.ui.home.HomeReadRecovery(state = homeReads, onRetry = { gate.retryRead() })
+                HomeReadRecovery(state = homeReads, onRetry = { gate.retryRead() })
             }
             GateStatus(
                 pending = starting.pending,
@@ -247,7 +250,6 @@ fun StartChooser(
                 StartPage.CHOOSER_PAGE -> MainPage(
                     state = state,
                     enabled = startsEnabled,
-                    freshEnabled = freshEnabled,
                     onResume = {
                         onDismiss()
                         onWorkoutStarted(it)
@@ -261,9 +263,9 @@ fun StartChooser(
                         val today = state.todayStart
                         if (today != null && mayStart()) gate.startToday(start = today)
                     },
-                    onStartRoutine = { if (mayStart()) previewRoutineId = it },
+                    onStartRoutine = { if (mayOpenStart()) previewRoutineId = it },
                     onStartEmpty = { if (mayStart()) gate.startFreeWorkout() },
-                    onOther = { if (mayStart()) pageName = StartPage.OTHER_PAGE.name },
+                    onOther = { if (mayOpenStart()) pageName = StartPage.OTHER_PAGE.name },
                     onOpenPlan = {
                         onDismiss()
                         onOpenPlan()
@@ -412,7 +414,6 @@ private fun GateStatus(
 internal fun MainPage(
     state: StartOptionsUiState,
     enabled: Boolean,
-    freshEnabled: Boolean = enabled,
     onResume: (String) -> Unit,
     onResumeActivity: (String) -> Unit,
     onDiscard: () -> Unit,
@@ -428,7 +429,7 @@ internal fun MainPage(
             // Never blank: a quiet placeholder holds the row's place until the plan is read.
             Column(modifier = Modifier.fillMaxWidth().height(Metrics.commit).background(Surface2)) {}
         } else {
-            TodayRow(state, enabled, freshEnabled, onResume, onResumeActivity, onDiscard, onStartToday, onOpenPlan)
+            TodayRow(state, enabled, onResume, onResumeActivity, onDiscard, onStartToday, onOpenPlan)
         }
     }
     Group(kicker = stringResource(R.string.start_group_routine)) {
@@ -453,7 +454,7 @@ internal fun MainPage(
                             routine.exercises.size,
                         ),
                         onClick = { onStartRoutine(routine.id) },
-                        enabled = freshEnabled && routine.exercises.isNotEmpty(),
+                        enabled = enabled && routine.exercises.isNotEmpty(),
                         modifier = Modifier.heightIn(min = Metrics.rowMin).testTag(StartTags.routine(routine.id)),
                     )
                 }
@@ -493,7 +494,6 @@ internal fun MainPage(
 private fun TodayRow(
     state: StartOptionsUiState,
     enabled: Boolean,
-    planEnabled: Boolean = enabled,
     onResume: (String) -> Unit,
     onResumeActivity: (String) -> Unit,
     onDiscard: () -> Unit,
@@ -540,7 +540,7 @@ private fun TodayRow(
             PrimaryGymButton(
                 text = stringResource(R.string.start_today, today.title),
                 onClick = onStartToday,
-                enabled = planEnabled,
+                enabled = enabled,
                 height = Metrics.commit,
                 modifier = Modifier.fillMaxWidth().testTag(StartTags.START_TODAY),
             )

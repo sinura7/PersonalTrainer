@@ -192,7 +192,7 @@ class HomeDayContinuityInstrumentedTest {
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed().performClick()
         await(HomeStartTags.DATE)
-        compose.onNodeWithTag(HomeStartTags.DATE).assertTextEquals("Starts now · ${DateCopy.civilDate(today)}")
+        compose.onNodeWithTag(HomeStartTags.DATE).assertTextEquals("Planned: ${DateCopy.civilDate(selected)}\nStarts now · ${DateCopy.civilDate(today)}")
         compose.onNodeWithTag(StartTags.START_EMPTY).performScrollTo().performClick()
         compose.waitUntil(30000) {
             read { container.workoutRepository.getInProgress()?.also { sessionId = it.id } } != null
