@@ -62,7 +62,8 @@ internal object RestBarCopy {
  * entry, so the next set stays visible and editable while rest counts down (D5).
  *
  * [completed] shows "Rest done"; the caller collapses the bar after 3 s. Overtime counts up in Warn.
- * Tapping the clock opens the existing rest duration sheet.
+ * Tapping the clock opens the existing rest duration sheet. [firstCaption] draws the D13
+ * "Phone buzzes at 0:00" line under the clock while the rest runs.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -76,6 +77,7 @@ internal fun RestBar(
     onEditDuration: () -> Unit,
     modifier: Modifier = Modifier,
     completed: Boolean = false,
+    firstCaption: Boolean = false,
 ) {
     val accent = if (overtime) Warn else RestCyan
     val clock = when {
@@ -86,6 +88,13 @@ internal fun RestBar(
     val bucket = RestBarCopy.spokenBucketSeconds(remainingSeconds)
     val spoken = if (completed) {
         stringResource(R.string.rest_done)
+    } else if (overtime) {
+        val over = RestBarCopy.spokenBucketSeconds(-remainingSeconds)
+        stringResource(
+            R.string.rest_spoken_overtime,
+            pluralStringResource(R.plurals.rest_spoken_minutes, over / 60, over / 60),
+            pluralStringResource(R.plurals.rest_spoken_seconds, over % 60, over % 60),
+        )
     } else {
         stringResource(
             R.string.rest_spoken,
@@ -154,6 +163,15 @@ internal fun RestBar(
                     onClick = onSkip,
                 )
             }
+        }
+        if (firstCaption && running) {
+            // D13: the first rests of the first sessions say the phone will buzz at 0:00.
+            Text(
+                text = stringResource(R.string.rest_first_caption),
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                modifier = Modifier.testTag(WorkoutTestTags.REST_FIRST_CAPTION),
+            )
         }
         Box(
             modifier = Modifier

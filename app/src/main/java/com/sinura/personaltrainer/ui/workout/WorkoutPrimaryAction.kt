@@ -18,7 +18,6 @@ enum class WorkoutPrimaryKind {
     /** GET READY is counting before a hold (P2b): disabled, so a tap cannot log a one-second hold. */
     GET_READY,
     LOG_HOLD, NEXT_EXERCISE, FINISH, CHECKING, SAVING, UPDATING, RETRY_SAVE, REVIEW_SAVE,
-    /** Rest floor: end rest and return to set entry. */
 }
 
 /** Identity of the action actually rendered. Clock ticks do not invalidate a press. */
@@ -64,7 +63,7 @@ data class WorkoutPrimaryAction(
         WorkoutPrimaryKind.UPDATING -> "Updating workout…"
         WorkoutPrimaryKind.RETRY_SAVE -> "Retry save"
         WorkoutPrimaryKind.REVIEW_SAVE -> "Review save"
-            }
+    }
 
     /**
      * What the tap will write, with effort when it was chosen: `70 lbs × 10 · RPE 9`.
@@ -130,7 +129,7 @@ data class WorkoutPrimaryAction(
             WorkoutPrimaryKind.UPDATING -> "Updating workout…"
             WorkoutPrimaryKind.RETRY_SAVE -> "Retry save"
             WorkoutPrimaryKind.REVIEW_SAVE -> "Review save"
-                    }
+        }
     }
 }
 

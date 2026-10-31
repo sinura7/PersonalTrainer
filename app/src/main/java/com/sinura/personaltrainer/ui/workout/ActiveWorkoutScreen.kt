@@ -122,6 +122,7 @@ object WorkoutTestTags {
     const val REST_MINUS = "workout-rest-minus"
     const val REST_PLUS = "workout-rest-plus"
     const val REST_SKIP = "workout-rest-skip"
+    const val REST_FIRST_CAPTION = "workout-rest-first-caption"
     const val HOLD_CLOCK = "workout-hold-clock"
     const val MICRO_REC = "workout-micro-rec"
     const val MICRO_REC_APPLY = "workout-micro-rec-apply"
@@ -307,9 +308,10 @@ private fun ActiveWorkoutContent(
     val rest = restState.value
     val restImmersion = rest.running && state.selectedExerciseId == restImmersionLiftId
     // v4 V4: "Rest done" holds for 3 s on the lift that owned the rest, then the bar collapses.
-    var restDoneExpiredId by remember { mutableStateOf<String?>(null) }
+    // Saved, so a recreated screen does not replay a "Rest done" whose hold already ran out.
+    var restDoneExpiredId by rememberSaveable { mutableStateOf<String?>(null) }
     // The ViewModel drops the owning lift when rest stops; the bar remembers it for "Rest done".
-    var restBarLiftId by remember { mutableStateOf<String?>(null) }
+    var restBarLiftId by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(restImmersionLiftId) { restImmersionLiftId?.let { restBarLiftId = it } }
     LaunchedEffect(rest.completedTimerId) {
         val id = rest.completedTimerId ?: return@LaunchedEffect
@@ -318,7 +320,6 @@ private fun ActiveWorkoutContent(
     }
     val restDoneVisible = !rest.running && rest.completedTimerId != null &&
         rest.completedTimerId != restDoneExpiredId && state.selectedExerciseId == restBarLiftId
-    val restBarShown = restImmersion || restDoneVisible
     var restDurationRequest by remember { mutableIntStateOf(0) }
     val restExteriorActive = state.loadState == SessionLoadState.FOUND && (
         state.showRest || rest.running || (rest.completedTimerId != null && !rest.running)
@@ -339,6 +340,8 @@ private fun ActiveWorkoutContent(
         )
     }
     val workingLogged = advance.workingLogged
+    // The bar sits above the next set, so a lift with no next set has no bar.
+    val restBarShown = (restImmersion || restDoneVisible) && !advance.liftComplete
     val progress = remember(session, state.selectedExerciseId) {
         WorkoutProgressCalculator.of(session = session, selectedExerciseId = state.selectedExerciseId)
     }
@@ -376,8 +379,9 @@ private fun ActiveWorkoutContent(
     }
     // v4 V4: the rest bar sits under the header; when it appears, bring it on screen so the
     // running clock is never composed off the top of the list.
-    LaunchedEffect(restBarShown) {
-        if (restBarShown) listState.animateScrollToItem(LogLoopBringIntoView.restBarRevealIndex())
+    val restBarKey = if (restBarShown) rest.timerId.ifBlank { rest.completedTimerId } else null
+    LaunchedEffect(restBarKey) {
+        if (restBarKey != null && rest.running) listState.animateScrollToItem(LogLoopBringIntoView.restBarRevealIndex())
     }
 
     DisposableEffect(Unit) {
@@ -897,8 +901,9 @@ private fun ActiveWorkoutContent(
                                             running = rest.running,
                                             overtime = RestBarCopy.overtime(rest.running, rest.remainingSeconds),
                                             completed = !rest.running,
+                                            firstCaption = rest.running && restFirstCaption,
                                             onNudge = viewModel::nudgeRest,
-                                            onSkip = viewModel::skipRest,
+                                            onSkip = { viewModel.skipShownRest(rest.timerId) },
                                             onEditDuration = { restDurationRequest += 1 },
                                         )
                                     }

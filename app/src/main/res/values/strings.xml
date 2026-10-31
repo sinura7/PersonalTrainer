@@ -222,6 +222,8 @@
     <string name="rest_skip">Skip</string>
     <string name="rest_done">Rest done</string>
     <string name="rest_overtime">+%1$s</string>
+    <string name="rest_spoken_overtime">Rest over by %1$s %2$s</string>
+    <string name="rest_first_caption">Phone buzzes at 0:00</string>
     <string name="rest_spoken">Rest, %1$s %2$s left</string>
     <plurals name="rest_spoken_minutes">
         <item quantity="one">%1$d minute</item>

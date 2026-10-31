@@ -899,6 +899,9 @@ class ActiveWorkoutViewModel internal constructor(
         )
 
     init {
+        // A restored lift id outlives its rest after process death; with no rest running it
+        // would draw the bar again and replay "Rest done".
+        if (!container.restTimerStore.snapshot.value.running) setRestImmersionLiftId(null)
         viewModelScope.launch {
             var restWasRunning = false
             restTimerState.collect { rest ->
@@ -2746,6 +2749,17 @@ class ActiveWorkoutViewModel internal constructor(
     fun skipRest() {
         cancelPendingRest()
         restTimer.stop()
+        tempoCoachSheetVisible.value = false
+        setRestImmersionLiftId(null)
+    }
+
+    /**
+     * The rest bar's Skip, for the rest the bar drew ([shownTimerId]): a rest that ran out as
+     * Skip was tapped stays complete, and a newer rest keeps running (W2b-3).
+     */
+    fun skipShownRest(shownTimerId: String) {
+        if (!restTimer.skipIfShown(shownTimerId)) return
+        cancelPendingRest()
         tempoCoachSheetVisible.value = false
         setRestImmersionLiftId(null)
     }
