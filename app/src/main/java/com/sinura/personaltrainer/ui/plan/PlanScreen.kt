@@ -452,7 +452,7 @@ private fun PlanHeaderActions(
         onOpen = onOpenStartSheet,
         modifier = Modifier.testTag(PlanTags.START_SHEET),
     )
-    val routinesLabel = stringResource(R.string.plan_routines)
+    val routinesLabel = stringResource(R.string.routines_title)
     TextButton(
         onClick = onOpenRoutines,
         modifier = Modifier
@@ -649,9 +649,9 @@ object PlanTags {
     const val DISMISS = "plan-dismiss"
     fun dayAdd(epochDay: Long): String = "plan-day-add-$epochDay"
     const val LIGHTER = "plan-lighter"
-    const val LIBRARY_SPOKEN = "Library"
     /** The Routines screen heading (v4 V3: routines left Plan for their own screen). */
     const val ROUTINES = "plan-routines"
+    /** The Plan header button that pushes the Routines screen (v4 V3). */
     const val ROUTINES_ENTRY = "plan-routines-entry"
     fun agenda(occurrenceId: String): String = "plan-agenda-$occurrenceId"
     fun agendaThumb(occurrenceId: String): String = "plan-agenda-thumb-$occurrenceId"

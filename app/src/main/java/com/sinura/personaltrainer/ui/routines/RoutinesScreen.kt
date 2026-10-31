@@ -21,7 +21,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,15 +46,16 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
 import com.sinura.personaltrainer.ui.components.OutlinedMarks
 import com.sinura.personaltrainer.ui.components.ScreenHeader
+import com.sinura.personaltrainer.ui.components.ScreenSkeleton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.plan.PlanTags
-import com.sinura.personaltrainer.ui.plan.PlanViewModel
 import com.sinura.personaltrainer.ui.plan.routineDeletionBody
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Haptics
@@ -75,33 +75,32 @@ object RoutinesTags {
     const val LIBRARY = PlanTags.LIBRARY
     const val NEW_ROUTINE = "routines-new"
     const val EMPTY = "routines-empty"
+    const val ERROR = "routines-error"
+    const val LOADING = "routines-loading"
 }
+
+/** The editor id that creates the routine on first save (RoutineEditorViewModel). */
+internal const val NEW_ROUTINE_ID = "new"
 
 /**
  * v4 blueprint 3.3 / 4.3: the routine library, moved off Plan (F2). Pushed from the Plan header.
- * Pick mode ([onPicked] set) hands the tapped routine back to the caller and hides options.
+ * New routine opens the editor on "new", which creates the row on first save, so leaving the
+ * editor untouched leaves no empty row.
  */
 @Composable
 fun RoutinesScreen(
     onBack: () -> Unit,
     onOpenRoutine: (routineId: String) -> Unit,
     onOpenLibrary: () -> Unit,
-    onPicked: ((routineId: String) -> Unit)? = null,
-    viewModel: PlanViewModel = viewModel(),
+    viewModel: RoutinesViewModel = viewModel(),
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
-    val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     val dateFormat = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     val title = stringResource(R.string.routines_title)
     val newLabel = stringResource(R.string.routines_new)
-    val newName = stringResource(R.string.routines_new_name)
-
-    LaunchedEffect(key1 = navigateToEditor) {
-        val id = navigateToEditor ?: return@LaunchedEffect
-        onOpenRoutine(id)
-        viewModel.onEditorNavigationHandled()
-    }
+    val libraryLabel = stringResource(R.string.routines_library)
+    val updatedFormat = stringResource(R.string.routines_updated)
 
     Column(modifier = Modifier.fillMaxSize().background(Pit)) {
         Row(
@@ -121,12 +120,24 @@ fun RoutinesScreen(
                     .padding(end = Metrics.space2, bottom = Metrics.space2)
                     .heightIn(min = Metrics.touchMin)
                     .testTag(RoutinesTags.LIBRARY)
-                    .semantics { contentDescription = PlanTags.LIBRARY_SPOKEN },
+                    .semantics { contentDescription = libraryLabel },
             ) {
-                Text(text = PlanTags.LIBRARY_SPOKEN, style = InstrumentType.bodyStrong, color = TextSecondary)
+                Text(text = libraryLabel, style = InstrumentType.bodyStrong, color = TextSecondary)
             }
         }
-        if (state.isLoading) return@Column
+        state.error?.let { message ->
+            GymErrorBanner(
+                message = message,
+                modifier = Modifier
+                    .padding(horizontal = Metrics.gutter, vertical = Metrics.space2)
+                    .testTag(RoutinesTags.ERROR),
+                onDismiss = viewModel::dismissError,
+            )
+        }
+        if (state.isLoading) {
+            ScreenSkeleton(modifier = Modifier.testTag(RoutinesTags.LOADING), cards = 3)
+            return@Column
+        }
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag(RoutinesTags.CONTENT),
             contentPadding = PaddingValues(
@@ -145,29 +156,26 @@ fun RoutinesScreen(
                             title = stringResource(R.string.routines_empty_title),
                             body = stringResource(R.string.routines_empty_body),
                             actionLabel = newLabel,
-                            onAction = { viewModel.newRoutine(newName) },
+                            onAction = { onOpenRoutine(NEW_ROUTINE_ID) },
                         )
                     }
                 }
             } else {
-                if (onPicked == null) {
-                    item(key = "routines-new") {
-                        SecondaryGymButton(
-                            text = newLabel,
-                            onClick = { viewModel.newRoutine(newName) },
-                            height = Metrics.rowMin,
-                            modifier = Modifier.fillMaxWidth().testTag(RoutinesTags.NEW_ROUTINE),
-                        )
-                    }
+                item(key = "routines-new") {
+                    SecondaryGymButton(
+                        text = newLabel,
+                        onClick = { onOpenRoutine(NEW_ROUTINE_ID) },
+                        height = Metrics.rowMin,
+                        modifier = Modifier.fillMaxWidth().testTag(RoutinesTags.NEW_ROUTINE),
+                    )
                 }
                 itemsIndexed(items = state.routines, key = { _, routine -> "routine:${routine.id}" }) { index, routine ->
                     if (index > 0) HairlineDivider(startIndent = 0.dp)
                     RoutineRow(
                         routine = routine,
-                        updatedLabel = routineUpdatedLabel(routine, dateFormat),
-                        onOpen = { if (onPicked != null) onPicked(routine.id) else onOpenRoutine(routine.id) },
-                        onDelete = { if (onPicked == null) pendingDeleteId = routine.id },
-                        showOptions = onPicked == null,
+                        updatedLabel = routineUpdatedLabel(routine, dateFormat, updatedFormat),
+                        onOpen = { onOpenRoutine(routine.id) },
+                        onDelete = { pendingDeleteId = routine.id },
                     )
                 }
             }
@@ -175,11 +183,12 @@ fun RoutinesScreen(
     }
 
     pendingDeleteId?.let { id ->
-        val pendingName = state.routines.firstOrNull { it.id == id }?.name ?: "this routine"
+        val pendingName = state.routines.firstOrNull { it.id == id }?.name
+            ?: stringResource(R.string.routines_delete_fallback)
         ConfirmActionDialog(
-            title = "Delete $pendingName?",
-            body = routineDeletionBody(state, id),
-            confirmLabel = "Delete",
+            title = stringResource(R.string.routines_delete_title, pendingName),
+            body = routineDeletionBody(state.rules, state.occurrences, id),
+            confirmLabel = stringResource(R.string.routines_delete_confirm),
             destructive = true,
             onConfirm = {
                 viewModel.deleteRoutine(id)
@@ -196,7 +205,6 @@ internal fun RoutineRow(
     updatedLabel: String?,
     onOpen: () -> Unit,
     onDelete: () -> Unit,
-    showOptions: Boolean = true,
 ) {
     val view = LocalView.current
     var menuOpen by remember(routine.id) { mutableStateOf(false) }
@@ -208,8 +216,8 @@ internal fun RoutineRow(
             .testTag(PlanTags.routine(routine.id))
             .combinedClickable(
                 role = Role.Button,
-                onClickLabel = "Edit ${routine.name}",
-                onLongClickLabel = "Delete ${routine.name}",
+                onClickLabel = stringResource(R.string.routines_edit_named, routine.name),
+                onLongClickLabel = stringResource(R.string.routines_delete_named, routine.name),
                 onLongClick = {
                     Haptics.tick(view)
                     onDelete()
@@ -252,7 +260,7 @@ internal fun RoutineRow(
                 Text(text = label, style = InstrumentType.caption, color = TextTertiary)
             }
         }
-        if (showOptions) Box {
+        Box {
             IconButton(
                 onClick = { menuOpen = true },
                 modifier = Modifier
@@ -261,13 +269,13 @@ internal fun RoutineRow(
             ) {
                 Icon(
                     OutlinedMarks.MoreVert,
-                    contentDescription = "Options for ${routine.name}",
+                    contentDescription = stringResource(R.string.routines_options_named, routine.name),
                     tint = TextSecondary,
                 )
             }
             InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 InstrumentMenuItem(
-                    spokenLabel = "Edit routine",
+                    spokenLabel = stringResource(R.string.routines_edit),
                     leadingIcon = TemperIcons.Edit,
                     modifier = Modifier.testTag(PlanTags.routineEdit(routine.id)),
                     onClick = {
@@ -276,7 +284,7 @@ internal fun RoutineRow(
                     },
                 )
                 InstrumentMenuItem(
-                    spokenLabel = "Delete routine",
+                    spokenLabel = stringResource(R.string.routines_delete),
                     leadingIcon = TemperIcons.Delete,
                     textColor = Danger,
                     iconTint = Danger,
@@ -291,8 +299,8 @@ internal fun RoutineRow(
     }
 }
 
-private fun routineUpdatedLabel(routine: Routine, dateFormat: DateFormat): String? {
+private fun routineUpdatedLabel(routine: Routine, dateFormat: DateFormat, format: String): String? {
     if (routine.updatedAt <= 0L) return null
-    return "Updated ${dateFormat.format(Date(routine.updatedAt))}"
+    return format.format(dateFormat.format(Date(routine.updatedAt)))
 }
 

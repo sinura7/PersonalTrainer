@@ -61,11 +61,13 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -97,6 +99,7 @@ import com.sinura.personaltrainer.ui.progress.ProgressScreen
 import com.sinura.personaltrainer.ui.routines.CustomWeekScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.routines.RoutinesScreen
+import com.sinura.personaltrainer.ui.routines.RoutinesViewModel
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGate
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModel
 import com.sinura.personaltrainer.ui.permissions.LaunchPermissionsHost
@@ -188,10 +191,9 @@ sealed class Route(val path: String) {
             "plan-day/$epochDay?add=$add"
     }
     data object Progress : Route("progress")
-    /** v4 V3: the routine library, pushed from Plan. pick=true returns the tapped id via [PICKED_KEY]. */
-    data object RoutineLibrary : Route(path = "routines-library?pick={pick}") {
-        const val PICKED_KEY = "picked_routine_id"
-        fun create(pick: Boolean = false): String = "routines-library?pick=$pick"
+    /** v4 V3: the routine library, pushed from Plan. Owns a RoutinesViewModel, never Plan's. */
+    data object RoutineLibrary : Route(path = "routines-library") {
+        fun create(): String = path
     }
     data object Library : Route("library") {
         /**
@@ -713,28 +715,7 @@ fun PersonalTrainerNav(
                         onOpenLive = openLive,
                     )
                 }
-                composable(
-                    route = Route.RoutineLibrary.path,
-                    arguments = listOf(
-                        navArgument("pick") {
-                            type = NavType.BoolType
-                            defaultValue = false
-                        },
-                    ),
-                ) { entry ->
-                    val pick = entry.arguments?.getBoolean("pick") == true
-                    val returnPick: (String) -> Unit = { id ->
-                        navController.previousBackStackEntry?.savedStateHandle
-                            ?.set(Route.RoutineLibrary.PICKED_KEY, id)
-                        navController.popBackStack()
-                    }
-                    RoutinesScreen(
-                        onBack = { navController.popBackStack() },
-                        onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
-                        onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
-                        onPicked = returnPick.takeIf { pick },
-                    )
-                }
+                routineLibraryDestination(navController)
                 composable(Route.History.path) {
                     HistoryScreen(
                         onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
@@ -1107,3 +1088,21 @@ private val NAV_BAR_HEIGHT = 64.dp
 private val NAV_ICON_SIZE = 24.dp
 private val NAV_TICK_WIDTH = 16.dp
 private val NAV_TICK_HEIGHT = 3.dp
+
+/**
+ * v4 V3: the Routines destination. Its RoutinesViewModel is scoped to this entry, so opening
+ * Routines never builds a second PlanViewModel (which would consume Plan's one-shot flags).
+ */
+internal fun NavGraphBuilder.routineLibraryDestination(
+    navController: NavController,
+    factory: ViewModelProvider.Factory? = null,
+) {
+    composable(Route.RoutineLibrary.path) {
+        RoutinesScreen(
+            onBack = { navController.popBackStack() },
+            onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
+            onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
+            viewModel = viewModel<RoutinesViewModel>(factory = factory),
+        )
+    }
+}

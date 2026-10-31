@@ -597,13 +597,6 @@ class PlanViewModel @JvmOverloads constructor(
     // Routines and tuning
     // -----------------------------------------------------------------------
 
-    /** v4 V3: Routines screen "New routine". Creates an empty routine and opens it; schedules nothing. */
-    fun newRoutine(name: String) {
-        write("Could not create that routine. Try again.") {
-            _navigateToEditor.value = container.routineRepository.create(name).id
-        }
-    }
-
     fun deleteRoutine(routineId: String) {
         write("Could not delete that routine. Try again.") {
             container.routineRepository.delete(routineId)

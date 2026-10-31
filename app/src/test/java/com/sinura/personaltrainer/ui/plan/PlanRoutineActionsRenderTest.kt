@@ -53,6 +53,7 @@ import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorTags
 import com.sinura.personaltrainer.ui.routines.RoutineEditorViewModel
 import com.sinura.personaltrainer.ui.routines.RoutinesScreen
+import com.sinura.personaltrainer.ui.routines.RoutinesViewModel
 import com.sinura.personaltrainer.ui.routines.RoutinesTags
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -95,6 +96,7 @@ class PlanRoutineActionsRenderTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private lateinit var deps: FakeAppDependencies
     private lateinit var vm: PlanViewModel
+    private lateinit var routinesVm: RoutinesViewModel
     private lateinit var dayVm: PlanDayViewModel
     private lateinit var editorVm: RoutineEditorViewModel
     private val route = mutableStateOf("plan")
@@ -112,6 +114,7 @@ class PlanRoutineActionsRenderTest {
         try {
             runBlocking {
                 if (::vm.isInitialized) vm.clearAndJoinForTest()
+                if (::routinesVm.isInitialized) routinesVm.clearAndJoinForTest()
                 if (::dayVm.isInitialized) dayVm.clearAndJoinForTest()
                 if (::editorVm.isInitialized) editorVm.clearAndJoinForTest()
             }
@@ -227,6 +230,7 @@ class PlanRoutineActionsRenderTest {
             deps.plannerRepository.publishPinnedWeek(Weekday.MONDAY, today)
         }
         vm = PlanViewModel(ApplicationProvider.getApplicationContext(), deps)
+        routinesVm = RoutinesViewModel(ApplicationProvider.getApplicationContext(), deps)
         dayVm = PlanDayViewModel(ApplicationProvider.getApplicationContext(), deps)
         editorVm = RoutineEditorViewModel(
             ApplicationProvider.getApplicationContext(),
@@ -253,7 +257,7 @@ class PlanRoutineActionsRenderTest {
                         )
                         "routines" -> RoutinesScreen(
                             onBack = { route.value = "plan" }, onOpenRoutine = { opened += it },
-                            onOpenLibrary = {}, viewModel = vm,
+                            onOpenLibrary = {}, viewModel = routinesVm,
                         )
                         else -> PlanScreen(
                             onOpenRoutine = { opened += it }, onOpenRoutines = { route.value = "routines" },

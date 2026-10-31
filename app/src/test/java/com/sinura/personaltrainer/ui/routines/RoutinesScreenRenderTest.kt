@@ -1,14 +1,16 @@
 package com.sinura.personaltrainer.ui.routines
 
 import android.app.Application
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.data.local.dao.RoutineDao
+import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.ui.plan.PlanScreen
@@ -44,12 +46,10 @@ class RoutinesScreenRenderTest {
     @get:Rule val compose = createComposeRule()
 
     private lateinit var deps: FakeAppDependencies
-    private lateinit var vm: PlanViewModel
+    private lateinit var vm: RoutinesViewModel
+    private var planVm: PlanViewModel? = null
     private val opened = mutableListOf<String>()
-    private val picked = mutableListOf<String>()
     private var backs = 0
-    private val pickMode = mutableStateOf(false)
-    private val pickInto: (String) -> Unit = { id -> picked += id }
 
     @Before fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -61,28 +61,26 @@ class RoutinesScreenRenderTest {
 
     @After fun tearDown() {
         try {
-            runBlocking { if (::vm.isInitialized) vm.clearAndJoinForTest() }
+            runBlocking {
+                if (::vm.isInitialized) vm.clearAndJoinForTest()
+                planVm?.clearAndJoinForTest()
+            }
         } finally {
             deps.close()
             Dispatchers.resetMain()
         }
     }
 
-    private fun show(plan: Boolean = false) {
-        vm = PlanViewModel(ApplicationProvider.getApplicationContext(), deps)
+    private fun show(container: AppDependencies = deps) {
+        vm = RoutinesViewModel(ApplicationProvider.getApplicationContext(), container)
         compose.setContent {
             PersonalTrainerTheme {
-                if (plan) {
-                    PlanScreen(onOpenRoutine = {}, onOpenRoutines = {}, onOpenDay = { _, _ -> }, viewModel = vm)
-                } else {
-                    RoutinesScreen(
-                        onBack = { backs++ },
-                        onOpenRoutine = { opened += it },
-                        onOpenLibrary = {},
-                        onPicked = pickInto.takeIf { pickMode.value },
-                        viewModel = vm,
-                    )
-                }
+                RoutinesScreen(
+                    onBack = { backs++ },
+                    onOpenRoutine = { opened += it },
+                    onOpenLibrary = {},
+                    viewModel = vm,
+                )
             }
         }
         compose.awaitThat("routines loaded", vm.uiState::value) { !vm.uiState.value.isLoading }
@@ -114,10 +112,42 @@ class RoutinesScreenRenderTest {
         compose.onNodeWithText("No routines yet").assertIsDisplayed()
         compose.onNodeWithText("Make one, or start from the library.").assertIsDisplayed()
         compose.onNodeWithText("New routine").performClick()
-        compose.awaitThat("new routine opened", { opened.size }) { opened.size == 1 }
-        val created = runBlocking { deps.routineRepository.getById(opened.single()) }
-        assertEquals("New routine", created?.name)
+        assertEquals("opens the editor on new, which creates on first save", listOf(NEW_ROUTINE_ID), opened)
+        assertTrue("nothing is created until the editor saves", runBlocking { deps.routineRepository.count() } == 0)
         assertTrue("New routine schedules nothing", runBlocking { deps.scheduleRepository.slots() }.isEmpty())
+    }
+
+    @Test
+    fun newRoutineButtonOpensNewEditor() {
+        seed("Upper A")
+        show()
+        compose.awaitThat("routine shown", vm.uiState::value) { vm.uiState.value.routines.isNotEmpty() }
+        compose.settle()
+        compose.onNodeWithTag(RoutinesTags.NEW_ROUTINE).performClick()
+        assertEquals(listOf(NEW_ROUTINE_ID), opened)
+        assertEquals("no extra row", 1, runBlocking { deps.routineRepository.count() })
+    }
+
+    @Test
+    fun failingRepositoryShowsErrorBanner() {
+        val a = seed("Upper A")
+        val failing = object : RoutineDao by deps.database.routineDao() {
+            override suspend fun deleteRoutine(id: String) = throw IllegalStateException("disk full")
+        }
+        show(container = object : AppDependencies by deps {
+            override val routineRepository: RoutineRepository = RoutineRepository(failing)
+        })
+        compose.awaitThat("routine shown", vm.uiState::value) { vm.uiState.value.routines.isNotEmpty() }
+        compose.settle()
+        compose.onNodeWithTag(RoutinesTags.ERROR).assertDoesNotExist()
+        compose.onNodeWithTag(PlanTags.routineOptions(a)).performClick()
+        compose.onNodeWithTag(PlanTags.routineDelete(a)).performClick()
+        compose.onNodeWithText("Delete").performClick()
+        compose.awaitThat("error surfaced", vm.uiState::value) { vm.uiState.value.error != null }
+        compose.settle()
+        compose.onNodeWithTag(RoutinesTags.ERROR).assertIsDisplayed()
+        compose.onNodeWithText(RoutinesViewModel.DELETE_FAILED).assertIsDisplayed()
+        compose.onNodeWithTag(PlanTags.routine(a)).assertIsDisplayed()
     }
 
     @Test
@@ -139,23 +169,16 @@ class RoutinesScreenRenderTest {
     }
 
     @Test
-    fun pickModeStartsAndPops() {
-        val a = seed("Upper A")
-        pickMode.value = true
-        show()
-        compose.awaitThat("routine shown", vm.uiState::value) { vm.uiState.value.routines.isNotEmpty() }
-        compose.settle()
-        compose.onNodeWithTag(RoutinesTags.NEW_ROUTINE).assertDoesNotExist()
-        compose.onNodeWithTag(PlanTags.routineOptions(a)).assertDoesNotExist()
-        compose.onNodeWithTag(PlanTags.routine(a)).performClick()
-        assertEquals(listOf(a), picked)
-        assertTrue("pick never opens the editor", opened.isEmpty())
-    }
-
-    @Test
     fun planShowsNoRoutineRows() {
         val a = seed("Upper A")
-        show(plan = true)
+        val plan = PlanViewModel(ApplicationProvider.getApplicationContext(), deps).also { planVm = it }
+        compose.setContent {
+            PersonalTrainerTheme {
+                PlanScreen(onOpenRoutine = {}, onOpenRoutines = {}, onOpenDay = { _, _ -> }, viewModel = plan)
+            }
+        }
+        compose.awaitThat("plan loaded", plan.uiState::value) { !plan.uiState.value.isLoading }
+        compose.settle()
         compose.onNodeWithTag(PlanTags.ROUTINES).assertDoesNotExist()
         compose.onNodeWithTag(PlanTags.routine(a)).assertDoesNotExist()
         compose.onNodeWithTag(PlanTags.LIBRARY).assertDoesNotExist()
