@@ -95,7 +95,7 @@ class StartOptionsRoutineCardRenderTest {
         val lifts = compose.onAllNodesWithTag(WorkoutPreviewTags.LIFT).fetchSemanticsNodes()
         assertEquals("the preview shows every lift", LIFTS.size, lifts.size)
         val tops = LIFTS.map { (_, name, _) ->
-            compose.onNode(hasText(name) and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.LIFT))).fetchSemanticsNode().positionInRoot.y
+            compose.onNode(hasText(name) and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.LIFT)), useUnmergedTree = true).fetchSemanticsNode().positionInRoot.y
         }
         assertEquals("lifts appear in routine order", tops.sorted(), tops)
     }
@@ -117,7 +117,7 @@ class StartOptionsRoutineCardRenderTest {
         card().performClick()
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { compose.isDisplayed(hasTestTag(WorkoutPreviewTags.BEGIN)) }
         assertTrue("the tap alone starts nothing", started.isEmpty())
-        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performScrollTo().performClick()
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
         compose.awaitThat(what = "Begin started a routine", now = ::started) { started.isNotEmpty() }
         val session = checkNotNull(runBlocking { deps.workoutRepository.getSession(started.single()) })
         assertEquals(ROUTINE, session.routineName)

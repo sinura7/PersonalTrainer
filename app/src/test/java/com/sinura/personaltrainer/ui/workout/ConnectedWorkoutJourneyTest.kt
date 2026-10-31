@@ -152,7 +152,7 @@ class ConnectedWorkoutJourneyTest {
             compose.onAllNodesWithTag(WorkoutPreviewTags.BEGIN).fetchSemanticsNodes().isNotEmpty()
         }
         assertTrue("the routine tap alone starts nothing", startedIds.isEmpty())
-        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performScrollTo().performClick()
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
         compose.awaitThat("Start opens one live workout", { startedIds }) { startedIds.size == 1 }
         val sessionId = startedIds.single()
         awaitEntry("the first lift is ready") { it.selectedExerciseId == FLOOR_LIFT_ID }

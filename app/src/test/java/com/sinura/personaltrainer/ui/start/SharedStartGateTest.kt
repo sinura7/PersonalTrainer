@@ -36,7 +36,7 @@ import org.robolectric.annotation.Config
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(qualifiers = "w412dp-h1600dp-xhdpi", sdk = [34])
+@Config(qualifiers = "w412dp-h1600dp-xhdpi")
 class SharedStartGateTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 

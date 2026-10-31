@@ -29,7 +29,7 @@ import org.robolectric.annotation.GraphicsMode
 /** v4 blueprint 3.1: the one Start chooser, rendered from its state. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w412dp-h1600dp-xhdpi", sdk = [34])
+@Config(qualifiers = "w412dp-h1600dp-xhdpi")
 class StartChooserRenderTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 

@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
+import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
@@ -165,7 +167,7 @@ class PreviewBeginRenderTest {
             CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG, LocalTodayEpochDay provides today) {
                 PersonalTrainerTheme {
                     Surface(modifier = Modifier.fillMaxSize(), color = Pit) {
-                        HomeScreen(onResumeWorkout = { opened += it }, onOpenPlan = {}, viewModel = vm)
+                        HomeWithStartChooser(vm = vm, deps = deps, onResumeWorkout = { opened += it })
                     }
                 }
             }
@@ -182,6 +184,9 @@ class PreviewBeginRenderTest {
                 .assertTextContains("Start workout", substring = true)
                 .assertTextContains("$ROUTINE · 2 lifts", substring = true)
                 .performClick()
+            // V2: Today's Start opens the shared chooser; its planned Today row is the start.
+            compose.settle()
+            compose.onNodeWithTag(StartTags.START_TODAY).assertIsDisplayed().performClick()
         }
         compose.settle()
         compose.onNodeWithTag(WorkoutPreviewTags.ROOT).assertExists()

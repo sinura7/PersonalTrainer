@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
 import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
 import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
@@ -731,7 +733,7 @@ class WeekStripGeometryRenderTest {
         assertWords(text(PickerHeaderTags.TITLE), title.uppercase())
         val cancel = reach(compose.onNodeWithTag(PickerHeaderTags.CANCEL)).assertIsEnabled()
         touchTarget(cancel.fetchSemanticsNode())
-        assertWords(compose.onNodeWithText("Cancel", useUnmergedTree = true), "Cancel")
+        assertWords(compose.onNode(hasText("Cancel") and hasAnyAncestor(hasTestTag(PickerHeaderTags.CANCEL)), useUnmergedTree = true), "Cancel")
         val a = fullBounds(text(PickerHeaderTags.TITLE).fetchSemanticsNode())
         val b = fullBounds(cancel.fetchSemanticsNode())
         assertFalse("header title and Cancel have separated actual geometry", a.overlaps(b))
