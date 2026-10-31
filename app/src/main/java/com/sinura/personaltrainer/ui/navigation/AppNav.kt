@@ -541,8 +541,14 @@ fun PersonalTrainerNav(
     val restCooldownActive = RestTimerMarkers.isCooldown(restSnapshot)
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
     // Same guard Today used: a stale attempt is released before a fresh chooser opens.
+    var startsNowFrom by rememberSaveable { mutableStateOf<Long?>(null) }
     val openStartSheet = {
+        startsNowFrom = null
         if (startGate.canEditStartChoice() && startGate.dismissStart()) showStartSheet = true
+    }
+    val openStartSheetFrom: (Long?) -> Unit = { day ->
+        openStartSheet()
+        if (showStartSheet) startsNowFrom = day
     }
     // Today consumes its own starts. Anywhere else the host does, so a start from Plan,
     // History or Body still lands on the workout it opened.
@@ -645,6 +651,7 @@ fun PersonalTrainerNav(
                         onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
                         onOpenActivity = { navController.navigate(Route.ActivityDetail.create(it)) },
                         onOpenStartSheet = openStartSheet,
+                        onOpenStartSheetFrom = openStartSheetFrom,
                         viewModel = startGate,
                     )
                 }
@@ -909,6 +916,7 @@ fun PersonalTrainerNav(
             StartChooser(
                 onDismiss = { showStartSheet = false },
                 gate = startGate,
+                startsNowFrom = startsNowFrom,
                 suggestedKit = startGateUi.suggestedExtraEquipment,
                 onEditRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
                 onOpenPlan = { goToTab(Route.Routines.path) },

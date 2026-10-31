@@ -285,7 +285,7 @@ class HomeViewModel @JvmOverloads constructor(
     }
 
     /** A deliberate retry restarts every required read. Old shared replay cannot satisfy it. */
-    fun retryRead(): Boolean {
+    override fun retryRead(): Boolean {
         if (authoritativeRetryPending || authoritativeReadState == HomeReadState.CURRENT ||
             authoritativeReadState == HomeReadState.WAITING
         ) return false
@@ -446,6 +446,8 @@ class HomeViewModel @JvmOverloads constructor(
     override val blockedByInProgress: StateFlow<BlockedStart?> = _blockedByInProgress.asStateFlow()
 
     /** Starts are offered only over a current read; a stale or failed board offers none. */
+    override val homeReads: StateFlow<HomeUiState> get() = uiState
+
     override val readsCurrent: StateFlow<Boolean> = uiState
         .map { it.readState == HomeReadState.CURRENT }
         .stateIn(viewModelScope, SharingStarted.Eagerly, uiState.value.readState == HomeReadState.CURRENT)
@@ -577,8 +579,12 @@ class HomeViewModel @JvmOverloads constructor(
         explicitRetry: Boolean = false,
         acceptWhileBlockingStartFinishes: Boolean = false,
     ): Boolean {
-        val homeCanChange = authoritativeReadState == HomeReadState.CURRENT && !authoritativeRetryPending
-        val gateOpen = if (acceptWhileBlockingStartFinishes) homeCanChange else canMutate()
+        // V2: Empty, cardio and Extra do not depend on the board's reads, so a stale read withholds
+        // only the starts built from it (Today, routines).
+        val readFree = command is StartCommand.Free || command is StartCommand.Cardio || command is StartCommand.Aux
+        val readOk = readFree || authoritativeReadState == HomeReadState.CURRENT
+        val homeCanChange = readOk && !authoritativeRetryPending
+        val gateOpen = if (acceptWhileBlockingStartFinishes) homeCanChange else homeCanChange && !_startState.value.pending
         if (!gateOpen || hasQueuedStartNavigation()) return false
         val blocked = _blockedByInProgress.value
         if (blocked != null && !allowBlocked) return false

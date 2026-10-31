@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class RecordingStartGate : StartGate {
     override val startState = MutableStateFlow(HomeStartState())
     override val readsCurrent = MutableStateFlow(true)
+    override val homeReads = MutableStateFlow(com.sinura.personaltrainer.ui.home.HomeUiState(readState = com.sinura.personaltrainer.ui.home.HomeReadState.CURRENT))
+    override fun retryRead(): Boolean = false
     override val blockedByInProgress = MutableStateFlow<HomeViewModel.BlockedStart?>(null)
     override val navigateToSession = MutableStateFlow<String?>(null)
     override val navigateToCardio = MutableStateFlow<String?>(null)

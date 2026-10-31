@@ -23,13 +23,15 @@ fun HomeWithStartChooser(
     onOpenPlan: () -> Unit = {},
 ) {
     var open by remember { mutableStateOf(false) }
+    var from by remember { mutableStateOf<Long?>(null) }
     val options = remember {
         StartOptionsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
     }
     HomeScreen(
         onResumeWorkout = onResumeWorkout,
         onOpenPlan = onOpenPlan,
-        onOpenStartSheet = { open = true },
+        onOpenStartSheet = { from = null; open = true },
+        onOpenStartSheetFrom = { from = it; open = true },
         viewModel = vm,
     )
     if (open) {
@@ -37,6 +39,7 @@ fun HomeWithStartChooser(
             onDismiss = { open = false },
             onWorkoutStarted = { open = false; onResumeWorkout(it) },
             gate = vm,
+            startsNowFrom = from,
             onOpenPlan = onOpenPlan,
             suggestedKit = vm.uiState.value.suggestedExtraEquipment,
             viewModel = options,

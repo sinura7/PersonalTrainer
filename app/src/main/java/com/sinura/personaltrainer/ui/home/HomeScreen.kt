@@ -93,6 +93,8 @@ fun HomeScreen(
     onOpenLiveCardio: (String) -> Unit = {},
     /** Opens the shared [com.sinura.personaltrainer.ui.start.StartChooser], the one Start path. */
     onOpenStartSheet: () -> Unit = {},
+    /** Opens the chooser naming the selected day when it is not today (V2 date line). */
+    onOpenStartSheetFrom: ((Long?) -> Unit)? = null,
     pendingOccurrenceStartId: String? = null,
     /** The delivery behind a reminder's Start, marked used only once the start opens. */
     pendingOccurrenceDeliveryId: String? = null,
@@ -639,7 +641,8 @@ fun HomeScreen(
     val trainingToday = leftoverDay?.takeUnless { it.isRest } != null
     val openStartSheet = {
         if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
-            onOpenStartSheet()
+            val from = selectedEpochDay.takeIf { it != today }
+            onOpenStartSheetFrom?.invoke(from) ?: onOpenStartSheet()
         }
     }
     val todaySheetStart = if (selectedEpochDay == today && !sessionLive && state.readState == HomeReadState.CURRENT) {
@@ -1006,9 +1009,9 @@ private fun restoreStartConfirm(saved: Map<String, Any?>): StartSessionConfirm? 
 }
 
 @Composable
-private fun HomeStartDate(plannedEpochDay: Long, today: Long) {
+internal fun HomeStartDate(plannedEpochDay: Long, today: Long) {
     Text(
-        "Planned: ${DateCopy.civilDate(plannedEpochDay)}\nStarts now · ${DateCopy.civilDate(today)}",
+        stringResource(R.string.start_planned_starts_now, DateCopy.civilDate(plannedEpochDay), DateCopy.civilDate(today)),
         modifier = Modifier.testTag(HomeStartTags.DATE),
         style = InstrumentType.caption,
         color = TextSecondary,

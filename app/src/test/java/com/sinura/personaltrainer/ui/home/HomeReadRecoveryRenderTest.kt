@@ -444,28 +444,26 @@ class HomeReadRecoveryRenderTest {
         compose.onNodeWithTag(StartTags.routine(routineId)).assertIsEnabled()
         reachable(compose.onNodeWithTag(StartTags.START_OTHER)).performClick()
         compose.onNodeWithTag(StartTags.LIVE_CARDIO).performClick()
-        val oldCardio = compose.onNodeWithTag(CardioPickTags.card(CardioType.WALK))
-            .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
+        // V2 decision: cardio and Extra do not read the board, so they stay enabled over a stale read.
+        compose.onNodeWithTag(CardioPickTags.card(CardioType.WALK)).assertIsEnabled()
         failRead()
-        compose.runOnUiThread { oldCardio() }
         compose.onNodeWithTag(StartTags.CARDIO_PAGE).assertExists()
-        compose.onNodeWithTag(CardioPickTags.card(CardioType.WALK)).assertIsNotEnabled()
+        compose.onNodeWithTag(CardioPickTags.card(CardioType.WALK)).assertIsEnabled()
+        proveRecovery("cardio-page-stale")
         assertEquals(before, inventory())
         retry()
         reachable(compose.onNodeWithTag(StartTags.OTHER_BACK)).performClick()
         compose.onNodeWithTag(StartTags.EXTRA).performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
         val pack = AuxiliaryPacks.visibleFor(ExtraEquipment.NONE, emptySet()).first()
-        val oldExtra = compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id))
-            .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
+        compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id)).assertIsEnabled()
         failRead()
-        compose.runOnUiThread { oldExtra() }
         compose.onNodeWithTag(ExtraEquipmentTags.PAGE).assertDoesNotExist()
-        compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id)).assertIsNotEnabled()
+        compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id)).assertIsEnabled()
         assertEquals(before, inventory())
         proveRecovery("extra-equipment-choice-retained")
         retry(held = true)
-        compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id)).assertIsNotEnabled()
+        compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id)).assertIsEnabled()
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
         compose.onNodeWithTag(ExtraEquipmentTags.PAGE).assertDoesNotExist()
@@ -488,9 +486,25 @@ class HomeReadRecoveryRenderTest {
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
         failRead()
-        compose.runOnUiThread { oldFree() }
+        // V2 decision: over a stale read only Today and routine rows are withheld.
         compose.onNodeWithTag(StartTags.SHEET).assertExists()
-        compose.onNodeWithTag(StartTags.START_EMPTY).assertIsNotEnabled()
+        compose.onNodeWithTag(StartTags.START_EMPTY).assertIsEnabled()
+        compose.onNodeWithTag(StartTags.routine(routineId)).assertIsNotEnabled()
+        proveRecovery("free-start-stale")
+        assertEquals(before, inventory())
+        assertNull(openedSession)
+        assertTrue("the old frame's Empty is admitted: it does not read the board", oldFree())
+        compose.waitUntil(10_000) { openedSession != null }
+        assertEquals(1, runBlocking { deps.database.workoutDao().getAllSessions().size })
+    }
+
+    @Test fun staleReadKeepsOtherCardioAndExtraEnabled() {
+        graph()
+        show()
+        await(HomeReadState.CURRENT)
+        scrollTo(HomeTags.START).performClick()
+        val before = inventory()
+        failRead()
         compose.onNodeWithTag(StartTags.START_OTHER).assertIsEnabled().performClick()
         compose.onNodeWithTag(StartTags.LIVE_CARDIO).assertIsEnabled()
         compose.onNodeWithTag(StartTags.EXTRA).assertIsEnabled()
@@ -815,7 +829,7 @@ class HomeReadRecoveryRenderTest {
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithTag(StartTags.EXTRA_PAGE).assertExists()
         compose.onNodeWithTag(ExtraEquipmentTags.PAGE).assertDoesNotExist()
-        compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id)).assertIsNotEnabled()
+        compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id)).assertIsEnabled() // V2: Extra does not read the board
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
         reachable(compose.onNodeWithTag(PickerHeaderTags.CANCEL)).performClick()
@@ -849,7 +863,7 @@ class HomeReadRecoveryRenderTest {
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertIsEnabled().performClick()
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertDoesNotExist()
         scrollTo(HomeTags.START).assertIsEnabled().performClick()
-        compose.onNodeWithTag(StartTags.START_EMPTY).assertIsNotEnabled()
+        compose.onNodeWithTag(StartTags.START_EMPTY).assertIsEnabled() // V2: Empty does not read the board
         reachable(compose.onNodeWithTag(StartTags.START_OTHER)).performClick()
         reachable(compose.onNodeWithTag(StartTags.EXTRA)).assertIsEnabled().performClick()
         compose.awaitThat("the read-only Extra equipment page is composed", vm.uiState::value) {

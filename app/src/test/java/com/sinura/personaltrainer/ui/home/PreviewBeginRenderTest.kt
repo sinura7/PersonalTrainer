@@ -149,10 +149,15 @@ class PreviewBeginRenderTest {
     }
 
     @Test
-    fun todayPrimaryIsStartWorkoutWithDayAndLiftCountAndOpensThePreview() {
-        openPreview(viaAgendaRow = false)
-        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertTextContains("Begin with Bench Press", substring = true)
-        assertEquals(0, sessions())
+    fun todayPrimaryIsStartWorkoutWithDayAndLiftCountAndStartsDirectlyThroughTheGate() {
+        // V2 decision: the chooser's Today row starts the planned day directly, with no preview.
+        openPreview(viaAgendaRow = false, expectPreview = false)
+        compose.onNodeWithTag(WorkoutPreviewTags.ROOT).assertDoesNotExist()
+        await("Today's row started the planned routine through the gate") { opened.isNotEmpty() }
+        assertEquals(1, sessions())
+        val saved = runBlocking { deps.database.workoutDao().getAllSessions().single() }
+        assertEquals(ROUTINE, saved.routineName)
+        assertEquals(saved.id, opened.single())
     }
 
     private fun await(what: String, condition: () -> Boolean) {
@@ -162,7 +167,7 @@ class PreviewBeginRenderTest {
 
     private fun sessions(): Int = runBlocking { deps.database.workoutDao().getAllSessions().size }
 
-    private fun openPreview(viaAgendaRow: Boolean = true) {
+    private fun openPreview(viaAgendaRow: Boolean = true, expectPreview: Boolean = true) {
         compose.setContent {
             CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG, LocalTodayEpochDay provides today) {
                 PersonalTrainerTheme {
@@ -189,6 +194,7 @@ class PreviewBeginRenderTest {
             compose.onNodeWithTag(StartTags.START_TODAY).assertIsDisplayed().performClick()
         }
         compose.settle()
+        if (!expectPreview) return
         compose.onNodeWithTag(WorkoutPreviewTags.ROOT).assertExists()
     }
 
