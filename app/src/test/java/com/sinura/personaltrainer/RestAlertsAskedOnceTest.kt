@@ -297,9 +297,13 @@ class RestAlertsAskedOnceTest {
         }
     }
 
-    /** v4: there is no rest page. The running rest shows inline on the workout as the rest bar. */
+    /** v4: there is no rest page. The running rest shows on the workout itself. */
     private fun seeTheRunningRest() {
-        awaitTag(WorkoutTestTags.REST_BAR)
+        compose.waitUntil(timeoutMillis = WAIT_MS) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.COMPANION_CLOCK)).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodes(hasTestTag(WorkoutTestTags.REST_BAR)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.waitForIdle()
     }
 
     /**

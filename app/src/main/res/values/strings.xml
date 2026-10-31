@@ -30,16 +30,10 @@
     <string name="tempo_apply">Apply</string>
     <string name="tempo_dismiss">Dismiss</string>
     <string name="rest_kicker">Rest</string>
-    <string name="rest_of_total">of %1$s</string>
     <string name="rest_minus">−15</string>
     <string name="rest_plus">+15</string>
-    <string name="rest_up_next">Up next · set %1$d of %2$d</string>
     <string name="rest_edit">Edit</string>
-    <string name="rest_start_now" tools:ignore="PluralsCandidate">Start set %1$d now</string>
-    <string name="rest_start_sub">Or wait. Phone buzzes at 0:00</string>
-    <string name="rest_first_caption">Phone buzzes at 0:00</string>
     <string name="rest_go">Go</string>
-    <string name="rest_undo_last">Undo last set</string>
     <string name="tempo_sheet_kicker">Tempo suggests</string>
     <string name="tempo_use">Use %1$s</string>
     <string name="tempo_keep">Keep %1$s</string>
@@ -63,10 +57,8 @@
     <string name="workout_readiness_log_set_ready">Ready to log your entry.</string>
     <string name="workout_readiness_unavailable">Waiting for your workout…</string>
     <string name="workout_readiness_add_exercise">Add an exercise to begin.</string>
-    <string name="workout_readiness_start_set_now">Rest is running. Start the next set when you\'re ready.</string>
     <string name="workout_readiness_keep_entry">Keep this entry before logging.</string>
     <string name="workout_readiness_draft_resumed">Draft resumed. %1$s</string>
-    <string name="rest_logged_effort"> · effort %1$d</string>
     <string name="next_title">What next?</string>
     <string name="next_add_set">Add another set</string>
     <string name="next_add_set_sub">%1$s again</string>

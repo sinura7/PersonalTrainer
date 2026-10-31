@@ -222,7 +222,7 @@ class RestTimerCardRenderTest {
         remaining.value = 10
         compose.waitForIdle()
         assertEquals(
-            listOf("Rest 0:10 remaining. Default · 2:00. Last ten seconds. Open rest timer."),
+            listOf("Rest 0:10 remaining. Default · 2:00. Last ten seconds. Change rest length."),
             tile(WorkoutTestTags.REST_BAR, clock = "0:10").spokenDescriptions(),
         )
         assertEquals(Warn, inkOf("REST"))

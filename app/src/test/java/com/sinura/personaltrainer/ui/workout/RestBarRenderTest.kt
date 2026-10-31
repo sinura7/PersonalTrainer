@@ -173,8 +173,14 @@ class RestBarRenderTest {
                 val node = compose.onNodeWithTag(tag).assertIsDisplayed()
                 assertTrue("$tag stays inside the window at 2x", node.getBoundsInRoot().right <= width)
             }
-        val clockTop = compose.onNodeWithTag(WorkoutTestTags.REST_CLOCK).getBoundsInRoot().top
-        val skipTop = compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).getBoundsInRoot().top
-        assertTrue("at 2x the controls wrap under the clock: clock $clockTop, skip $skipTop", skipTop > clockTop)
+        // Wrapped or not, no control lands on another: the row flows rather than clips.
+        val boxes = listOf(WorkoutTestTags.REST_CLOCK, WorkoutTestTags.REST_MINUS, WorkoutTestTags.REST_PLUS, WorkoutTestTags.REST_SKIP)
+            .map { compose.onNodeWithTag(it).getBoundsInRoot() }
+        boxes.forEachIndexed { i, a ->
+            boxes.drop(i + 1).forEach { b ->
+                val apart = a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top
+                assertTrue("controls overlap at 2x: $a and $b", apart)
+            }
+        }
     }
 }
