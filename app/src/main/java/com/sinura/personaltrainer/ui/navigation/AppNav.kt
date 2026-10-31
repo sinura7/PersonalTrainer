@@ -433,6 +433,7 @@ fun PersonalTrainerNav(
     val startGateUi by startGate.uiState.collectAsStateWithLifecycle()
     val gateSession by startGate.navigateToSession.collectAsStateWithLifecycle()
     val gateCardio by startGate.navigateToCardio.collectAsStateWithLifecycle()
+    val gateComposer by startGate.navigateToComposer.collectAsStateWithLifecycle()
     val hasLiveSession by liveBarViewModel.hasLiveSession.collectAsStateWithLifecycle()
     val finishedNavigation by liveBarViewModel.finishedNavigation.collectAsStateWithLifecycle()
     val finishedActivityNavigation by liveBarViewModel.finishedActivityNavigation.collectAsStateWithLifecycle()
@@ -564,6 +565,14 @@ fun PersonalTrainerNav(
         if (onHome) return@LaunchedEffect
         navController.navigate(Route.LiveCardio.create(id)) { launchSingleTop = true }
         startGate.onCardioNavigationHandled()
+    }
+    // A mixed Today start (no plannable session) opens the composer; off Home the host consumes it,
+    // so it is never left queued to block the next start. On Home, HomeScreen consumes it.
+    LaunchedEffect(gateComposer, onHome) {
+        val mode = gateComposer ?: return@LaunchedEffect
+        if (onHome) return@LaunchedEffect
+        navController.navigate(Route.ActivityComposer.create(mode)) { launchSingleTop = true }
+        startGate.onComposerNavigationHandled()
     }
     val openPermissionsSettings = {
         settingsViewModel.requestSettingsSubpage(SettingsPage.PERMISSIONS)

@@ -28,6 +28,7 @@ fun StartChooserHost(
     onLogPast: () -> Unit = {},
     onLogCardio: () -> Unit = {},
     options: StartOptionsViewModel? = null,
+    onOpenComposer: (String) -> Unit = {},
 ) {
     val model = options ?: remember {
         StartOptionsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -37,6 +38,13 @@ fun StartChooserHost(
         val id = session ?: return@LaunchedEffect
         gate.onSessionNavigationHandled()
         onWorkoutStarted(id)
+    }
+    // As AppNav off Home: the host consumes a gate composer start so it never stays queued.
+    val composer by gate.navigateToComposer.collectAsStateWithLifecycle()
+    LaunchedEffect(composer) {
+        val mode = composer ?: return@LaunchedEffect
+        onOpenComposer(mode)
+        gate.onComposerNavigationHandled()
     }
     StartChooser(
         onDismiss = onDismiss,

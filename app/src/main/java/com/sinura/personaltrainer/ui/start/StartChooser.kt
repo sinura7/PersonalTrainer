@@ -115,6 +115,7 @@ fun StartChooser(
     val blocked by gate.blockedByInProgress.collectAsStateWithLifecycle()
     val gateSession by gate.navigateToSession.collectAsStateWithLifecycle()
     val gateCardio by gate.navigateToCardio.collectAsStateWithLifecycle()
+    val gateComposer by gate.navigateToComposer.collectAsStateWithLifecycle()
     var pageName by rememberSaveable { mutableStateOf(StartPage.CHOOSER_PAGE.name) }
     val page = runCatching { StartPage.valueOf(pageName) }.getOrDefault(StartPage.CHOOSER_PAGE)
     var kitName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -137,8 +138,8 @@ fun StartChooser(
         onDispose { viewModel.clearPendingNavigation() }
     }
     // A start the gate opened leaves the sheet; the host that owns the route navigates.
-    LaunchedEffect(gateSession, gateCardio) {
-        if (gateSession != null || gateCardio != null) {
+    LaunchedEffect(gateSession, gateCardio, gateComposer) {
+        if (gateSession != null || gateCardio != null || gateComposer != null) {
             previewRoutineId = null
             onDismiss()
         }

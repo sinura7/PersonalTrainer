@@ -4,10 +4,17 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.ui.home.HomeReadState
 import com.sinura.personaltrainer.ui.home.HomeViewModel
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
@@ -22,6 +29,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -43,6 +51,7 @@ class SharedStartGateTest {
     private lateinit var deps: FakeAppDependencies
     private lateinit var gate: HomeViewModel
     private val started = mutableListOf<String>()
+    private val composers = mutableListOf<String>()
 
     @Before fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -86,6 +95,33 @@ class SharedStartGateTest {
         compose.onNodeWithTag(StartTags.START_EMPTY).assertIsNotEnabled()
     }
 
+    @Test
+    fun aMixedTodayStartFromANonHomeTabOpensTheComposerOnceAndAdmitsALaterStart() {
+        runBlocking {
+            val planner = deps.plannerRepository
+            val today = JvmTime.captureNow().localEpochDay
+            planner.addTimedRule(
+                weekday = Weekday.fromEpochDay(today), hour = 0, minute = 0, modality = ScheduleModality.MIXED,
+            )
+            planner.ensureWeek(CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY))
+        }
+        showOffHome()
+        compose.awaitThat("Today offers the planned mixed start", { gate.uiState.value }) {
+            compose.onAllNodesWithTag(StartTags.START_TODAY).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(StartTags.START_TODAY).performScrollTo().performClick()
+        compose.awaitThat("the composer opens", { composers }) { composers.isNotEmpty() }
+        compose.waitForIdle()
+        assertEquals(listOf("mixed"), composers)
+        assertNull("nothing stays queued", gate.navigateToComposer.value)
+        val later = compose.runOnUiThread { gate.startFreeWorkout() }
+        assertTrue("a later start is admitted", later)
+        compose.awaitThat("the later start opens its workout", { started }) { started.isNotEmpty() }
+        compose.waitForIdle()
+        assertEquals(listOf("mixed"), composers)
+        assertEquals(1, started.size)
+    }
+
     private fun showOffHome() {
         gate = startGateFor(deps)
         compose.awaitThat("the gate's board is current", { gate.uiState.value.readState }) {
@@ -93,7 +129,7 @@ class SharedStartGateTest {
         }
         compose.setContent {
             PersonalTrainerTheme {
-                StartChooserHost(gate = gate, deps = deps, onDismiss = {}, onWorkoutStarted = { started += it })
+                StartChooserHost(gate = gate, deps = deps, onDismiss = {}, onWorkoutStarted = { started += it }, onOpenComposer = { composers += it })
             }
         }
         compose.waitForIdle()
