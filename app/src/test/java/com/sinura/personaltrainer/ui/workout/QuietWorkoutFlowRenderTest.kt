@@ -259,12 +259,6 @@ class QuietWorkoutFlowRenderTest {
         assertEquals("the next working set carries the last logged effort", 8, vm.uiState.value.draft.rpe)
         assertPrimaryReachable(enabled = true)
         inspectSavedSets(vm, profile, fontScale, direction)
-        if (compose.onAllNodesWithTag(WorkoutTestTags.REST_FLOOR).fetchSemanticsNodes().isNotEmpty()) {
-            compose.onNodeWithTag(WorkoutTestTags.REST_START_NOW).performClick()
-            compose.waitUntil(timeoutMillis = WAIT_MS) {
-                compose.onAllNodesWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNodes().isNotEmpty()
-            }
-        }
         reveal(WorkoutTestTags.LOG_READINESS, profile).assert(hasText(READY))
         capture(profile, "saved-next-draft")
         writeObservations(profile)

@@ -67,7 +67,6 @@ class WorkoutDockTimerRenderTest {
     private var clockStarts = 0
     private var clockStops = 0
     private var batteryDismissals = 0
-    private var restPages = 0
     private var notificationFixes = 0
 
     private val logSet = floorPrimaryAction(kind = WorkoutPrimaryKind.LOG_SET, draft = ActiveExerciseDraft(weightKg = FLOOR_KG70, reps = 10))
@@ -77,7 +76,6 @@ class WorkoutDockTimerRenderTest {
     private fun showDock(timer: WorkoutDockTimer, error: String? = null) {
         dockState = floorDockState(action = logSet, error = error, timer = timer)
         val events = floorDockEvents(
-            onOpenRest = { restPages += 1 },
             onSkipRest = { skips += 1 },
             onStartRest = { restStarts += 1 },
             onSelectRestDuration = { durations += it },
@@ -188,8 +186,7 @@ class WorkoutDockTimerRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
         assertEquals(1, skips)
         cardTile(WorkoutTestTags.REST_BAR, clock = "1:32").performClick()
-        assertEquals(1, restPages)
-        assertTrue("a running tap opens the rest page, not the length sheet", !sheetIsOpen())
+        assertTrue("a running tap opens the length sheet; there is no rest page", sheetIsOpen())
     }
 
     @Test
@@ -280,7 +277,7 @@ class WorkoutDockTimerRenderTest {
     fun theCompactClockOpensTheRunningRestOrTheLengthSheet() {
         showDock(restRunning(), error = "Could not save")
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).performClick()
-        assertEquals(1, restPages)
+        assertTrue("the running rest opens the length sheet", sheetIsOpen())
         dockState = dockState.copy(timer = restAt())
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).performClick()
         compose.onNodeWithTag(SHEET).assertIsDisplayed()

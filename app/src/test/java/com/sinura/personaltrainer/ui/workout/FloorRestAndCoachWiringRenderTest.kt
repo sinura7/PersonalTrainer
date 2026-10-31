@@ -100,7 +100,6 @@ class FloorRestAndCoachWiringRenderTest {
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<ActiveWorkoutViewModel>()
     private var exits = 0
-    private val restPages = mutableListOf<String>()
 
     /** When set, a set's row waits here before it is written: a save the lifter is waiting on. */
     private var insertGate: CompletableDeferred<Unit>? = null
@@ -134,7 +133,7 @@ class FloorRestAndCoachWiringRenderTest {
         assertNoStartNext()
         compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.running }
-        compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertDoesNotExist()
     }
 
@@ -211,7 +210,7 @@ class FloorRestAndCoachWiringRenderTest {
     }
 
     @Test
-    fun theRunningRestStepsSkipsAndOpensTheRestPage() {
+    fun theRunningRestStepsSkipsAndOpensTheLengthSheet() {
         batteryRuleAlreadyRead()
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
@@ -220,11 +219,15 @@ class FloorRestAndCoachWiringRenderTest {
         val started = vm.restTimerState.value.remainingSeconds
         compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.remainingSeconds == started + 15 }
-        compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR_RING).performClick()
-        assertEquals("a tap on the running rest opens this session's rest page", listOf(checkNotNull(vm.uiState.value.session).id), restPages)
         compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.restTimerState.value.running }
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
+        // v4: no rest page. The running bar's clock opens the length sheet in place.
+        compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.running }
+        compose.onNodeWithTag(WorkoutTestTags.REST_CLOCK).performClick()
+        compose.settle()
+        compose.onNodeWithTag(SHEET).assertIsDisplayed()
     }
 
     @Test
@@ -236,7 +239,7 @@ class FloorRestAndCoachWiringRenderTest {
         compose.onNodeWithTag("workout-rest-battery").assertIsDisplayed()
         compose.onNode(hasText("Got it") and hasClickAction()).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.restTimerState.value.batteryHint }
-        compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
     }
 
     @Test
@@ -688,7 +691,6 @@ class FloorRestAndCoachWiringRenderTest {
                 ActiveWorkoutScreen(
                     onExit = { exits += 1 },
                     onFinished = {},
-                    onOpenRest = { restPages += it },
                     viewModel = vm,
                     restNotificationsEnabledOverride = notificationsEnabled,
                 )

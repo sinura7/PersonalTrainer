@@ -50,7 +50,7 @@ import org.robolectric.annotation.Config
  * lift allows) at rest and −15 / +15 / Skip while running.
  *
  * All of this was held as lines of RestTimerCard.kt (`else -> PLANNED`,
- * `onClick = if (idle) onEditDuration else onOpenRest`, `running -> listOf(MINUS, PLUS,
+ * `onClick = onEditDuration`, `running -> listOf(MINUS, PLUS,
  * SKIP)`, one `liveRegion = LiveRegionMode.Polite`). W1b (design audit D11) names the planned
  * length one way: "Planned" under the idle clock, "Default · 2:00" under the running one, apart
  * from the time left, and "Default · 2:00" aloud, as the rest page says it. Its −15 / +15 /
@@ -71,7 +71,6 @@ class RestTimerCardRenderTest {
     private val nudges = mutableListOf<Int>()
     private var edits = 0
     private var setClocks = 0
-    private var opened = 0
 
     private fun showCard(total: Int = 120, offerSetClock: Boolean = false, fontScale: Float = 1f) {
         compose.showFloor(fontScale = fontScale) {
@@ -88,7 +87,6 @@ class RestTimerCardRenderTest {
                 onNudge = { nudges += it },
                 onEditDuration = { edits += 1 },
                 onStartSetClock = { setClocks += 1 },
-                onOpenRest = { opened += 1 },
             )
         }
     }
@@ -124,7 +122,6 @@ class RestTimerCardRenderTest {
         assertEquals(InstrumentType.numeralMd.fontSize, word("2:00").textLayout().layoutInput.style.fontSize)
         tile.performClick()
         assertEquals("an idle tap edits the planned length", 1, edits)
-        assertEquals(0, opened)
     }
 
     @Test
@@ -176,7 +173,7 @@ class RestTimerCardRenderTest {
         // The time left is the clock; the plan is said apart from it, in the idle card's word.
         // That it stays on one line is measured in RestTimerCardFitRenderTest.
         word("Default 2:00").assertIsDisplayed()
-        assertEquals(listOf("Rest 1:32 remaining. Default · 2:00. Open rest timer."), tile.spokenDescriptions())
+        assertEquals(listOf("Rest 1:32 remaining. Default · 2:00. Change rest length."), tile.spokenDescriptions())
         // Bright while it runs: the time in primary ink, the kicker in rest cyan. The kicker
         // is a label inside the tile, not a heading TalkBack would jump to.
         assertEquals(TextPrimary, inkOf("1:32"))
@@ -184,8 +181,7 @@ class RestTimerCardRenderTest {
         word("REST").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Heading))
         compose.onNodeWithTag(WorkoutTestTags.START_REST).assertDoesNotExist()
         tile.performClick()
-        assertEquals("a running tap opens the rest page", 1, opened)
-        assertEquals(0, edits)
+        assertEquals("a running tap opens the length sheet; there is no rest page", 1, edits)
     }
 
     @Test
@@ -212,7 +208,7 @@ class RestTimerCardRenderTest {
         assertEquals(listOf(-15, 15), nudges)
         skip.performClick()
         assertEquals(1, skipped)
-        assertEquals("no control on the card opens the rest page", 0, opened)
+        assertEquals("no step or Skip opens the length sheet", 0, edits)
     }
 
     @Test
@@ -221,7 +217,7 @@ class RestTimerCardRenderTest {
         remaining.value = 11
         showCard()
         val tile = tile(WorkoutTestTags.REST_BAR, clock = "0:11")
-        assertEquals(listOf("Rest 0:11 remaining. Default · 2:00. Open rest timer."), tile.spokenDescriptions())
+        assertEquals(listOf("Rest 0:11 remaining. Default · 2:00. Change rest length."), tile.spokenDescriptions())
         assertEquals(RestCyan, inkOf("REST"))
         remaining.value = 10
         compose.waitForIdle()
@@ -332,7 +328,7 @@ class RestTimerCardRenderTest {
         word("Default 2:00").assertIsDisplayed()
         compose.onAllNodesWithText("WARM-UP", useUnmergedTree = true).assertCountEquals(0)
         compose.onAllNodesWithText("Warm-ups do not start rest", useUnmergedTree = true).assertCountEquals(0)
-        assertEquals(listOf("Rest 1:32 remaining. Default · 2:00. Open rest timer."), tile.spokenDescriptions())
+        assertEquals(listOf("Rest 1:32 remaining. Default · 2:00. Change rest length."), tile.spokenDescriptions())
     }
 
     @Test

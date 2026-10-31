@@ -152,8 +152,8 @@ class LandscapeChromeRenderTest {
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.restTimerState.value.running }
         compose.waitForIdle()
         // A running rest is shown whatever the orientation, and the commit keeps its place.
-        compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR).assertIsDisplayed()
-        assertWhollyOnScreen(WorkoutTestTags.REST_START_NOW, windowHeight = 360.dp)
+        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
+        assertWhollyOnScreen(WorkoutTestTags.LOG_SET, windowHeight = 360.dp)
     }
 
     @Test

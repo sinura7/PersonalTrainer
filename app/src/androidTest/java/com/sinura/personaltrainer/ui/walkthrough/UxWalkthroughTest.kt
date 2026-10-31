@@ -933,7 +933,7 @@ class UxWalkthroughTest {
         if (expectPlannedRest) {
             harnessWaitUntil(45_000) {
                 val restIdle = compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isNotEmpty()
-                val restRunningUi = compose.onAllNodesWithTag(WorkoutTestTags.REST_FLOOR).fetchSemanticsNodes().isNotEmpty()
+                val restRunningUi = compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
                 val restRunningStore = container.restTimerStore.current().running
                 restIdle && !restRunningUi && !restRunningStore
             }
@@ -944,7 +944,7 @@ class UxWalkthroughTest {
     private fun awaitRestTimerRunning() {
         harnessWaitUntil(45_000) {
             val restRunningStore = container.restTimerStore.current().running
-            compose.onAllNodesWithTag(WorkoutTestTags.REST_FLOOR).fetchSemanticsNodes().isNotEmpty() &&
+            compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty() &&
                 compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isEmpty() &&
                 restRunningStore
         }

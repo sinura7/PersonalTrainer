@@ -186,7 +186,7 @@ class ConnectedWorkoutJourneyTest {
         }
         val rest = deps.restTimerStore.current()
         assertEquals(sessionId, rest.sessionId)
-        compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { !active.restTimerState.value.running }
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {

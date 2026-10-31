@@ -88,6 +88,12 @@ object Metrics {
     /** A list row with a value on the trailing edge. */
     val rowMin: Dp = 56.dp
 
+    /** v4 V4: the inline rest bar above the next set. Same floor as a list row. */
+    val restBar: Dp = rowMin
+
+    /** v4 V4: the rest bar's remaining-time track. */
+    val restBarProgress: Dp = 4.dp
+
     /** Buttons and controls that get used mid-session. */
     val control: Dp = 56.dp
 

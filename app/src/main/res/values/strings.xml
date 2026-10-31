@@ -226,4 +226,9 @@
     <string name="routines_delete_title">Delete %1$s?</string>
     <string name="routines_delete_fallback">this routine</string>
     <string name="routines_delete_confirm">Delete</string>
+    <!-- v4 rest -->
+    <string name="rest_skip">Skip</string>
+    <string name="rest_done">Rest done</string>
+    <string name="rest_overtime">+%1$s</string>
+    <string name="rest_spoken">Rest, %1$d minutes %2$d seconds left</string>
 </resources>

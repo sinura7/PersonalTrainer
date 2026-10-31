@@ -60,7 +60,6 @@ class RestTimerCardFitRenderTest {
                     onNudge = {},
                     onEditDuration = {},
                     onStartSetClock = {},
-                    onOpenRest = {},
                 )
             }
         }

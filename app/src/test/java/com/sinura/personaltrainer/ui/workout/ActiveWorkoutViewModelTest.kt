@@ -496,6 +496,20 @@ class ActiveWorkoutViewModelTest {
         assertFalse(deps.restTimerStore.current().running)
     }
 
+    /** v4 V4: the next set stays editable under the inline rest bar; editing never stops rest. */
+    @Test
+    fun editingDuringRestKeepsRestRunning() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3, restSeconds = 75)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.startSelectedRest()
+        awaitRestRunning()
+        vm.setReps(7)
+        vm.awaitState { it.draft.reps == 7 }
+        assertTrue("editing the next set keeps rest running", deps.restTimerStore.current().running)
+        assertEquals(WorkoutPrimaryKind.LOG_SET, vm.primaryAction.value.kind)
+    }
+
     @Test
     fun holdClockFollowsElapsedRealtimeAndDoesNotAutoLog() = runBlocking {
         val clock = ControllableTimePort()

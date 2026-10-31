@@ -115,7 +115,7 @@ class WorkoutFloorRenderTest {
             // rather than capture the frame the instant the clock was started.
             compose.waitUntil(timeoutMillis = 20_000) { vm.restTimerState.value.running }
             compose.waitUntil(timeoutMillis = 20_000) {
-                compose.onAllNodesWithTag(WorkoutTestTags.REST_FLOOR).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
             }
         }
     }
@@ -350,7 +350,7 @@ class WorkoutFloorRenderTest {
             compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_ENTRY))
             compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
         }
-        if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_FLOOR).assertExists()
+        if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
     }
 
     private companion object {

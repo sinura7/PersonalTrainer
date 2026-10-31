@@ -22,6 +22,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -115,6 +116,8 @@ object WorkoutTestTags {
     const val CURRENT_LIFT = "workout-current-lift"
     const val SET_ENTRY = "workout-set-entry"
     const val REST_BAR = "workout-rest-bar"
+    const val REST_CLOCK = "workout-rest-clock"
+    const val REST_PROGRESS = "workout-rest-progress"
     const val REST_IDLE = "workout-rest-idle"
     const val REST_MINUS = "workout-rest-minus"
     const val REST_PLUS = "workout-rest-plus"
@@ -129,12 +132,8 @@ object WorkoutTestTags {
     const val FLOOR_DOCK = "workout-floor-dock"
     const val TEMPO_COACH_CARD = "workout-tempo-coach-card"
     const val TEMPO_LINE = "workout-tempo-line"
-    const val REST_FLOOR = "workout-rest-floor"
-    const val REST_FLOOR_RING = "workout-rest-floor-ring"
-    const val REST_START_NOW = "workout-rest-start-now"
     const val UP_NEXT_CARD = "workout-up-next-card"
     const val REST_EDIT_UP_NEXT = "workout-rest-edit-up-next"
-    const val REST_UNDO_LAST = "workout-rest-undo-last"
     const val WHAT_NEXT_SHEET = "workout-what-next-sheet"
     const val WHAT_NEXT_ADD_SET = "workout-what-next-add-set"
     const val WHAT_NEXT_SWAP = "workout-what-next-swap"
@@ -221,11 +220,13 @@ object WorkoutTestTags {
     fun rpeChoice(value: Int) = "workout-rpe-$value"
 }
 
+/** v4 blueprint 5.2: "Rest done" stays on the bar this long before it collapses. */
+private const val REST_DONE_HOLD_MS = 3_000L
+
 @Composable
 fun ActiveWorkoutScreen(
     onExit: () -> Unit,
     onFinished: (String) -> Unit,
-    onOpenRest: (String) -> Unit = {},
     onOpenExercise: (String) -> Unit = {},
     viewModel: ActiveWorkoutViewModel = viewModel(),
     restNotificationsEnabledOverride: Boolean? = null,
@@ -234,7 +235,7 @@ fun ActiveWorkoutScreen(
     // windows. The host window can be portrait while this surface is landscape.
     BoxWithConstraints(Modifier.fillMaxSize()) {
         ActiveWorkoutContent(
-            onExit = onExit, onFinished = onFinished, onOpenRest = onOpenRest, onOpenExercise = onOpenExercise,
+            onExit = onExit, onFinished = onFinished, onOpenExercise = onOpenExercise,
             viewModel = viewModel, restNotificationsEnabledOverride = restNotificationsEnabledOverride,
             landscape = LandscapeChrome.isLandscape(
                 widthDp = maxWidth.value.roundToInt(), heightDp = maxHeight.value.roundToInt(),
@@ -248,7 +249,6 @@ fun ActiveWorkoutScreen(
 private fun ActiveWorkoutContent(
     onExit: () -> Unit,
     onFinished: (String) -> Unit,
-    onOpenRest: (String) -> Unit,
     onOpenExercise: (String) -> Unit,
     viewModel: ActiveWorkoutViewModel,
     restNotificationsEnabledOverride: Boolean?,
@@ -306,6 +306,20 @@ private fun ActiveWorkoutContent(
         ?: rememberRestNotificationsEnabled()
     val rest = restState.value
     val restImmersion = rest.running && state.selectedExerciseId == restImmersionLiftId
+    // v4 V4: "Rest done" holds for 3 s on the lift that owned the rest, then the bar collapses.
+    var restDoneExpiredId by remember { mutableStateOf<String?>(null) }
+    // The ViewModel drops the owning lift when rest stops; the bar remembers it for "Rest done".
+    var restBarLiftId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(restImmersionLiftId) { restImmersionLiftId?.let { restBarLiftId = it } }
+    LaunchedEffect(rest.completedTimerId) {
+        val id = rest.completedTimerId ?: return@LaunchedEffect
+        kotlinx.coroutines.delay(REST_DONE_HOLD_MS)
+        restDoneExpiredId = id
+    }
+    val restDoneVisible = !rest.running && rest.completedTimerId != null &&
+        rest.completedTimerId != restDoneExpiredId && state.selectedExerciseId == restBarLiftId
+    val restBarShown = restImmersion || restDoneVisible
+    var restDurationRequest by remember { mutableIntStateOf(0) }
     val restExteriorActive = state.loadState == SessionLoadState.FOUND && (
         state.showRest || rest.running || (rest.completedTimerId != null && !rest.running)
         )
@@ -646,8 +660,8 @@ private fun ActiveWorkoutContent(
                                 undoMessage = undoEntries.lastOrNull()?.offer?.message,
                                 undoKey = undoEntries.lastOrNull()?.offer?.key,
                                 undoDwellMs = undoDwellMs,
-                                restImmersion = restImmersion,
-                                restPrimarySubLabel = stringResource(R.string.rest_start_sub).takeIf { restImmersion },
+                                restImmersion = restBarShown,
+                                restDurationRequest = restDurationRequest,
                                 timer = WorkoutDockTimer(
                                     show = showRest,
                                     restRemainingSeconds = rest.remainingSeconds,
@@ -698,7 +712,6 @@ private fun ActiveWorkoutContent(
                                 onStopSetClock = viewModel::stopSetStopwatch,
                                 onCancelLeadIn = viewModel::cancelLeadIn,
                                 onDismissRestBatteryHint = viewModel::acknowledgeRestBatteryHint,
-                                onOpenRest = { session?.id?.let(onOpenRest) },
                                 onOpenNotifications = { openRestNotificationSettings(context) },
                             ),
                         )
@@ -804,46 +817,6 @@ private fun ActiveWorkoutContent(
                             onChooseOther = { liftSwitcherOpen = true },
                             modifier = Modifier.fillMaxSize(),
                         )
-                    } else if (restImmersion && selected != null) {
-                        val workingCount = logged.count { !it.isWarmup }
-                        val upNextSet = workingCount + 1
-                        val upNextTarget = microRec?.let { SetMicroRecCopy.numbers(it, loadClass, unit) }
-                            ?: SetCopy.setLine(
-                                state.draft.weightKg,
-                                state.draft.reps,
-                                loadClass,
-                                unit,
-                            )
-                        val lastLogged = logged.lastOrNull()
-                        val loggedLine = lastLogged?.let { set ->
-                            SetCopy.setLine(set.weightKg, set.reps, loadClass, unit) +
-                                set.rpe?.let { rpe ->
-                                    stringResource(R.string.rest_logged_effort, rpe)
-                                }.orEmpty()
-                        }
-                        WorkoutRestPanel(
-                            remainingSeconds = rest.remainingSeconds,
-                            totalSeconds = rest.totalSeconds,
-                            running = rest.running,
-                            completed = rest.completedTimerId != null && !rest.running,
-                            upNextKicker = stringResource(
-                                R.string.rest_up_next,
-                                upNextSet,
-                                selected.targetSets,
-                            ),
-                            upNextTarget = upNextTarget,
-                            upNextLoading = microRec == null && state.hint == null,
-                            loggedLine = loggedLine,
-                            showFirstRestCaption = restFirstCaption,
-                            onNudge = viewModel::nudgeRest,
-                            onSkip = viewModel::skipRest,
-                            onUndoLastSet = viewModel::undoTopOffer,
-                            onOpenRest = { session?.id?.let(onOpenRest) },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .padding(vertical = Metrics.space3),
-                        )
                     } else LazyColumn(
                         state = listState,
                         modifier = Modifier
@@ -908,6 +881,20 @@ private fun ActiveWorkoutContent(
                                         onSwap = viewModel::requestSwap,
                                         canSwap = logged.isEmpty(),
                                     )
+                                }
+                                if (restBarShown) {
+                                    item(key = "rest-bar") {
+                                        RestBar(
+                                            remainingSeconds = rest.remainingSeconds,
+                                            totalSeconds = rest.totalSeconds,
+                                            running = rest.running,
+                                            overtime = RestBarCopy.overtime(rest.running, rest.remainingSeconds),
+                                            completed = !rest.running,
+                                            onNudge = viewModel::nudgeRest,
+                                            onSkip = viewModel::skipRest,
+                                            onEditDuration = { restDurationRequest += 1 },
+                                        )
+                                    }
                                 }
                                 item(key = "entry") {
                                     val holdTimer = holdState.value

@@ -153,7 +153,6 @@ class WorkoutMissingSessionRenderTest {
                                     onExit = shown.onBack, onFinished = {}, viewModel = vm,
                                     restNotificationsEnabledOverride = true,
                                 )
-                                is RestTimerViewModel -> RestTimerScreen(onClose = shown.onBack, viewModel = vm)
                                 else -> Unit
                             }
                         }
@@ -162,9 +161,7 @@ class WorkoutMissingSessionRenderTest {
             }
         }
         missingWorkout(original = original, timer = timer)
-        missingRest(original = original, timer = timer)
         failedWorkout(original = original, timer = timer)
-        failedRest(original = original, timer = timer)
     }
 
     private fun missingWorkout(original: WorkoutSession, timer: RestTimerSnapshot) {
@@ -176,19 +173,6 @@ class WorkoutMissingSessionRenderTest {
         assertMissingCopy()
         checkScene(stage = "missing-workout", title = MISSING_TITLE, body = MISSING_BODY, actionLabel = "Back to home")
         action(label = "Back to home").performClick()
-        assertEquals(1, exits)
-        assertUnchanged(original = original, timer = timer)
-        unmount(model = vm)
-    }
-
-    private fun missingRest(original: WorkoutSession, timer: RestTimerSnapshot) {
-        var exits = 0
-        val vm = rest(id = "missing")
-        mount(model = vm, onBack = { exits += 1 })
-        compose.awaitThat("missing rest workout", vm.uiState::value) { vm.uiState.value.loadState == SessionLoadState.MISSING }
-        assertMissingCopy()
-        checkScene(stage = "missing-rest", title = MISSING_TITLE, body = MISSING_BODY, actionLabel = "Back")
-        action(label = "Back").performClick()
         assertEquals(1, exits)
         assertUnchanged(original = original, timer = timer)
         unmount(model = vm)
@@ -208,24 +192,6 @@ class WorkoutMissingSessionRenderTest {
         compose.awaitThat("Retry loaded the actual workout", vm.uiState::value) { vm.uiState.value.canLog }
         assertEquals(original.id, vm.uiState.value.session!!.id)
         compose.onNodeWithText(FAILED_TITLE).assertDoesNotExist()
-        assertEquals(0, exits)
-        assertUnchanged(original = original, timer = timer)
-        unmount(model = vm)
-    }
-
-    private fun failedRest(original: WorkoutSession, timer: RestTimerSnapshot) {
-        failReads.value = true
-        var exits = 0
-        val vm = rest(id = original.id)
-        mount(model = vm, onBack = { exits += 1 })
-        compose.awaitThat("failed rest read", vm.uiState::value) { vm.uiState.value.loadState == SessionLoadState.FAILED }
-        compose.onNodeWithText(MISSING_TITLE).assertDoesNotExist()
-        checkScene(stage = "failed-rest", title = FAILED_TITLE, body = REST_FAILED_BODY, actionLabel = "Retry")
-        assertUnchanged(original = original, timer = timer)
-        failReads.value = false
-        action(label = "Retry").performClick()
-        compose.awaitThat("Retry loaded rest for its session", vm.uiState::value) { vm.uiState.value.loadState == SessionLoadState.FOUND }
-        compose.onNodeWithTag(RestFloorTags.CLOCK).assertIsDisplayed()
         assertEquals(0, exits)
         assertUnchanged(original = original, timer = timer)
         unmount(model = vm)
@@ -342,11 +308,6 @@ class WorkoutMissingSessionRenderTest {
         savedStateHandle = SavedStateHandle(mapOf("sessionId" to id)), container = deps,
     ).also(models::add)
 
-    private fun rest(id: String) = RestTimerViewModel(
-        application = ApplicationProvider.getApplicationContext(),
-        savedStateHandle = SavedStateHandle(mapOf("sessionId" to id)), container = deps,
-    ).also(models::add)
-
     private data class RecoveryScene(val model: ViewModel, val onBack: () -> Unit)
 
     private companion object {
@@ -354,6 +315,5 @@ class WorkoutMissingSessionRenderTest {
         const val MISSING_BODY = "This workout is not running. If you finished it, look in History."
         const val FAILED_TITLE = "Workout unavailable"
         const val WORKOUT_FAILED_BODY = "Your workout could not be read. Your draft is kept. Retry, or close this screen and return later."
-        const val REST_FAILED_BODY = "The workout could not be read. The timer has not been stopped. Retry, or close this screen."
     }
 }

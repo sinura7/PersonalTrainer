@@ -260,4 +260,13 @@ class RestTimerNotificationsTest {
         assertNull(posted.fullScreenIntent)
         assertEquals("Rest done", posted.extras.getString(Notification.EXTRA_TITLE))
     }
+
+    /** v4 V4: there is no rest page, so tapping the rest notification opens the live session. */
+    @Test
+    fun contentIntentOpensSession() {
+        val sent = shadowOf(RestTimerNotifications.openAppIntent(context, "session-1")).savedIntent
+        assertEquals(com.sinura.personaltrainer.MainActivity::class.java.name, sent.component?.className)
+        assertEquals("session-1", sent.getStringExtra(RestTimerService.EXTRA_SESSION_ID))
+        assertTrue("no rest route rides on the tap: ${sent.data}", sent.data?.toString()?.contains("rest") != true)
+    }
 }
