@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.ui.plan.PickerHeaderTags
+import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
+import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
 import android.database.sqlite.SQLiteFullException
 import android.graphics.Bitmap
@@ -427,30 +430,30 @@ class HomeReadRecoveryRenderTest {
         show()
         await(HomeReadState.CURRENT)
         scrollTo(HomeTags.START).performClick()
-        compose.onNodeWithTag(HomeStartTags.ROUTINE).performClick()
-        val oldRoutine = compose.onNodeWithTag(HomeStartTags.routine(routineId))
+        compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        val oldRoutine = compose.onNodeWithTag(StartTags.routine(routineId))
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
         failRead()
         compose.runOnUiThread { oldRoutine() }
-        compose.onNodeWithTag(HomeStartTags.SHEET).assertExists()
-        compose.onNodeWithTag(HomeStartTags.routine(routineId)).assertIsNotEnabled()
+        compose.onNodeWithTag(StartTags.SHEET).assertExists()
+        compose.onNodeWithTag(StartTags.routine(routineId)).assertIsNotEnabled()
         assertEquals(before, inventory())
         proveRecovery("routine-page-stale")
         retry()
-        compose.onNodeWithTag(HomeStartTags.routine(routineId)).assertIsEnabled()
-        reachable(compose.onNodeWithText("Cancel")).performClick()
-        compose.onNodeWithTag(HomeStartTags.CARDIO).performClick()
+        compose.onNodeWithTag(StartTags.routine(routineId)).assertIsEnabled()
+        reachable(compose.onNodeWithTag(StartTags.START_OTHER)).performClick()
+        compose.onNodeWithTag(StartTags.LIVE_CARDIO).performClick()
         val oldCardio = compose.onNodeWithTag(CardioPickTags.card(CardioType.WALK))
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         failRead()
         compose.runOnUiThread { oldCardio() }
-        compose.onNodeWithTag(HomeStartTags.CARDIO_PAGE).assertExists()
+        compose.onNodeWithTag(StartTags.CARDIO_PAGE).assertExists()
         compose.onNodeWithTag(CardioPickTags.card(CardioType.WALK)).assertIsNotEnabled()
         assertEquals(before, inventory())
         retry()
-        reachable(compose.onNodeWithText("Cancel")).performClick()
-        compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        reachable(compose.onNodeWithTag(StartTags.OTHER_BACK)).performClick()
+        compose.onNodeWithTag(StartTags.EXTRA).performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
         val pack = AuxiliaryPacks.visibleFor(ExtraEquipment.NONE, emptySet()).first()
         val oldExtra = compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id))
@@ -469,7 +472,7 @@ class HomeReadRecoveryRenderTest {
         compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id)).assertIsEnabled()
         // Navigation back to equipment stays usable even while the final pick is disabled.
         failRead()
-        reachable(compose.onNodeWithText("Cancel")).performClick()
+        reachable(compose.onNodeWithTag(PickerHeaderTags.CANCEL)).performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.PAGE).assertExists()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.FREE_WEIGHTS)).assertIsEnabled().performClick()
         assertEquals(before, inventory())
@@ -481,16 +484,16 @@ class HomeReadRecoveryRenderTest {
         show()
         await(HomeReadState.CURRENT)
         scrollTo(HomeTags.START).performClick()
-        val oldFree = compose.onNodeWithTag(HomeStartTags.FREE)
+        val oldFree = compose.onNodeWithTag(StartTags.START_EMPTY)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
         failRead()
         compose.runOnUiThread { oldFree() }
-        compose.onNodeWithTag(HomeStartTags.SHEET).assertExists()
-        compose.onNodeWithTag(HomeStartTags.FREE).assertIsNotEnabled()
-        compose.onNodeWithTag(HomeStartTags.ROUTINE).assertIsEnabled()
-        compose.onNodeWithTag(HomeStartTags.CARDIO).assertIsEnabled()
-        compose.onNodeWithTag(HomeStartTags.EXTRA).assertIsEnabled()
+        compose.onNodeWithTag(StartTags.SHEET).assertExists()
+        compose.onNodeWithTag(StartTags.START_EMPTY).assertIsNotEnabled()
+        compose.onNodeWithTag(StartTags.START_OTHER).assertIsEnabled().performClick()
+        compose.onNodeWithTag(StartTags.LIVE_CARDIO).assertIsEnabled()
+        compose.onNodeWithTag(StartTags.EXTRA).assertIsEnabled()
         assertEquals(before, inventory())
         assertNull(openedSession)
     }
@@ -804,19 +807,19 @@ class HomeReadRecoveryRenderTest {
         scrollTo(WeekStripTags.cell(firstDay)).performClick()
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertExists()
         scrollTo(HomeTags.START).performClick()
-        compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        reachable(compose.onNodeWithTag(StartTags.START_OTHER)).performClick(); compose.onNodeWithTag(StartTags.EXTRA).performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
         val pack = AuxiliaryPacks.visibleFor(ExtraEquipment.NONE, emptySet()).first()
         failRead()
         retry(held = true)
         restoration.emulateSavedInstanceStateRestore()
-        compose.onNodeWithTag(HomeStartTags.EXTRA_PAGE).assertExists()
+        compose.onNodeWithTag(StartTags.EXTRA_PAGE).assertExists()
         compose.onNodeWithTag(ExtraEquipmentTags.PAGE).assertDoesNotExist()
         compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id)).assertIsNotEnabled()
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
-        reachable(compose.onNodeWithText("Cancel")).performClick()
-        reachable(compose.onNodeWithText("Cancel")).performClick()
+        reachable(compose.onNodeWithTag(PickerHeaderTags.CANCEL)).performClick()
+        reachable(compose.onNodeWithTag(PickerHeaderTags.CANCEL)).performClick()
         // Sheet dismissal through its real modal dismiss action leaves the chosen cell intact.
         compose.runOnUiThread { checkNotNull(ShadowDialog.getLatestDialog()).onBackPressed() }
         compose.waitForIdle()
@@ -846,10 +849,11 @@ class HomeReadRecoveryRenderTest {
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertIsEnabled().performClick()
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertDoesNotExist()
         scrollTo(HomeTags.START).assertIsEnabled().performClick()
-        compose.onNodeWithTag(HomeStartTags.FREE).assertIsNotEnabled()
-        reachable(compose.onNodeWithTag(HomeStartTags.EXTRA)).assertIsEnabled().performClick()
+        compose.onNodeWithTag(StartTags.START_EMPTY).assertIsNotEnabled()
+        reachable(compose.onNodeWithTag(StartTags.START_OTHER)).performClick()
+        reachable(compose.onNodeWithTag(StartTags.EXTRA)).assertIsEnabled().performClick()
         compose.awaitThat("the read-only Extra equipment page is composed", vm.uiState::value) {
-            compose.onAllNodesWithTag(HomeStartTags.EXTRA_PAGE).fetchSemanticsNodes().isNotEmpty() &&
+            compose.onAllNodesWithTag(StartTags.EXTRA_PAGE).fetchSemanticsNodes().isNotEmpty() &&
                 compose.onAllNodesWithTag(ExtraEquipmentTags.PAGE).fetchSemanticsNodes().isNotEmpty()
         }
         reachable(compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.MIXED))).assertIsEnabled()
@@ -892,7 +896,7 @@ class HomeReadRecoveryRenderTest {
                 PersonalTrainerTheme(reduceMotion = reducedMotion) {
                     Surface(modifier = Modifier.fillMaxSize(), color = Pit) {
                         Box(Modifier.fillMaxSize()) {
-                            HomeScreen(onResumeWorkout = { openedSession = it }, onOpenPlan = {}, viewModel = vm)
+                            HomeWithStartChooser(vm = vm, deps = deps, onResumeWorkout = { openedSession = it })
                         }
                     }
                 }

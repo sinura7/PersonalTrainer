@@ -1,4 +1,4 @@
-package com.sinura.personaltrainer.ui.workout
+package com.sinura.personaltrainer.ui.start
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
@@ -59,6 +59,10 @@ data class StartOptionsUiState(
     val error: String? = null,
     /** Today's plan, when Body / History / Plan open this sheet. Null on rest or empty. */
     val todayStart: TodaySheetStart? = null,
+    /** True when this week has any plan; with no [todayStart] that makes today a rest day (D3). */
+    val hasPlan: Boolean = false,
+    /** The next planned day after today, shown under the rest-day line. */
+    val nextPlanned: StartNextPlanned? = null,
 )
 
 /**
@@ -144,6 +148,13 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 },
                 routines,
             ),
+            hasPlan = planner.first.weekPlan != null || planner.second.isNotEmpty() || planner.third.isNotEmpty(),
+            nextPlanned = StartGroups.nextPlanned(
+                today,
+                planner.second,
+                planner.third,
+                routines.associate { it.id to it.name },
+            ),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -182,7 +193,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
     /**
      * Nothing may be left pointing somewhere once the sheet is gone.
      *
-     * This view model is scoped to the Activity, not to the sheet — [StartOptionsSheet] takes it
+     * This view model is scoped to the Activity, not to the sheet — [com.sinura.personaltrainer.ui.start.StartChooser] takes it
      * with `viewModel()` from a composable hosted outside the NavHost — so a value left in one of
      * these three flows outlives the close and fires on the NEXT open, before the user has chosen
      * anything. That is how a dead "Mixed session" tap became a jump to the composer the next time

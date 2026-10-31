@@ -233,4 +233,46 @@
         <item quantity="one">%1$d second</item>
         <item quantity="other">%1$d seconds</item>
     </plurals>
+    <!-- v4 V2: the one Start chooser (blueprint 3.1) -->
+    <string name="start_title">Start</string>
+    <string name="start_group_today">Today</string>
+    <string name="start_group_routine">Routine</string>
+    <string name="start_group_empty">Empty</string>
+    <string name="start_group_other">Other</string>
+    <string name="start_today">Start %1$s</string>
+    <string name="start_resume">Resume %1$s</string>
+    <string name="start_free_workout">free workout</string>
+    <string name="start_resume_activity">Resume activity</string>
+    <plurals name="start_resume_sub">
+        <item quantity="one">%1$d set logged</item>
+        <item quantity="other">%1$d sets logged</item>
+    </plurals>
+    <string name="start_rest_day">Rest day. Nothing planned.</string>
+    <string name="start_next_hint">Next: %1$s, %2$s</string>
+    <string name="start_no_plan">No plan this week</string>
+    <string name="start_plan_week">Plan week</string>
+    <plurals name="start_routine_sub">
+        <item quantity="one">%1$d lift</item>
+        <item quantity="other">%1$d lifts</item>
+    </plurals>
+    <string name="start_all_routines">All routines</string>
+    <string name="start_no_routines">No routines yet</string>
+    <string name="start_make_routine">Make one</string>
+    <string name="start_empty">Empty workout</string>
+    <string name="start_other">Cardio or log past</string>
+    <string name="start_blocked">Finish or discard the live workout first</string>
+    <string name="start_go_to_live">Go to the live workout</string>
+    <string name="start_discard_workout">Discard workout</string>
+    <string name="start_discard_activity">Discard activity</string>
+    <string name="start_other_back">Back</string>
+    <string name="start_log_kicker">Log</string>
+    <string name="start_log_past">Past workout</string>
+    <string name="start_log_past_sub">Backdated strength. Nothing is written until you save.</string>
+    <string name="start_log_mixed">Mixed session</string>
+    <string name="start_log_cardio">Cardio</string>
+    <string name="start_log_cardio_sub">Typed time and distance.</string>
+    <string name="start_live_cardio_kicker">Live cardio</string>
+    <string name="start_live_cardio">Start cardio</string>
+    <string name="start_live_cardio_sub">Live clock. Survives leaving the app.</string>
+    <string name="start_retry">Retry</string>
 </resources>

@@ -58,7 +58,7 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
-import com.sinura.personaltrainer.ui.workout.StartSheetOpener
+import com.sinura.personaltrainer.ui.start.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.theme.Metrics

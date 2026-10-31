@@ -1,6 +1,13 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.ui.start.StartOptionsViewModel
 import android.app.Application
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import com.sinura.personaltrainer.ui.home.HomeViewModel
+import com.sinura.personaltrainer.ui.start.startGateFor
+import com.sinura.personaltrainer.ui.start.StartTags
+import com.sinura.personaltrainer.ui.start.StartChooserHost
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +64,8 @@ class StartOptionsSheetMixedRowTest {
 
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<StartOptionsViewModel>()
+    private val gates = mutableListOf<HomeViewModel>()
+    private val gate: HomeViewModel by lazy { newGate() }
 
     @Before
     fun setUp() {
@@ -66,7 +75,7 @@ class StartOptionsSheetMixedRowTest {
 
     @After
     fun tearDown() {
-        runBlocking { viewModels.forEach { it.clearAndJoinForTest() } }
+        runBlocking { viewModels.forEach { it.clearAndJoinForTest() }; gates.forEach { it.clearAndJoinForTest() } }
         viewModels.clear()
         deps.close()
         Dispatchers.resetMain()
@@ -85,16 +94,19 @@ class StartOptionsSheetMixedRowTest {
         compose.setContent {
             PersonalTrainerTheme {
                 if (visible) {
-                    StartOptionsSheet(
+                    StartChooserHost(
+                        gate = gate,
+                        deps = deps,
                         onDismiss = { visible = false },
                         onWorkoutStarted = {},
                         onLogMixed = { mixedOpened += 1 },
-                        viewModel = newViewModel(),
+                        options = newViewModel(),
                     )
                 }
             }
         }
 
+        openOther()
         compose.onNodeWithText("Mixed session").performScrollTo().performClick()
         compose.waitForIdle()
 
@@ -116,18 +128,21 @@ class StartOptionsSheetMixedRowTest {
         compose.setContent {
             PersonalTrainerTheme {
                 if (visible) {
-                    StartOptionsSheet(
+                    StartChooserHost(
+                        gate = gate,
+                        deps = deps,
                         onDismiss = { visible = false },
                         onWorkoutStarted = {},
                         onLogMixed = { mixedOpened += 1 },
                         // The same instance both times: on the phone this view model is scoped
                         // to the Activity, which is the whole reason a stale value survived.
-                        viewModel = shared,
+                        options = shared,
                     )
                 }
             }
         }
 
+        openOther()
         compose.onNodeWithText("Mixed session").performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(1, mixedOpened)
@@ -141,7 +156,7 @@ class StartOptionsSheetMixedRowTest {
         assertEquals(
             "the sheet the user asked for is the one they get",
             1,
-            compose.onAllNodesWithText("Mixed session").fetchSemanticsNodes().size,
+            compose.onAllNodesWithTag(StartTags.SHEET).fetchSemanticsNodes().size,
         )
     }
 
@@ -154,13 +169,15 @@ class StartOptionsSheetMixedRowTest {
         compose.setContent {
             PersonalTrainerTheme {
                 if (visible) {
-                    StartOptionsSheet(
+                    StartChooserHost(
+                        gate = gate,
+                        deps = deps,
                         onDismiss = { visible = false },
                         onWorkoutStarted = {},
                         onLogPast = { past += 1 },
                         onLogCardio = { cardio += 1 },
                         onLogMixed = { mixed += 1 },
-                        viewModel = newViewModel(),
+                        options = newViewModel(),
                     )
                 }
             }
@@ -173,6 +190,7 @@ class StartOptionsSheetMixedRowTest {
 
         visible = true
         compose.waitForIdle()
+        openOther()
         compose.onNodeWithText("Past workout").performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(1, past)
@@ -180,6 +198,7 @@ class StartOptionsSheetMixedRowTest {
 
         visible = true
         compose.waitForIdle()
+        openOther()
         compose.onNodeWithText("Cardio").performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(1, cardio)
@@ -187,6 +206,7 @@ class StartOptionsSheetMixedRowTest {
 
         visible = true
         compose.waitForIdle()
+        openOther()
         compose.onNodeWithText("Mixed session").performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(1, mixed)
@@ -198,10 +218,12 @@ class StartOptionsSheetMixedRowTest {
         var model by mutableStateOf(newViewModel())
         compose.setContent {
             PersonalTrainerTheme {
-                StartOptionsSheet(
+                StartChooserHost(
+                        gate = gate,
+                        deps = deps,
                     onDismiss = {},
                     onWorkoutStarted = {},
-                    viewModel = model,
+                    options = model,
                 )
             }
         }
@@ -218,16 +240,26 @@ class StartOptionsSheetMixedRowTest {
         runBlocking { repeat(47) { index -> deps.routineRepository.create("Routine ${index + 4}") } }
         model = newViewModel()
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Routine 50").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag(StartTags.START_ALL_ROUTINES).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithText("Routine 50").performScrollTo().assertIsDisplayed()
+        // Blueprint 3.1: past the row limit the 50th routine is reached through All routines.
+        compose.onNodeWithTag(StartTags.START_ALL_ROUTINES).performScrollTo().assertIsDisplayed()
         assertLogEntries()
     }
 
+    private fun openOther() {
+        compose.waitForIdle()
+        compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
     private fun assertLogEntries() {
+        openOther()
         listOf("Past workout", "Mixed session", "Cardio", "Start cardio").forEach { label ->
             compose.onNodeWithText(label).performScrollTo().assertIsDisplayed()
         }
+        compose.onNodeWithTag(StartTags.OTHER_BACK).performScrollTo().performClick()
+        compose.waitForIdle()
     }
 
     private fun assertNothingWritten() {
@@ -237,6 +269,8 @@ class StartOptionsSheetMixedRowTest {
             assertNull(deps.cardioTimerPersistence.load())
         }
     }
+
+    private fun newGate(): HomeViewModel = startGateFor(deps).also { gates.add(it) }
 
     private fun newViewModel(): StartOptionsViewModel =
         StartOptionsViewModel(

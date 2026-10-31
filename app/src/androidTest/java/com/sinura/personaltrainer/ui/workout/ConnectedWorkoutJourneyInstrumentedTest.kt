@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.ui.start.StartTags
 import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
 import android.content.Intent
 import android.accessibilityservice.AccessibilityService
@@ -164,10 +165,10 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         awaitScrollableContent()
         assertNoBlockingDialogs()
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed().performClick()
-        compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
-        compose.onNodeWithTag(HomeStartTags.routine(fixture.routineId)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        compose.onNodeWithTag(StartTags.routine(fixture.routineId)).performScrollTo().assertIsDisplayed()
         captureWindow("home-routine")
-        compose.onNodeWithTag(HomeStartTags.routine(fixture.routineId)).performClick()
+        compose.onNodeWithTag(StartTags.routine(fixture.routineId)).performClick()
         awaitCondition("the routine pick opens the preview") {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -457,8 +458,8 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         awaitTag("navigation-home")
         awaitScrollableContent()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
-        compose.onNodeWithTag(HomeStartTags.routine(fixture.routineId)).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        compose.onNodeWithTag(StartTags.routine(fixture.routineId)).performScrollTo().performClick()
         awaitCondition("the routine pick opens the preview") {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
         }

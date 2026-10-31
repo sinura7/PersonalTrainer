@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
 import kotlinx.coroutines.flow.first
+import com.sinura.personaltrainer.ui.start.StartGate
 import com.sinura.personaltrainer.ui.workout.PreviewWeights
 import com.sinura.personaltrainer.ui.workout.ProgressionHintLoader
 import android.app.Application
@@ -140,7 +141,7 @@ data class SkippedDayOffer(
 class HomeViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
-) : AppViewModel(application, container) {
+) : AppViewModel(application, container), StartGate {
     internal val missedWork = com.sinura.personaltrainer.ui.plan.MissedWorkForm(
         (container as? com.sinura.personaltrainer.AppContainer)?.missedWorkDrafts, viewModelScope,
     )
@@ -156,7 +157,7 @@ class HomeViewModel @JvmOverloads constructor(
      * read on its own: a failed read drops only that lift, which then reads "First time" and
      * falls back to its planned target, and Begin is never blocked.
      */
-    suspend fun previewWeights(routine: Routine): PreviewWeights {
+    override suspend fun previewWeights(routine: Routine): PreviewWeights {
         val settings = try {
             ProgressionHintLoader(container = container, sessionId = "").settings().first()
         } catch (thrown: CancellationException) {
@@ -196,7 +197,7 @@ class HomeViewModel @JvmOverloads constructor(
     }
     private val bodyweightSave = MutableStateFlow(BodyweightSave())
     private val _startState = MutableStateFlow(HomeStartState())
-    val startState: StateFlow<HomeStartState> = _startState.asStateFlow()
+    override val startState: StateFlow<HomeStartState> = _startState.asStateFlow()
     private var startAttemptSerial = 0L
     private var startCommand: StartCommand? = null
     private var blockedStartCommand: StartCommand? = null
@@ -428,9 +429,9 @@ class HomeViewModel @JvmOverloads constructor(
      * re-read by the new composition.
      */
     private val _navigateToSession = MutableStateFlow<String?>(null)
-    val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
+    override val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
 
-    fun onSessionNavigationHandled() {
+    override fun onSessionNavigationHandled() {
         _navigateToSession.value = null
         releaseStartAfterNavigation()
     }
@@ -442,21 +443,21 @@ class HomeViewModel @JvmOverloads constructor(
      * progress is how tapping Thursday's Pull used to land you in Tuesday's Legs.
      */
     private val _blockedByInProgress = MutableStateFlow<BlockedStart?>(null)
-    val blockedByInProgress: StateFlow<BlockedStart?> = _blockedByInProgress.asStateFlow()
+    override val blockedByInProgress: StateFlow<BlockedStart?> = _blockedByInProgress.asStateFlow()
 
     private val _navigateToCardio = MutableStateFlow<String?>(null)
-    val navigateToCardio: StateFlow<String?> = _navigateToCardio.asStateFlow()
+    override val navigateToCardio: StateFlow<String?> = _navigateToCardio.asStateFlow()
     private val _navigateToComposer = MutableStateFlow<String?>(null)
-    val navigateToComposer: StateFlow<String?> = _navigateToComposer.asStateFlow()
+    override val navigateToComposer: StateFlow<String?> = _navigateToComposer.asStateFlow()
     private val _navigateToEditor = MutableStateFlow<String?>(null)
     val navigateToEditor: StateFlow<String?> = _navigateToEditor.asStateFlow()
 
-    fun onCardioNavigationHandled() {
+    override fun onCardioNavigationHandled() {
         _navigateToCardio.value = null
         releaseStartAfterNavigation()
     }
 
-    fun onComposerNavigationHandled() {
+    override fun onComposerNavigationHandled() {
         _navigateToComposer.value = null
         releaseStartAfterNavigation()
     }
@@ -512,15 +513,15 @@ class HomeViewModel @JvmOverloads constructor(
     }
 
     /** Presentation may lag behind this owner; these queries also protect queued callbacks. */
-    fun canDismissStart(): Boolean = !_startState.value.pending && !hasQueuedStartNavigation()
+    override fun canDismissStart(): Boolean = !_startState.value.pending && !hasQueuedStartNavigation()
 
-    fun canEditStartChoice(): Boolean = canDismissStart() && _blockedByInProgress.value == null
+    override fun canEditStartChoice(): Boolean = canDismissStart() && _blockedByInProgress.value == null
 
     fun canResumeBlockedStart(): Boolean =
         canDismissStart() && !_startState.value.discardedOriginal && _blockedByInProgress.value != null
 
     /** An explicit leave abandons this attempt, never a write still in progress. */
-    fun dismissStart(expectedAttemptId: Long? = null): Boolean {
+    override fun dismissStart(expectedAttemptId: Long?): Boolean {
         if (!matchesStartAttempt(expectedAttemptId = expectedAttemptId) || !canDismissStart()) return false
         _blockedByInProgress.value = null
         clearStartAttempt()
@@ -528,7 +529,7 @@ class HomeViewModel @JvmOverloads constructor(
     }
 
     /** Retry owns the same command and any already acknowledged relocation or discard. */
-    fun retryStart(expectedAttemptId: Long? = null): Boolean {
+    override fun retryStart(expectedAttemptId: Long?): Boolean {
         if (!matchesStartAttempt(expectedAttemptId = expectedAttemptId)) return false
         val command = startCommand ?: return false
         if (!_startState.value.canRetry || _startState.value.error == null) return false
@@ -674,7 +675,7 @@ class HomeViewModel @JvmOverloads constructor(
         executeStart(command = command.requested)
     }
 
-    fun startSuggestedDay(day: SuggestedTrainingDay): Boolean {
+    override fun startSuggestedDay(day: SuggestedTrainingDay): Boolean {
         // A confirmation owns the day it showed, even when selection or the plan changes.
         // Consult the completed board directly: the presentation flow may still be behind it.
         if (!canMutate() || board.value.weekPlan?.dayOn(day.epochDay) != day) return false
@@ -686,11 +687,11 @@ class HomeViewModel @JvmOverloads constructor(
      * pending occurrence is cleared — finishing this must not mark a Plan
      * row DONE.
      */
-    fun startFreeWorkout(): Boolean {
+    override fun startFreeWorkout(): Boolean {
         return admitStart(command = StartCommand.Free)
     }
 
-    fun startRoutine(routineId: String): Boolean {
+    override fun startRoutine(routineId: String): Boolean {
         return admitStart(command = StartCommand.Routine(routineId = routineId))
     }
 
@@ -715,7 +716,7 @@ class HomeViewModel @JvmOverloads constructor(
         )
     }
 
-    fun startCardio(type: CardioType): Boolean {
+    override fun startCardio(type: CardioType): Boolean {
         return admitStart(command = StartCommand.Cardio(type = type))
     }
 
@@ -736,7 +737,7 @@ class HomeViewModel @JvmOverloads constructor(
         }
     }
 
-    fun startAux(packId: String): Boolean {
+    override fun startAux(packId: String): Boolean {
         return admitStart(command = StartCommand.Aux(packId = packId))
     }
 
@@ -819,7 +820,7 @@ class HomeViewModel @JvmOverloads constructor(
      * (audit UI-1). A refused or failed start leaves the reminder as it was, except for a
      * leftover from an earlier day: moving it to today already cancels its reminders.
      */
-    fun startOccurrence(occurrenceId: String, deliveryId: String? = null): Boolean {
+    override fun startOccurrence(occurrenceId: String, deliveryId: String?): Boolean {
         return admitStart(command = StartCommand.Occurrence(occurrenceId = occurrenceId, deliveryId = deliveryId))
     }
 
@@ -994,7 +995,7 @@ class HomeViewModel @JvmOverloads constructor(
         )
     }
 
-    fun resumeBlocked(expectedBlocked: BlockedStart? = null, expectedAttemptId: Long? = null) {
+    override fun resumeBlocked(expectedBlocked: BlockedStart?, expectedAttemptId: Long?) {
         if (!matchesBlockedStart(expectedBlocked = expectedBlocked, expectedAttemptId = expectedAttemptId) ||
             !canResumeBlockedStart()
         ) return
@@ -1004,7 +1005,7 @@ class HomeViewModel @JvmOverloads constructor(
         _navigateToSession.value = blocked.sessionId
     }
 
-    fun discardBlockedAndStart(expectedBlocked: BlockedStart? = null, expectedAttemptId: Long? = null): Boolean {
+    override fun discardBlockedAndStart(expectedBlocked: BlockedStart?, expectedAttemptId: Long?): Boolean {
         if (!matchesBlockedStart(expectedBlocked = expectedBlocked, expectedAttemptId = expectedAttemptId)) return false
         val blocked = _blockedByInProgress.value ?: return false
         if (startCommand is StartCommand.Discard) return retryStart(expectedAttemptId = expectedAttemptId)
@@ -1018,7 +1019,7 @@ class HomeViewModel @JvmOverloads constructor(
         )
     }
 
-    fun dismissBlockedStart(expectedBlocked: BlockedStart? = null, expectedAttemptId: Long? = null) {
+    override fun dismissBlockedStart(expectedBlocked: BlockedStart?, expectedAttemptId: Long?) {
         if (!matchesBlockedStart(expectedBlocked = expectedBlocked, expectedAttemptId = expectedAttemptId)) return
         dismissStart(expectedAttemptId = expectedAttemptId)
     }

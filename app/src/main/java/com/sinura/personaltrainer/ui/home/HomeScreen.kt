@@ -91,6 +91,8 @@ fun HomeScreen(
     onOpenActivity: (String) -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
+    /** Opens the shared [com.sinura.personaltrainer.ui.start.StartChooser], the one Start path. */
+    onOpenStartSheet: () -> Unit = {},
     pendingOccurrenceStartId: String? = null,
     /** The delivery behind a reminder's Start, marked used only once the start opens. */
     pendingOccurrenceDeliveryId: String? = null,
@@ -169,10 +171,6 @@ fun HomeScreen(
     }
     val weekStripState = rememberWeekStripState()
     var lastToday by rememberSaveable { mutableLongStateOf(today) }
-    var startSheet by rememberSaveable { mutableStateOf(false) }
-    var startSheetRequestId by rememberSaveable { mutableStateOf("") }
-    // R5: a routine picked in the start sheet opens the preview first; Begin is the start.
-    var sheetPreviewRoutineId by rememberSaveable { mutableStateOf<String?>(null) }
     // Modal ownership must outlive a LazyColumn item leaving composition. Inserting the
     // recovery banner or scrolling the underlying board must never dismiss a pending start.
     var plannedStartPending by rememberSaveable(stateSaver = HomePlannedStartSaver) {
@@ -184,8 +182,6 @@ fun HomeScreen(
     // Admission keeps the authored surface. Only an actual open/conflict outcome releases it.
     LaunchedEffect(startedSessionId) {
         val id = startedSessionId ?: return@LaunchedEffect
-        startSheet = false
-        sheetPreviewRoutineId = null
         plannedStartPending = null
         fallbackStartPending = null
         onResumeWorkout(id)
@@ -193,8 +189,6 @@ fun HomeScreen(
     }
     LaunchedEffect(cardioId) {
         val id = cardioId ?: return@LaunchedEffect
-        startSheet = false
-        sheetPreviewRoutineId = null
         plannedStartPending = null
         fallbackStartPending = null
         onOpenLiveCardio(id)
@@ -202,8 +196,6 @@ fun HomeScreen(
     }
     LaunchedEffect(composerMode) {
         val mode = composerMode ?: return@LaunchedEffect
-        startSheet = false
-        sheetPreviewRoutineId = null
         plannedStartPending = null
         fallbackStartPending = null
         onLogActivity(mode)
@@ -211,8 +203,6 @@ fun HomeScreen(
     }
     LaunchedEffect(blocked) {
         if (blocked != null) {
-            startSheet = false
-            sheetPreviewRoutineId = null
             plannedStartPending = null
             fallbackStartPending = null
         }
@@ -431,7 +421,7 @@ fun HomeScreen(
             state.loggedEpochDays,
         )
     }
-    if (dayPicker && !startSheet && plannedStartPending == null && fallbackStartPending == null &&
+    if (dayPicker && plannedStartPending == null && fallbackStartPending == null &&
         blockedOwner == null && !weighingIn && !starting.pending && !resetDayConfirm
     ) {
         HomeDayPicker(
@@ -517,7 +507,6 @@ fun HomeScreen(
         } else if (confirmCatalog.any { it.occurrence.id == id && DailyAgenda.canOpenStart(it, today) } &&
             viewModel.canEditStartChoice() && viewModel.dismissStart()
         ) {
-            startSheet = false
             fallbackStartPending = null
             plannedStartPending = HomePlannedStart(requestId = UUID.randomUUID().toString(), occurrenceId = id)
             viewModel.onReviewOccurrenceHandled()
@@ -646,115 +635,11 @@ fun HomeScreen(
         )
     }
 
-    val sheetPreviewRoutine = sheetPreviewRoutineId?.let { id -> state.routines.firstOrNull { it.id == id } }
-    if (startSheet && sheetPreviewRoutine != null) {
-        HomeStartPrompt(
-            routine = sheetPreviewRoutine,
-            unit = unit,
-            loadWeights = viewModel::previewWeights,
-            onEditRoutine = onOpenRoutine,
-            pending = starting.pending,
-            labelOverridden = starting.pending || starting.error != null,
-            title = sheetPreviewRoutine.name,
-            body = "",
-            confirmLabel = when {
-                starting.pending -> stringResource(R.string.home_preview_starting)
-                starting.error != null -> stringResource(R.string.home_preview_unavailable)
-                else -> stringResource(R.string.home_preview_begin)
-            },
-            onConfirm = {
-                if (sheetPreviewRoutineId == sheetPreviewRoutine.id &&
-                    viewModel.startState.value.attemptId == renderedStartAttemptId
-                ) viewModel.startRoutine(sheetPreviewRoutine.id)
-            },
-            onDismiss = { sheetPreviewRoutineId = null },
-            confirmEnabled = !starting.pending && starting.error == null,
-            dismissEnabled = !starting.pending,
-            canDismiss = { !viewModel.startState.value.pending },
-            canConfirm = { viewModel.startState.value.attemptId == renderedStartAttemptId },
-            // The sheet underneath already shows the pending and error lines.
-            contextContent = {},
-            actionKey = renderedStartAttemptId,
-        )
-    }
-    if (startSheet) {
-        val sheetOwner = startSheetRequestId
-        HomeStartSheet(
-            routines = state.routines,
-            onDismiss = {
-                if (startSheet && startSheetRequestId == sheetOwner &&
-                    viewModel.blockedByInProgress.value == null &&
-                    viewModel.dismissStart(expectedAttemptId = renderedStartAttemptId)
-                ) {
-                    startSheet = false
-                    sheetPreviewRoutineId = null
-                }
-            },
-            onStartFree = {
-                if (startSheet && startSheetRequestId == sheetOwner &&
-                    viewModel.startState.value.attemptId == renderedStartAttemptId
-                ) viewModel.startFreeWorkout()
-            },
-            onStartRoutine = { routineId ->
-                if (startSheet && startSheetRequestId == sheetOwner &&
-                    viewModel.startState.value.attemptId == renderedStartAttemptId &&
-                    // A stale tap after a failed read opens nothing, as the start would refuse.
-                    viewModel.uiState.value.mutationEnabled
-                ) sheetPreviewRoutineId = routineId
-            },
-            onStartCardio = { type ->
-                if (startSheet && startSheetRequestId == sheetOwner &&
-                    viewModel.startState.value.attemptId == renderedStartAttemptId
-                ) viewModel.startCardio(type)
-            },
-            onStartExtra = { packId ->
-                if (startSheet && startSheetRequestId == sheetOwner &&
-                    viewModel.startState.value.attemptId == renderedStartAttemptId
-                ) viewModel.startAux(packId)
-            },
-            suggestedKit = state.suggestedExtraEquipment,
-            mutationEnabled = state.mutationEnabled && starting.error == null,
-            navigationEnabled = !starting.pending,
-            canNavigate = {
-                startSheet && startSheetRequestId == sheetOwner &&
-                    viewModel.startState.value.attemptId == renderedStartAttemptId && viewModel.canEditStartChoice()
-            },
-            canDismiss = {
-                startSheet && startSheetRequestId == sheetOwner &&
-                    viewModel.startState.value.attemptId == renderedStartAttemptId &&
-                    viewModel.blockedByInProgress.value == null && viewModel.canDismissStart()
-            },
-            onChoiceChangeAccepted = {
-                if (startSheet && startSheetRequestId == sheetOwner &&
-                    viewModel.dismissStart(expectedAttemptId = renderedStartAttemptId)
-                ) {
-                    // Keep this sheet's page/equipment state, but retire every callback
-                    // from the old page before another one can fire in this frame.
-                    startSheetRequestId = UUID.randomUUID().toString()
-                    true
-                } else false
-            },
-            recoveryContent = {
-                HomeStartRecovery(
-                    startStatus = starting,
-                    retryEnabled = state.mutationEnabled && starting.canRetry,
-                    onRetry = {
-                        if (startSheet && startSheetRequestId == sheetOwner) {
-                            viewModel.retryStart(expectedAttemptId = renderedStartAttemptId)
-                        }
-                    },
-                )
-                recoveryContent?.invoke()
-            },
-        )
-    }
-
     val daySurface = HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen, offPlanLogged)
     val trainingToday = leftoverDay?.takeUnless { it.isRest } != null
     val openStartSheet = {
         if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
-            startSheetRequestId = UUID.randomUUID().toString()
-            startSheet = true
+            onOpenStartSheet()
         }
     }
     val todaySheetStart = if (selectedEpochDay == today && !sessionLive && state.readState == HomeReadState.CURRENT) {
@@ -770,19 +655,7 @@ fun HomeScreen(
             dayName = todayStartRoutine.name,
             liftCount = todayStartRoutine.exercises.size,
             firstTime = state.loggedEpochDays.isEmpty(),
-            onStart = {
-                if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
-                    val id = todaySheetStart.occurrenceId
-                    val day = todaySheetStart.leftover
-                    if (id != null) {
-                        fallbackStartPending = null
-                        plannedStartPending = HomePlannedStart(requestId = UUID.randomUUID().toString(), occurrenceId = id)
-                    } else if (day != null) {
-                        plannedStartPending = null
-                        fallbackStartPending = HomeFallbackStart(requestId = UUID.randomUUID().toString(), day = day)
-                    }
-                }
-            },
+            onStart = openStartSheet,
         )
     } else null
     val liveSessionId = state.inProgress?.id

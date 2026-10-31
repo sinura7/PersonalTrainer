@@ -1,5 +1,9 @@
 package com.sinura.personaltrainer.ui.home
 
+import androidx.compose.ui.test.onFirst
+import com.sinura.personaltrainer.ui.start.RecordingStartGate
+import com.sinura.personaltrainer.ui.start.StartChooser
+import com.sinura.personaltrainer.ui.start.StartTags
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -233,54 +237,37 @@ class HomePassInstrumentedTest {
 
     @Test
     fun startSheetOffersFreeRoutinesCardioAndExtra() {
+        val gate = RecordingStartGate()
         setConstrainedContent(fontScale = 1f) {
-            HomeStartSheet(
-                routines = listOf(PUSH_ROUTINE),
-                onDismiss = {},
-                onStartFree = {},
-                onStartRoutine = {},
-                onStartCardio = {},
-                onStartExtra = {},
-            )
+            StartChooser(onDismiss = {}, onWorkoutStarted = {}, gate = gate)
         }
-        compose.onNodeWithTag(HomeStartTags.SHEET).assertIsDisplayed()
-        compose.onNodeWithText(HomeStartCopy.FREE).assertIsDisplayed()
-        compose.onNodeWithText(HomeStartCopy.ROUTINE).assertIsDisplayed()
-        compose.onNodeWithText(HomeStartCopy.CARDIO).assertIsDisplayed()
-        compose.onNodeWithText(HomeStartCopy.EXTRA).assertIsDisplayed()
+        compose.onNodeWithTag(StartTags.SHEET).assertIsDisplayed()
+        compose.onNodeWithTag(StartTags.START_EMPTY).performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Routine", ignoreCase = true).onFirst().performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.LIVE_CARDIO).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(HomeStartCopy.EXTRA).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(PlanDayCopy.ADD).assertDoesNotExist()
     }
 
     @Test
     fun startSheetFreeStartsImmediately() {
-        var started = false
+        val gate = RecordingStartGate()
         setConstrainedContent(fontScale = 1f) {
-            HomeStartSheet(
-                routines = emptyList(),
-                onDismiss = {},
-                onStartFree = { started = true },
-                onStartRoutine = {},
-                onStartCardio = {},
-                onStartExtra = {},
-            )
+            StartChooser(onDismiss = {}, onWorkoutStarted = {}, gate = gate)
         }
-        compose.onNodeWithTag(HomeStartTags.FREE).performClick()
-        org.junit.Assert.assertTrue(started)
+        compose.onNodeWithTag(StartTags.START_EMPTY).performScrollTo().performClick()
+        org.junit.Assert.assertEquals(listOf("free"), gate.starts)
     }
 
     @Test
     fun startSheetExtraShowsPackPictures() {
+        val gate = RecordingStartGate()
         setConstrainedContent(fontScale = 1f) {
-            HomeStartSheet(
-                routines = emptyList(),
-                onDismiss = {},
-                onStartFree = {},
-                onStartRoutine = {},
-                onStartCardio = {},
-                onStartExtra = {},
-            )
+            StartChooser(onDismiss = {}, onWorkoutStarted = {}, gate = gate)
         }
-        compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.EXTRA).performScrollTo().performClick()
         compose.onNodeWithText(ExtraEquipment.PICK.uppercase()).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(ExtraEquipment.NONE.label).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(ExtraEquipment.MACHINES.label).performScrollTo().assertIsDisplayed()
@@ -288,7 +275,7 @@ class HomePassInstrumentedTest {
         compose.onNodeWithText("Golf warm-up").assertDoesNotExist()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.MIXED)).performClick()
         // Expand the native sheet before traversing the longer pack list.
-        compose.onNodeWithTag(HomeStartTags.SHEET).performTouchInput { swipeUp() }
+        compose.onNodeWithTag(StartTags.SHEET).performTouchInput { swipeUp() }
         compose.onNodeWithText("Golf warm-up").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Lower-body warm-up").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Shoulder warm-up").performScrollTo().assertIsDisplayed()
@@ -297,17 +284,12 @@ class HomePassInstrumentedTest {
 
     @Test
     fun startSheetExtraNoneHidesMachineCore() {
+        val gate = RecordingStartGate()
         setConstrainedContent(fontScale = 1f) {
-            HomeStartSheet(
-                routines = emptyList(),
-                onDismiss = {},
-                onStartFree = {},
-                onStartRoutine = {},
-                onStartCardio = {},
-                onStartExtra = {},
-            )
+            StartChooser(onDismiss = {}, onWorkoutStarted = {}, gate = gate)
         }
-        compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.EXTRA).performScrollTo().performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
         compose.onNodeWithText("Dead bugs, planks, an ab wheel. No machine.")
             .performScrollTo().assertIsDisplayed()

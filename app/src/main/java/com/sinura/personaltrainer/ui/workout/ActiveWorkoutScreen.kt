@@ -98,6 +98,8 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 /** Stable semantics for the critical device journey; copy remains free to improve. */
+private const val REST_BAR_KEY = "rest-bar"
+
 object WorkoutTestTags {
     fun weightPreset(source: WeightDraftSource) = "workout-weight-preset-${source.name.lowercase()}"
     /** A set's chip on the floor; the saved-sets sheet's rows keep [setOptions], so both can be open at once. */
@@ -379,9 +381,12 @@ private fun ActiveWorkoutContent(
     }
     // v4 V4: the rest bar sits under the header; when it appears, bring it on screen so the
     // running clock is never composed off the top of the list.
-    val restBarKey = if (restBarShown) rest.timerId.ifBlank { rest.completedTimerId } else null
-    LaunchedEffect(restBarKey) {
-        if (restBarKey != null && rest.running) listState.animateScrollToItem(LogLoopBringIntoView.restBarRevealIndex())
+    // Keyed on the owning lift and the rest's start, not its id: a +/-15 re-issues the id and must
+    // not jump the list. Scroll only when the bar is not already on screen.
+    LaunchedEffect(restImmersionLiftId, restBarShown && rest.running) {
+        if (!restBarShown || !rest.running) return@LaunchedEffect
+        val onScreen = listState.layoutInfo.visibleItemsInfo.any { it.key == REST_BAR_KEY }
+        if (!onScreen) listState.animateScrollToItem(LogLoopBringIntoView.restBarRevealIndex())
     }
 
     DisposableEffect(Unit) {
@@ -894,7 +899,7 @@ private fun ActiveWorkoutContent(
                                     )
                                 }
                                 if (restBarShown) {
-                                    item(key = "rest-bar") {
+                                    item(key = REST_BAR_KEY) {
                                         RestBar(
                                             remainingSeconds = rest.remainingSeconds,
                                             totalSeconds = rest.totalSeconds,

@@ -1,7 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 /**
- * Quiet chrome that opens [com.sinura.personaltrainer.ui.workout.StartOptionsSheet]
+ * Quiet chrome that opens [com.sinura.personaltrainer.ui.start.StartChooser]
  * from Body, History, and Plan. Never a filled Volt — Home owns Start.
  */
 object StartOptionsCopy {
