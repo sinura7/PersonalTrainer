@@ -135,6 +135,9 @@ class RoutineWorkflowInstrumentedTest {
         // Reopening does not redirect startup into the unfinished editor or submit it.
         assertEquals(fixture.original, read { container.routineRepository.getById(fixture.id) })
         compose.onNodeWithTag("navigation-routines").performClick()
+        awaitTag(PlanTags.ROUTINES_ENTRY)
+        compose.onNodeWithTag(PlanTags.ROUTINES_ENTRY).performClick()
+        awaitTag(RoutinesTags.CONTENT)
         scrollTo(PlanTags.routine(fixture.id))
         compose.onNodeWithTag(PlanTags.routine(fixture.id)).performClick()
         if (phase == "import") { importJourney(); return }
@@ -176,6 +179,9 @@ class RoutineWorkflowInstrumentedTest {
 
     private fun libraryJourney() {
         compose.onNodeWithTag("navigation-routines").performClick()
+        awaitTag(PlanTags.ROUTINES_ENTRY)
+        compose.onNodeWithTag(PlanTags.ROUTINES_ENTRY).performClick()
+        awaitTag(RoutinesTags.CONTENT)
         awaitTag(PlanTags.LIBRARY)
         compose.onNodeWithTag(PlanTags.LIBRARY).performClick()
         awaitTag(LibraryTags.SEARCH)

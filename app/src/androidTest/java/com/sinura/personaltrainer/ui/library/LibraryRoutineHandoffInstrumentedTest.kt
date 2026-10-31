@@ -88,6 +88,8 @@ class LibraryRoutineHandoffInstrumentedTest {
         val historyBefore = read { container.workoutRepository.observeHistory().first() }
         awaitTag("navigation-routines")
         tap("navigation-routines")
+        awaitTag(PlanTags.ROUTINES_ENTRY)
+        tap(PlanTags.ROUTINES_ENTRY)
         tap(PlanTags.LIBRARY)
         awaitTag(LibraryTags.SEARCH)
         searchField().performTextReplacement(exercise.name)

@@ -211,4 +211,19 @@
     <string name="cardio_paused_under_minute">Resume to reach one minute</string>
     <string name="cardio_leave_paused">Leave paused</string>
     <string name="live_bar_paused">Paused, %1$s</string>
+    <!-- v4 routines -->
+    <string name="routines_title">Routines</string>
+    <string name="routines_new">New routine</string>
+    <string name="routines_empty_title">No routines yet</string>
+    <string name="routines_empty_body">Make one, or start from the library.</string>
+    <string name="routines_library">Library</string>
+    <string name="routines_updated">Updated %1$s</string>
+    <string name="routines_edit_named">Edit %1$s</string>
+    <string name="routines_delete_named">Delete %1$s</string>
+    <string name="routines_options_named">Options for %1$s</string>
+    <string name="routines_edit">Edit routine</string>
+    <string name="routines_delete">Delete routine</string>
+    <string name="routines_delete_title">Delete %1$s?</string>
+    <string name="routines_delete_fallback">this routine</string>
+    <string name="routines_delete_confirm">Delete</string>
 </resources>

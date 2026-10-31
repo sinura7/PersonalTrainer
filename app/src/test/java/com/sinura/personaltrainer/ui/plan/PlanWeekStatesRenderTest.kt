@@ -35,7 +35,7 @@ class PlanWeekStatesRenderTest {
     @Test
     fun loadingKeepsTheHeaderAndDrawsSkeletonRows() {
         compose.setContent {
-            PersonalTrainerTheme { PlanWeekLoading(onOpenLibrary = {}, onOpenStartSheet = {}) }
+            PersonalTrainerTheme { PlanWeekLoading(onOpenRoutines = {}, onOpenStartSheet = {}) }
         }
         compose.onNodeWithTag(PlanWeekTags.LOADING).assertExists()
         compose.onNodeWithTag(PlanTags.TITLE, useUnmergedTree = true).assertExists()

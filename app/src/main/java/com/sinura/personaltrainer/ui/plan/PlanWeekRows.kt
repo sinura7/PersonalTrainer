@@ -90,42 +90,42 @@ internal fun PlanWeekDayRow(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = Metrics.touchMin)
-                .testTag(PlanTags.dayHeader(cell.epochDay))
-                .clickable(role = Role.Button, onClickLabel = openDay, onClick = onOpenDay)
-                .semantics {
-                    heading()
-                    contentDescription = spoken
-                }
-                .padding(vertical = Metrics.space2),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
-            Text(label, style = InstrumentType.bodyStrong, color = TextPrimary)
-            if (isToday) Text(text = todayWord, style = InstrumentType.caption, color = TextPrimary)
-            Text(
-                status,
-                style = InstrumentType.caption,
-                color = TextSecondary,
-                modifier = Modifier.weight(1f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.End,
-            )
-        }
-        if (onAddToDay != null) {
-            TextButton(
-                onClick = onAddToDay,
+            Row(
                 modifier = Modifier
+                    .weight(1f)
                     .heightIn(min = Metrics.touchMin)
-                    .widthIn(min = Metrics.touchMin)
-                    .testTag(PlanTags.dayAdd(cell.epochDay))
-                    .semantics { contentDescription = addSpoken },
+                    .testTag(PlanTags.dayHeader(cell.epochDay))
+                    .clickable(role = Role.Button, onClickLabel = openDay, onClick = onOpenDay)
+                    .semantics {
+                        heading()
+                        contentDescription = spoken
+                    }
+                    .padding(vertical = Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                Text(text = addLabel, style = InstrumentType.bodyStrong, color = TextSecondary)
+                Text(label, style = InstrumentType.bodyStrong, color = TextPrimary)
+                if (isToday) Text(text = todayWord, style = InstrumentType.caption, color = TextPrimary)
+                Text(
+                    status,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    modifier = Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                )
             }
-        }
+            if (onAddToDay != null) {
+                TextButton(
+                    onClick = onAddToDay,
+                    modifier = Modifier
+                        .heightIn(min = Metrics.touchMin)
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag(PlanTags.dayAdd(cell.epochDay))
+                        .semantics { contentDescription = addSpoken },
+                ) {
+                    Text(text = addLabel, style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+            }
         }
         items.forEach { item ->
             val routine = item.rule?.takeUnless {
