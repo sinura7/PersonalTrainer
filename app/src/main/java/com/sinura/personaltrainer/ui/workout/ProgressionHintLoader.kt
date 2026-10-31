@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.map
 
 /**
  * A lift's progression hint and its last session, read the same way by the Log's prefill
- * ([ActiveWorkoutViewModel]) and the rest page ([RestTimerViewModel]), so the two coach calls
+ * ([ActiveWorkoutViewModel]) and its next-set coach call, so the two coach calls
  * start from the same history ([NextSetInputs]).
  *
  * The hint is read under [HintSettings], which both screens watch through [settings] and pass

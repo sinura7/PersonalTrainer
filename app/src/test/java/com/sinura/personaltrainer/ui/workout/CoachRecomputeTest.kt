@@ -34,10 +34,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,7 +60,6 @@ class CoachRecomputeTest {
     /** Today's UTC noon, so a second of clock never crosses midnight into another trace day. */
     private val clock = SteppingTime(System.currentTimeMillis() / DAY_MS * DAY_MS + DAY_MS / 2)
     private lateinit var deps: FakeAppDependencies
-    private val pages = mutableListOf<RestTimerViewModel>()
     private val logs = mutableListOf<ActiveWorkoutViewModel>()
 
     @Before
@@ -80,7 +76,6 @@ class CoachRecomputeTest {
     @After
     fun tearDown() {
         runBlocking {
-            pages.forEach { it.clearAndJoinForTest() }
             logs.forEach { it.clearAndJoinForTest() }
         }
         if (::deps.isInitialized) deps.restTimerController.stop()
@@ -122,37 +117,6 @@ class CoachRecomputeTest {
             "clearing the RPE brings the Log's card back",
             holdLine,
             log.shownNextLine(log.awaitState { it.draft.rpe == null && !it.entryLocked }),
-        )
-    }
-
-    @Test
-    fun whileARestRunsTheRestPageFollowsTheLogsEntryWithoutASessionChange() = runBlocking {
-        // Decision 1 of W2c: the page keeps its per-second look at what the Log left in the draft
-        // cache. Another set is written to that cache and to nothing else (no row, no setting),
-        // so a page that asked its coach again only on a session or settings change would keep
-        // showing no Next line here until the next set was logged.
-        val fixture = seedWorkout(targetSets = 1)
-        val log = createLog(fixture.session.id)
-        log.logTheFirstSet(rpe = 7)
-        log.startSelectedRest()
-        awaitRestRunning()
-        val page = createPage(fixture.session.id)
-        val before = page.awaitPage("the page with the lift done and no Next line") {
-            it.loadState == SessionLoadState.FOUND && it.rest.running &&
-                it.floor.lastSetLine != null && it.floor.sessionTargetLine == null
-        }
-
-        log.requestExtraSet()
-        log.awaitCall("the Log's call for the extra set") { it?.reasonCode == SetMicroRecCalculator.IN_TANK }
-        val logLine = log.shownNextLine(log.awaitState { !it.entryLocked })
-        assertEquals("the Log shows the extra set's call", "Next: 102.5 kg × 4 · RPE 7", logLine)
-
-        page.adjustRest(15)
-        val after = page.awaitPage("the page after a +15") { it.rest.totalSeconds == before.rest.totalSeconds + 15 }
-        assertEquals(
-            "a tick after Another set shows the Log's new Next line on the rest page",
-            logLine,
-            after.floor.sessionTargetLine,
         )
     }
 
@@ -198,53 +162,11 @@ class CoachRecomputeTest {
         assertEquals("the new call is stamped with the clock at the ask", clock.nowMillis(), asked.trace.generatedAtMs)
     }
 
-    @Test
-    fun aPlusFifteenAndASecondOfClockDoNotAskTheRestPagesCoachAgain() = runBlocking {
-        val fixture = seedWorkout(targetSets = 3, restSeconds = 90)
-        val page = createPage(fixture.session.id)
-        page.awaitPage("the page with its coach's planned length") {
-            it.loadState == SessionLoadState.FOUND && it.rest.totalSeconds == 150
-        }
-        dispatcher.scheduler.advanceUntilIdle()
-        page.startSelectedRest()
-        awaitRestRunning()
-        val before = page.awaitPage("the page with its rest running") { it.rest.running }
-        assertNotNull("the page's coach has a call to show", before.floor.sessionTargetLine)
-
-        clock.advance(1_000)
-        page.adjustRest(15)
-        val after = page.awaitPage("the page after a +15") { it.rest.totalSeconds == before.rest.totalSeconds + 15 }
-
-        assertNotEquals("the page redrew the rest", before.rest, after.rest)
-        assertSame(
-            "a +15 a second later, with nothing the coach reads changed, asked the page's coach again",
-            before.floor,
-            after.floor,
-        )
-        assertEquals(
-            "a +15 does not change the coach's prescribed rest caption",
-            before.floor.prescribedRestLine,
-            after.floor.prescribedRestLine,
-        )
-
-        // A change the coach reads still reaches the page: the unit is one of its inputs.
-        deps.preferencesRepository.setWeightUnit(WeightUnit.LBS)
-        val pounds = page.awaitPage("the page in pounds") { it.floor.sessionTargetLine?.contains("lb") == true }
-        assertTrue("the rest keeps running through a setting change", pounds.rest.running)
-    }
-
     // --- Helpers --------------------------------------------------------------------------------
 
     /** The call less its trace's clock, the only part of it a second of clock can move. */
     private fun SetMicroRec.content(): SetMicroRec =
         copy(trace = trace.copy(generatedAtMs = 0L, evidenceStartEpochDay = 0L, evidenceEndEpochDay = 0L))
-
-    private fun createPage(sessionId: String): RestTimerViewModel =
-        RestTimerViewModel(
-            application = ApplicationProvider.getApplicationContext(),
-            savedStateHandle = SavedStateHandle(mapOf("sessionId" to sessionId)),
-            container = deps,
-        ).also(pages::add)
 
     private fun createLog(sessionId: String): ActiveWorkoutViewModel =
         ActiveWorkoutViewModel(
@@ -286,18 +208,11 @@ class CoachRecomputeTest {
         return if (shown) SetMicroRecCopy.line(call, loadClass, WeightUnit.KG) else null
     }
 
-    /** The rest page's state once it is the one [what] names, waited for with a ceiling. */
-    private suspend fun RestTimerViewModel.awaitPage(
-        what: String,
-        predicate: (RestTimerScreenState) -> Boolean,
-    ): RestTimerScreenState = withTimeoutOrNull(TestWaits.FLOW_MS) { uiState.first(predicate) }
-        ?: throw AssertionError("Never saw $what; the page showed ${uiState.value}")
-
     private suspend fun awaitRestRunning() {
         try {
             withTimeout(TestWaits.FLOW_MS) {
                 while (!deps.restTimerStore.current().running) {
-                    // As RestTimerViewModelTest: the rest after a logged set waits on the virtual
+                    // The rest after a logged set waits on the virtual
                     // clock, scheduled only when Room's write returns on a real thread.
                     dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
                     dispatcher.scheduler.runCurrent()

@@ -122,22 +122,6 @@ class WorkoutReadRecoveryTest {
     }
 
     @Test
-    fun idleRestLoadsItsPrescribedDurationAfterRetry() = runBlocking {
-        val fixture = seedTestWorkout(deps, restSeconds = 150)
-        failReads.value = true
-        val vm = RestTimerViewModel(
-            application = ApplicationProvider.getApplicationContext(),
-            savedStateHandle = SavedStateHandle(mapOf("sessionId" to fixture.session.id)),
-            container = deps,
-        ).also(models::add)
-        vm.uiState.awaitFirst { it.loadState == SessionLoadState.FAILED }
-        failReads.value = false
-        vm.retrySession()
-        val recovered = vm.uiState.awaitFirst { it.loadState == SessionLoadState.FOUND && it.rest.totalSeconds == 150 }
-        assertFalse(recovered.rest.running)
-    }
-
-    @Test
     fun staleFinishDiscardAndPickerCallbacksCannotMutateAfterAReadFailure() = runBlocking {
         val fixture = seedTestWorkout(deps)
         val vm = active(fixture.session.id)
@@ -153,23 +137,6 @@ class WorkoutReadRecoveryTest {
         assertFalse(saved.isFinished)
         assertEquals(1, saved.exercises.size)
         assertTrue(saved.sets.isEmpty())
-    }
-
-    @Test
-    fun restReadFailureOffersRecoveryWithoutStoppingTheSharedTimer() = runBlocking {
-        val fixture = seedTestWorkout(deps)
-        deps.restTimerController.start(90, fixture.session.id)
-        failReads.value = true
-        val vm = RestTimerViewModel(
-            application = ApplicationProvider.getApplicationContext(),
-            savedStateHandle = SavedStateHandle(mapOf("sessionId" to fixture.session.id)),
-            container = deps,
-        ).also(models::add)
-        assertTrue(vm.uiState.awaitFirst { it.loadState == SessionLoadState.FAILED }.rest.running)
-        failReads.value = false
-        vm.retrySession()
-        assertTrue(vm.uiState.awaitFirst { it.loadState == SessionLoadState.FOUND }.rest.running)
-        assertTrue(deps.restTimerStore.current().running)
     }
 
     private fun active(sessionId: String) = ActiveWorkoutViewModel(
