@@ -73,7 +73,6 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import java.time.LocalDate
 import java.time.format.TextStyle
-import java.util.Locale
 
 
 private enum class StartPage { CHOOSER_PAGE, OTHER_PAGE, CARDIO_PAGE, EXTRA_PAGE }
@@ -553,7 +552,7 @@ private fun TodayRow(
             Text(stringResource(R.string.start_rest_day), style = InstrumentType.bodyStrong, color = TextPrimary)
             state.nextPlanned?.let {
                 val weekday = LocalDate.ofEpochDay(it.epochDay).dayOfWeek
-                    .getDisplayName(TextStyle.SHORT, Locale.getDefault())
+                    .getDisplayName(TextStyle.SHORT, androidx.compose.ui.platform.LocalConfiguration.current.locales[0])
                 Text(
                     stringResource(R.string.start_next_hint, weekday, it.title),
                     style = InstrumentType.caption,

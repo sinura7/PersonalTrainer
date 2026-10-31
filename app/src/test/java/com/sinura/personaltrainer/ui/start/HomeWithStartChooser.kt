@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.start
 
 import android.app.Application
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,7 @@ fun HomeWithStartChooser(
         onOpenStartSheetFrom = { from = it; open = true },
         viewModel = vm,
     )
+    val home by vm.uiState.collectAsState()
     if (open) {
         StartChooser(
             onDismiss = { open = false },
@@ -42,7 +44,7 @@ fun HomeWithStartChooser(
             gate = vm,
             startsNowFrom = from,
             onOpenPlan = onOpenPlan,
-            suggestedKit = vm.uiState.value.suggestedExtraEquipment,
+            suggestedKit = home.suggestedExtraEquipment,
             viewModel = options,
         )
     }
