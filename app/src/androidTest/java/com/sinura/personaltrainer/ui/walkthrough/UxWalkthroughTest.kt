@@ -36,6 +36,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
@@ -551,11 +552,17 @@ class UxWalkthroughTest {
     }
 
     private fun awaitPlanTabReadyForCapture() {
+        // The week is seven day rows above the routine list, so the list may sit below the fold.
         harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(PlanTags.CONTENT).fetchSemanticsNodes().isNotEmpty() &&
+                runCatching {
+                    compose.onNodeWithTag(PlanTags.CONTENT)
+                        .performScrollToNode(hasText("$PREFIX seed", substring = true))
+                }.isSuccess &&
                 compose.onAllNodesWithTag(PlanTags.ROUTINES).fetchSemanticsNodes().isNotEmpty() &&
                 compose.onAllNodesWithText("$PREFIX seed", substring = true).fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToIndex(0)
         compose.waitForIdle()
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
