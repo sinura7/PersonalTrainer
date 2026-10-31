@@ -241,6 +241,7 @@
     <string name="start_group_other">Other</string>
     <string name="start_today">Start %1$s</string>
     <string name="start_resume">Resume %1$s</string>
+    <string name="start_free_workout">free workout</string>
     <string name="start_resume_activity">Resume activity</string>
     <plurals name="start_resume_sub">
         <item quantity="one">%1$d set logged</item>

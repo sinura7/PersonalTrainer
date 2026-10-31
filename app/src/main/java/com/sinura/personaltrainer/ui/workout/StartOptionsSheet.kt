@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,7 +25,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,7 +35,6 @@ import com.sinura.personaltrainer.domain.ActivityDetailCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineCardCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
-import com.sinura.personaltrainer.domain.StartOptionsCopy
 import com.sinura.personaltrainer.domain.estimatedSessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.domain.LiveBarCopy
@@ -410,27 +407,3 @@ private fun FreeWorkoutAction(onStart: () -> Unit, modifier: Modifier = Modifier
     }
 }
 
-/**
- * Quiet header control on Body, History, and Plan. Not a Volt — Home
- * owns Start. The sheet this opens still starts today's plan when one
- * exists.
- */
-@Composable
-fun StartSheetOpener(
-    onOpen: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    TextButton(
-        onClick = onOpen,
-        modifier = modifier
-            .heightIn(min = Metrics.touchMin)
-            .semantics { contentDescription = StartOptionsCopy.OPEN_SPOKEN },
-        contentPadding = PaddingValues(horizontal = Metrics.space2, vertical = 0.dp),
-    ) {
-        Text(
-            StartOptionsCopy.OPEN,
-            style = InstrumentType.bodyStrong,
-            color = TextSecondary,
-        )
-    }
-}

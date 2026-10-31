@@ -32,7 +32,6 @@ import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.ActivityDetailCopy
 import com.sinura.personaltrainer.domain.LiveBarCopy
 import com.sinura.personaltrainer.domain.LiveBarKind
-import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GhostButton
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -303,7 +302,7 @@ private fun TodayRow(
             val kind = if (inProgress != null) LiveBarKind.WORKOUT else LiveBarKind.ACTIVITY
             PrimaryGymButton(
                 text = if (inProgress != null) {
-                    stringResource(R.string.start_resume, inProgress.routineName ?: SessionOrderCopy.FREE_WORKOUT)
+                    stringResource(R.string.start_resume, inProgress.routineName ?: stringResource(R.string.start_free_workout))
                 } else {
                     stringResource(R.string.start_resume_activity)
                 },

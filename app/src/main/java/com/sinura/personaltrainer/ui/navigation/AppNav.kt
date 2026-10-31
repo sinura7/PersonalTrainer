@@ -137,7 +137,7 @@ import com.sinura.personaltrainer.ui.workout.LocalRestCooldownActive
 import com.sinura.personaltrainer.ui.workout.LocalRestExteriorAsk
 import com.sinura.personaltrainer.ui.workout.RestAlertsAsk
 import com.sinura.personaltrainer.ui.workout.RestExteriorAsk
-import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
+import com.sinura.personaltrainer.ui.start.StartChooser
 
 private const val SUMMARY_CORRECTION_RESULT = "summary.acknowledgedCorrection.v1"
 
@@ -878,8 +878,10 @@ fun PersonalTrainerNav(
             }
         }
         if (showStartSheet) {
-            StartOptionsSheet(
+            StartChooser(
                 onDismiss = { showStartSheet = false },
+                onOpenPlan = { goToTab(Route.Routines.path) },
+                onOpenRoutines = { navController.navigate(Route.RoutineLibrary.create()) },
                 onWorkoutStarted = { sessionId ->
                     navController.navigate(StartOptionsNav.workout(sessionId)) {
                         launchSingleTop = true
