@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.AppDependencies
@@ -22,8 +23,8 @@ fun HomeWithStartChooser(
     onResumeWorkout: (String) -> Unit,
     onOpenPlan: () -> Unit = {},
 ) {
-    var open by remember { mutableStateOf(false) }
-    var from by remember { mutableStateOf<Long?>(null) }
+    var open by rememberSaveable { mutableStateOf(false) }
+    var from by rememberSaveable { mutableStateOf<Long?>(null) }
     val options = remember {
         StartOptionsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
     }

@@ -445,12 +445,8 @@ class HomeViewModel @JvmOverloads constructor(
     private val _blockedByInProgress = MutableStateFlow<BlockedStart?>(null)
     override val blockedByInProgress: StateFlow<BlockedStart?> = _blockedByInProgress.asStateFlow()
 
-    /** Starts are offered only over a current read; a stale or failed board offers none. */
     override val homeReads: StateFlow<HomeUiState> get() = uiState
 
-    override val readsCurrent: StateFlow<Boolean> = uiState
-        .map { it.readState == HomeReadState.CURRENT }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, uiState.value.readState == HomeReadState.CURRENT)
 
     private val _navigateToCardio = MutableStateFlow<String?>(null)
     override val navigateToCardio: StateFlow<String?> = _navigateToCardio.asStateFlow()
@@ -579,12 +575,8 @@ class HomeViewModel @JvmOverloads constructor(
         explicitRetry: Boolean = false,
         acceptWhileBlockingStartFinishes: Boolean = false,
     ): Boolean {
-        // V2: Empty, cardio and Extra do not depend on the board's reads, so a stale read withholds
-        // only the starts built from it (Today, routines).
-        val readFree = command is StartCommand.Free || command is StartCommand.Cardio || command is StartCommand.Aux
-        val readOk = readFree || authoritativeReadState == HomeReadState.CURRENT
-        val homeCanChange = readOk && !authoritativeRetryPending
-        val gateOpen = if (acceptWhileBlockingStartFinishes) homeCanChange else homeCanChange && !_startState.value.pending
+        val homeCanChange = authoritativeReadState == HomeReadState.CURRENT && !authoritativeRetryPending
+        val gateOpen = if (acceptWhileBlockingStartFinishes) homeCanChange else canMutate()
         if (!gateOpen || hasQueuedStartNavigation()) return false
         val blocked = _blockedByInProgress.value
         if (blocked != null && !allowBlocked) return false

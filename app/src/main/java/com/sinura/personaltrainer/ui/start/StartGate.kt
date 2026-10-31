@@ -21,8 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 interface StartGate {
     val startState: StateFlow<HomeStartState>
     val blockedByInProgress: StateFlow<HomeViewModel.BlockedStart?>
-    /** False while the start board's reads are stale or failed: no start row is offered. */
-    val readsCurrent: StateFlow<Boolean>
     /** Home's board reads, so the chooser can explain a failed read and offer Retry. */
     val homeReads: StateFlow<com.sinura.personaltrainer.ui.home.HomeUiState>
     fun retryRead(): Boolean

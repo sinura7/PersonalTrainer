@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /** A [StartGate] that admits everything and records what the chooser asked it to start. */
 class RecordingStartGate : StartGate {
     override val startState = MutableStateFlow(HomeStartState())
-    override val readsCurrent = MutableStateFlow(true)
     override val homeReads = MutableStateFlow(com.sinura.personaltrainer.ui.home.HomeUiState(readState = com.sinura.personaltrainer.ui.home.HomeReadState.CURRENT))
     override fun retryRead(): Boolean = false
     override val blockedByInProgress = MutableStateFlow<HomeViewModel.BlockedStart?>(null)

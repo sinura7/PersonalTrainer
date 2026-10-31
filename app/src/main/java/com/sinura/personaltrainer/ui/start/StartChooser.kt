@@ -112,7 +112,6 @@ fun StartChooser(
     val navigateToComposer by viewModel.navigateToComposer.collectAsStateWithLifecycle()
     val starting by gate.startState.collectAsStateWithLifecycle()
     val blocked by gate.blockedByInProgress.collectAsStateWithLifecycle()
-    val readsCurrent by gate.readsCurrent.collectAsStateWithLifecycle()
     val gateSession by gate.navigateToSession.collectAsStateWithLifecycle()
     val gateCardio by gate.navigateToCardio.collectAsStateWithLifecycle()
     var pageName by rememberSaveable { mutableStateOf(StartPage.CHOOSER_PAGE.name) }
@@ -123,11 +122,12 @@ fun StartChooser(
     // Capture the attempt this frame presents: a callback from an older frame acts on nothing.
     val renderedAttemptId = starting.attemptId
     val owns = { gate.startState.value.attemptId == renderedAttemptId }
-    val startsEnabled = StartGroups.startsEnabled(state) && !starting.pending && starting.error == null &&
-        blocked == null
-    // Over a stale read only the rows built from that read (Today, routines) are withheld.
-    val freshEnabled = startsEnabled && readsCurrent
     val homeReads by gate.homeReads.collectAsStateWithLifecycle()
+    // No start of any kind over a failed or stale read: the blocker check depends on it.
+    val readsCurrent = homeReads.readState == com.sinura.personaltrainer.ui.home.HomeReadState.CURRENT
+    val startsEnabled = StartGroups.startsEnabled(state) && !starting.pending && starting.error == null &&
+        blocked == null && readsCurrent
+    val freshEnabled = startsEnabled
     val mayStart = { owns() && gate.canEditStartChoice() }
 
     // The sheet is going away; nothing it staged may outlive it.

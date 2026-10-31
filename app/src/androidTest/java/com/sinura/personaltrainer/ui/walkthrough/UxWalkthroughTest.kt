@@ -672,7 +672,9 @@ class UxWalkthroughTest {
             compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(HistoryTags.START_SHEET).performScrollTo().performClick()
-        clickLabel("Mixed session")
+        // V2: logging a past mixed session sits under the chooser's Other page.
+        compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.LOG_MIXED).performScrollTo().performClick()
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag("composer-title") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
