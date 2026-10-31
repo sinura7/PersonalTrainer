@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.walkthrough
 
+import com.sinura.personaltrainer.ui.start.StartTags
 import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
 import android.content.Intent
 import android.graphics.Bitmap
@@ -583,8 +584,8 @@ class UxWalkthroughTest {
         seedWalkthroughRoutine()
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
-        compose.onNodeWithTag(HomeStartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_TITLE).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -620,13 +621,13 @@ class UxWalkthroughTest {
         preparePopulatedApp()
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithTag(HomeStartTags.CARDIO).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.LIVE_CARDIO).performScrollTo().performClick()
         harnessWaitUntil(15_000) {
-            compose.onAllNodesWithTag(HomeStartTags.CARDIO_PAGE).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag(StartTags.CARDIO_PAGE).fetchSemanticsNodes().isNotEmpty()
         }
         shot("cardio-picker")
         val runCard = hasTestTag(CardioPickTags.card(CardioType.RUN))
-        compose.onNodeWithTag(HomeStartTags.CARDIO_PAGE).performScrollToNode(runCard)
+        compose.onNodeWithTag(StartTags.CARDIO_PAGE).performScrollToNode(runCard)
         compose.onNode(runCard).performClick()
         harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
@@ -781,8 +782,8 @@ class UxWalkthroughTest {
         seedWalkthroughRoutine()
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
-        compose.onNodeWithTag(HomeStartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_TITLE).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
         }

@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
+import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -440,14 +442,14 @@ class WeekStripGeometryRenderTest {
         val stored = inventory()
         tapReached(boardTo(HomeTags.START))
         expandVisibleSheet()
-        tapReached(compose.onNodeWithTag(HomeStartTags.EXTRA))
+        tapReached(compose.onNodeWithTag(StartTags.EXTRA))
         assertPickerHeader(ExtraEquipment.PICK)
         tapReached(compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)))
         assertPickerHeader("Extra")
         tapReached(compose.onNodeWithTag(PickerHeaderTags.CANCEL))
         assertPickerHeader(ExtraEquipment.PICK)
         tapReached(compose.onNodeWithTag(PickerHeaderTags.CANCEL))
-        reach(compose.onNodeWithTag(HomeStartTags.EXTRA)).assertIsEnabled()
+        reach(compose.onNodeWithTag(StartTags.EXTRA)).assertIsEnabled()
         compose.onNodeWithTag(PickerHeaderTags.TITLE).assertDoesNotExist()
         assertEquals("opening and cancelling the extra picker starts or saves nothing", stored, inventory())
         assertEquals(0, navigation)
@@ -539,7 +541,7 @@ class WeekStripGeometryRenderTest {
                             Box(actualConstraints) {
                                 key(screen) {
                                     when (screen) {
-                                        Screen.HOME -> HomeScreen(onResumeWorkout = { navigation++ }, onOpenPlan = { navigation++ }, viewModel = checkNotNull(home))
+                                        Screen.HOME -> HomeWithStartChooser(vm = checkNotNull(home), deps = deps, onResumeWorkout = { navigation++ }, onOpenPlan = { navigation++ })
                                         Screen.PLAN -> PlanScreen(onOpenRoutine = { navigation++ }, onOpenRoutines = { navigation++ }, onOpenDay = { _, _ -> navigation++ }, viewModel = plan)
                                         Screen.COMPONENT -> WeekStrip(
                                             cells = WeekBoard.forWeek(weekStart, emptyList(), emptyList()), today = today,

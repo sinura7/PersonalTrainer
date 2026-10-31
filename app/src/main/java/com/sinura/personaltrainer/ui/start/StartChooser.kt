@@ -6,6 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import com.sinura.personaltrainer.domain.PlanDayCopy
+import com.sinura.personaltrainer.ui.theme.TextDisabled
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -175,12 +183,28 @@ fun StartChooser(
                 .padding(bottom = Metrics.space7),
             verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
         ) {
-            Text(
-                stringResource(R.string.start_title),
-                modifier = Modifier.semantics { heading() }.testTag(StartTags.START_TITLE),
-                style = InstrumentType.title,
-                color = TextPrimary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.start_title),
+                    modifier = Modifier.weight(1f).semantics { heading() }.testTag(StartTags.START_TITLE),
+                    style = InstrumentType.title,
+                    color = TextPrimary,
+                )
+                val cancelEnabled = !starting.pending
+                TextButton(
+                    onClick = leave,
+                    enabled = cancelEnabled,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.heightIn(min = Metrics.touchMin).widthIn(min = Metrics.touchMin)
+                        .testTag(StartTags.CANCEL),
+                ) {
+                    Text(
+                        PlanDayCopy.CANCEL,
+                        style = InstrumentType.bodyStrong,
+                        color = if (cancelEnabled) TextSecondary else TextDisabled,
+                    )
+                }
+            }
             GateStatus(
                 pending = starting.pending,
                 error = starting.error ?: state.error,

@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.ui.start.StartTags
 import android.content.Intent
 import com.google.gson.JsonParser
 import androidx.compose.ui.semantics.getOrNull
@@ -192,7 +193,7 @@ class HomeDayContinuityInstrumentedTest {
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed().performClick()
         await(HomeStartTags.DATE)
         compose.onNodeWithTag(HomeStartTags.DATE).assertTextEquals("Starts now · ${DateCopy.civilDate(today)}")
-        compose.onNodeWithTag(HomeStartTags.FREE).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_EMPTY).performScrollTo().performClick()
         compose.waitUntil(30000) {
             read { container.workoutRepository.getInProgress()?.also { sessionId = it.id } } != null
         }

@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.ui.start.StartTags
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -243,7 +244,7 @@ class HomePassInstrumentedTest {
                 onStartExtra = {},
             )
         }
-        compose.onNodeWithTag(HomeStartTags.SHEET).assertIsDisplayed()
+        compose.onNodeWithTag(StartTags.SHEET).assertIsDisplayed()
         compose.onNodeWithText(HomeStartCopy.FREE).assertIsDisplayed()
         compose.onNodeWithText(HomeStartCopy.ROUTINE).assertIsDisplayed()
         compose.onNodeWithText(HomeStartCopy.CARDIO).assertIsDisplayed()
@@ -264,7 +265,7 @@ class HomePassInstrumentedTest {
                 onStartExtra = {},
             )
         }
-        compose.onNodeWithTag(HomeStartTags.FREE).performClick()
+        compose.onNodeWithTag(StartTags.START_EMPTY).performClick()
         org.junit.Assert.assertTrue(started)
     }
 
@@ -280,7 +281,7 @@ class HomePassInstrumentedTest {
                 onStartExtra = {},
             )
         }
-        compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        compose.onNodeWithTag(StartTags.EXTRA).performClick()
         compose.onNodeWithText(ExtraEquipment.PICK.uppercase()).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(ExtraEquipment.NONE.label).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText(ExtraEquipment.MACHINES.label).performScrollTo().assertIsDisplayed()
@@ -288,7 +289,7 @@ class HomePassInstrumentedTest {
         compose.onNodeWithText("Golf warm-up").assertDoesNotExist()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.MIXED)).performClick()
         // Expand the native sheet before traversing the longer pack list.
-        compose.onNodeWithTag(HomeStartTags.SHEET).performTouchInput { swipeUp() }
+        compose.onNodeWithTag(StartTags.SHEET).performTouchInput { swipeUp() }
         compose.onNodeWithText("Golf warm-up").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Lower-body warm-up").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Shoulder warm-up").performScrollTo().assertIsDisplayed()
@@ -307,7 +308,7 @@ class HomePassInstrumentedTest {
                 onStartExtra = {},
             )
         }
-        compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        compose.onNodeWithTag(StartTags.EXTRA).performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
         compose.onNodeWithText("Dead bugs, planks, an ab wheel. No machine.")
             .performScrollTo().assertIsDisplayed()

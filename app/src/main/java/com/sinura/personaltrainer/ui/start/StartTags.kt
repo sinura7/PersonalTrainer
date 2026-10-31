@@ -26,6 +26,7 @@ object StartTags {
     const val EXTRA_PAGE = "start-extra-page"
     const val START_PENDING = "start-pending"
     const val START_BLOCKED = "start-blocked"
+    const val CANCEL = "start-cancel"
 
     fun routine(id: String): String = "start-routine-$id"
 }

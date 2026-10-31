@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
+import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
 import android.database.sqlite.SQLiteFullException
 import android.graphics.Bitmap
@@ -168,14 +170,14 @@ class HomeStartAdmissionRenderTest {
         show()
         openRoutinePage()
         val before = inventory()
-        reachable(compose.onNodeWithTag(HomeStartTags.routine(routineId))).performClick()
+        reachable(compose.onNodeWithTag(StartTags.routine(routineId))).performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutPreviewTags.ROOT).assertExists()
         assertEquals(0, writes.attempts.get())
         compose.onNodeWithTag(WorkoutPreviewTags.BACK).performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutPreviewTags.ROOT).assertDoesNotExist()
-        compose.onNodeWithTag(HomeStartTags.SHEET).assertExists()
+        compose.onNodeWithTag(StartTags.SHEET).assertExists()
         assertEquals(before, inventory())
         assertTrue(openedSessions.isEmpty())
     }
@@ -244,7 +246,7 @@ class HomeStartAdmissionRenderTest {
         openRoutinePage()
         val before = inventory()
         val start = previewBegin(routineId)
-        val cancel = enabledClick(HomeStartTags.CANCEL)
+        val cancel = enabledClick(StartTags.CANCEL)
         writes.held = CompletableDeferred()
         writes.failNext.set(1)
         // Both callbacks were taken from one enabled frame. Recomposition cannot guard these.
@@ -255,13 +257,13 @@ class HomeStartAdmissionRenderTest {
         assertTrue(openedSessions.isEmpty())
         assertFalse(vm.canDismissStart())
         assertFalse(vm.canEditStartChoice())
-        compose.onNodeWithTag(HomeStartTags.CANCEL).assertIsNotEnabled()
-        compose.onNodeWithTag(HomeStartTags.routine(routineId)).assertExists()
-        compose.onNodeWithTag(HomeStartTags.FREE).assertDoesNotExist()
+        compose.onNodeWithTag(StartTags.CANCEL).assertIsNotEnabled()
+        compose.onNodeWithTag(StartTags.routine(routineId)).assertExists()
+        compose.onNodeWithTag(StartTags.START_EMPTY).assertDoesNotExist()
         reachable(compose.onNodeWithTag(HomeStartTags.PENDING)).assertIsDisplayed()
         capture("insert-pending")
         attemptNativeDismiss()
-        compose.onNodeWithTag(HomeStartTags.SHEET).assertExists()
+        compose.onNodeWithTag(StartTags.SHEET).assertExists()
         assertTrue(vm.startState.value.pending)
         assertEquals(1, writes.attempts.get())
         assertTrue(openedSessions.isEmpty())
@@ -272,8 +274,8 @@ class HomeStartAdmissionRenderTest {
         }
         assertEquals(before, inventory())
         assertTrue(openedSessions.isEmpty())
-        compose.onNodeWithTag(HomeStartTags.routine(routineId)).assertExists()
-        compose.onNodeWithTag(HomeStartTags.FREE).assertDoesNotExist()
+        compose.onNodeWithTag(StartTags.routine(routineId)).assertExists()
+        compose.onNodeWithTag(StartTags.START_EMPTY).assertDoesNotExist()
         reachable(compose.onNodeWithTag(HomeStartTags.ERROR)).assertIsDisplayed()
         capture("insert-failed")
         reachable(compose.onNodeWithTag(HomeStartTags.RETRY)).assertIsEnabled()
@@ -284,7 +286,7 @@ class HomeStartAdmissionRenderTest {
         compose.runOnUiThread { retry(); retry() }
         await("one explicit retry waits") { vm.startState.value.pending && writes.attempts.get() == 2 }
         assertTrue(openedSessions.isEmpty())
-        compose.onNodeWithTag(HomeStartTags.CANCEL).assertIsNotEnabled()
+        compose.onNodeWithTag(StartTags.CANCEL).assertIsNotEnabled()
         reachable(compose.onNodeWithTag(HomeStartTags.PENDING)).assertIsDisplayed()
         capture("retry-pending")
         writes.held!!.complete(Unit)
@@ -435,8 +437,8 @@ class HomeStartAdmissionRenderTest {
             !vm.startState.value.pending && vm.startState.value.error != null && vm.startState.value.canRetry
         }
         assertEquals(before, inventory())
-        compose.onNodeWithTag(HomeStartTags.routine(routineId)).assertExists()
-        compose.onNodeWithTag(HomeStartTags.FREE).assertDoesNotExist()
+        compose.onNodeWithTag(StartTags.routine(routineId)).assertExists()
+        compose.onNodeWithTag(StartTags.START_EMPTY).assertDoesNotExist()
         capture("lookup-failed")
         reads.held = CompletableDeferred()
         val retry = enabledClick(HomeStartTags.RETRY)
@@ -458,7 +460,7 @@ class HomeStartAdmissionRenderTest {
         openRoutinePage()
         val before = inventory()
         val oldRoutineStart = previewBegin(routineId)
-        val oldCancel = enabledClick(HomeStartTags.CANCEL)
+        val oldCancel = enabledClick(StartTags.CANCEL)
         reads.failNext.set(1)
         compose.runOnUiThread {
             oldRoutineStart()
@@ -474,7 +476,7 @@ class HomeStartAdmissionRenderTest {
         assertEquals(1, reads.attempts.get())
         assertEquals(0, writes.attempts.get())
         assertEquals(before, inventory())
-        val freshCancel = enabledClick(HomeStartTags.CANCEL)
+        val freshCancel = enabledClick(StartTags.CANCEL)
         compose.runOnUiThread { freshCancel(); oldRoutineStart() }
         compose.settle()
         assertTrue("idle page navigation clears the failed attempt", vm.canEditStartChoice())
@@ -485,8 +487,8 @@ class HomeStartAdmissionRenderTest {
         assertEquals(0, writes.attempts.get())
         assertTrue(openedSessions.isEmpty())
         assertEquals(before, inventory())
-        compose.onNodeWithTag(HomeStartTags.routine(routineId)).assertDoesNotExist()
-        val free = enabledClick(HomeStartTags.FREE)
+        compose.onNodeWithTag(StartTags.routine(routineId)).assertDoesNotExist()
+        val free = enabledClick(StartTags.START_EMPTY)
         capture("idle-cancel-fresh-kind")
         compose.runOnUiThread { free() }
         assertOneSavedStart()
@@ -555,7 +557,7 @@ class HomeStartAdmissionRenderTest {
         assertEquals(1, writes.attempts.get())
         assertNull(vm.blockedByInProgress.value)
         assertNull(vm.startState.value.error)
-        compose.onNodeWithTag(HomeStartTags.SHEET).assertDoesNotExist()
+        compose.onNodeWithTag(StartTags.SHEET).assertDoesNotExist()
         compose.settle()
         assertEquals("the current saved start is consumed once", 1, openedSessions.size)
     }
@@ -715,7 +717,7 @@ class HomeStartAdmissionRenderTest {
         reachable(compose.onNodeWithTag(HomeStartTags.DATE))
             .assertTextContains("Starts now · ${DateCopy.civilDate(today)}", substring = true)
         capture("selected-day-free-confirm")
-        reachable(compose.onNodeWithTag(HomeStartTags.FREE)).performClick()
+        reachable(compose.onNodeWithTag(StartTags.START_EMPTY)).performClick()
         assertOneSavedStart()
         val saved = runBlocking { base.database.workoutDao().getAllSessions().single() }
         assertEquals(nowMs, saved.date)
@@ -851,11 +853,11 @@ class HomeStartAdmissionRenderTest {
                         if (withNavigation) {
                             Column(modifier = Modifier.fillMaxSize()) {
                                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                                    HomeScreen(onResumeWorkout = { openedSessions += it }, onOpenPlan = {}, viewModel = vm)
+                                    HomeWithStartChooser(vm = vm, deps = graph, onResumeWorkout = { openedSessions += it })
                                 }
                                 InstrumentNavBar(tabs = shippingTabs, isSelected = { it.route == Route.Home }, onSelect = {})
                             }
-                        } else HomeScreen(onResumeWorkout = { openedSessions += it }, onOpenPlan = {}, viewModel = vm)
+                        } else HomeWithStartChooser(vm = vm, deps = graph, onResumeWorkout = { openedSessions += it })
                     }
                 }
             }
@@ -867,8 +869,8 @@ class HomeStartAdmissionRenderTest {
 
     private fun openRoutinePage() {
         boardNode(HomeTags.START).performClick()
-        reachable(compose.onNodeWithTag(HomeStartTags.ROUTINE)).performClick()
-        reachable(compose.onNodeWithTag(HomeStartTags.routine(routineId))).assertIsEnabled()
+        reachable(compose.onNodeWithTag(StartTags.START_TITLE)).performClick()
+        reachable(compose.onNodeWithTag(StartTags.routine(routineId))).assertIsEnabled()
     }
 
     private fun selectDay(day: Long) {
@@ -889,7 +891,7 @@ class HomeStartAdmissionRenderTest {
 
     /** R5: a routine pick opens the preview; its Begin is the start callback under test. */
     private fun previewBegin(routineId: String): () -> Boolean {
-        reachable(compose.onNodeWithTag(HomeStartTags.routine(routineId))).performClick()
+        reachable(compose.onNodeWithTag(StartTags.routine(routineId))).performClick()
         compose.waitForIdle()
         val node = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsEnabled().fetchSemanticsNode()
         return node.config[SemanticsActions.OnClick].action!!
@@ -924,7 +926,7 @@ class HomeStartAdmissionRenderTest {
         assertNull(vm.startState.value.error)
         assertFalse(vm.startState.value.canRetry)
         assertEquals(openedSessions.single(), runBlocking { base.database.workoutDao().getAllSessions().single().id })
-        compose.onNodeWithTag(HomeStartTags.SHEET).assertDoesNotExist()
+        compose.onNodeWithTag(StartTags.SHEET).assertDoesNotExist()
         compose.onNodeWithTag(HomeStartTags.PENDING).assertDoesNotExist()
         compose.onNodeWithTag(HomeStartTags.ERROR).assertDoesNotExist()
         compose.settle()
