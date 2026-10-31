@@ -52,6 +52,8 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionTags
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorTags
 import com.sinura.personaltrainer.ui.routines.RoutineEditorViewModel
+import com.sinura.personaltrainer.ui.routines.RoutinesScreen
+import com.sinura.personaltrainer.ui.routines.RoutinesTags
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
@@ -249,8 +251,12 @@ class PlanRoutineActionsRenderTest {
                         "editor" -> RoutineEditorScreen(
                             onBack = { route.value = "day" }, viewModel = editorVm,
                         )
+                        "routines" -> RoutinesScreen(
+                            onBack = { route.value = "plan" }, onOpenRoutine = { opened += it },
+                            onOpenLibrary = {}, viewModel = vm,
+                        )
                         else -> PlanScreen(
-                            onOpenRoutine = { opened += it }, onOpenLibrary = {},
+                            onOpenRoutine = { opened += it }, onOpenRoutines = { route.value = "routines" },
                             onOpenDay = { epochDay, add -> openedDays += epochDay to add },
                             viewModel = vm,
                         )
@@ -261,10 +267,19 @@ class PlanRoutineActionsRenderTest {
         compose.awaitThat("actual Plan loaded", vm.uiState::value) { !vm.uiState.value.isLoading }
         compose.onNodeWithText("Show routines").assertDoesNotExist()
         compose.onNodeWithText("Hide routines").assertDoesNotExist()
-        val heading = reach(PlanTags.ROUTINES).fetchSemanticsNode()
-        assertTrue("routines are a visible section, not a disclosure action", !heading.config.contains(SemanticsActions.OnClick))
-        reach(PlanTags.routine(fixture.routine.id)).assertIsDisplayed()
+        // v4 V3: routines left Plan; the header carries one Routines entry instead.
+        compose.onNodeWithTag(PlanTags.ROUTINES).assertDoesNotExist()
+        compose.onNodeWithTag(PlanTags.routine(fixture.routine.id)).assertDoesNotExist()
+        reach(PlanTags.ROUTINES_ENTRY).assertIsDisplayed()
         compose.settle()
+    }
+
+    private fun openRoutines() {
+        tap(reach(PlanTags.ROUTINES_ENTRY))
+        compose.awaitThat("Routines screen shown", { route.value }) { route.value == "routines" }
+        val heading = compose.onNodeWithTag(PlanTags.ROUTINES, useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode()
+        assertTrue("the Routines heading is not a disclosure action", !heading.config.contains(SemanticsActions.OnClick))
+        reach(PlanTags.routine(fixture.routine.id)).assertIsDisplayed()
     }
 
     private fun journey(name: String, rtl: Boolean = false) {
@@ -296,8 +311,12 @@ class PlanRoutineActionsRenderTest {
         assertEquals(Role.Button, header.fetchSemanticsNode().config[SemanticsProperties.Role])
         tap(header)
         assertEquals("the day header opens that day", listOf(today to false, today to true, today to false), openedDays)
+        // V1a Critic: Add follows the row it sits on, never today.
+        tap(reach(PlanTags.dayAdd(today + 1)))
+        assertEquals("the next row's Add opens that row's day", (today + 1) to true, openedDays.last())
         assertEquals("day navigation and Add callbacks do not create saved changes", before, inventory())
         capture("plan-selected-day")
+        openRoutines()
         val row = reach(PlanTags.routine(id))
         target(row)
         assertEquals(Role.Button, row.fetchSemanticsNode().config[SemanticsProperties.Role])
@@ -484,6 +503,7 @@ class PlanRoutineActionsRenderTest {
         }
         val otherBefore = runBlocking { deps.routineRepository.getById(otherId) }
         val otherPins = runBlocking { deps.scheduleRepository.slots().filter { it.routineId == otherId } }
+        openRoutines()
         tap(reach(PlanTags.routineOptions(fixture.routine.id)))
         tap(compose.onNodeWithTag(PlanTags.routineDelete(fixture.routine.id)))
         compose.onNodeWithText("All planned sessions for this routine", substring = true)
@@ -532,12 +552,13 @@ class PlanRoutineActionsRenderTest {
     }
 
     private fun reach(tag: String, unmerged: Boolean = false): SemanticsNodeInteraction {
+        val content = if (route.value == "routines") RoutinesTags.CONTENT else PlanTags.CONTENT
         // The list tag is in the unmerged tree a frame before it is merged. Scrolling
-        // in that frame looks for plan-content and misses it.
+        // in that frame looks for the content list and misses it.
         compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithTag(PlanTags.CONTENT, useUnmergedTree = unmerged).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag(content, useUnmergedTree = unmerged).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag(PlanTags.CONTENT, useUnmergedTree = unmerged).performScrollToNode(hasTestTag(tag))
+        compose.onNodeWithTag(content, useUnmergedTree = unmerged).performScrollToNode(hasTestTag(tag))
         return compose.onNodeWithTag(tag, useUnmergedTree = unmerged).performScrollTo()
     }
 

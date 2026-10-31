@@ -142,7 +142,7 @@ class ShippingTabsRenderTest {
     @Test fun planDrawsItsLoadedWeek() {
         val vm = PlanViewModel(app, deps).also(models::add)
         compose.showFloor {
-            PlanScreen(onOpenRoutine = {}, onOpenLibrary = {}, onOpenDay = { _, _ -> }, viewModel = vm)
+            PlanScreen(onOpenRoutine = {}, onOpenRoutines = {}, onOpenDay = { _, _ -> }, viewModel = vm)
         }
         compose.awaitThat("Plan's loaded week", vm.uiState::value) { !vm.uiState.value.isLoading }
         assertNull(vm.uiState.value.error)

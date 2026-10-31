@@ -115,6 +115,13 @@ class PlanWeekRowsRenderTest {
     }
 
     @Test
+    fun bareRestRowStaysUnder72() {
+        show(cell(DayFill.EMPTY, 0), onAdd = null)
+        val rest = compose.onNodeWithTag(PlanTags.day(day)).getBoundsInRoot()
+        assertTrue("bare rest ${rest.bottom - rest.top}", rest.bottom - rest.top < 72.dp)
+    }
+
+    @Test
     fun rowsGrowAtFontScaleTwo() {
         show(cell(DayFill.EMPTY, 0), proposal = proposal(rest = false))
         val normal = compose.onNodeWithTag(PlanTags.day(day)).getBoundsInRoot().let { it.bottom - it.top }

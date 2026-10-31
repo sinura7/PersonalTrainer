@@ -540,7 +540,7 @@ class WeekStripGeometryRenderTest {
                                 key(screen) {
                                     when (screen) {
                                         Screen.HOME -> HomeScreen(onResumeWorkout = { navigation++ }, onOpenPlan = { navigation++ }, viewModel = checkNotNull(home))
-                                        Screen.PLAN -> PlanScreen(onOpenRoutine = { navigation++ }, onOpenLibrary = { navigation++ }, onOpenDay = { _, _ -> navigation++ }, viewModel = plan)
+                                        Screen.PLAN -> PlanScreen(onOpenRoutine = { navigation++ }, onOpenRoutines = { navigation++ }, onOpenDay = { _, _ -> navigation++ }, viewModel = plan)
                                         Screen.COMPONENT -> WeekStrip(
                                             cells = WeekBoard.forWeek(weekStart, emptyList(), emptyList()), today = today,
                                             selected = componentSelected, onSelectDay = { componentSelected = it }, proposals = componentProposals,
@@ -740,9 +740,9 @@ class WeekStripGeometryRenderTest {
         val start = boardTo(PlanTags.START_SHEET).assertIsEnabled()
         touchTarget(start.fetchSemanticsNode())
         assertWords(compose.onNodeWithText(StartOptionsCopy.OPEN, useUnmergedTree = true), StartOptionsCopy.OPEN)
-        val library = boardTo(PlanTags.LIBRARY).assertIsEnabled()
-        touchTarget(library.fetchSemanticsNode())
-        assertWords(compose.onNodeWithText("Library", useUnmergedTree = true), "Library")
+        val routines = boardTo(PlanTags.ROUTINES_ENTRY).assertIsEnabled()
+        touchTarget(routines.fetchSemanticsNode())
+        assertWords(compose.onNodeWithText("Routines", useUnmergedTree = true), "Routines")
         capture("plan-complete-header")
     }
 

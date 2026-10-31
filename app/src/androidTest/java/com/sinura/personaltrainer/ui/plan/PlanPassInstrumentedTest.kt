@@ -35,7 +35,7 @@ class PlanPassInstrumentedTest {
     @Test
     fun emptyWeekReplayStaysNamedAt360Font2() {
         setConstrainedContent(2f) {
-            PlanHeader(onOpenLibrary = {})
+            PlanHeader(onOpenRoutines = {})
             PlanRecoveryCommands(
                 hasPins = false,
                 hasRoutines = true,
@@ -50,7 +50,7 @@ class PlanPassInstrumentedTest {
         compose.onNodeWithTag(PlanTags.REPLAY).assertIsDisplayed()
         compose.onNodeWithContentDescription(WeekTwoCopy.VOLT).assertIsDisplayed()
         compose.onNodeWithTag(PlanTags.SUGGEST).assertIsDisplayed()
-        compose.onNodeWithTag(PlanTags.LIBRARY).assertIsDisplayed()
+        compose.onNodeWithTag(PlanTags.ROUTINES_ENTRY).assertIsDisplayed()
         compose.onNodeWithTag(PlanTags.USE_WEEK).assertDoesNotExist()
         compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
         compose.onNodeWithText("Tune").assertDoesNotExist()

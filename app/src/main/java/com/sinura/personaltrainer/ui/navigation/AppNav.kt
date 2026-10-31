@@ -96,6 +96,7 @@ import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
 import com.sinura.personaltrainer.ui.routines.CustomWeekScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
+import com.sinura.personaltrainer.ui.routines.RoutinesScreen
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGate
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModel
 import com.sinura.personaltrainer.ui.permissions.LaunchPermissionsHost
@@ -187,6 +188,11 @@ sealed class Route(val path: String) {
             "plan-day/$epochDay?add=$add"
     }
     data object Progress : Route("progress")
+    /** v4 V3: the routine library, pushed from Plan. pick=true returns the tapped id via [PICKED_KEY]. */
+    data object RoutineLibrary : Route(path = "routines-library?pick={pick}") {
+        const val PICKED_KEY = "picked_routine_id"
+        fun create(pick: Boolean = false): String = "routines-library?pick=$pick"
+    }
     data object Library : Route("library") {
         /**
          * The muscle filter crosses the nav boundary as an enum NAME, never as display text.
@@ -695,7 +701,7 @@ fun PersonalTrainerNav(
                 composable(Route.Routines.path) {
                     PlanScreen(
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
-                        onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
+                        onOpenRoutines = { navController.navigate(Route.RoutineLibrary.create()) },
                         onOpenDay = { epochDay, add ->
                             navController.navigate(Route.PlanDay.create(epochDay, add))
                         },
@@ -705,6 +711,28 @@ fun PersonalTrainerNav(
                             navController.navigate(Route.CustomWeek.path)
                         },
                         onOpenLive = openLive,
+                    )
+                }
+                composable(
+                    route = Route.RoutineLibrary.path,
+                    arguments = listOf(
+                        navArgument("pick") {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        },
+                    ),
+                ) { entry ->
+                    val pick = entry.arguments?.getBoolean("pick") == true
+                    val returnPick: (String) -> Unit = { id ->
+                        navController.previousBackStackEntry?.savedStateHandle
+                            ?.set(Route.RoutineLibrary.PICKED_KEY, id)
+                        navController.popBackStack()
+                    }
+                    RoutinesScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
+                        onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
+                        onPicked = returnPick.takeIf { pick },
                     )
                 }
                 composable(Route.History.path) {

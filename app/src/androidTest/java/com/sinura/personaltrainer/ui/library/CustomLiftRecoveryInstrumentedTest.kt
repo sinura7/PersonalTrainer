@@ -99,6 +99,8 @@ class CustomLiftRecoveryInstrumentedTest {
         val history = read { container.workoutRepository.observeHistory().first() }
         awaitTag("navigation-routines")
         tap("navigation-routines")
+        awaitTag(PlanTags.ROUTINES_ENTRY)
+        tap(PlanTags.ROUTINES_ENTRY)
         awaitTag(PlanTags.LIBRARY)
         tap(PlanTags.LIBRARY)
         awaitTag(LibraryTags.FAB)

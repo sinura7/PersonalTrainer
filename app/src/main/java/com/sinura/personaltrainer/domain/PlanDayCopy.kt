@@ -8,7 +8,6 @@ internal const val SCHEDULE_ORDER_COPY =
  */
 object PlanDayCopy {
     const val ADD_SESSION = "Add session"
-    const val ADD_SESSION_SUBTITLE = "Workout, cardio, or a short extra."
     const val ADD_EXTRA = "Add extra"
     const val ADD = "Add"
     const val ADD_SUBTITLE = "A workout, cardio, or extra for this day."

@@ -552,15 +552,17 @@ class UxWalkthroughTest {
     }
 
     private fun awaitPlanTabReadyForCapture() {
-        // The week is seven day rows above the routine list, so the list may sit below the fold.
+        // v4 V3: routines left Plan, so the tab is ready once today's day row is laid out.
+        val today = com.sinura.personaltrainer.domain.todayEpochDay(
+            nowMs = container.time.nowMillis(), time = container.time, zoneId = container.time.defaultZoneId(),
+        )
         harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(PlanTags.CONTENT).fetchSemanticsNodes().isNotEmpty() &&
                 runCatching {
                     compose.onNodeWithTag(PlanTags.CONTENT)
-                        .performScrollToNode(hasText("$PREFIX seed", substring = true))
+                        .performScrollToNode(hasTestTag(PlanTags.dayHeader(today)))
                 }.isSuccess &&
-                compose.onAllNodesWithTag(PlanTags.ROUTINES).fetchSemanticsNodes().isNotEmpty() &&
-                compose.onAllNodesWithText("$PREFIX seed", substring = true).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag(PlanTags.dayHeader(today)).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(PlanTags.CONTENT).performScrollToIndex(0)
         compose.waitForIdle()

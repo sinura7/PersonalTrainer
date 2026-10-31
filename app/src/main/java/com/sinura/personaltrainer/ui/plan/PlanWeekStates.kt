@@ -41,9 +41,9 @@ internal object PlanWeekState {
 
 /** Loading: the header stays, rows are skeletons. */
 @Composable
-internal fun PlanWeekLoading(onOpenLibrary: () -> Unit, onOpenStartSheet: () -> Unit) {
+internal fun PlanWeekLoading(onOpenRoutines: () -> Unit, onOpenStartSheet: () -> Unit) {
     Column(modifier = Modifier.testTag(PlanWeekTags.LOADING)) {
-        PlanHeader(onOpenLibrary = onOpenLibrary, onOpenStartSheet = onOpenStartSheet)
+        PlanHeader(onOpenRoutines = onOpenRoutines, onOpenStartSheet = onOpenStartSheet)
         ScreenSkeleton(cards = 4)
     }
 }

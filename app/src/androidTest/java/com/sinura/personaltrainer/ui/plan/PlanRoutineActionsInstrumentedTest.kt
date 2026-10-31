@@ -31,6 +31,7 @@ import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
 import com.sinura.personaltrainer.ui.home.HomeTags
 import com.sinura.personaltrainer.ui.routines.RoutineEditorTags
+import com.sinura.personaltrainer.ui.routines.RoutinesTags
 import com.sinura.personaltrainer.ui.workout.NativeWorkoutFixtureEnvironment
 import java.io.FileInputStream
 import java.util.UUID
@@ -102,7 +103,7 @@ class PlanRoutineActionsInstrumentedTest {
         compose.onNode(hasSetTextAction() and hasText(routine.name)).performTextReplacement(renamed)
         tap(RoutineEditorTags.SAVE)
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithTag(PlanTags.CONTENT).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag(RoutinesTags.CONTENT).fetchSemanticsNodes().isNotEmpty()
         }
         assertEquals(renamed, read { container.routineRepository.getById(routine.id) }?.name)
         assertEquals(otherBefore, read { container.routineRepository.getById(other.id) })
@@ -112,7 +113,7 @@ class PlanRoutineActionsInstrumentedTest {
     }
 
     @Test fun equalTimeUpActionChangesHomeAndPlanOrderWithoutChangingHistory() {
-        val today = java.time.LocalDate.now().toEpochDay()
+        val today = screenToday()
         val ownedRules = read { container.plannerRepository.rules().filter { it.routineId in setOf(routine.id, other.id) }.map { it.id } }
         val before = read { container.plannerRepository.occurrencesBetween(today, today).filter { it.ruleId in ownedRules } }
         assertEquals(2, before.size)
@@ -177,10 +178,10 @@ class PlanRoutineActionsInstrumentedTest {
 
     @Test
     fun weeklyRemoveExplainsScopeAndKeepsRoutineAndCapturedWorkout() {
-        openRoutines()
-        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.dayAdd(java.time.LocalDate.now().toEpochDay())))
-        tap(PlanTags.dayAdd(java.time.LocalDate.now().toEpochDay()))
-        val weekday = Weekday.fromEpochDay(java.time.LocalDate.now().toEpochDay())
+        openPlan()
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.dayAdd(screenToday())))
+        tap(PlanTags.dayAdd(screenToday()))
+        val weekday = Weekday.fromEpochDay(screenToday())
         compose.onNodeWithText(com.sinura.personaltrainer.domain.PlanDayCopy.addScope(weekday)).assertIsDisplayed()
         capture("plan-weekly-add-scope-font20")
         compose.onNodeWithTag(PickerHeaderTags.CANCEL).performScrollTo()
@@ -215,7 +216,7 @@ class PlanRoutineActionsInstrumentedTest {
 
     @Test
     fun workoutAddDuplicateTouchSavesOnceAndReturnsFromItsExactRoutineEditor() {
-        openRoutines()
+        openPlan()
         val added = read {
             val created = container.routineRepository.create("Plan recovery ${UUID.randomUUID().toString().take(8)}")
             extraRoutineIds += created.id
@@ -224,9 +225,9 @@ class PlanRoutineActionsInstrumentedTest {
         }
         val historyBefore = history()
         val slotsBefore = read { container.scheduleRepository.slots() }
-        val today = java.time.LocalDate.now().toEpochDay()
-        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.dayAdd(java.time.LocalDate.now().toEpochDay())))
-        tap(PlanTags.dayAdd(java.time.LocalDate.now().toEpochDay()))
+        val today = screenToday()
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.dayAdd(screenToday())))
+        tap(PlanTags.dayAdd(screenToday()))
         compose.onNodeWithText(com.sinura.personaltrainer.domain.PlanDayCopy.WORKOUT).performScrollTo()
             .performTouchInput { click(center) }
         compose.waitForIdle()
@@ -272,7 +273,12 @@ class PlanRoutineActionsInstrumentedTest {
         assertEquals(historyBefore, history())
     }
 
-    private fun openRoutines() {
+    /** The civil day the screen itself uses (AppNav's rememberTodayEpochDay over container.time). */
+    private fun screenToday(): Long = com.sinura.personaltrainer.domain.todayEpochDay(
+        nowMs = container.time.nowMillis(), time = container.time, zoneId = container.time.defaultZoneId(),
+    )
+
+    private fun openPlan() {
         compose.waitUntil(15_000) {
             compose.onAllNodesWithTag("navigation-routines").fetchSemanticsNodes().isNotEmpty()
         }
@@ -280,18 +286,27 @@ class PlanRoutineActionsInstrumentedTest {
         compose.waitUntil(15_000) {
             compose.onAllNodesWithTag(PlanTags.CONTENT).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.ROUTINES))
-        val heading = compose.onNodeWithTag(PlanTags.ROUTINES).assertIsDisplayed().fetchSemanticsNode()
-        assertTrue("routines are directly visible without a disclosure action",
+        compose.onNodeWithTag(PlanTags.ROUTINES).assertDoesNotExist()
+    }
+
+    private fun openRoutines() {
+        openPlan()
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.ROUTINES_ENTRY))
+        tap(PlanTags.ROUTINES_ENTRY)
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag(RoutinesTags.CONTENT).fetchSemanticsNodes().isNotEmpty()
+        }
+        val heading = compose.onNodeWithTag(PlanTags.ROUTINES, useUnmergedTree = true).assertIsDisplayed().fetchSemanticsNode()
+        assertTrue("the Routines heading is not a disclosure action",
             !heading.config.contains(SemanticsActions.OnClick))
         compose.onNodeWithText("Show routines").assertDoesNotExist()
-        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.routine(routine.id)))
+        compose.onNodeWithTag(RoutinesTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.routine(routine.id)))
         compose.onNodeWithTag(PlanTags.routine(routine.id)).performScrollTo().assertIsDisplayed()
         compose.waitForIdle()
     }
 
     private fun options(id: String) {
-        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.routineOptions(id)))
+        compose.onNodeWithTag(RoutinesTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.routineOptions(id)))
         val button = compose.onNodeWithTag(PlanTags.routineOptions(id)).performScrollTo().assertIsDisplayed()
         val node = button.fetchSemanticsNode()
         assertEquals(2f, node.layoutInfo.density.fontScale, .001f)
@@ -325,12 +340,12 @@ class PlanRoutineActionsInstrumentedTest {
         savedId = session.id
         container.workoutRepository.logSet(session.id, exercise.id, 72.5, 9, 8, false)
         container.workoutRepository.finishSession(session.id, "Synthetic preserved result")
-        val weekday = Weekday.fromEpochDay(java.time.LocalDate.now().toEpochDay())
+        val weekday = Weekday.fromEpochDay(screenToday())
         container.scheduleRepository.pin(routine.id, null, weekday)
         container.scheduleRepository.pin(other.id, null, weekday)
         container.plannerRepository.publishPinnedWeek(
             container.preferencesRepository.schedulePreferences.first().weekStart,
-            java.time.LocalDate.now().toEpochDay(),
+            screenToday(),
         )
     }
 

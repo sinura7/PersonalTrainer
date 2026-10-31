@@ -156,6 +156,8 @@ class LibraryWorkflowInstrumentedTest {
         if (phase == "picker-week") { weekPickerJourney(); return }
         if (phase == "picker") { pickerJourney(); return }
         if (phase.startsWith("picker-create")) { pickerCreateJourney(); return }
+        awaitTag(PlanTags.ROUTINES_ENTRY)
+        tap(PlanTags.ROUTINES_ENTRY)
         tap(PlanTags.LIBRARY)
         awaitTag(LibraryTags.SEARCH)
         val lift = "ex-incline-dumbbell-bench-press"
@@ -240,6 +242,8 @@ class LibraryWorkflowInstrumentedTest {
 
     private fun pickerJourney() {
         val routine = checkNotNull(fixture.ownedRoutine)
+        awaitTag(PlanTags.ROUTINES_ENTRY)
+        tap(PlanTags.ROUTINES_ENTRY)
         scrollTo(PlanTags.routine(routine))
         tap(PlanTags.routine(routine))
         awaitTag(RoutineEditorTags.ADD_LIFTS)
@@ -291,6 +295,8 @@ class LibraryWorkflowInstrumentedTest {
         val rawName = "  Synthetic P10 owned press  "
         val rawNotes = "  Exact synthetic notes  "
         val owner = DraftOwner(DraftForm.ROUTINE, "lifts:$routine")
+        awaitTag(PlanTags.ROUTINES_ENTRY)
+        tap(PlanTags.ROUTINES_ENTRY)
         scrollTo(PlanTags.routine(routine)); tap(PlanTags.routine(routine))
         awaitTag(RoutineEditorTags.ADD_LIFTS); scrollTo(RoutineEditorTags.ADD_LIFTS); tap(RoutineEditorTags.ADD_LIFTS)
         awaitTag("picker-search")
