@@ -869,7 +869,8 @@ class HomeStartAdmissionRenderTest {
 
     private fun openRoutinePage() {
         boardNode(HomeTags.START).performClick()
-        reachable(compose.onNodeWithTag(StartTags.START_TITLE)).performClick()
+        // Blueprint 3.1: routines sit on the chooser itself, no routine page to open.
+        reachable(compose.onNodeWithTag(StartTags.START_TITLE)).assertIsDisplayed()
         reachable(compose.onNodeWithTag(StartTags.routine(routineId))).assertIsEnabled()
     }
 

@@ -2,6 +2,13 @@ package com.sinura.personaltrainer.ui.workout
 
 import com.sinura.personaltrainer.ui.start.StartOptionsViewModel
 import android.app.Application
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import com.sinura.personaltrainer.ui.home.HomeViewModel
+import com.sinura.personaltrainer.ui.start.startGateFor
+import com.sinura.personaltrainer.ui.start.StartChooserHost
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +67,7 @@ class StartOptionsRoutineCardRenderTest {
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<StartOptionsViewModel>()
     private val started = mutableListOf<String>()
+    private val gates = mutableListOf<HomeViewModel>()
 
     @Before
     fun setUp() {
@@ -69,34 +77,48 @@ class StartOptionsRoutineCardRenderTest {
 
     @After
     fun tearDown() {
-        runBlocking { viewModels.forEach { it.clearAndJoinForTest() } }
+        runBlocking { viewModels.forEach { it.clearAndJoinForTest() }; gates.forEach { it.clearAndJoinForTest() } }
         viewModels.clear()
         deps.close()
         Dispatchers.resetMain()
     }
 
+    /** Blueprint 3.1: a plain row names the routine and its lift count; the preview carries its lifts and kit. */
     @Test
-    fun aRoutineCardNamesTheWorkItsKitAndItsLiftsInOrder() {
+    fun aRoutineRowNamesTheWorkAndItsLiftCountAndThePreviewListsItsLiftsInOrder() {
         showSheet()
         val texts = card().mergedTexts()
         assertTrue("was $texts", ROUTINE in texts)
-        assertTrue("four lifts of three sets, was $texts", "12" in texts)
-        assertTrue("was $texts", RoutineCardCopy.mix(LIFTS.map { it.third }) in texts)
-        assertTrue("was $texts", SessionOrderCopy.numberedPreview(LIFTS.map { it.second }) in texts)
+        assertTrue("four lifts, was $texts", "${LIFTS.size} lifts" in texts)
+        card().performClick()
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { compose.isDisplayed(hasTestTag(WorkoutPreviewTags.ROOT)) }
+        val lifts = compose.onAllNodesWithTag(WorkoutPreviewTags.LIFT).fetchSemanticsNodes()
+        assertEquals("the preview shows every lift", LIFTS.size, lifts.size)
+        val tops = LIFTS.map { (_, name, _) ->
+            compose.onNode(hasText(name) and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.LIFT))).fetchSemanticsNode().positionInRoot.y
+        }
+        assertEquals("lifts appear in routine order", tops.sorted(), tops)
     }
 
+    /** Blueprint 3.1 rows carry no stills; the preview pictures every lift instead of three. */
     @Test
-    fun aRoutineCardShowsThreeStillsWhenItHasMoreLifts() {
+    fun aRoutineRowHasNoStillsAndThePreviewPicturesEveryLift() {
         showSheet()
-        assertEquals(RoutineCardCopy.STILL_LIMIT, compose.stillsUnder(CARD_WITHIN, ThumbSize.row).size)
-        assertTrue("the routine has more lifts than it pictures", LIFTS.size > RoutineCardCopy.STILL_LIMIT)
+        assertEquals(0, compose.stillsUnder(CARD_WITHIN, ThumbSize.row).size)
+        assertTrue("the routine has more lifts than the old card pictured", LIFTS.size > RoutineCardCopy.STILL_LIMIT)
+        card().performClick()
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { compose.isDisplayed(hasTestTag(WorkoutPreviewTags.ROOT)) }
+        assertEquals(LIFTS.size, compose.onAllNodesWithTag(WorkoutPreviewTags.LIFT).fetchSemanticsNodes().size)
     }
 
     @Test
-    fun aTapOnARoutineCardStartsThatRoutine() {
+    fun aTapOnARoutineRowOpensThePreviewAndBeginStartsThatRoutine() {
         showSheet()
         card().performClick()
-        compose.awaitThat(what = "the card started a routine", now = ::started) { started.isNotEmpty() }
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { compose.isDisplayed(hasTestTag(WorkoutPreviewTags.BEGIN)) }
+        assertTrue("the tap alone starts nothing", started.isEmpty())
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performScrollTo().performClick()
+        compose.awaitThat(what = "Begin started a routine", now = ::started) { started.isNotEmpty() }
         val session = checkNotNull(runBlocking { deps.workoutRepository.getSession(started.single()) })
         assertEquals(ROUTINE, session.routineName)
         assertEquals(LIFTS.map { it.second }, session.exercises.map { it.exercise.name })
@@ -107,12 +129,13 @@ class StartOptionsRoutineCardRenderTest {
     private fun showSheet() {
         seedRoutine()
         val vm = StartOptionsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps).also(viewModels::add)
+        val gate = startGateFor(deps).also(gates::add)
         val onStarted: (String) -> Unit = { started += it }
         var visible by mutableStateOf(true)
         compose.setContent {
             PersonalTrainerTheme {
                 if (visible) {
-                    StartOptionsSheet(onDismiss = { visible = false }, onWorkoutStarted = onStarted, viewModel = vm)
+                    StartChooserHost(gate = gate, deps = deps, onDismiss = { visible = false }, onWorkoutStarted = onStarted, options = vm)
                 }
             }
         }

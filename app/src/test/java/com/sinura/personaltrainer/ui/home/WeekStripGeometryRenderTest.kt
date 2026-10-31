@@ -442,6 +442,7 @@ class WeekStripGeometryRenderTest {
         val stored = inventory()
         tapReached(boardTo(HomeTags.START))
         expandVisibleSheet()
+        tapReached(compose.onNodeWithTag(StartTags.START_OTHER))
         tapReached(compose.onNodeWithTag(StartTags.EXTRA))
         assertPickerHeader(ExtraEquipment.PICK)
         tapReached(compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)))

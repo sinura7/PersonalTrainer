@@ -393,7 +393,7 @@ private fun GateStatus(
 }
 
 @Composable
-private fun MainPage(
+internal fun MainPage(
     state: StartOptionsUiState,
     enabled: Boolean,
     onResume: (String) -> Unit,

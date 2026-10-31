@@ -584,7 +584,7 @@ class UxWalkthroughTest {
         seedWalkthroughRoutine()
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithTag(StartTags.START_TITLE).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
         compose.onNodeWithTag(StartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
@@ -621,6 +621,7 @@ class UxWalkthroughTest {
         preparePopulatedApp()
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
         compose.onNodeWithTag(StartTags.LIVE_CARDIO).performScrollTo().performClick()
         harnessWaitUntil(15_000) {
             compose.onAllNodesWithTag(StartTags.CARDIO_PAGE).fetchSemanticsNodes().isNotEmpty()
@@ -782,7 +783,7 @@ class UxWalkthroughTest {
         seedWalkthroughRoutine()
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithTag(StartTags.START_TITLE).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
         compose.onNodeWithTag(StartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()

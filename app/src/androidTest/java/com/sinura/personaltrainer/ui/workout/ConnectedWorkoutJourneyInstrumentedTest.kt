@@ -165,7 +165,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         awaitScrollableContent()
         assertNoBlockingDialogs()
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed().performClick()
-        compose.onNodeWithTag(StartTags.START_TITLE).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
         compose.onNodeWithTag(StartTags.routine(fixture.routineId)).performScrollTo().assertIsDisplayed()
         captureWindow("home-routine")
         compose.onNodeWithTag(StartTags.routine(fixture.routineId)).performClick()
@@ -458,7 +458,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         awaitTag("navigation-home")
         awaitScrollableContent()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithTag(StartTags.START_TITLE).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
         compose.onNodeWithTag(StartTags.routine(fixture.routineId)).performScrollTo().performClick()
         awaitCondition("the routine pick opens the preview") {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
