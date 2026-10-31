@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.ui.navigation
 
 import android.app.Application
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -33,7 +35,8 @@ class LiveSessionBarRenderTest {
                 )
             }
         }
-        compose.onNodeWithTag(LiveSessionBarTestTags.PAUSED, useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag(LiveSessionBarTestTags.ELAPSED, useUnmergedTree = true)
+            .assert(SemanticsMatcher.expectValue(LiveSessionBarTestTags.PausedKey, true))
         compose.onNodeWithText("Paused, 0:42", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("0:42 elapsed", useUnmergedTree = true).assertDoesNotExist()
     }

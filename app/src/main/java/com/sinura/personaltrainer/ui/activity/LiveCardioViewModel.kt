@@ -284,7 +284,6 @@ class LiveCardioViewModel @JvmOverloads constructor(
         val now = elapsedRealtime()
         val last = lastToggleAtMs
         if (last != null && now - last < PAUSE_DEBOUNCE_MS) return
-        lastToggleAtMs = now
         ensurePersisted(live)
         val row = recoverWith(TAG, "Reading the cardio timer row", null) {
             container.cardioTimerPersistence.load()
@@ -301,6 +300,8 @@ class LiveCardioViewModel @JvmOverloads constructor(
             AppLog.w(TAG, "Cardio pause state did not commit")
             return
         }
+        // Only a committed toggle starts the debounce window; a failed save can be retried at once.
+        lastToggleAtMs = now
         paused.value = next.paused
         elapsedSeconds.value = readElapsed(live)
     }

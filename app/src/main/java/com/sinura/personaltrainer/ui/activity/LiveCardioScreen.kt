@@ -21,6 +21,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -194,14 +197,18 @@ fun LiveCardioScreen(
                     stringResource(R.string.cardio_paused_caption),
                     style = InstrumentType.caption,
                     color = TextPrimary,
-                    modifier = Modifier.testTag(CardioTags.PAUSED),
+                    modifier = Modifier
+                        .testTag(CardioTags.PAUSED)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                 )
                 if (!CardioFinishGate.isOpen(elapsedSeconds = state.elapsedSeconds)) {
                     Text(
                         text = stringResource(R.string.cardio_paused_under_minute),
                         style = InstrumentType.caption,
                         color = TextSecondary,
-                        modifier = Modifier.testTag(CardioTags.PAUSED_UNDER_MINUTE),
+                        modifier = Modifier
+                            .testTag(CardioTags.PAUSED_UNDER_MINUTE)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
                     )
                 }
             }

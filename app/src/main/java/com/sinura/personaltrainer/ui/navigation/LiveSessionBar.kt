@@ -71,7 +71,9 @@ private const val ACTION_ERROR_DWELL_MS = 6_000L
 
 object LiveSessionBarTestTags {
     const val ROOT = "live-session-bar"
-    const val PAUSED = "live-session-bar-paused"
+    /** Stable tag on the elapsed label, running or paused; [PausedKey] says which. */
+    const val ELAPSED = "live-session-elapsed"
+    val PausedKey = androidx.compose.ui.semantics.SemanticsPropertyKey<Boolean>("LiveSessionBarPaused")
 }
 
 /**
@@ -195,9 +197,9 @@ fun LiveSessionBar(
                                 } else {
                                     "${state.elapsedLabel} elapsed"
                                 },
-                                modifier = Modifier.testTag(
-                                    if (state.paused) LiveSessionBarTestTags.PAUSED else "live-session-elapsed",
-                                ),
+                                modifier = Modifier
+                                    .testTag(LiveSessionBarTestTags.ELAPSED)
+                                    .semantics { set(LiveSessionBarTestTags.PausedKey, state.paused) },
                                 style = InstrumentType.caption,
                                 color = TextSecondary,
                             )

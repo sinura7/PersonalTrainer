@@ -74,6 +74,27 @@ class LiveCardioRenderTest {
         compose.onNodeWithTag(CardioTags.PAUSED_UNDER_MINUTE).assertDoesNotExist()
     }
 
+    @Test
+    fun runningAtTwentySecondsShowsNoResumeCue(): Unit = runBlocking {
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val id = (started as ActivityWrite.Accepted).session.id
+        deps.cardioTimerPersistence.clear()
+        val clock = TestCardioClock(now.instantMillis)
+        val vm = LiveCardioViewModel(
+            application = ApplicationProvider.getApplicationContext(),
+            savedStateHandle = SavedStateHandle(mapOf("sessionId" to id)),
+            container = deps,
+            elapsedRealtime = { clock.elapsedMs },
+            wallClock = { clock.wallMs },
+        ).also { viewModels += it }
+        vm.uiState.awaitFirst { it.session != null }
+        clock.advance(20_000L)
+        show(vm)
+        compose.onNodeWithTag(CardioTags.PAUSED_UNDER_MINUTE).assertDoesNotExist()
+        compose.onNodeWithText(CardioCopy.LEAVE_RUNNING).assertIsDisplayed()
+    }
+
     private suspend fun pausedAfter(seconds: Long): LiveCardioViewModel {
         val now = JvmTime.captureNow()
         val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
