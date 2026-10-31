@@ -104,7 +104,7 @@ class FrontendBaselineCaptureTest {
             compose.waitUntil(30_000) {
                 compose.onAllNodes(loaded).fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNode(loaded).assertIsDisplayed()
+            compose.onAllNodes(loaded)[0].assertIsDisplayed()
             compose.waitForIdle()
             compose.onNodeWithText("Not now").assertDoesNotExist()
             if (label == "Today") {
