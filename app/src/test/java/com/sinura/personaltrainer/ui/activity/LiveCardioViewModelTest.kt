@@ -333,6 +333,41 @@ class LiveCardioViewModelTest {
         assertEquals(70L, deps.activityRepository.get(live.id)!!.cardioBlocks.single().elapsedSeconds)
     }
 
+    private suspend fun pausable(clock: TestCardioClock? = null): Pair<LiveCardioViewModel, TestCardioClock> {
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        deps.cardioTimerPersistence.clear()
+        val c = clock ?: TestCardioClock(now.instantMillis)
+        val vm = createViewModel(sessionId = live.id, elapsedRealtime = { c.elapsedMs }, wallClock = { c.wallMs })
+        vm.uiState.awaitFirst { it.session != null }
+        c.advance(10_000L)
+        return vm to c
+    }
+
+    @Test
+    fun pauseTogglesWithin300msAreIgnored() = runBlocking {
+        val (vm, clock) = pausable()
+        vm.togglePause()
+        vm.uiState.awaitFirst { it.paused }
+        clock.advance(LiveCardioViewModel.PAUSE_DEBOUNCE_MS - 1)
+        vm.togglePause()
+        assertTrue("a second tap inside the debounce is the same press", vm.uiState.value.paused)
+        assertTrue(deps.cardioTimerPersistence.load()!!.paused)
+    }
+
+    @Test
+    fun pauseAfter300msIsAccepted() = runBlocking {
+        val (vm, clock) = pausable()
+        vm.togglePause()
+        vm.uiState.awaitFirst { it.paused }
+        clock.advance(LiveCardioViewModel.PAUSE_DEBOUNCE_MS)
+        vm.togglePause()
+        assertFalse(vm.uiState.awaitFirst { !it.paused }.paused)
+        assertFalse(deps.cardioTimerPersistence.load()!!.paused)
+    }
+
     private fun createViewModel(
         sessionId: String,
         elapsedRealtime: () -> Long = { 0L },

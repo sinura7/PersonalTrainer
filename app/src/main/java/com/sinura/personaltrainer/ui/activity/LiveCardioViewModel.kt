@@ -76,6 +76,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
     private val finished = MutableStateFlow(false)
     private val failed = MutableStateFlow(false)
     private val elapsedSeconds = MutableStateFlow(0L)
+    private var lastToggleAtMs: Long? = null
 
     // The three inputs the owner can change while the clock runs. Mirrored into
     // SavedStateHandle on every change: the Room row holds what the session started as, and
@@ -279,6 +280,10 @@ class LiveCardioViewModel @JvmOverloads constructor(
     fun togglePause() {
         val live = session.value ?: return
         if (finishing.value) return
+        // v4 V1b: a double tap inside PAUSE_DEBOUNCE_MS is one press, not pause then resume.
+        val now = elapsedRealtime()
+        val last = lastToggleAtMs
+        if (last != null && now - last < PAUSE_DEBOUNCE_MS) return
         ensurePersisted(live)
         val row = recoverWith(TAG, "Reading the cardio timer row", null) {
             container.cardioTimerPersistence.load()
@@ -295,6 +300,8 @@ class LiveCardioViewModel @JvmOverloads constructor(
             AppLog.w(TAG, "Cardio pause state did not commit")
             return
         }
+        // Only a committed toggle starts the debounce window; a failed save can be retried at once.
+        lastToggleAtMs = now
         paused.value = next.paused
         elapsedSeconds.value = readElapsed(live)
     }
@@ -433,7 +440,10 @@ class LiveCardioViewModel @JvmOverloads constructor(
         val elapsedSeconds: Long,
     )
 
-    private companion object {
-        const val TAG = "PT/LiveCardio"
+    companion object {
+        private const val TAG = "PT/LiveCardio"
+
+        /** v4 V1b: pause toggles closer together than this are ignored. */
+        const val PAUSE_DEBOUNCE_MS = 300L
     }
 }
