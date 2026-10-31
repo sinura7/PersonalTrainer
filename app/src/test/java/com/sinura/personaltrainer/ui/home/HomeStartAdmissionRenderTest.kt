@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.home
 
+import androidx.compose.ui.test.onFirst
 import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
 import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
@@ -489,6 +490,10 @@ class HomeStartAdmissionRenderTest {
         assertTrue(openedSessions.isEmpty())
         assertEquals(before, inventory())
         compose.onNodeWithTag(StartTags.routine(routineId)).assertDoesNotExist()
+        // V2: Cancel leaves the chooser; the fresh kind choice is made on a reopened chooser.
+        compose.onNodeWithTag(StartTags.SHEET).assertDoesNotExist()
+        boardNode(HomeTags.START).performClick()
+        compose.settle()
         val free = enabledClick(StartTags.START_EMPTY)
         capture("idle-cancel-fresh-kind")
         compose.runOnUiThread { free() }
@@ -1106,7 +1111,9 @@ class HomeStartAdmissionRenderTest {
             HomeStartTags.ERROR -> StartTags.START_ERROR
             else -> StartTags.START_RETRY
         }
-        return compose.onNode(hasTestTag(homeTag) or hasTestTag(chooserTag))
+        // During a blocker decision both the chooser line and the blocker dialog show it; the dialog's is first-class.
+        val dialog = compose.onAllNodes(hasTestTag(homeTag)).fetchSemanticsNodes()
+        return if (dialog.isNotEmpty()) compose.onAllNodes(hasTestTag(homeTag)).onFirst() else compose.onNodeWithTag(chooserTag)
     }
 
 }
