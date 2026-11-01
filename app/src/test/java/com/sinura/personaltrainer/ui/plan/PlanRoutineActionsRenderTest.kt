@@ -129,8 +129,8 @@ class PlanRoutineActionsRenderTest {
     fun upNextFocusScrollsToTheWeeksLastDayOnce() {
         val sunday = today + 3
         focus = sunday
-        show()
-        compose.awaitThat("actual Plan loaded", vm.uiState::value) { !vm.uiState.value.isLoading }
+        // Reaching the header would scroll away from the focused day.
+        show(reachHeader = false)
         compose.awaitThat("focus handled", { focusHandled }) { focusHandled > 0 }
         compose.waitForIdle()
         compose.onNodeWithTag(PlanTags.day(sunday)).assertIsDisplayed()
@@ -203,7 +203,7 @@ class PlanRoutineActionsRenderTest {
         assertEquals("read-only cardio projection and navigation preserve every stored row", before, inventory())
     }
 
-    private fun show(rtl: Boolean = false) {
+    private fun show(rtl: Boolean = false, reachHeader: Boolean = true) {
         val insights = flow {
             emitAll(deps.routineRepository.observeAll().map { TrainingInsights(routines = it) })
         }
@@ -291,7 +291,7 @@ class PlanRoutineActionsRenderTest {
         // v4 V3: routines left Plan; the header carries one Routines entry instead.
         compose.onNodeWithTag(PlanTags.ROUTINES).assertDoesNotExist()
         compose.onNodeWithTag(PlanTags.routine(fixture.routine.id)).assertDoesNotExist()
-        reach(PlanTags.ROUTINES_ENTRY).assertIsDisplayed()
+        if (reachHeader) reach(PlanTags.ROUTINES_ENTRY).assertIsDisplayed()
         compose.settle()
     }
 
