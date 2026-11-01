@@ -12,17 +12,26 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SummaryHeadline
+import com.sinura.personaltrainer.domain.TrainingInsights
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -39,7 +48,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import kotlin.coroutines.CoroutineContext
 
 /**
  * Summary reads on entry and after a matching acknowledged correction.
@@ -586,6 +594,53 @@ class WorkoutSummaryViewModelTest {
         assertFalse(after.savedConfirmed)
         assertFalse(after.summary.hasWork)
     }
+
+    @Test
+    fun aFailedPlanReadHidesUpNextInsteadOfClaimingNothingIsPlanned() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        val vm = createViewModel(fixture.session.id, container = withInsights(flowOf(DataHealth.Unavailable("the plan"))))
+
+        vm.uiState.awaitFirst { !it.isLoading }
+        delayUntilIdle()
+        assertNull(vm.uiState.value.upNext)
+    }
+
+    @Test
+    fun afterTheWeekEndsUpNextFallsBackToNextWeeksRuleAndNeverCountsToday() = runBlocking {
+        val today = JvmTime.captureNow().localEpochDay
+        deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        val noPlan = deps.trainingInsights.observeShared().first().copy(weekPlan = null)
+        val vm = createViewModel(fixture.session.id, container = withInsights(flowOf(DataHealth.Available(noPlan))))
+
+        val upNext = vm.uiState.awaitFirst { it.upNext != null }.upNext
+        // Today's own rule is next week's day, a week out.
+        assertEquals(today + 7, upNext?.epochDay)
+    }
+
+    @Test
+    fun upNextStartsTomorrow() = runBlocking {
+        val today = JvmTime.captureNow().localEpochDay
+        deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
+        deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today + 1), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        val noPlan = deps.trainingInsights.observeShared().first().copy(weekPlan = null)
+        val vm = createViewModel(fixture.session.id, container = withInsights(flowOf(DataHealth.Available(noPlan))))
+
+        assertEquals(today + 1, vm.uiState.awaitFirst { it.upNext != null }.upNext?.epochDay)
+    }
+
+    private fun withInsights(health: Flow<DataHealth<TrainingInsights>>): AppDependencies {
+        val real = deps.trainingInsights
+        return object : AppDependencies by deps {
+            override val trainingInsights: TrainingInsightsPublisher = object : TrainingInsightsPublisher by real {
+                override fun observeSharedHealth(includeWeekPlan: Boolean): Flow<DataHealth<TrainingInsights>> = health
+            }
+        }
+    }
+
+    /** Lets the one-shot Up next read finish on the unconfined test Main. */
+    private fun delayUntilIdle() { dispatcher.scheduler.advanceUntilIdle() }
 
     private fun createViewModel(
         sessionId: String,

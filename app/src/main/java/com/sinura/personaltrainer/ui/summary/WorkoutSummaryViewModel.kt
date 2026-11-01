@@ -7,22 +7,24 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
-import com.sinura.personaltrainer.ui.workout.ProgressionHintLoader
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.ui.workout.ProgressionHintLoader
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -101,19 +103,35 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
     private fun loadUpNext() {
         val today = todayEpochDay()
         viewModelScope.launch {
-            val plan = runCatchingCancellable {
-                container.trainingInsights.observeShared().first().weekPlan
-            }.getOrElse { thrown ->
+            val upNext = runCatchingCancellable { readUpNext(today) }.getOrElse { thrown ->
                 AppLog.w(TAG, "Reading the plan for Up next failed", thrown)
-                return@launch
-            }
-            val next = plan?.nextTrainingOnOrAfter(today + 1)
-            val upNext = SummaryUpNext(
-                epochDay = next?.epochDay,
-                routineName = next?.let { it.routineName ?: it.focusTitle },
-            )
+                null
+            } ?: return@launch
             _uiState.update { it.copy(upNext = upNext, todayEpochDay = today) }
         }
+    }
+
+    /**
+     * Null hides the row: a plan that could not be read must never claim "nothing planned".
+     * On the week's last day the current plan has nothing after today, so the enabled weekly
+     * rules supply the next week's first day.
+     */
+    private suspend fun readUpNext(today: Long): SummaryUpNext? {
+        val health = container.trainingInsights.observeSharedHealth().first()
+        val plan = (health as? DataHealth.Available)?.value?.weekPlan
+        val next = plan?.nextTrainingOnOrAfter(today + 1)
+        if (next != null) {
+            return SummaryUpNext(epochDay = next.epochDay, routineName = next.routineName ?: next.focusTitle)
+        }
+        if (health !is DataHealth.Available) return null
+        val weekEnds = plan?.days?.maxOfOrNull { it.epochDay }
+        if (weekEnds != null && weekEnds > today) return SummaryUpNext(epochDay = null, routineName = null)
+        val rules = container.plannerRepository.rules().filter { it.enabled }
+        val day = (today + 1..today + 7).firstOrNull { d -> rules.any { it.weekday == Weekday.fromEpochDay(d) } }
+            ?: return SummaryUpNext(epochDay = null, routineName = null)
+        val rule = rules.filter { it.weekday == Weekday.fromEpochDay(day) }.minBy { it.minutesOfDay }
+        val name = rule.routineId?.let { container.routineRepository.getById(it)?.name }
+        return SummaryUpNext(epochDay = day, routineName = name)
     }
 
     /** Re-read after a failed load. A no-op unless the last read actually threw. */

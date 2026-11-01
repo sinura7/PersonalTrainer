@@ -107,6 +107,8 @@ class PlanRoutineActionsRenderTest {
     private val openedDays = mutableListOf<Pair<Long, Boolean>>()
     private val runId = UUID.randomUUID().toString()
     private val today = LocalDate.of(2026, 12, 31).toEpochDay()
+    private var focus: Long? = null
+    private var focusHandled = 0
     private var profile = "interaction"
 
     @Before fun setUp() { Dispatchers.setMain(UnconfinedTestDispatcher()) }
@@ -120,6 +122,19 @@ class PlanRoutineActionsRenderTest {
             }
         }
         finally { if (::deps.isInitialized) deps.close(); Dispatchers.resetMain() }
+    }
+
+    /** v4 V6: Summary's Up next opens Plan on its day; the last row is scrolled into view, once. */
+    @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
+    fun upNextFocusScrollsToTheWeeksLastDayOnce() {
+        val sunday = today + 3
+        focus = sunday
+        show()
+        compose.awaitThat("actual Plan loaded", vm.uiState::value) { !vm.uiState.value.isLoading }
+        compose.awaitThat("focus handled", { focusHandled }) { focusHandled > 0 }
+        compose.waitForIdle()
+        compose.onNodeWithTag(PlanTags.day(sunday)).assertIsDisplayed()
+        assertEquals(1, focusHandled)
     }
 
     @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 1f)
@@ -263,6 +278,8 @@ class PlanRoutineActionsRenderTest {
                             onOpenRoutine = { opened += it }, onOpenRoutines = { route.value = "routines" },
                             onOpenDay = { epochDay, add -> openedDays += epochDay to add },
                             viewModel = vm,
+                            focusDay = focus,
+                            onFocusDayHandled = { focusHandled++ },
                         )
                     }
                 }

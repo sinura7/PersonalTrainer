@@ -313,6 +313,8 @@ fun PlanScreen(
             1
         LaunchedEffect(focusDay, cells) {
             val day = focusDay ?: return@LaunchedEffect
+            // Wait for the week to load: handling it against no rows would drop the focus.
+            if (cells.isEmpty()) return@LaunchedEffect
             val row = cells.indexOfFirst { it.epochDay == day }
             if (row >= 0) listState.scrollToItem(dayRowsStart + row)
             onFocusDayHandled()
