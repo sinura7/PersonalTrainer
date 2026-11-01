@@ -307,6 +307,6 @@
     <string name="body_bodyweight_latest">%1$s %2$s on %3$s</string>
     <string name="body_bodyweight_change">%1$s %2$s since %3$s</string>
     <string name="body_record_line">%1$s %2$s × %3$d · %4$s · %5$s</string>
-    <string name="body_volume_spoken">%1$s, %2$d sets this week, %3$d over 8 weeks</string>
+    <string name="body_volume_spoken">%1$s working sets. This week: %2$d. Last 8 weeks: %3$d.</string>
     <string name="history_records_on_body">See records on Body</string>
 </resources>
