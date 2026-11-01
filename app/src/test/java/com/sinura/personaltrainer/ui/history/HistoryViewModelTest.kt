@@ -240,27 +240,6 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun recordsComeFromTheWholeLogNotTheLastMonth() = runBlocking {
-        deps = FakeAppDependencies(
-            context = ApplicationProvider.getApplicationContext(),
-            scheduler = dispatcher,
-        )
-        val bench = insertTestExercise(deps = deps, id = "bench", name = "Bench", muscleGroup = "Chest")
-        val now = System.currentTimeMillis()
-        insertFinishedSession(id = "old", at = now - 60 * DAY, exerciseId = bench.id, weightKg = 120.0)
-        insertFinishedSession(id = "recent", at = now - DAY, exerciseId = bench.id, weightKg = 100.0)
-
-        viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val state = withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.records.isNotEmpty() } }
-
-        val record = state.records.single()
-        assertEquals(bench.id, record.exerciseId)
-        assertEquals("Bench", record.exerciseName)
-        assertEquals(120.0, record.valueKg, 0.0)
-        assertEquals(now - 60 * DAY, record.achievedAt)
-    }
-
-    @Test
     fun aSidecarReadFailureMarksThePageStaleInsteadOfVanishing() {
         val unread = sidecarFromHealth<String>(DataHealth.Unavailable("activity records"))
         assertTrue(unread.stale)

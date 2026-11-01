@@ -296,4 +296,23 @@
     <string name="session_step_down">−</string>
     <string name="session_step_up">+</string>
     <string name="session_set_save_failed">Could not save that set. Try again.</string>
+    <!-- v4 V7 Body trends -->
+    <string name="body_trend_bodyweight">Bodyweight</string>
+    <string name="body_trend_records">Records</string>
+    <string name="body_trend_volume">Weekly sets per muscle</string>
+    <string name="body_no_bodyweight">No bodyweight logged yet.</string>
+    <string name="body_log_weight">Log weight</string>
+    <string name="body_log_weight_helper">Same as the weekly check-in. One a day is kept, the last one you type.</string>
+    <string name="body_read_failed">Could not read this. Nothing was lost.</string>
+    <string name="body_read_stale">Showing the last good read. It may be out of date.</string>
+    <string name="body_retry">Retry</string>
+    <string name="body_record_e1rm">Est. 1RM %1$s %2$s from %3$s %2$s × %4$d · %5$s</string>
+    <string name="body_no_records">No records yet.</string>
+    <string name="body_no_volume">No working sets in the last 8 weeks.</string>
+    <string name="body_all_records">All records (%1$d)</string>
+    <string name="body_bodyweight_latest">%1$s %2$s on %3$s</string>
+    <string name="body_bodyweight_change">%1$s %2$s since %3$s</string>
+    <string name="body_record_line">%1$s %2$s × %3$d · %4$s · %5$s</string>
+    <string name="body_volume_spoken">%1$s working sets. This week: %2$d. Last 8 weeks: %3$d.</string>
+    <string name="history_records_on_body">See records on Body</string>
 </resources>

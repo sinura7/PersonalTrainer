@@ -329,7 +329,7 @@ class HistoryPeriodContinuityInstrumentedTest {
         receipt(expected(AnalyticsHorizon.ALL_TIME, old))
         compose.onNodeWithTag(HistoryTags.PREVIOUS).assertDoesNotExist()
         compose.onNodeWithTag(HistoryTags.NEXT).assertDoesNotExist()
-        choose(HistoryTags.LIFETIME_RECORDS)
+        choose(HistoryTags.LIFETIME_BLOCKS)
         awaitTag(HistoryTags.SECONDARY_CLOSE)
         compose.onNodeWithTag(HistoryTags.SECONDARY_CLOSE).performClick()
         receipt(expected(AnalyticsHorizon.ALL_TIME, old))

@@ -88,6 +88,7 @@ import com.sinura.personaltrainer.ui.onboarding.CATALOG_MISSING_MESSAGE
 import com.sinura.personaltrainer.ui.onboarding.OnboardingTags
 import com.sinura.personaltrainer.ui.plan.PlanTags
 import com.sinura.personaltrainer.ui.progress.BodyTags
+import com.sinura.personaltrainer.ui.progress.BodyTrendTags
 import com.sinura.personaltrainer.ui.settings.SettingsTags
 import com.sinura.personaltrainer.ui.summary.SummaryTags
 import com.sinura.personaltrainer.ui.workout.NativeWorkoutFixtureEnvironment
@@ -777,6 +778,12 @@ class UxWalkthroughTest {
 
     private fun flowBodyMapAndMeasurements() {
         preparePopulatedApp()
+        // V7 nit 9: a populated bodyweight line, through the check-in's own write. Removed below.
+        val today = java.time.LocalDate.now().toEpochDay()
+        val weighIns = (0L until 6L).map { today - 7L * it }
+        runBlocking(Dispatchers.IO) {
+            weighIns.forEachIndexed { i, day -> container.preferencesRepository.recordBodyweight(80.0 + 0.4 * i, day) }
+        }
         goToTab("progress")
         harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(BodyTags.MAP).fetchSemanticsNodes().isNotEmpty()
@@ -787,10 +794,20 @@ class UxWalkthroughTest {
             compose.waitForIdle()
             shot("body-muscles")
         }
+        // V7: each Body trend card must render and be non-blank (shot asserts visible content).
+        for ((tag, label) in listOf(
+            BodyTrendTags.BODYWEIGHT to "v4_body_trends-bodyweight",
+            BodyTrendTags.RECORDS to "v4_body_trends-records",
+            BodyTrendTags.VOLUME to "v4_body_trends-volume",
+        )) {
+            scrollBodyListTo(tag)
+            shot(label, composeCaptureTag = tag)
+        }
         goToTab("settings")
         openSettingsRow(SettingsHomeCopy.BODYWEIGHT)
         shot("bodyweight-measurements")
         pressBackToSettingsHome()
+        runBlocking(Dispatchers.IO) { weighIns.forEach { container.preferencesRepository.deleteBodyweightDay(it) } }
     }
 
     private fun flowSettingsUnitsAndBackup() {
@@ -1188,6 +1205,24 @@ class UxWalkthroughTest {
                     .performScrollToNode(hasText(text))
             }.isSuccess || compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    /** Brings a Body trend card on screen. The Progress list is lazy, so scroll the list itself. */
+    private fun scrollBodyListTo(tag: String) {
+        val scrollables = SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)
+        harnessWaitUntil(30_000) {
+            val count = compose.onAllNodes(scrollables).fetchSemanticsNodes().size
+            (0 until count).any { index ->
+                runCatching {
+                    compose.onAllNodes(scrollables)[index].performScrollToNode(hasTestTag(tag))
+                }.isSuccess
+            }
+        }
+        compose.waitForIdle()
+        harnessWaitUntil(10_000) {
+            runCatching { compose.onNodeWithTag(tag).assertIsDisplayed() }.isSuccess
+        }
+        compose.onNodeWithTag(tag).assertIsDisplayed()
     }
 
     private fun scrollToTag(tag: String) {

@@ -25,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -601,6 +602,106 @@ class SessionDetailViewModelTest {
         // The delete's renumber may rewrite the other set; the deleted one is never written.
         assertFalse(target.id in writes)
         assertTrue(vm.inlinePendingIds.value.isEmpty())
+    }
+
+    @Test
+    fun aFailedDeleteKeepsThePendingNudge(): Unit = runBlocking {
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            workoutDaoDecorator = { real ->
+                object : WorkoutDao by real {
+                    override suspend fun deleteSet(id: String): Unit = error("disk full")
+                }
+            },
+        )
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)))
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first()
+
+        vm.nudgeSet(target, 120.0, 5)
+        vm.deleteSet(target.id)
+        assertEquals("Could not delete that set. Try again.", vm.error.awaitFirst { it != null })
+
+        // The set survived, so the nudge is still owed and the next flush writes it.
+        assertEquals(setOf(target.id), vm.inlinePendingIds.value)
+        vm.flushInlineEdits()
+        awaitSession(fixture.id) { s -> s.sets.any { it.id == target.id && it.weightKg == 120.0 } }
+        vm.inlinePendingIds.awaitFirst { it.isEmpty() }
+    }
+
+    @Test
+    fun aNudgeStaysPendingUntilUpdateSetReturns(): Unit = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            workoutDaoDecorator = { real ->
+                object : WorkoutDao by real {
+                    override suspend fun updateSet(set: com.sinura.personaltrainer.data.local.entity.SetLogEntity) {
+                        gate.await()
+                        real.updateSet(set)
+                    }
+                }
+            },
+        )
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)))
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first()
+
+        vm.nudgeSet(target, 110.0, 5)
+        vm.flushInlineEdits()
+        dispatcher.scheduler.runCurrent()
+        assertEquals(setOf(target.id), vm.inlinePendingIds.value)
+
+        gate.complete(Unit)
+        awaitSession(fixture.id) { s -> s.sets.any { it.id == target.id && it.weightKg == 110.0 } }
+        vm.inlinePendingIds.awaitFirst { it.isEmpty() }
+    }
+
+    @Test
+    fun aWriteThatFailsAfterItsSetWasDeletedReportsNothing(): Unit = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            workoutDaoDecorator = { real ->
+                object : WorkoutDao by real {
+                    override suspend fun updateSet(set: com.sinura.personaltrainer.data.local.entity.SetLogEntity) {
+                        gate.await()
+                        error("disk full")
+                    }
+                }
+            },
+        )
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)))
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first()
+
+        vm.nudgeSet(target, 110.0, 5)
+        vm.flushInlineEdits()
+        dispatcher.scheduler.runCurrent()
+        // Writes are serialized, so a real delete queues behind this write. Stand in for the
+        // delete's dropInline landing first: the nudge leaves inlinePending while the write runs.
+        val pending = SessionDetailViewModel::class.java.getDeclaredField("inlinePending")
+            .apply { isAccessible = true }.get(vm) as MutableMap<*, *>
+        pending.remove(target.id)
+        assertTrue(pending.isEmpty())
+
+        gate.complete(Unit)
+        repeat(5) {
+            dispatcher.scheduler.advanceTimeBy(200)
+            dispatcher.scheduler.runCurrent()
+            kotlinx.coroutines.delay(20)
+        }
+        // The nudge was dropped with its set, so its failed write is not the user's problem.
+        assertEquals(null, vm.error.value)
     }
 
     @Test

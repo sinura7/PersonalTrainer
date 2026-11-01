@@ -59,7 +59,6 @@ class HistoryStaleRetryTest {
             PersonalTrainerTheme {
                 HistoryScreen(
                     onOpenSession = {},
-                    onOpenExercise = {},
                     onOpenActiveSession = {},
                     viewModel = viewModel,
                 )

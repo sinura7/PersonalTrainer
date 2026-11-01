@@ -11,7 +11,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -45,7 +44,6 @@ import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilDateTime
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -146,7 +144,6 @@ class ProductionScreensPassInstrumentedTest {
         mount(widthDp = 360, fontScale = 2f) {
             HistoryScreen(
                 onOpenSession = {},
-                onOpenExercise = {},
                 onOpenActiveSession = {},
                 viewModel = viewModel,
             )
@@ -158,16 +155,9 @@ class ProductionScreensPassInstrumentedTest {
         compose.onNodeWithTag(HistoryTags.DAY).assertIsDisplayed()
         compose.onNodeWithTag(HistoryTags.ALL).assertIsDisplayed()
 
-        // The lifetime record is the old activity's 120 kg, not the session's 100 kg (R08).
-        compose.waitUntil(15_000) {
-            viewModel.uiState.value.records.any { it.valueKg == 120.0 }
-        }
-        scrollPageTo(hasTestTag(HistoryTags.LIFETIME_RECORDS))
-        compose.onNodeWithTag(HistoryTags.LIFETIME_RECORDS).assertIsDisplayed().performClick()
-        awaitTag(HistoryTags.SECONDARY_CLOSE)
-        compose.onNode(hasText(HistoryCopy.LIFETIME_RECORDS) and
-            hasAnyAncestor(hasTestTag(HistoryTags.SECONDARY_LIST))).assertIsDisplayed()
-        compose.onNodeWithTag(HistoryTags.SECONDARY_CLOSE).assertIsDisplayed().performClick()
+        // D10: records moved to Body (ProgressViewModelTest covers the activity record); History links there.
+        scrollPageTo(hasTestTag(HistoryTags.RECORDS_ON_BODY))
+        compose.onNodeWithTag(HistoryTags.RECORDS_ON_BODY).assertIsDisplayed().assertHasClickAction()
 
         scrollPageTo(hasTestTag(SessionLogTags.ROW))
         compose.onAllNodesWithTag(SessionLogTags.ROW).onFirst().assertIsDisplayed()
@@ -180,7 +170,6 @@ class ProductionScreensPassInstrumentedTest {
         mount(widthDp = 412, fontScale = 1.3f) {
             HistoryScreen(
                 onOpenSession = {},
-                onOpenExercise = {},
                 onOpenActiveSession = {},
                 viewModel = viewModel,
             )
@@ -275,7 +264,6 @@ class ProductionScreensPassInstrumentedTest {
         mount(widthDp = 600, fontScale = 1f) {
             HistoryScreen(
                 onOpenSession = {},
-                onOpenExercise = {},
                 onOpenActiveSession = {},
                 viewModel = viewModel,
             )

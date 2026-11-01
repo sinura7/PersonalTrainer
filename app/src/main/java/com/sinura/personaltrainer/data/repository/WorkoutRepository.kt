@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.data.mapper.toHistoryStills
 import com.sinura.personaltrainer.data.mapper.toRecordSet
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
+import com.sinura.personaltrainer.data.local.dao.WorkingSetCountRow
 import com.sinura.personaltrainer.data.local.entity.ExerciseRecordPriorsRow
 import com.sinura.personaltrainer.data.local.entity.FinishedWorkContentRow
 import com.sinura.personaltrainer.domain.RecordSet
@@ -1665,6 +1666,10 @@ class WorkoutRepository(
             maxEstimatedOneRepMaxKg = maxEstimatedOneRepMaxKg,
             maxRepsAtEqualOrMoreAssistance = maxRepsAtEqualOrMoreAssistance,
         )
+
+    /** v4 V7: per-session working-set counts since [sinceMs], for Body's weekly sets per muscle. */
+    suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow> =
+        workoutDao.workingSetCountsSince(sinceMs)
 }
 
 private const val TAG = "PT/WorkoutRepository"

@@ -153,7 +153,7 @@ class ShippingTabsRenderTest {
         val vm = HistoryViewModel(app, deps).also(models::add)
         compose.showFloor {
             CompositionLocalProvider(LocalTodayEpochDay provides today) {
-                HistoryScreen(onOpenSession = {}, onOpenExercise = {}, onOpenActiveSession = {}, viewModel = vm)
+                HistoryScreen(onOpenSession = {}, onOpenActiveSession = {}, viewModel = vm)
             }
         }
         compose.awaitThat("History's loaded empty current Month", vm.uiState::value) {

@@ -136,7 +136,7 @@ class HistoryPeriodRecoveryInstrumentedTest(
                     LocalTodayEpochDay provides today,
                     LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
                 ) {
-                    HistoryScreen(onOpenSession = {}, onOpenExercise = {}, onOpenActiveSession = {}, viewModel = model)
+                    HistoryScreen(onOpenSession = {}, onOpenActiveSession = {}, viewModel = model)
                 }
             }
             awaitError(model)

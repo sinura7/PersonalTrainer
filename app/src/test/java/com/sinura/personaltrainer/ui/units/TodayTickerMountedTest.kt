@@ -110,7 +110,7 @@ class TodayTickerMountedTest {
                 CompositionLocalProvider(LocalTodayEpochDay provides currentDay) {
                     PersonalTrainerTheme {
                         HistoryScreen(
-                            onOpenSession = {}, onOpenExercise = {}, onOpenActiveSession = {},
+                            onOpenSession = {}, onOpenActiveSession = {},
                             viewModel = history,
                         )
                     }
