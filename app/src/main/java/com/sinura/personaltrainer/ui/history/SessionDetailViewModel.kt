@@ -35,6 +35,7 @@ import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -611,11 +612,17 @@ class SessionDetailViewModel internal constructor(
         }
     }
 
-    /** v4 V5: inline stepper values per set, written through [updateSet] after [INLINE_DEBOUNCE_MS]. */
     private val inlinePending = linkedMapOf<String, InlineSetEdit>()
     private val inlineJobs = mutableMapOf<String, Job>()
+    private val _inlinePendingIds = MutableStateFlow<Set<String>>(emptySet())
 
-    /** A stepper nudge on a saved set: the newest value wins, one write per set per pause. */
+    /** Sets with a nudge not yet written; their rows keep the shown value instead of resyncing. */
+    val inlinePendingIds: StateFlow<Set<String>> = _inlinePendingIds.asStateFlow()
+
+    /**
+     * v4 V5: a stepper nudge on a saved set. The newest value wins and is written through the
+     * repository's updateSet after [INLINE_DEBOUNCE_MS], one write per set per pause.
+     */
     internal fun nudgeSet(set: SetLog, weightKg: Double, reps: Int) {
         inlineJobs.remove(set.id)?.cancel()
         inlinePending[set.id] = InlineSetEdit(set.id, weightKg, reps, set.rpe, set.isWarmup, set.durationSeconds)
@@ -634,15 +641,57 @@ class SessionDetailViewModel internal constructor(
         inlinePending.keys.toList().forEach(::writeInline)
     }
 
-    private fun writeInline(setId: String) {
-        val edit = inlinePending.remove(setId) ?: return
-        retainInlinePending()
-        updateSet(edit.setId, edit.weightKg, edit.reps, edit.rpe, edit.isWarmup, edit.durationSeconds)
+    /** A delete owns the set from here: a nudge pending on it must not write after it is gone. */
+    private fun dropInline(setId: String) {
+        inlineJobs.remove(setId)?.cancel()
+        if (inlinePending.remove(setId) != null) retainInlinePending()
     }
 
-    /** The pending nudges live in saved state, so a process death inside the pause does not lose them. */
+    private fun writeInline(setId: String) {
+        val edit = inlinePending[setId] ?: return
+        // Another save owns the screen: keep the nudge pending so the next flush writes it.
+        if (setOperationOwned()) {
+            errors.fail(source = ERR_DETAIL, message = getApplication<Application>().getString(R.string.session_set_save_failed))
+            return
+        }
+        val original = uiState.value.session?.sets?.firstOrNull { it.id == setId }
+        val timedOriginal = original != null && original.reps < 1 && (original.durationSeconds ?: 0) > 0
+        val violation = SetLogRules.validateEffort(
+            rpe = edit.rpe, isWarmup = edit.isWarmup, isHold = timedOriginal || edit.reps == 0,
+        )
+        inlinePending.remove(setId)
+        retainInlinePending()
+        if (violation != null) {
+            // Retrying cannot fix the effort rule, so the nudge is dropped and the rule is said.
+            report(IllegalArgumentException(violation), violation)
+            return
+        }
+        // Not a child of viewModelScope: a flush from onDispose or ON_STOP still lands when the
+        // view model is cleared right after.
+        viewModelScope.launch(NonCancellable) {
+            runCatchingCancellable {
+                container.workoutRepository.updateSet(
+                    setId = edit.setId,
+                    weightKg = edit.weightKg,
+                    reps = edit.reps,
+                    rpe = edit.rpe,
+                    isWarmup = edit.isWarmup,
+                    durationSeconds = edit.durationSeconds,
+                )
+            }.onFailure { thrown ->
+                // Re-arm unless a newer nudge already replaced it.
+                if (setId !in inlinePending) {
+                    inlinePending[setId] = edit
+                    retainInlinePending()
+                }
+                report(thrown, getApplication<Application>().getString(R.string.session_set_save_failed))
+            }
+        }
+    }
+
     private fun retainInlinePending() {
         savedStateHandle[INLINE_PENDING_KEY] = ArrayList(inlinePending.values.map(InlineSetEdit::encode))
+        _inlinePendingIds.value = inlinePending.keys.toSet()
     }
 
     private fun restoreInlinePending() {
@@ -683,19 +732,32 @@ class SessionDetailViewModel internal constructor(
 
     fun deleteSet(setId: String) {
         if (setOperationOwned()) return
+        dropInline(setId)
         // D7: the last set of the whole session is never deleted here; DELETE session owns that.
+        // The repository enforces it in the delete's own transaction; this is the early answer.
         val sets = uiState.value.session?.sets.orEmpty()
         if (sets.size == 1 && sets.single().id == setId) {
             errors.fail(source = ERR_DETAIL, message = getApplication<Application>().getString(R.string.session_last_set_blocked))
             return
         }
+        if (!mutating.compareAndSet(false, true)) return
         viewModelScope.launch {
-            runCatchingCancellable { container.workoutRepository.deleteSet(setId) }
-                .onSuccess { deleted ->
-                    if (deleted?.sessionId == sessionId) markSummaryChanged()
-                    _deletedSet.value = deleted
-                }
-                .onFailure { report(it, "Could not delete that set. Try again.") }
+            try {
+                runCatchingCancellable { container.workoutRepository.deleteSet(setId, keepLastSetOfSession = true) }
+                    .onSuccess { deleted ->
+                        if (deleted?.sessionId == sessionId) markSummaryChanged()
+                        _deletedSet.value = deleted
+                    }
+                    .onFailure { thrown ->
+                        if (thrown is WorkoutRepository.LastSetOfSessionException) {
+                            errors.fail(source = ERR_DETAIL, message = getApplication<Application>().getString(R.string.session_last_set_blocked))
+                        } else {
+                            report(thrown, "Could not delete that set. Try again.")
+                        }
+                    }
+            } finally {
+                mutating.set(false)
+            }
         }
     }
 

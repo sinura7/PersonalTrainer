@@ -130,7 +130,7 @@
     <string name="cardio_pause">Pause</string>
     <string name="cardio_resume">Resume</string>
     <string name="cardio_paused_caption">Paused. Time is not counting.</string>
-    <string name="history_effort_hint">Right side number is effort. Tap a set to edit.</string>
+    <string name="history_effort_hint">Right side number is effort. Tap Edit to change a set.</string>
     <string name="history_repeat">Repeat this workout</string>
     <string name="history_warmup_mark">W</string>
     <string name="history_warmup_label">Warm-up</string>
@@ -284,8 +284,13 @@
     <string name="session_edit_done">Done</string>
     <string name="session_delete_set">Delete set %1$d</string>
     <string name="session_last_set_blocked">Delete the session instead</string>
-    <string name="session_weight_down">Weight −</string>
-    <string name="session_weight_up">Weight +</string>
-    <string name="session_reps_down">Reps −</string>
-    <string name="session_reps_up">Reps +</string>
+    <string name="session_weight_down">Weight minus</string>
+    <string name="session_weight_up">Weight plus</string>
+    <string name="session_reps_down">Reps minus</string>
+    <string name="session_reps_up">Reps plus</string>
+    <string name="session_weight_label">Weight</string>
+    <string name="session_reps_label">Reps</string>
+    <string name="session_step_down">−</string>
+    <string name="session_step_up">+</string>
+    <string name="session_set_save_failed">Could not save that set. Try again.</string>
 </resources>

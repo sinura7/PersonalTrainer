@@ -21,6 +21,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,6 +91,8 @@ internal fun FilledLiftCard(
     onDeleteSet: (SetLog) -> Unit = {},
     /** v4 V5: inline weight and reps steppers in Edit mode; the screen debounces the write. */
     onNudgeSet: (SetLog, Double, Int) -> Unit = { _, _, _ -> },
+    /** Sets with a nudge not yet written: their shown value is not resynced from storage. */
+    pendingSetIds: Set<String> = emptySet(),
 ) {
     val repeated = lift.prescriptions.size > 1
     val single = lift.prescriptions.singleOrNull()?.row
@@ -222,7 +229,12 @@ internal fun FilledLiftCard(
                         // The stored setNumber is not rewritten.
                         val shown = index + 1
                         // Shown at once; the write follows the 400 ms pause in the view model.
-                        var nudged by remember(set.id, set.weightKg, set.reps) { mutableStateOf(set.weightKg to set.reps) }
+                        var nudged by remember(set.id) { mutableStateOf(set.weightKg to set.reps) }
+                        val pending = set.id in pendingSetIds
+                        // Storage wins only once nothing is pending, so a slow write cannot snap back a newer nudge.
+                        LaunchedEffect(set.weightKg, set.reps, pending) {
+                            if (!pending) nudged = set.weightKg to set.reps
+                        }
                         val hold = set.reps < 1 && (set.durationSeconds ?: 0) > 0
                         val shownSet = set.copy(weightKg = nudged.first, reps = nudged.second)
                         RecordedSetRow(
@@ -364,7 +376,7 @@ private fun RecordedSetRow(row: SetTableLine, onEdit: (() -> Unit)?, onDelete: (
     }
 }
 
-/** v4 V5: weight and reps nudges on one saved set, 48dp targets. */
+/** v4 V5: weight and reps nudges on one saved set, as two compact pairs with 48dp targets. */
 @Composable
 private fun InlineSetSteppers(
     setId: String,
@@ -374,34 +386,77 @@ private fun InlineSetSteppers(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Metrics.space3),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (showWeight) {
-            StepperButton(
-                label = stringResource(R.string.session_weight_down),
-                onClick = { onWeight(-1) },
-                modifier = Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
-                    .testTag(SessionDetailTestTags.sessionSetWeightDown(setId)),
-            )
-            StepperButton(
-                label = stringResource(R.string.session_weight_up),
-                onClick = { onWeight(1) },
-                modifier = Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
-                    .testTag(SessionDetailTestTags.sessionSetWeightUp(setId)),
+            StepperPair(
+                label = stringResource(R.string.session_weight_label),
+                downDescription = stringResource(R.string.session_weight_down),
+                upDescription = stringResource(R.string.session_weight_up),
+                downTag = SessionDetailTestTags.sessionSetWeightDown(setId),
+                upTag = SessionDetailTestTags.sessionSetWeightUp(setId),
+                onStep = onWeight,
+                modifier = Modifier.weight(1f),
             )
         }
-        StepperButton(
-            label = stringResource(R.string.session_reps_down),
-            onClick = { onReps(-1) },
-            modifier = Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
-                .testTag(SessionDetailTestTags.sessionSetRepsDown(setId)),
+        StepperPair(
+            label = stringResource(R.string.session_reps_label),
+            downDescription = stringResource(R.string.session_reps_down),
+            upDescription = stringResource(R.string.session_reps_up),
+            downTag = SessionDetailTestTags.sessionSetRepsDown(setId),
+            upTag = SessionDetailTestTags.sessionSetRepsUp(setId),
+            onStep = onReps,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** One label with a minus and a plus; the label gives way first so the 48dp targets always fit. */
+@Composable
+private fun StepperPair(
+    label: String,
+    downDescription: String,
+    upDescription: String,
+    downTag: String,
+    upTag: String,
+    onStep: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            style = InstrumentType.caption,
+            color = TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
         )
         StepperButton(
-            label = stringResource(R.string.session_reps_up),
-            onClick = { onReps(1) },
-            modifier = Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
-                .testTag(SessionDetailTestTags.sessionSetRepsUp(setId)),
+            label = stringResource(R.string.session_step_down),
+            onClick = { onStep(-1) },
+            modifier = Modifier.size(Metrics.touchMin)
+                .testTag(downTag)
+                .clearAndSetSemantics {
+                    contentDescription = downDescription
+                    role = Role.Button
+                    onClick { onStep(-1); true }
+                },
+        )
+        StepperButton(
+            label = stringResource(R.string.session_step_up),
+            onClick = { onStep(1) },
+            modifier = Modifier.size(Metrics.touchMin)
+                .testTag(upTag)
+                .clearAndSetSemantics {
+                    contentDescription = upDescription
+                    role = Role.Button
+                    onClick { onStep(1); true }
+                },
         )
     }
 }

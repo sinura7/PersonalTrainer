@@ -634,13 +634,18 @@ class UxWalkthroughTest {
         harnessWaitUntil(15_000) { compose.onAllNodes(repsUp).fetchSemanticsNodes().isNotEmpty() }
         shot("session-edit")
         compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(repsUp)
+        // The first set reads "60 kg × 5"; one reps-up must show (and keep) "× 6" on that row.
+        val sixes = { compose.onAllNodes(hasText("× 6", substring = true)).fetchSemanticsNodes().size }
+        val before = sixes()
         compose.onAllNodes(repsUp).onFirst().performClick()
-        compose.waitForIdle()
+        harnessWaitUntil(5_000) { sixes() > before }
         shot("session-edit-nudged")
         compose.onNodeWithTag(SessionDetailTestTags.SESSION_EDIT_DONE).performClick()
         harnessWaitUntil(15_000) {
             compose.onAllNodes(hasTestTag(SessionDetailTestTags.SESSION_EDIT)).fetchSemanticsNodes().isNotEmpty()
         }
+        // Done wrote it: read mode still shows the nudged reps.
+        harnessWaitUntil(5_000) { sixes() > before }
         shot("session-edit-done")
     }
 

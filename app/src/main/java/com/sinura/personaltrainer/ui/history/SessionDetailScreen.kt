@@ -132,6 +132,7 @@ fun SessionDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val inlinePendingIds by viewModel.inlinePendingIds.collectAsStateWithLifecycle()
     // v4 V5: leaving the app writes any stepper nudge still inside its 400 ms pause.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flushInlineEdits() }
     // Back out of the screen: write before the view model is cleared.
@@ -439,6 +440,7 @@ fun SessionDetailScreen(
                                 editMode = editMode && session.isFinished,
                                 onDeleteSet = { viewModel.deleteSet(it.id) },
                                 onNudgeSet = viewModel::nudgeSet,
+                                pendingSetIds = inlinePendingIds,
                             )
                         }
                     }

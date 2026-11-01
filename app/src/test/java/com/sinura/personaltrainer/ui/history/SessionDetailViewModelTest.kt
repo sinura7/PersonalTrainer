@@ -534,6 +534,124 @@ class SessionDetailViewModelTest {
         assertEquals(fixture.id, loaded.session?.id)
     }
 
+    @Test
+    fun aDebouncedNudgeIsExactlyOneUpdateSet() = runBlocking {
+        val writes = spyOnUpdateSet()
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)))
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first()
+
+        repeat(5) { vm.nudgeSet(target, 100.0 + it, 5 + it) }
+        dispatcher.scheduler.advanceTimeBy(INLINE_DEBOUNCE_MS + 1)
+        dispatcher.scheduler.runCurrent()
+        awaitSession(fixture.id) { s -> s.sets.any { it.id == target.id && it.weightKg == 104.0 } }
+        vm.flushInlineEdits()
+
+        assertEquals(listOf(target.id), writes.toList())
+    }
+
+    @Test
+    fun aRefusedInlineWriteStaysPendingAndIsSaid() = runBlocking {
+        var refuse = true
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            workoutDaoDecorator = { real ->
+                object : WorkoutDao by real {
+                    override suspend fun updateSet(set: com.sinura.personaltrainer.data.local.entity.SetLogEntity) {
+                        if (refuse) error("disk full")
+                        real.updateSet(set)
+                    }
+                }
+            },
+        )
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)))
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first()
+
+        vm.nudgeSet(target, 107.5, 5)
+        vm.flushInlineEdits()
+
+        assertEquals("Could not save that set. Try again.", vm.error.awaitFirst { it != null })
+        assertEquals(setOf(target.id), vm.inlinePendingIds.awaitFirst { it.isNotEmpty() })
+        refuse = false
+        vm.flushInlineEdits()
+        awaitSession(fixture.id) { s -> s.sets.any { it.id == target.id && it.weightKg == 107.5 } }
+        assertTrue(vm.inlinePendingIds.value.isEmpty())
+    }
+
+    @Test
+    fun deletingASetDropsItsPendingNudge() = runBlocking {
+        val writes = spyOnUpdateSet()
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)))
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first()
+
+        vm.nudgeSet(target, 120.0, 5)
+        vm.deleteSet(target.id)
+        awaitSession(fixture.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceTimeBy(INLINE_DEBOUNCE_MS * 2)
+        dispatcher.scheduler.runCurrent()
+        vm.flushInlineEdits()
+
+        // The delete's renumber may rewrite the other set; the deleted one is never written.
+        assertFalse(target.id in writes)
+        assertTrue(vm.inlinePendingIds.value.isEmpty())
+    }
+
+    @Test
+    fun twoBackToBackDeletesLeaveOneSet() = runBlocking {
+        val fixture = seedFinished(sets = listOf(TestSetInput(100.0, 5), TestSetInput(100.0, 5)))
+        val (a, b) = fixture.sets
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session?.sets?.size == 2 }
+
+        vm.deleteSet(a.id)
+        vm.deleteSet(b.id)
+
+        awaitSession(fixture.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceTimeBy(1_000)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(1, awaitSession(fixture.id) { true }.sets.size)
+    }
+
+    /** D7 in the delete's own transaction: a stale screen check cannot let both deletes through. */
+    @Test
+    fun theRepositoryRefusesTheLastSetOfASession() = runBlocking {
+        val fixture = seedFinished(sets = listOf(TestSetInput(100.0, 5), TestSetInput(100.0, 5)))
+        val (a, b) = fixture.sets
+        val repo = deps.workoutRepository
+
+        repo.deleteSet(a.id, keepLastSetOfSession = true)
+        val refused = runCatching { repo.deleteSet(b.id, keepLastSetOfSession = true) }.exceptionOrNull()
+
+        assertTrue(refused is com.sinura.personaltrainer.data.repository.WorkoutRepository.LastSetOfSessionException)
+        assertEquals(listOf(b.id), awaitSession(fixture.id) { true }.sets.map { it.id })
+    }
+
+
+    private fun spyOnUpdateSet(): MutableList<String> {
+        val writes = CopyOnWriteArrayList<String>()
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            workoutDaoDecorator = { real ->
+                object : WorkoutDao by real {
+                    override suspend fun updateSet(set: com.sinura.personaltrainer.data.local.entity.SetLogEntity) {
+                        writes.add(set.id)
+                        real.updateSet(set)
+                    }
+                }
+            },
+        )
+        return writes
+    }
+
     private fun createViewModel(sessionId: String): SessionDetailViewModel =
         SessionDetailViewModel(
             application = ApplicationProvider.getApplicationContext<Application>(),
