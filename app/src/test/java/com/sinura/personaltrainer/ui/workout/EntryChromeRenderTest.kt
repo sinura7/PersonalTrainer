@@ -327,7 +327,6 @@ class EntryChromeRenderTest {
         }
         capture("period-controls")
         for ((tag, label) in listOf(
-            HistoryTags.LIFETIME_RECORDS to HistoryCopy.LIFETIME_RECORDS,
             HistoryTags.LIFETIME_BLOCKS to HistoryCopy.LIFETIME_BLOCKS,
         )) {
             val control = reachTag(tag).assertIsEnabled()

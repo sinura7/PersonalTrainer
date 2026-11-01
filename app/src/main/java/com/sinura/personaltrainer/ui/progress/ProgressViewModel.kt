@@ -13,7 +13,13 @@ import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.TrainingRecommendation
+import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.RecordsCalculator
+import com.sinura.personaltrainer.util.runCatchingCancellable
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -105,6 +111,34 @@ class ProgressViewModel @JvmOverloads constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = ProgressUiState(),
         )
+
+    /**
+     * v4 V7: Body's trend cards. Re-read whenever finished work changes; each source that fails
+     * leaves its card empty rather than blanking the map above.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val trends: StateFlow<BodyTrends> = combine(
+        container.workoutRepository.observeFinishedWorkRevisionHealth(),
+        container.exerciseRepository.observeAll(),
+        container.preferencesRepository.bodyweightLog.catch { emit(emptyList()) },
+        container.workoutRepository.observeRecordSetsHealth(),
+    ) { _, catalog, bodyweight, recordSets -> Triple(catalog, bodyweight, recordSets) }
+        .mapLatest { (catalog, bodyweight, recordSets) ->
+            val today = todayEpochDay()
+            val first = BodyTrendsMath.firstWeekStart(today)
+            val sinceMs = time.startOfDayMillis(CivilDate.fromEpochDay(first), time.defaultZoneId())
+            val rows = runCatchingCancellable { container.workoutRepository.workingSetCountsSince(sinceMs) }
+                .getOrElse { emptyList() }
+            BodyTrends(
+                bodyweight = bodyweight.filter { it.epochDay >= first },
+                records = RecordsCalculator.standing(recordSets.presentValue().orEmpty(), limit = Int.MAX_VALUE),
+                weeklySets = BodyTrendsMath.weeklySets(rows, catalog, first) { ms ->
+                    time.capture(ms, time.defaultZoneId()).localEpochDay
+                },
+                firstWeekStartEpochDay = first,
+            )
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BodyTrends())
 
     fun setWindow(value: HeatWindow) {
         viewModelScope.launch { container.preferencesRepository.setHeatWindow(value) }

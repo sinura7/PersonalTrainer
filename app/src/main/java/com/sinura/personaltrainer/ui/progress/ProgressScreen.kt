@@ -77,6 +77,7 @@ fun ProgressScreen(
     viewModel: ProgressViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val trends by viewModel.trends.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     var bodyView by rememberSaveable { mutableStateOf(BodyView.FRONT) }
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -211,6 +212,15 @@ fun ProgressScreen(
                                 )
                             }
                         }
+                    }
+                    item(key = "trend-bodyweight") {
+                        BodyweightTrendCard(trends.bodyweight, unit, Modifier.padding(top = Metrics.space5))
+                    }
+                    item(key = "trend-records") {
+                        RecordsCard(trends.records, unit, onOpenExercise)
+                    }
+                    item(key = "trend-volume") {
+                        WeeklyVolumeCard(trends.weeklySets)
                     }
                     if (state.recommendations.isNotEmpty()) {
                         item(key = "recommended-header") {

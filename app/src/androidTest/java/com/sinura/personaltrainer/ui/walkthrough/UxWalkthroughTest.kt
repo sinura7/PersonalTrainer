@@ -88,6 +88,7 @@ import com.sinura.personaltrainer.ui.onboarding.CATALOG_MISSING_MESSAGE
 import com.sinura.personaltrainer.ui.onboarding.OnboardingTags
 import com.sinura.personaltrainer.ui.plan.PlanTags
 import com.sinura.personaltrainer.ui.progress.BodyTags
+import com.sinura.personaltrainer.ui.progress.BodyTrendTags
 import com.sinura.personaltrainer.ui.settings.SettingsTags
 import com.sinura.personaltrainer.ui.summary.SummaryTags
 import com.sinura.personaltrainer.ui.workout.NativeWorkoutFixtureEnvironment
@@ -786,6 +787,16 @@ class UxWalkthroughTest {
             runCatching { scrollToTag(BodyTags.MUSCLES) }
             compose.waitForIdle()
             shot("body-muscles")
+        }
+        // V7: each Body trend card must render and be non-blank (shot asserts visible content).
+        for ((tag, label) in listOf(
+            BodyTrendTags.BODYWEIGHT to "v4_body_trends-bodyweight",
+            BodyTrendTags.RECORDS to "v4_body_trends-records",
+            BodyTrendTags.VOLUME to "v4_body_trends-volume",
+        )) {
+            scrollToTag(tag)
+            compose.waitForIdle()
+            shot(label, composeCaptureTag = tag)
         }
         goToTab("settings")
         openSettingsRow(SettingsHomeCopy.BODYWEIGHT)

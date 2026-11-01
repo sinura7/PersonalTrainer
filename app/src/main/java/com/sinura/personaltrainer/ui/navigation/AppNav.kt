@@ -774,6 +774,7 @@ fun PersonalTrainerNav(
                             }
                         },
                         onOpenActivity = { navController.navigate(Route.ActivityDetail.create(it)) },
+                        onOpenBodyRecords = { navController.goToTab(Route.Progress.path) },
                         onOpenStartSheet = openStartSheet,
                     )
                 }

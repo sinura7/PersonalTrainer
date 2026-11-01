@@ -38,6 +38,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -46,6 +47,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.CivilYearMonth
 import com.sinura.personaltrainer.domain.DataHealthCopy
@@ -98,6 +100,8 @@ fun HistoryScreen(
     onOpenActiveSession: (String) -> Unit,
     onOpenActivity: (String) -> Unit = {},
     onOpenStartSheet: () -> Unit = {},
+    /** D10: records live on Body; History only counts them and links there. */
+    onOpenBodyRecords: () -> Unit = {},
     viewModel: HistoryViewModel = viewModel(),
 ) {
     // Deferred list content must use the same emission as its captured read-health flags.
@@ -198,6 +202,7 @@ fun HistoryScreen(
                             progress = state.horizonProgress, onSelect = viewModel::setHorizon,
                             range = state.periodRange, progressLoading = state.progressLoading,
                             progressFailed = state.progressFailed, onRetry = viewModel::retryHistory,
+                            onOpenBodyRecords = onOpenBodyRecords,
                         )
                     }
                     item(key = "period-controls") {
@@ -222,9 +227,6 @@ fun HistoryScreen(
                             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
                         ) {
-                            QuietButton(text = HistoryCopy.LIFETIME_RECORDS, onClick = { secondary = RECORDS },
-                                plain = true, maxLines = Int.MAX_VALUE,
-                                modifier = Modifier.testTag(HistoryTags.LIFETIME_RECORDS))
                             QuietButton(text = HistoryCopy.LIFETIME_BLOCKS, onClick = { secondary = BLOCKS },
                                 plain = true, maxLines = Int.MAX_VALUE,
                                 modifier = Modifier.testTag(HistoryTags.LIFETIME_BLOCKS))
@@ -380,6 +382,7 @@ internal fun HorizonPicker(
     progressLoading: Boolean = false,
     progressFailed: Boolean = false,
     onRetry: () -> Unit = {},
+    onOpenBodyRecords: () -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         FlowRow(
@@ -428,6 +431,10 @@ internal fun HorizonPicker(
                     if (!progressLoading && !progressFailed && progress != null)
                         HistoryMetric(value = progress.recordsBroken.toString(), label = "PRs",
                             modifier = Modifier.testTag(HistoryTags.RECORD_COUNT), prominent = true)
+                }
+                if (!progressLoading && !progressFailed && progress != null) {
+                    QuietButton(text = stringResource(R.string.history_records_on_body), onClick = onOpenBodyRecords,
+                        plain = true, modifier = Modifier.testTag(HistoryTags.RECORDS_ON_BODY))
                 }
                 when {
                     progressFailed -> Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
@@ -599,6 +606,7 @@ private const val RECORDS = "records"
 private const val BLOCKS = "blocks"
 
 object HistoryTags {
+    const val RECORDS_ON_BODY = "history-records-on-body"
     const val LIST = "history-period-list"
     const val STALE_RETRY = "history-stale-retry"
     const val DAY = "history-horizon-day"
