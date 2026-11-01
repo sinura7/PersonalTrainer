@@ -417,6 +417,28 @@ interface WorkoutDao {
     ): List<FinishedWorkingSetRow>
 
     /**
+     * v4 V7: working-set counts per lift per finished session since [sinceMs], for Body's weekly
+     * sets per muscle. Filters on workout_sessions.finishedAt (indexed) and joins set_logs by
+     * sessionId (indexed), so it needs no new index. CROSS JOIN pins that order: without stats
+     * SQLite would otherwise scan every set_logs row.
+     */
+    @Query(
+        """
+        SELECT sl.exerciseId AS exerciseId,
+               ws.finishedAt AS finishedAt,
+               COUNT(*) AS workingSets
+        FROM workout_sessions ws
+        CROSS JOIN set_logs sl ON sl.sessionId = ws.id
+        WHERE ws.finishedAt IS NOT NULL
+          AND ws.finishedAt >= :sinceMs
+          AND sl.isWarmup = 0
+        GROUP BY ws.id, sl.exerciseId
+        ORDER BY ws.finishedAt ASC, sl.exerciseId ASC
+        """,
+    )
+    suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow>
+
+    /**
      * Standing bests before [completedAt] for one lift. Includes earlier
      * sets of the in-progress [sessionId] so a work-up cannot beat itself.
      *
