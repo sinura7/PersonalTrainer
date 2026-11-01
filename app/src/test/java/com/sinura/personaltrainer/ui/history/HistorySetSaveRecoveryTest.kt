@@ -337,10 +337,12 @@ class HistorySetSaveRecoveryTest {
 
     @Test fun exactNoOpDoesNotRefreshButAcknowledgedDeletionAndRecreationDo() = runBlocking {
         val session = seedTestWorkout(deps, exerciseId = LIFT,
-            loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)), finish = true).session
+            loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)),
+            finish = true).session
         val handle = SavedStateHandle(mapOf("sessionId" to session.id))
         val vm = model(session, handle)
-        val row = session.sets.single()
+        vm.uiState.awaitFirst { it.session?.sets?.size == 2 }
+        val row = session.sets.minBy { it.setNumber }
         vm.saveCorrection(row.id, 100.0, 5, 8, false, null)
         val saved = checkNotNull(vm.setEditorExit.awaitFirst { it != null })
         assertFalse(vm.summaryNeedsRefresh)

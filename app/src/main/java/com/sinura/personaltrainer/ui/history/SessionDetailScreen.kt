@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -92,6 +93,9 @@ object SessionDetailTestTags {
     const val RETRY = "session-detail-retry"
     const val REPEAT = "session-detail-repeat"
     const val EFFORT_HINT = "session-detail-effort-hint"
+    const val SESSION_EDIT = "session-detail-edit"
+    const val SESSION_EDIT_DONE = "session-detail-edit-done"
+    fun sessionSetDelete(setId: String) = "session-detail-set-delete-$setId"
     fun liftCard(exerciseId: String) = "session-detail-lift-$exerciseId"
 }
 
@@ -148,6 +152,8 @@ fun SessionDetailScreen(
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var editingSetId by rememberSaveable { mutableStateOf<String?>(null) }
+    // v4 V5 (3.5): editing is explicit. Saved across process death; read mode by default.
+    var editMode by rememberSaveable { mutableStateOf(false) }
     var addingToExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
     var addingSessionId by rememberSaveable { mutableStateOf<String?>(null) }
     val addDrafts = rememberSaveableStateHolder()
@@ -218,11 +224,29 @@ fun SessionDetailScreen(
                 .background(Pit),
         ) {
             ScreenHeader(
-                title = session?.routineName ?: "Session",
+                title = if (editMode && session?.isFinished == true) {
+                    stringResource(R.string.session_editing)
+                } else {
+                    session?.routineName ?: "Session"
+                },
                 onBack = leave,
                 backTag = SessionDetailTestTags.BACK,
                 paintBackground = false,
                 trailing = {
+                    if (session != null && session.isFinished) {
+                        TextButton(
+                            onClick = { editMode = !editMode },
+                            modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(
+                                if (editMode) SessionDetailTestTags.SESSION_EDIT_DONE else SessionDetailTestTags.SESSION_EDIT,
+                            ),
+                        ) {
+                            Text(
+                                stringResource(if (editMode) R.string.session_edit_done else R.string.session_edit),
+                                style = InstrumentType.bodyStrong,
+                                color = TextSecondary,
+                            )
+                        }
+                    }
                     if (session != null) {
                         Box {
                             IconButton(
@@ -349,7 +373,7 @@ fun SessionDetailScreen(
                                 } else null,
                             )
                         }
-                        if (session.isFinished && lifts.isNotEmpty() && compactHeight) {
+                        if (session.isFinished && lifts.isNotEmpty() && compactHeight && !editMode) {
                             // Short landscape: Repeat scrolls with the content rather than
                             // pinning a dock that would leave no room for the notes field.
                             item(key = "repeat-inline") {
@@ -398,10 +422,12 @@ fun SessionDetailScreen(
                                         addingToExerciseId = lift.exercise.id
                                     }
                                 },
+                                editMode = editMode && session.isFinished,
+                                onDeleteSet = { viewModel.deleteSet(it.id) },
                             )
                         }
                     }
-                    if (session.isFinished && lifts.isNotEmpty() && !compactHeight) {
+                    if (session.isFinished && lifts.isNotEmpty() && !compactHeight && !editMode) {
                         HairlineDivider(startIndent = 0.dp)
                         PrimaryGymButton(
                             text = stringResource(R.string.history_repeat),

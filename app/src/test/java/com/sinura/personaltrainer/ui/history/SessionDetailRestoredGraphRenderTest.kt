@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.history
 
+import androidx.compose.ui.test.performClick
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
@@ -368,6 +369,7 @@ class SessionDetailRestoredGraphRenderTest {
             )
             host.readable(host.words("45 kg × 6", rowTag), "45 kg × 6")
             host.readable(host.words("Set 1 · RPE 8", rowTag), "Set 1 · RPE 8")
+            enterSessionEdit()
             val edit = hasTestTag(SessionDetailTestTags.EDIT_SET) and hasAnyAncestor(hasTestTag(rowTag))
             assertEquals(
                 "the original saved row has exactly one original Edit action",
@@ -698,5 +700,14 @@ class SessionDetailRestoredGraphRenderTest {
         const val REPEATED_ID = "recovery-repeated-lift"
         const val STAMP = 1_790_856_000_000L
         const val EXPORTED_AT = "2026-10-09T00:00:00Z"
+    }
+
+    /** v4 V5: set actions live in Edit mode; enter it unless a restored screen already is. */
+    private fun enterSessionEdit() {
+        val edit = androidx.compose.ui.test.hasTestTag(com.sinura.personaltrainer.ui.history.SessionDetailTestTags.SESSION_EDIT)
+        if (compose.onAllNodes(edit).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNode(edit).performClick()
+            compose.waitForIdle()
+        }
     }
 }

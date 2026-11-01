@@ -275,4 +275,10 @@
     <string name="start_live_cardio">Start cardio</string>
     <string name="start_retry">Retry</string>
     <string name="start_planned_starts_now">Planned: %1$s\nStarts now · %2$s</string>
+    <!-- v4 V5 session edit mode -->
+    <string name="session_edit">Edit</string>
+    <string name="session_editing">Editing</string>
+    <string name="session_edit_done">Done</string>
+    <string name="session_delete_set">Delete set %1$d</string>
+    <string name="session_last_set_blocked">Delete the session instead</string>
 </resources>

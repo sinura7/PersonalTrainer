@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.data.draft.FinishedSetDraft
 import com.sinura.personaltrainer.data.draft.FinishedSetDrafts
@@ -635,6 +636,12 @@ class SessionDetailViewModel internal constructor(
 
     fun deleteSet(setId: String) {
         if (setOperationOwned()) return
+        // D7: the last set of the whole session is never deleted here; DELETE session owns that.
+        val sets = uiState.value.session?.sets.orEmpty()
+        if (sets.size == 1 && sets.single().id == setId) {
+            errors.fail(source = ERR_DETAIL, message = getApplication<Application>().getString(R.string.session_last_set_blocked))
+            return
+        }
         viewModelScope.launch {
             runCatchingCancellable { container.workoutRepository.deleteSet(setId) }
                 .onSuccess { deleted ->

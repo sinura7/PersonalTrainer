@@ -21,6 +21,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.sinura.personaltrainer.R
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -69,6 +74,9 @@ internal fun FilledLiftCard(
     onOpen: () -> Unit,
     onEditSet: (SetLog) -> Unit,
     onAddSet: () -> Unit,
+    /** v4 V5: read mode shows saved sets only; Edit mode adds Edit, Delete and Add set. */
+    editMode: Boolean = true,
+    onDeleteSet: (SetLog) -> Unit = {},
 ) {
     val repeated = lift.prescriptions.size > 1
     val single = lift.prescriptions.singleOrNull()?.row
@@ -201,14 +209,21 @@ internal fun FilledLiftCard(
                 GroupedList {
                     lift.sets.forEachIndexed { index, set ->
                         if (index > 0) HairlineDivider()
+                        // D8: the shown number follows order, so a delete never leaves a gap.
+                        // The stored setNumber is not rewritten.
+                        val shown = index + 1
                         RecordedSetRow(
-                            row = SetTableLine.fromLog(set, loadClass, unit),
-                            onEdit = { onEditSet(set) },
+                            row = SetTableLine.fromLog(set, loadClass, unit).copy(
+                                number = shown,
+                                extras = SetCopy.tableExtras("Set $shown", set.rpe),
+                            ),
+                            onEdit = { onEditSet(set) }.takeIf { editMode },
+                            onDelete = { onDeleteSet(set) }.takeIf { editMode },
                         )
                     }
                 }
             }
-            TextButton(
+            if (editMode) TextButton(
                 onClick = onAddSet,
                 modifier = Modifier.heightIn(min = Metrics.touchMin)
                     .testTag(FilledLiftCardTags.addSet(lift.exercise.id)),
@@ -255,7 +270,7 @@ private fun PlannedMetric(value: String, label: String, unit: String? = null) {
 
 /** Keep every saved value and the exact correction action readable at large system text. */
 @Composable
-private fun RecordedSetRow(row: SetTableLine, onEdit: () -> Unit) {
+private fun RecordedSetRow(row: SetTableLine, onEdit: (() -> Unit)?, onDelete: (() -> Unit)?) {
     val fontScale = LocalDensity.current.fontScale
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth().padding(Metrics.space3)
@@ -288,18 +303,28 @@ private fun RecordedSetRow(row: SetTableLine, onEdit: () -> Unit) {
             }
         }
         val edit = @Composable {
-            TextButton(
+            if (onEdit != null) TextButton(
                 onClick = onEdit,
                 modifier = Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
                     .testTag(SessionDetailTestTags.EDIT_SET),
             ) {
                 Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
             }
+            if (onDelete != null) {
+                val spoken = stringResource(R.string.session_delete_set, row.number)
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(Metrics.touchMin)
+                        .testTag(SessionDetailTestTags.sessionSetDelete(row.id)),
+                ) {
+                    Icon(TemperIcons.Delete, contentDescription = spoken, tint = TextSecondary)
+                }
+            }
         }
         if (stack) {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
                 values()
-                edit()
+                Row(verticalAlignment = Alignment.CenterVertically) { edit() }
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {

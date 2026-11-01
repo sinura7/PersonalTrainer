@@ -127,23 +127,39 @@ class SessionDetailViewModelTest {
 
     @Test
     fun deleteOffersUndoAndRestoresOriginalIdentityAndTime() = runBlocking {
-        val fixture = seedFinished()
-        val original = fixture.sets.single()
+        val fixture = seedFinished(sets = listOf(TestSetInput(100.0, 5), TestSetInput(100.0, 5)))
+        val original = fixture.sets.minBy { it.setNumber }
         val vm = createViewModel(fixture.id)
-        vm.uiState.awaitFirst { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading && it.session?.sets?.size == 2 }
 
         vm.deleteSet(original.id)
 
         val offered = checkNotNull(vm.deletedSet.awaitFirst { it != null })
         assertEquals(original.id, offered.setId)
-        awaitSession(fixture.id) { it.sets.isEmpty() }
+        awaitSession(fixture.id) { it.sets.size == 1 }
 
         vm.undoDeleteSet()
 
-        val restored = awaitSession(fixture.id) { it.sets.size == 1 }.sets.single()
+        val restored = awaitSession(fixture.id) { it.sets.size == 2 }.sets.first { it.id == original.id }
         assertEquals(original.id, restored.id)
         assertEquals(original.completedAt, restored.completedAt)
         assertNull(vm.deletedSet.value)
+    }
+
+    /** v4 D7: the last set of the whole session is blocked; the session's Delete owns that. */
+    @Test
+    fun deletingTheLastSetOfTheSessionIsBlocked() = runBlocking {
+        val fixture = seedFinished()
+        val only = fixture.sets.single()
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+
+        vm.deleteSet(only.id)
+
+        assertEquals("Delete the session instead", vm.error.awaitFirst { it != null })
+        assertNull(vm.deletedSet.value)
+        assertEquals(only.id, awaitSession(fixture.id) { true }.sets.single().id)
+        assertFalse(vm.summaryNeedsRefresh)
     }
 
     @Test
@@ -429,11 +445,14 @@ class SessionDetailViewModelTest {
             container = deps,
         ).also { viewModel = it }
 
-    private suspend fun seedFinished(notes: String = ""): WorkoutSession =
+    private suspend fun seedFinished(
+        notes: String = "",
+        sets: List<TestSetInput> = listOf(TestSetInput(100.0, 5)),
+    ): WorkoutSession =
         seedTestWorkout(
             deps = deps,
             exerciseId = TEST_EXERCISE,
-            loggedSets = listOf(TestSetInput(100.0, 5)),
+            loggedSets = sets,
             finish = true,
             notes = notes,
         ).session
