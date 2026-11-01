@@ -622,7 +622,7 @@ class UxWalkthroughTest {
 
     /** v4 V5: the finished session read, then Edit with its inline steppers, then Done. */
     private fun captureSessionEdit() {
-        compose.onNodeWithText("View in History").performScrollTo().performClick()
+        compose.onNodeWithText("View in History").performClick()
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(SessionDetailTestTags.SESSION_EDIT)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -633,7 +633,8 @@ class UxWalkthroughTest {
         }
         harnessWaitUntil(15_000) { compose.onAllNodes(repsUp).fetchSemanticsNodes().isNotEmpty() }
         shot("session-edit")
-        compose.onAllNodes(repsUp).onFirst().performScrollTo().performClick()
+        compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(repsUp)
+        compose.onAllNodes(repsUp).onFirst().performClick()
         compose.waitForIdle()
         shot("session-edit-nudged")
         compose.onNodeWithTag(SessionDetailTestTags.SESSION_EDIT_DONE).performClick()
