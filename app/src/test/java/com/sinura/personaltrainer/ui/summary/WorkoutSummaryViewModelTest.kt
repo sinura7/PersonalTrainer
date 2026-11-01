@@ -20,6 +20,12 @@ import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SummaryHeadline
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WeeklySchedulePlan
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.awaitFirst
@@ -598,6 +604,18 @@ class WorkoutSummaryViewModelTest {
     @Test
     fun aFailedPlanReadHidesUpNextInsteadOfClaimingNothingIsPlanned() = runBlocking {
         val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        // Available but with no week plan is the failed plan read: the publisher kept the rest.
+        val noPlan = deps.trainingInsights.observeShared().first().copy(weekPlan = null)
+        val vm = createViewModel(fixture.session.id, container = withInsights(flowOf(DataHealth.Available(noPlan))))
+
+        vm.uiState.awaitFirst { !it.isLoading }
+        delayUntilIdle()
+        assertNull(vm.uiState.value.upNext)
+    }
+
+    @Test
+    fun anUnavailablePlanAlsoHidesUpNext() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
         val vm = createViewModel(fixture.session.id, container = withInsights(flowOf(DataHealth.Unavailable("the plan"))))
 
         vm.uiState.awaitFirst { !it.isLoading }
@@ -610,12 +628,12 @@ class WorkoutSummaryViewModelTest {
         val today = JvmTime.captureNow().localEpochDay
         deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
         val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
-        val noPlan = deps.trainingInsights.observeShared().first().copy(weekPlan = null)
-        val vm = createViewModel(fixture.session.id, container = withInsights(flowOf(DataHealth.Available(noPlan))))
+        val vm = createViewModel(fixture.session.id, container = withPlanEndingToday(today))
 
         val upNext = vm.uiState.awaitFirst { it.upNext != null }.upNext
         // Today's own rule is next week's day, a week out.
         assertEquals(today + 7, upNext?.epochDay)
+        assertTrue(upNext!!.nextWeek)
     }
 
     @Test
@@ -624,11 +642,45 @@ class WorkoutSummaryViewModelTest {
         deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
         deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today + 1), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
         val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
-        val noPlan = deps.trainingInsights.observeShared().first().copy(weekPlan = null)
-        val vm = createViewModel(fixture.session.id, container = withInsights(flowOf(DataHealth.Available(noPlan))))
+        val vm = createViewModel(fixture.session.id, container = withPlanEndingToday(today))
 
-        assertEquals(today + 1, vm.uiState.awaitFirst { it.upNext != null }.upNext?.epochDay)
+        val upNext = vm.uiState.awaitFirst { it.upNext != null }.upNext
+        assertEquals(today + 1, upNext?.epochDay)
+        assertTrue(upNext!!.nextWeek)
     }
+
+    @Test
+    fun aRestOnlyRemainderStillFallsBackToNextWeek() = runBlocking {
+        val today = JvmTime.captureNow().localEpochDay
+        deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today + 1), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        // The plan week runs three more days, all rest: the fallback starts after the week.
+        val vm = createViewModel(fixture.session.id, container = withPlan(restWeek(today - 3)))
+
+        val upNext = vm.uiState.awaitFirst { it.upNext != null }.upNext
+        assertEquals(today + 8, upNext?.epochDay)
+        assertTrue(upNext!!.nextWeek)
+    }
+
+    private suspend fun withPlanEndingToday(today: Long): AppDependencies = withPlan(restWeek(today - 6))
+
+    private suspend fun withPlan(plan: WeeklySchedulePlan): AppDependencies {
+        val insights = deps.trainingInsights.observeShared().first().copy(weekPlan = plan)
+        return withInsights(flowOf(DataHealth.Available(insights)))
+    }
+
+    private fun restWeek(start: Long) = WeeklySchedulePlan(
+        weekStartEpochDay = start, generatedAtMs = 1L, preferences = SchedulePreferences(),
+        resolvedSplit = SplitStyle.FULL_BODY, thinHistory = true, summary = "Rest week fixture",
+        days = (0L..6L).map { delta ->
+            SuggestedTrainingDay(
+                epochDay = start + delta, dayOfWeek = Weekday.fromEpochDay(start + delta), isRest = true,
+                focusKind = SessionFocusKind.RECOVERY, focusTitle = "Rest", routineId = null,
+                routineName = null, reason = "Fixture", emphasisMuscles = emptyList(),
+                confidence = ScheduleConfidence.HIGH,
+            )
+        },
+    )
 
     private fun withInsights(health: Flow<DataHealth<TrainingInsights>>): AppDependencies {
         val real = deps.trainingInsights

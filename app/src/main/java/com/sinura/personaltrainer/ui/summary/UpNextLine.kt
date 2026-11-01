@@ -31,9 +31,11 @@ import java.time.LocalDate
 data class SummaryUpNext(
     val epochDay: Long?,
     val routineName: String?,
+    /** True when the day comes from next week's rules: Plan only shows the current week. */
+    val nextWeek: Boolean = false,
 )
 
-/** Blueprint 3.6: one row between the facts and Done. Tap opens Plan on that day. */
+/** Blueprint 3.6: one row between the facts and Done. Tap opens Plan on that day, or on the current week with no scroll for a next-week day. */
 @Composable
 internal fun UpNextLine(
     upNext: SummaryUpNext,
@@ -45,6 +47,11 @@ internal fun UpNextLine(
     val name = upNext.routineName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.summary_up_next_unnamed)
     val text = when {
         day == null -> stringResource(R.string.summary_up_next_none)
+        upNext.nextWeek -> stringResource(
+            R.string.summary_up_next_next_week,
+            DateCopy.weekdayShort(LocalDate.ofEpochDay(day)),
+            name,
+        )
         day == todayEpochDay + 1 -> stringResource(R.string.summary_up_next_tomorrow, name)
         else -> {
             val date = LocalDate.ofEpochDay(day)
@@ -57,7 +64,7 @@ internal fun UpNextLine(
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
             .background(Surface1)
-            .clickable(role = Role.Button, onClickLabel = openPlan) { onOpenPlanDay(day) }
+            .clickable(role = Role.Button, onClickLabel = openPlan) { onOpenPlanDay(if (upNext.nextWeek) null else day) }
             .padding(horizontal = Metrics.space3)
             .testTag(SummaryTags.UP_NEXT),
         verticalAlignment = Alignment.CenterVertically,

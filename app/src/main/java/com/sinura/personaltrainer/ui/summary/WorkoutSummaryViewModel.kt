@@ -118,20 +118,21 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
      */
     private suspend fun readUpNext(today: Long): SummaryUpNext? {
         val health = container.trainingInsights.observeSharedHealth().first()
-        val plan = (health as? DataHealth.Available)?.value?.weekPlan
-        val next = plan?.nextTrainingOnOrAfter(today + 1)
+        // Available with no week plan is not a readable plan either: hide rather than guess.
+        val plan = (health as? DataHealth.Available)?.value?.weekPlan ?: return null
+        val next = plan.nextTrainingOnOrAfter(today + 1)
         if (next != null) {
             return SummaryUpNext(epochDay = next.epochDay, routineName = next.routineName ?: next.focusTitle)
         }
-        if (health !is DataHealth.Available) return null
-        val weekEnds = plan?.days?.maxOfOrNull { it.epochDay }
-        if (weekEnds != null && weekEnds > today) return SummaryUpNext(epochDay = null, routineName = null)
+        // Nothing left in this plan week: the enabled weekly rules supply next week's first day.
+        val weekEnds = plan.days.maxOfOrNull { it.epochDay } ?: today
+        val from = maxOf(weekEnds, today) + 1
         val rules = container.plannerRepository.rules().filter { it.enabled }
-        val day = (today + 1..today + 7).firstOrNull { d -> rules.any { it.weekday == Weekday.fromEpochDay(d) } }
+        val day = (from until from + 7).firstOrNull { d -> rules.any { it.weekday == Weekday.fromEpochDay(d) } }
             ?: return SummaryUpNext(epochDay = null, routineName = null)
         val rule = rules.filter { it.weekday == Weekday.fromEpochDay(day) }.minBy { it.minutesOfDay }
         val name = rule.routineId?.let { container.routineRepository.getById(it)?.name }
-        return SummaryUpNext(epochDay = day, routineName = name)
+        return SummaryUpNext(epochDay = day, routineName = name, nextWeek = true)
     }
 
     /** Re-read after a failed load. A no-op unless the last read actually threw. */

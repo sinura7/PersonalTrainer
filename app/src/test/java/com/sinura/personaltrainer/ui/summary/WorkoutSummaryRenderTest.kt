@@ -62,6 +62,16 @@ class WorkoutSummaryRenderTest {
     }
 
     @Test
+    fun aNextWeekDaySaysNextWeekAndOpensPlanWithoutAScroll() {
+        mount(SummaryUpNext(epochDay = today + 1, routineName = "Legs", nextWeek = true))
+        val day = LocalDate.ofEpochDay(today + 1)
+        compose.onNodeWithText("Up next: ${DateCopy.weekdayShort(day)} next week, Legs")
+            .performScrollTo().assertIsDisplayed().performClick()
+        // Plan shows the current week only, so the tap must not ask it to find that day.
+        assertEquals(listOf<Long?>(null), opened)
+    }
+
+    @Test
     fun hiddenUntilThePlanReadSettles() {
         mount(null)
         assertTrue(compose.onAllNodesWithTag(SummaryTags.UP_NEXT).fetchSemanticsNodes().isEmpty())

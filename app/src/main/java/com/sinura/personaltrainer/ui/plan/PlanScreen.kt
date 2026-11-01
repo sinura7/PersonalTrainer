@@ -690,6 +690,8 @@ private val BLOCK_RULE_HEIGHT = 3.dp
 private suspend fun LazyListState.scrollToKey(key: Any) {
     // The first frame has no layout yet; wait for it rather than give up.
     snapshotFlow { layoutInfo.visibleItemsInfo.isNotEmpty() }.first { it }
+    // Cap the hunt at 64 hops: one plan week is far fewer rows, so this only bounds a key
+    // that never appears (stale focus day) instead of spinning forever.
     repeat(64) {
         val info = layoutInfo.visibleItemsInfo
         info.firstOrNull { it.key == key }?.let { found ->

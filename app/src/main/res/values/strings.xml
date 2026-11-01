@@ -100,6 +100,7 @@
     <string name="summary_first">First workout saved</string>
     <string name="summary_up_next">Up next: %1$s, %2$s</string>
     <string name="summary_up_next_tomorrow">Up next: tomorrow, %1$s</string>
+    <string name="summary_up_next_next_week">Up next: %1$s next week, %2$s</string>
     <string name="summary_up_next_none">Up next: plan your week</string>
     <plurals name="preview_subtitle">
         <item quantity="one">%1$d lift · about %2$d min</item>
