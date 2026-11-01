@@ -794,8 +794,7 @@ class UxWalkthroughTest {
             BodyTrendTags.RECORDS to "v4_body_trends-records",
             BodyTrendTags.VOLUME to "v4_body_trends-volume",
         )) {
-            scrollToTag(tag)
-            compose.waitForIdle()
+            scrollBodyListTo(tag)
             shot(label, composeCaptureTag = tag)
         }
         goToTab("settings")
@@ -1199,6 +1198,24 @@ class UxWalkthroughTest {
                     .performScrollToNode(hasText(text))
             }.isSuccess || compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    /** Brings a Body trend card on screen. The Progress list is lazy, so scroll the list itself. */
+    private fun scrollBodyListTo(tag: String) {
+        val scrollables = SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)
+        harnessWaitUntil(30_000) {
+            val count = compose.onAllNodes(scrollables).fetchSemanticsNodes().size
+            (0 until count).any { index ->
+                runCatching {
+                    compose.onAllNodes(scrollables)[index].performScrollToNode(hasTestTag(tag))
+                }.isSuccess
+            }
+        }
+        compose.waitForIdle()
+        harnessWaitUntil(10_000) {
+            runCatching { compose.onNodeWithTag(tag).assertIsDisplayed() }.isSuccess
+        }
+        compose.onNodeWithTag(tag).assertIsDisplayed()
     }
 
     private fun scrollToTag(tag: String) {
