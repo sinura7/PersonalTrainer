@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
@@ -29,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -75,6 +77,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Volt
+import kotlinx.coroutines.flow.first
 
 /**
  * Where you are in the block, and — at the end of it — what to do about that.
@@ -270,6 +273,8 @@ fun PlanScreen(
     LaunchedEffect(viewModel) { viewModel.missedWork.readRetained() }
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     val today = LocalTodayEpochDay.current
+    // Above the loading branch: a reload must not drop the scroll (or a pending Up next focus).
+    val listState = rememberLazyListState()
 
     LaunchedEffect(navigateToEditor) {
         val id = navigateToEditor ?: return@LaunchedEffect
@@ -299,22 +304,14 @@ fun PlanScreen(
             state.proposals.associateBy { it.epochDay }
         }
         val hasProposals = state.proposals.isNotEmpty()
-        val listState = rememberLazyListState()
         val liveRowId = state.inProgress?.id ?: state.liveActivity?.id
-        // Items above the seven day rows, counted with the same conditions the list uses.
-        val dayRowsStart = 1 +
-            (if (state.error != null) 1 else 0) +
-            (if (liveRowId != null) 1 else 0) +
-            (if (PlanWeekState.isEmpty(state)) 1 else 0) +
-            (if (state.proposals.isNotEmpty()) 1 else 0) +
-            (if (state.block != null) 1 else 0) +
-            (if (missedWork.retained || missedWork.error != null || missedWork.receipt != null) 1 else 0) +
-            (if (state.missedWorkPrompt && !missedWork.retained) 1 else 0) +
-            1
         LaunchedEffect(focusDay, cells) {
             val day = focusDay ?: return@LaunchedEffect
+            // Wait for the week to load: handling it against no rows would drop the focus.
+            if (cells.isEmpty()) return@LaunchedEffect
             val row = cells.indexOfFirst { it.epochDay == day }
-            if (row >= 0) listState.scrollToItem(dayRowsStart + row)
+            // By key: a day can carry its own rows below it, so an index count drifts.
+            if (row >= 0) listState.scrollToKey("day:$day")
             onFocusDayHandled()
         }
         LazyColumn(
@@ -688,3 +685,21 @@ object PlanTags {
 
 /** Thicker than a hairline so the filled portion reads as a position, thin enough not to be a bar. */
 private val BLOCK_RULE_HEIGHT = 3.dp
+
+/** Pages forward until the item with [key] is laid out, then puts it at the top. */
+private suspend fun LazyListState.scrollToKey(key: Any) {
+    // The first frame has no layout yet; wait for it rather than give up.
+    snapshotFlow { layoutInfo.visibleItemsInfo.isNotEmpty() }.first { it }
+    // Cap the hunt at 64 hops: one plan week is far fewer rows, so this only bounds a key
+    // that never appears (stale focus day) instead of spinning forever.
+    repeat(64) {
+        val info = layoutInfo.visibleItemsInfo
+        info.firstOrNull { it.key == key }?.let { found ->
+            scrollToItem(found.index)
+            return
+        }
+        val last = info.lastOrNull()?.index ?: return
+        if (last >= layoutInfo.totalItemsCount - 1) return
+        scrollToItem(last)
+    }
+}

@@ -107,6 +107,8 @@ class PlanRoutineActionsRenderTest {
     private val openedDays = mutableListOf<Pair<Long, Boolean>>()
     private val runId = UUID.randomUUID().toString()
     private val today = LocalDate.of(2026, 12, 31).toEpochDay()
+    private var focus: Long? = null
+    private var focusHandled = 0
     private var profile = "interaction"
 
     @Before fun setUp() { Dispatchers.setMain(UnconfinedTestDispatcher()) }
@@ -120,6 +122,19 @@ class PlanRoutineActionsRenderTest {
             }
         }
         finally { if (::deps.isInitialized) deps.close(); Dispatchers.resetMain() }
+    }
+
+    /** v4 V6: Summary's Up next opens Plan on its day; the last row is scrolled into view, once. */
+    @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
+    fun upNextFocusScrollsToTheWeeksLastDayOnce() {
+        val sunday = today + 3
+        focus = sunday
+        // Reaching the header would scroll away from the focused day.
+        show(reachHeader = false)
+        compose.awaitThat("focus handled", { focusHandled }) { focusHandled > 0 }
+        compose.waitForIdle()
+        compose.onNodeWithTag(PlanTags.day(sunday)).assertIsDisplayed()
+        assertEquals(1, focusHandled)
     }
 
     @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 1f)
@@ -188,7 +203,7 @@ class PlanRoutineActionsRenderTest {
         assertEquals("read-only cardio projection and navigation preserve every stored row", before, inventory())
     }
 
-    private fun show(rtl: Boolean = false) {
+    private fun show(rtl: Boolean = false, reachHeader: Boolean = true) {
         val insights = flow {
             emitAll(deps.routineRepository.observeAll().map { TrainingInsights(routines = it) })
         }
@@ -263,6 +278,8 @@ class PlanRoutineActionsRenderTest {
                             onOpenRoutine = { opened += it }, onOpenRoutines = { route.value = "routines" },
                             onOpenDay = { epochDay, add -> openedDays += epochDay to add },
                             viewModel = vm,
+                            focusDay = focus,
+                            onFocusDayHandled = { focusHandled++ },
                         )
                     }
                 }
@@ -274,7 +291,7 @@ class PlanRoutineActionsRenderTest {
         // v4 V3: routines left Plan; the header carries one Routines entry instead.
         compose.onNodeWithTag(PlanTags.ROUTINES).assertDoesNotExist()
         compose.onNodeWithTag(PlanTags.routine(fixture.routine.id)).assertDoesNotExist()
-        reach(PlanTags.ROUTINES_ENTRY).assertIsDisplayed()
+        if (reachHeader) reach(PlanTags.ROUTINES_ENTRY).assertIsDisplayed()
         compose.settle()
     }
 

@@ -12,17 +12,32 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SummaryHeadline
+import com.sinura.personaltrainer.domain.TrainingInsights
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WeeklySchedulePlan
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.ScheduleConfidence
+import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -39,7 +54,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import kotlin.coroutines.CoroutineContext
 
 /**
  * Summary reads on entry and after a matching acknowledged correction.
@@ -586,6 +600,99 @@ class WorkoutSummaryViewModelTest {
         assertFalse(after.savedConfirmed)
         assertFalse(after.summary.hasWork)
     }
+
+    @Test
+    fun aFailedPlanReadHidesUpNextInsteadOfClaimingNothingIsPlanned() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        // Available but with no week plan is the failed plan read: the publisher kept the rest.
+        val noPlan = deps.trainingInsights.observeShared().first().copy(weekPlan = null)
+        val vm = createViewModel(fixture.session.id, container = withInsights(flowOf(DataHealth.Available(noPlan))))
+
+        vm.uiState.awaitFirst { !it.isLoading }
+        delayUntilIdle()
+        assertNull(vm.uiState.value.upNext)
+    }
+
+    @Test
+    fun anUnavailablePlanAlsoHidesUpNext() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        val vm = createViewModel(fixture.session.id, container = withInsights(flowOf(DataHealth.Unavailable("the plan"))))
+
+        vm.uiState.awaitFirst { !it.isLoading }
+        delayUntilIdle()
+        assertNull(vm.uiState.value.upNext)
+    }
+
+    @Test
+    fun afterTheWeekEndsUpNextFallsBackToNextWeeksRuleAndNeverCountsToday() = runBlocking {
+        val today = JvmTime.captureNow().localEpochDay
+        deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        val vm = createViewModel(fixture.session.id, container = withPlanEndingToday(today))
+
+        val upNext = vm.uiState.awaitFirst { it.upNext != null }.upNext
+        // Today's own rule is next week's day, a week out.
+        assertEquals(today + 7, upNext?.epochDay)
+        assertTrue(upNext!!.nextWeek)
+    }
+
+    @Test
+    fun upNextStartsTomorrow() = runBlocking {
+        val today = JvmTime.captureNow().localEpochDay
+        deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
+        deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today + 1), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        val vm = createViewModel(fixture.session.id, container = withPlanEndingToday(today))
+
+        val upNext = vm.uiState.awaitFirst { it.upNext != null }.upNext
+        assertEquals(today + 1, upNext?.epochDay)
+        assertTrue(upNext!!.nextWeek)
+    }
+
+    @Test
+    fun aRestOnlyRemainderStillFallsBackToNextWeek() = runBlocking {
+        val today = JvmTime.captureNow().localEpochDay
+        deps.plannerRepository.addTimedRule(weekday = Weekday.fromEpochDay(today + 1), hour = 7, minute = 0, modality = ScheduleModality.STRENGTH)
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)), finish = true)
+        // The plan week runs three more days, all rest: the fallback starts after the week.
+        val vm = createViewModel(fixture.session.id, container = withPlan(restWeek(today - 3)))
+
+        val upNext = vm.uiState.awaitFirst { it.upNext != null }.upNext
+        assertEquals(today + 8, upNext?.epochDay)
+        assertTrue(upNext!!.nextWeek)
+    }
+
+    private suspend fun withPlanEndingToday(today: Long): AppDependencies = withPlan(restWeek(today - 6))
+
+    private suspend fun withPlan(plan: WeeklySchedulePlan): AppDependencies {
+        val insights = deps.trainingInsights.observeShared().first().copy(weekPlan = plan)
+        return withInsights(flowOf(DataHealth.Available(insights)))
+    }
+
+    private fun restWeek(start: Long) = WeeklySchedulePlan(
+        weekStartEpochDay = start, generatedAtMs = 1L, preferences = SchedulePreferences(),
+        resolvedSplit = SplitStyle.FULL_BODY, thinHistory = true, summary = "Rest week fixture",
+        days = (0L..6L).map { delta ->
+            SuggestedTrainingDay(
+                epochDay = start + delta, dayOfWeek = Weekday.fromEpochDay(start + delta), isRest = true,
+                focusKind = SessionFocusKind.RECOVERY, focusTitle = "Rest", routineId = null,
+                routineName = null, reason = "Fixture", emphasisMuscles = emptyList(),
+                confidence = ScheduleConfidence.HIGH,
+            )
+        },
+    )
+
+    private fun withInsights(health: Flow<DataHealth<TrainingInsights>>): AppDependencies {
+        val real = deps.trainingInsights
+        return object : AppDependencies by deps {
+            override val trainingInsights: TrainingInsightsPublisher = object : TrainingInsightsPublisher by real {
+                override fun observeSharedHealth(includeWeekPlan: Boolean): Flow<DataHealth<TrainingInsights>> = health
+            }
+        }
+    }
+
+    /** Lets the one-shot Up next read finish on the unconfined test Main. */
+    private fun delayUntilIdle() { dispatcher.scheduler.advanceUntilIdle() }
 
     private fun createViewModel(
         sessionId: String,

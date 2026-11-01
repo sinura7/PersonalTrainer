@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -30,9 +31,11 @@ import java.time.LocalDate
 data class SummaryUpNext(
     val epochDay: Long?,
     val routineName: String?,
+    /** True when the day comes from next week's rules: Plan only shows the current week. */
+    val nextWeek: Boolean = false,
 )
 
-/** Blueprint 3.6: one row between the facts and Done. Tap opens Plan on that day. */
+/** Blueprint 3.6: one row between the facts and Done. Tap opens Plan on that day, or on the current week with no scroll for a next-week day. */
 @Composable
 internal fun UpNextLine(
     upNext: SummaryUpNext,
@@ -41,21 +44,27 @@ internal fun UpNextLine(
     modifier: Modifier = Modifier,
 ) {
     val day = upNext.epochDay
-    val name = upNext.routineName.orEmpty()
+    val name = upNext.routineName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.summary_up_next_unnamed)
     val text = when {
         day == null -> stringResource(R.string.summary_up_next_none)
+        upNext.nextWeek -> stringResource(
+            R.string.summary_up_next_next_week,
+            DateCopy.weekdayShort(LocalDate.ofEpochDay(day)),
+            name,
+        )
         day == todayEpochDay + 1 -> stringResource(R.string.summary_up_next_tomorrow, name)
         else -> {
             val date = LocalDate.ofEpochDay(day)
             stringResource(R.string.summary_up_next, "${DateCopy.weekdayShort(date)} ${date.dayOfMonth}", name)
         }
     }
+    val openPlan = stringResource(R.string.summary_up_next_open_plan)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
             .background(Surface1)
-            .clickable { onOpenPlanDay(day) }
+            .clickable(role = Role.Button, onClickLabel = openPlan) { onOpenPlanDay(if (upNext.nextWeek) null else day) }
             .padding(horizontal = Metrics.space3)
             .testTag(SummaryTags.UP_NEXT),
         verticalAlignment = Alignment.CenterVertically,
