@@ -543,6 +543,8 @@ fun PersonalTrainerNav(
     val todayEpochDay = rememberTodayEpochDay(container.time)
     val restSnapshot by container.restTimerController.snapshot.collectAsStateWithLifecycle()
     val restCooldownActive = RestTimerMarkers.isCooldown(restSnapshot)
+    // History's records link asks Body to scroll to its records card once.
+    var focusBodyRecords by rememberSaveable { mutableStateOf(false) }
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
     // Same guard Today used: a stale attempt is released before a fresh chooser opens.
     var startsNowFrom by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -674,6 +676,8 @@ fun PersonalTrainerNav(
                         onOpenLibrary = { muscle -> navController.navigate(Route.Library.create(muscle)) },
                         onOpenRoutines = { goToTab(Route.Routines.path) },
                         onOpenStartSheet = openStartSheet,
+                        focusRecords = focusBodyRecords,
+                        onRecordsFocused = { focusBodyRecords = false },
                     )
                 }
                 composable(
@@ -767,14 +771,16 @@ fun PersonalTrainerNav(
                 composable(Route.History.path) {
                     HistoryScreen(
                         onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
-                        onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenActiveSession = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
                                 launchSingleTop = true
                             }
                         },
                         onOpenActivity = { navController.navigate(Route.ActivityDetail.create(it)) },
-                        onOpenBodyRecords = { navController.goToTab(Route.Progress.path) },
+                        onOpenBodyRecords = {
+                            focusBodyRecords = true
+                            navController.goToTab(Route.Progress.path)
+                        },
                         onOpenStartSheet = openStartSheet,
                     )
                 }

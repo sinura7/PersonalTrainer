@@ -26,7 +26,6 @@ object HistoryCopy {
 
     const val EMPTY_PERIOD_TITLE = "No sessions in this period"
     const val EMPTY_PERIOD = "Choose another period, or log a new session."
-    const val LIFETIME_RECORDS = "Lifetime records"
     const val LIFETIME_BLOCKS = "Completed blocks · lifetime"
     const val PROGRESS_LOADING = "Calculating records and progress…"
     const val PROGRESS_FAILED = "Records and progress could not be loaded."

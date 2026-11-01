@@ -42,11 +42,13 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.TrainingBlockDao
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.dao.RecordSetRow
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
+import com.sinura.personaltrainer.data.local.entity.TrainingBlockEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.domain.ActivityDraft
 import com.sinura.personaltrainer.domain.ActivityOrigin
@@ -86,8 +88,10 @@ import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -240,8 +244,7 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
         show()
         awaitLoaded()
         compose.awaitThat("unread lifetime sections are explicitly degraded", { history.uiState.value }) {
-            (history.uiState.value.recordsUnavailable || history.uiState.value.recordsStale) &&
-                (history.uiState.value.blocksUnavailable || history.uiState.value.blocksStale)
+            (history.uiState.value.blocksUnavailable || history.uiState.value.blocksStale)
         }
         for (tag in listOf(HistoryTags.LIFETIME_BLOCKS)) {
             reachTag(tag).performClick()
@@ -250,22 +253,20 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
             assertTarget(reachTag(HistoryTags.SECONDARY_RETRY))
             assertTrue(compose.onAllNodes(hasText("No lifetime records yet.")).fetchSemanticsNodes().isEmpty())
             assertTrue(compose.onAllNodes(hasText("No completed blocks yet.")).fetchSemanticsNodes().isEmpty())
-            capture(if (tag == HistoryTags.LIFETIME_RECORDS) "unread-records" else "unread-blocks")
+            capture("unread-blocks")
             reachTag(HistoryTags.SECONDARY_CLOSE).performClick()
             sheetOpen = false
             drainLayout()
         }
-        // D10: History no longer lists records; it counts them and links to Body.
-        compose.onNodeWithTag(HistoryTags.LIFETIME_RECORDS).assertDoesNotExist()
+        // D10: History no longer lists records; it links to Body, which owns them and their health.
         reachTag(HistoryTags.LIFETIME_BLOCKS).performClick()
         sheetOpen = true
         failRecords = false
         blockGate.shouldFail = false
         reachTag(HistoryTags.SECONDARY_RETRY).performClick()
         awaitLoaded()
-        compose.awaitThat("retry recovers independently successful lifetime records", { history.uiState.value }) {
-            !history.uiState.value.recordsUnavailable && !history.uiState.value.recordsStale &&
-                history.uiState.value.records.any { it.valueKg == 120.0 }
+        compose.awaitThat("retry recovers the lifetime blocks", { history.uiState.value }) {
+            !history.uiState.value.blocksUnavailable && !history.uiState.value.blocksStale
         }
         assertTrue(compose.onAllNodes(hasText("No lifetime records yet.")).fetchSemanticsNodes().isEmpty())
         reachTag(HistoryTags.SECONDARY_CLOSE).performClick()
@@ -284,10 +285,10 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
         sheetOpen = true
         assertRenderedLifetimeBlock(history)
 
-        // Holding a fresh records read holds the new catalog, including its block projection.
+        // Holding a fresh past-blocks read holds the new catalog's block projection.
         // The open sheet survives owner replacement; this is not process-death acceptance.
         val previous = history
-        holdRecords = true
+        holdBlocks = true
         val freshOwner = compose.runOnIdle {
             HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps).also { history = it }
         }
@@ -300,8 +301,8 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
         assertTrue(compose.onAllNodes(hasText("No completed blocks yet.")).fetchSemanticsNodes().isEmpty())
         capture("fresh-block-owner-loading")
 
-        holdRecords = false
-        recordsBarrier.complete(Unit)
+        holdBlocks = false
+        blocksBarrier.complete(Unit)
         awaitLoaded()
         assertRenderedLifetimeBlock(freshOwner)
         capture("fresh-block-owner-recovered")
@@ -542,18 +543,18 @@ open class HistoryPeriodTestHost {
     var failProgress = false
     var failRecords = false
     var failRequired = false
-    var holdRecords = false
+    var holdBlocks = false
     var holdRequired = false
     val requiredStarted = CompletableDeferred<Unit>()
     val requiredBarrier = CompletableDeferred<Unit>()
-    val recordsBarrier = CompletableDeferred<Unit>()
+    val blocksBarrier = CompletableDeferred<Unit>()
     val blockGate = ReadGate(false)
     val readBarrier = CompletableDeferred<Unit>()
 
     @Before fun setUp() { Dispatchers.setMain(dispatcher) }
     @After fun tearDown() {
         readBarrier.complete(Unit)
-        recordsBarrier.complete(Unit)
+        blocksBarrier.complete(Unit)
         requiredBarrier.complete(Unit)
         try { mountedModel?.let { runBlocking { it.clearAndJoinForTest() } } }
         finally {
@@ -584,12 +585,17 @@ open class HistoryPeriodTestHost {
                     return base.sessionSummaries()
                 }
                 override suspend fun finishedWorkingSetRecords(): List<RecordSetRow> {
-                    if (holdRecords) recordsBarrier.await()
                     if (failRecords) throw IllegalStateException("Synthetic standing record read failed")
                     return base.finishedWorkingSetRecords()
                 }
             } },
-            trainingBlockDaoDecorator = { base -> FailingPastBlocksDao(base, blockGate) },
+            trainingBlockDaoDecorator = { base ->
+                val failing = FailingPastBlocksDao(base, blockGate)
+                object : TrainingBlockDao by failing {
+                    override fun observePast(): Flow<List<TrainingBlockEntity>> =
+                        failing.observePast().onEach { if (holdBlocks) blocksBarrier.await() }
+                }
+            },
             activityDaoDecorator = { base -> object : ActivityDao by base {
                 override suspend fun getAllGraphs(): List<ActivitySessionGraph> {
                     if (holdProgress) readBarrier.await()
@@ -664,7 +670,6 @@ open class HistoryPeriodTestHost {
                     HistoryScreen(
                         onOpenSession = { routes += HistoryKind.WORKOUT to it },
                         onOpenActivity = { routes += HistoryKind.ACTIVITY to it },
-                        onOpenExercise = { openedExercises += it },
                         onOpenActiveSession = { throw AssertionError("read-only History must not start/resume") },
                         onOpenStartSheet = { throw AssertionError("read-only History must not start") },
                         viewModel = history,
@@ -746,7 +751,6 @@ open class HistoryPeriodTestHost {
         assertTrue(row.fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single().contains(duration))
     }
     fun assertLifetimeViews() {
-        compose.onNodeWithTag(HistoryTags.LIFETIME_RECORDS).assertDoesNotExist()
         assertTarget(reachTag(HistoryTags.RECORDS_ON_BODY))
         for ((tag, title) in listOf(HistoryTags.LIFETIME_BLOCKS to HistoryCopy.LIFETIME_BLOCKS)) {
             assertWords(wordsInside(tag, title), title)
@@ -755,11 +759,8 @@ open class HistoryPeriodTestHost {
             sheetOpen = true
             drainLayout()
             assertWords(compose.onNode(hasText(title) and hasAnyAncestor(hasTestTag(HistoryTags.SECONDARY_LIST)), useUnmergedTree = true), title)
-            if (tag == HistoryTags.LIFETIME_RECORDS) {
-                assertTrue("full log keeps older lifetime best", history.uiState.value.records.any { it.valueKg == 120.0 })
-                assertWords(wordsInside(HistoryTags.SECONDARY_LIST, "Period lift 1"), "Period lift 1")
-            } else assertFinishedBlock()
-            capture(if (tag == HistoryTags.LIFETIME_RECORDS) "lifetime-records" else "lifetime-blocks")
+            assertFinishedBlock()
+            capture("lifetime-blocks")
             assertTarget(reachTag(HistoryTags.SECONDARY_CLOSE))
             reachTag(HistoryTags.SECONDARY_CLOSE).performClick()
             sheetOpen = false
@@ -800,28 +801,6 @@ open class HistoryPeriodTestHost {
         findTag(tag)
         return findNode(matcher = hasText(words) and hasAnyAncestor(hasTestTag(tag)),
             description = "$tag: $words", unmerged = true)
-    }
-    fun assertRenderedLifetimeRecord(owner: HistoryViewModel) {
-        compose.awaitThat("the mounted owner's independently read records are rendered", { owner.uiState.value }) {
-            val state = owner.uiState.value
-            !state.recordsLoading && !state.recordsUnavailable && !state.recordsStale &&
-                state.records.any { it.valueKg == 120.0 } &&
-                compose.onAllNodes(hasText("Period lift", substring = true) and
-                    hasAnyAncestor(hasTestTag(HistoryTags.SECONDARY_LIST)), useUnmergedTree = true)
-                    .fetchSemanticsNodes().isNotEmpty()
-        }
-        assertWords(wordsInside(HistoryTags.SECONDARY_LIST, "Period lift 1"), "Period lift 1")
-        val record = SemanticsMatcher("the actual Period lift 1 record row") { node ->
-            node.children.any { child ->
-                child.config.getOrNull(SemanticsProperties.Text)?.singleOrNull()?.text == "Period lift 1"
-            }
-        }
-        for (words in listOf("120", "kg")) {
-            assertWords(findNode(hasText(words) and hasAnyAncestor(record) and
-                hasAnyAncestor(hasTestTag(HistoryTags.SECONDARY_LIST)), "Period lift 1: $words", unmerged = true), words)
-        }
-        assertTrue("verified records never show successful-empty copy",
-            compose.onAllNodes(hasText("No lifetime records yet.")).fetchSemanticsNodes().isEmpty())
     }
     fun assertRenderedLifetimeBlock(owner: HistoryViewModel) {
         compose.awaitThat("the mounted owner's completed block is rendered", { owner.uiState.value }) {
@@ -1080,8 +1059,6 @@ open class HistoryPeriodTestHost {
                     "selection=${state.selection}\nrange=${state.periodRange}\nunit=${state.unit}\n" +
                     "isLoading=${state.isLoading}\nunavailable=${state.unavailable}\nstale=${state.stale}\n" +
                     "progressLoading=${state.progressLoading}\nprogressFailed=${state.progressFailed}\n" +
-                    "recordsLoading=${state.recordsLoading}\nrecordsUnavailable=${state.recordsUnavailable}\n" +
-                    "recordsStale=${state.recordsStale}\nrecords=${state.records}\n" +
                     "blocksLoading=${state.blocksLoading}\nblocksUnavailable=${state.blocksUnavailable}\n" +
                     "blocksStale=${state.blocksStale}\npastBlocks=${state.pastBlocks}\nroutes=$routes\n" +
                     (failure?.let { "failure=$it\n" } ?: "") + nodes,

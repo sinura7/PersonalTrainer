@@ -347,7 +347,6 @@ class ConnectedWorkoutJourneyTest {
                             detail = rememberModel(SessionDetailViewModel(application(), sessionHandle(id), deps))
                             destination = Destination.DETAIL
                         },
-                        onOpenExercise = {},
                         onOpenActiveSession = { error("Finished history unexpectedly opened a live session") },
                         viewModel = history,
                     )

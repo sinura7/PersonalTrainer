@@ -18,7 +18,9 @@ import com.sinura.personaltrainer.domain.RecordsCalculator
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import com.sinura.personaltrainer.data.repository.observeHealth
+import com.sinura.personaltrainer.domain.DataHealth
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -112,33 +114,89 @@ class ProgressViewModel @JvmOverloads constructor(
             initialValue = ProgressUiState(),
         )
 
+    /** Civil today for the 8 week window. The screen feeds LocalTodayEpochDay so midnight moves it. */
+    private val trendsToday = MutableStateFlow(todayEpochDay())
+    private val trendsRetry = MutableStateFlow(0)
+
+    /** The last volume that was read, kept so a later failed read shows it as stale. */
+    @Volatile private var lastVolume: List<MuscleWeeks>? = null
+
+    fun setTrendsToday(epochDay: Long) {
+        trendsToday.value = epochDay
+    }
+
+    /** The weekly check-in's write, offered from Body's empty bodyweight card. */
+    fun recordBodyweight(kg: Double) {
+        val day = trendsToday.value
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.recordBodyweight(kg, day) }
+                .onFailure { retryTrends() }
+        }
+    }
+
+    fun retryTrends() {
+        trendsRetry.value += 1
+    }
+
     /**
-     * v4 V7: Body's trend cards. Re-read whenever finished work changes; each source that fails
-     * leaves its card empty rather than blanking the map above.
+     * v4 V7: Body's trend cards. Each card carries its own read health, so one failed source
+     * shows Retry on its card rather than "nothing yet", and never blanks the map above.
+     * Records are the union of workout and activity sets, like History's.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val trends: StateFlow<BodyTrends> = combine(
-        container.workoutRepository.observeFinishedWorkRevisionHealth(),
-        container.exerciseRepository.observeAll(),
-        container.preferencesRepository.bodyweightLog.catch { emit(emptyList()) },
-        container.workoutRepository.observeRecordSetsHealth(),
-    ) { _, catalog, bodyweight, recordSets -> Triple(catalog, bodyweight, recordSets) }
-        .mapLatest { (catalog, bodyweight, recordSets) ->
-            val today = todayEpochDay()
+    val trends: StateFlow<BodyTrends> = combine(trendsToday, trendsRetry) { today, _ -> today }
+        .flatMapLatest { today ->
             val first = BodyTrendsMath.firstWeekStart(today)
-            val sinceMs = time.startOfDayMillis(CivilDate.fromEpochDay(first), time.defaultZoneId())
-            val rows = runCatchingCancellable { container.workoutRepository.workingSetCountsSince(sinceMs) }
-                .getOrElse { emptyList() }
-            BodyTrends(
-                bodyweight = bodyweight.filter { it.epochDay >= first },
-                records = RecordsCalculator.standing(recordSets.presentValue().orEmpty(), limit = Int.MAX_VALUE),
-                weeklySets = BodyTrendsMath.weeklySets(rows, catalog, first) { ms ->
-                    time.capture(ms, time.defaultZoneId()).localEpochDay
-                },
-                firstWeekStartEpochDay = first,
-            )
+            val records = combine(
+                container.workoutRepository.observeRecordSetsHealth(),
+                container.activityRepository.observeRecordSetsHealth(),
+            ) { workouts, activities ->
+                RecordsCalculator.standing(
+                    workouts.presentValue().orEmpty() + activities.presentValue().orEmpty(),
+                    limit = Int.MAX_VALUE,
+                ) to cardRead(workouts, activities)
+            }
+            val bodyweight = container.preferencesRepository.bodyweightLog.observeHealth("the bodyweight log")
+            val volume = combine(
+                container.workoutRepository.observeFinishedWorkRevisionHealth(),
+                container.exerciseRepository.observeAllHealth(),
+            ) { revision, catalog -> revision to catalog }
+                .mapLatest { (revision, catalog) -> readVolume(first, revision, catalog) }
+            combine(records, bodyweight, volume) { (recordRows, recordsRead), weights, (weeks, volumeRead) ->
+                BodyTrends(
+                    bodyweight = weights.presentValue().orEmpty(),
+                    bodyweightRead = cardRead(weights),
+                    records = recordRows,
+                    recordsRead = recordsRead,
+                    weeklySets = weeks,
+                    volumeRead = volumeRead,
+                    firstWeekStartEpochDay = first,
+                )
+            }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BodyTrends())
+
+    private suspend fun readVolume(
+        first: Long,
+        revision: DataHealth<*>,
+        catalog: DataHealth<List<Exercise>>,
+    ): Pair<List<MuscleWeeks>, CardRead> {
+        val lifts = catalog.presentValue()
+        val failedSource = revision.isUnavailable || lifts == null
+        if (!failedSource) {
+            val sinceMs = time.startOfDayMillis(CivilDate.fromEpochDay(first), time.defaultZoneId())
+            val rows = runCatchingCancellable { container.workoutRepository.workingSetCountsSince(sinceMs) }
+            rows.getOrNull()?.let { read ->
+                val weeks = BodyTrendsMath.weeklySets(read, lifts.orEmpty(), first) { ms ->
+                    time.capture(ms, time.defaultZoneId()).localEpochDay
+                }
+                lastVolume = weeks
+                return weeks to cardRead(revision, catalog)
+            }
+        }
+        val held = lastVolume
+        return if (held != null) held to CardRead.STALE else emptyList<MuscleWeeks>() to CardRead.FAILED
+    }
 
     fun setWindow(value: HeatWindow) {
         viewModelScope.launch { container.preferencesRepository.setHeatWindow(value) }
@@ -164,4 +222,11 @@ class ProgressViewModel @JvmOverloads constructor(
             container.preferencesRepository.setLighterWeekStartEpochDay(start)
         }
     }
+}
+
+/** FAILED when any source never read, STALE when any holds an old value, else OK. */
+internal fun cardRead(vararg reads: DataHealth<*>): CardRead = when {
+    reads.any { it is DataHealth.Unavailable } -> CardRead.FAILED
+    reads.any { it is DataHealth.Degraded } -> CardRead.STALE
+    else -> CardRead.OK
 }

@@ -778,6 +778,12 @@ class UxWalkthroughTest {
 
     private fun flowBodyMapAndMeasurements() {
         preparePopulatedApp()
+        // V7 nit 9: a populated bodyweight line, through the check-in's own write. Removed below.
+        val today = java.time.LocalDate.now().toEpochDay()
+        val weighIns = (0L until 6L).map { today - 7L * it }
+        runBlocking(Dispatchers.IO) {
+            weighIns.forEachIndexed { i, day -> container.preferencesRepository.recordBodyweight(80.0 + 0.4 * i, day) }
+        }
         goToTab("progress")
         harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(BodyTags.MAP).fetchSemanticsNodes().isNotEmpty()
@@ -801,6 +807,7 @@ class UxWalkthroughTest {
         openSettingsRow(SettingsHomeCopy.BODYWEIGHT)
         shot("bodyweight-measurements")
         pressBackToSettingsHome()
+        runBlocking(Dispatchers.IO) { weighIns.forEach { container.preferencesRepository.deleteBodyweightDay(it) } }
     }
 
     private fun flowSettingsUnitsAndBackup() {

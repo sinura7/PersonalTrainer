@@ -239,7 +239,7 @@ class EntryChromeRenderTest {
                                 onOpenRoutines = { navigation++ }, onOpenStartSheet = { navigation++ }, viewModel = body,
                             )
                             Screen.HISTORY -> HistoryScreen(
-                                onOpenSession = { navigation++ }, onOpenExercise = { navigation++ },
+                                onOpenSession = { navigation++ }, 
                                 onOpenActiveSession = { navigation++ }, onOpenActivity = { navigation++ },
                                 onOpenStartSheet = { navigation++ }, viewModel = history,
                             )

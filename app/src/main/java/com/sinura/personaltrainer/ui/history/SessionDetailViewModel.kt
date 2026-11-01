@@ -700,6 +700,8 @@ class SessionDetailViewModel internal constructor(
                 }
             }.onFailure { thrown ->
                 inlineWriting -= setId
+                // The set was deleted (its nudge dropped) while this write ran: nothing to retry or report.
+                if (setId !in inlinePending) return@onFailure
                 // The edit (or a newer nudge) is still pending, so the next flush retries it.
                 report(thrown, getApplication<Application>().getString(R.string.session_set_save_failed))
             }

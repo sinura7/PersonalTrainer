@@ -18,6 +18,23 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * v4 V7: Body's weekly working sets. One constant so WeeklyVolumeQueryTest's EXPLAIN runs the
+ * exact text Room runs.
+ */
+const val WORKING_SET_COUNTS_SINCE_SQL = """
+        SELECT sl.exerciseId AS exerciseId,
+               ws.finishedAt AS finishedAt,
+               COUNT(*) AS workingSets
+        FROM workout_sessions ws
+        CROSS JOIN set_logs sl ON sl.sessionId = ws.id
+        WHERE ws.finishedAt IS NOT NULL
+          AND ws.finishedAt >= :sinceMs
+          AND sl.isWarmup = 0
+        GROUP BY ws.id, sl.exerciseId
+        ORDER BY ws.finishedAt ASC, sl.exerciseId ASC
+        """
+
 @Dao
 interface WorkoutDao {
     @Transaction
@@ -422,20 +439,7 @@ interface WorkoutDao {
      * sessionId (indexed), so it needs no new index. CROSS JOIN pins that order: without stats
      * SQLite would otherwise scan every set_logs row.
      */
-    @Query(
-        """
-        SELECT sl.exerciseId AS exerciseId,
-               ws.finishedAt AS finishedAt,
-               COUNT(*) AS workingSets
-        FROM workout_sessions ws
-        CROSS JOIN set_logs sl ON sl.sessionId = ws.id
-        WHERE ws.finishedAt IS NOT NULL
-          AND ws.finishedAt >= :sinceMs
-          AND sl.isWarmup = 0
-        GROUP BY ws.id, sl.exerciseId
-        ORDER BY ws.finishedAt ASC, sl.exerciseId ASC
-        """,
-    )
+    @Query(WORKING_SET_COUNTS_SINCE_SQL)
     suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow>
 
     /**

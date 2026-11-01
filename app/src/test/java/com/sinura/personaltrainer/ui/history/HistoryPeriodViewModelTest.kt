@@ -125,7 +125,6 @@ class HistoryPeriodViewModelTest {
         assertEquals(CivilYearMonth(2024, 11), model.uiState.value.calendar.month)
         assertEquals(HistoryPeriodSelection(AnalyticsHorizon.MONTH, TODAY, true), model.uiState.value.selection)
         assertNull(model.uiState.value.periodRange)
-        assertTrue(model.uiState.value.recordsLoading)
         assertTrue(model.uiState.value.blocksLoading)
         assertNotNull(HistoryViewModel::class.java.getConstructor(Application::class.java, SavedStateHandle::class.java))
     }
@@ -135,21 +134,17 @@ class HistoryPeriodViewModelTest {
         secondary.records.shouldFail = true
         secondary.blocks.shouldFail = true
         withModel { model ->
-            val failed = awaitState(model) { !it.isLoading && it.recordsUnavailable && it.blocksUnavailable }
-            assertFalse(failed.recordsLoading)
+            val failed = awaitState(model) { !it.isLoading && it.blocksUnavailable }
             assertFalse(failed.blocksLoading)
-            assertTrue(failed.records.isEmpty())
             assertTrue(failed.pastBlocks.isEmpty())
             assertTrue(failed.blocksStale)
             secondary.records.shouldFail = false
             secondary.blocks.shouldFail = false
             model.retryHistory()
             val recovered = awaitState(model) {
-                !it.isLoading && !it.recordsUnavailable && !it.blocksUnavailable &&
-                    !it.recordsLoading && !it.blocksLoading && !it.recordsStale &&
+                !it.isLoading && !it.blocksUnavailable && !it.blocksLoading &&
                     !it.blocksStale && !it.progressLoading
             }
-            assertTrue(recovered.records.isEmpty())
             assertTrue(recovered.pastBlocks.isEmpty())
         }
     }
@@ -158,17 +153,13 @@ class HistoryPeriodViewModelTest {
     fun lifetimeValuesAndTheirHealthSurviveAnUnavailablePrimaryList() = runBlocking {
         seedPastBlock()
         withModel { model ->
-            val shown = awaitState(model) { !it.isLoading && it.records.isNotEmpty() && it.pastBlocks.isNotEmpty() }
+            val shown = awaitState(model) { !it.isLoading && it.pastBlocks.isNotEmpty() }
             val firstUnavailableEmission = trace(model).size
             secondary.summaries.shouldFail = true
             model.retryHistory()
             val unavailable = awaitState(model) { it.unavailable && !it.blocksLoading }
             assertNull(unavailable.periodRange)
-            assertEquals(shown.records, unavailable.records)
             assertEquals(shown.pastBlocks, unavailable.pastBlocks)
-            assertFalse(unavailable.recordsLoading)
-            assertFalse(unavailable.recordsUnavailable)
-            assertFalse(unavailable.recordsStale)
             assertFalse(unavailable.blocksLoading)
             assertFalse(unavailable.blocksUnavailable)
             assertFalse(unavailable.blocksStale)
@@ -180,7 +171,6 @@ class HistoryPeriodViewModelTest {
                 !it.isLoading && !it.unavailable && !it.progressLoading && !it.progressFailed &&
                     it.horizonProgress != null && !it.blocksLoading
             }
-            assertEquals(shown.records, recovered.records)
             assertEquals(shown.pastBlocks, recovered.pastBlocks)
             assertEmptyBlockEmissionsAreLoading(model, firstRecoveryEmission)
         }
@@ -351,7 +341,7 @@ class HistoryPeriodViewModelTest {
     }
 
     @Test
-    fun anEmptySelectedDayHasZeroComputedTotalsAndLifetimeRecordsStayAvailable() = runBlocking {
+    fun anEmptySelectedDayHasZeroComputedTotals() = runBlocking {
         insertWorkout("old", day(2024, 10, 10), 150.0)
         withModel { model ->
             awaitReady(model)
@@ -363,7 +353,6 @@ class HistoryPeriodViewModelTest {
             assertEquals(0, empty.horizonProgress!!.recordsBroken)
             assertFalse(empty.progressFailed)
             assertFalse(empty.unavailable)
-            assertEquals(150.0, empty.records.single().valueKg, 0.0)
             assertFalse(empty.calendar.weeks.flatten().any { it.trained })
         }
     }
@@ -378,7 +367,6 @@ class HistoryPeriodViewModelTest {
             assertEquals(setOf("opening", "closing"), state.summaries.map { it.id }.toSet())
             assertEquals(0, state.horizonProgress!!.recordsBroken)
             assertEquals(EXERCISE, state.horizonProgress!!.movedMost!!.exerciseId)
-            assertEquals(150.0, state.records.single().valueKg, 0.0)
         }
     }
 
@@ -919,7 +907,6 @@ class HistoryPeriodViewModelTest {
             assertNotNull(before.horizonProgress!!.movedMost)
             assertEquals(2, before.pastBlocks.single().review.recordsBroken)
             assertTrue(before.pastBlocks.single().review.movers.isNotEmpty())
-            assertEquals(110.0, before.records.single().valueKg, 0.0)
             val originalActivities = deps.activityRepository.all()
             assertEquals(setOf(openingId, closingId), originalActivities.map { it.id }.toSet())
             val original = BackupJson.decode(deps.backupService.exportJson())
@@ -951,7 +938,7 @@ class HistoryPeriodViewModelTest {
 
             val listUpdated = awaitState(model) {
                 it.summaries.associate { row -> row.id to row.volumeKg } ==
-                    mapOf(openingId to 525.0, closingId to 525.0) && it.records.singleOrNull()?.valueKg == 105.0
+                    mapOf(openingId to 525.0, closingId to 525.0)
             }
             assertEquals("restore preserves aggregate volume while replacing individual sets",
                 before.horizonTotals!!.volumeKg, listUpdated.horizonTotals!!.volumeKg, 0.0)
@@ -1059,7 +1046,6 @@ class HistoryPeriodViewModelTest {
             }
             assertEquals(2, before.horizonProgress!!.recordsBroken)
             assertTrue(before.pastBlocks.single().review.movers.isNotEmpty())
-            assertEquals(110.0, before.records.single().valueKg, 0.0)
             val dao = deps.database.workoutDao()
             val originalSessions = dao.getAllSessions()
             val originalSets = dao.getAllSets()
@@ -1092,7 +1078,7 @@ class HistoryPeriodViewModelTest {
                 val refreshed = awaitState(model) {
                     it.summaries.associate { row -> row.id to row.volumeKg } == mapOf(
                         "restore-workout-opening" to 525.0, "restore-workout-closing" to 525.0,
-                    ) && it.records.singleOrNull()?.valueKg == 105.0 && !it.progressLoading &&
+                    ) && !it.progressLoading &&
                         it.horizonProgress == expectedProgress && it.pastBlocks.singleOrNull()?.review == expectedReview
                 }
                 assertEquals(before.selection, refreshed.selection)

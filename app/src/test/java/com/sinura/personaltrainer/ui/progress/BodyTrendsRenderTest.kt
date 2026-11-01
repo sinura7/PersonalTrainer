@@ -22,6 +22,16 @@ import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.domain.MuscleCredit
+import com.sinura.personaltrainer.domain.MuscleNormalizer
+import com.sinura.personaltrainer.domain.PersonalRecords
+import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.ui.history.HistoryTags
+import com.sinura.personaltrainer.ui.components.SessionLogTags
+import java.time.ZoneId
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,9 +56,58 @@ class BodyTrendsRenderTest {
     }
 
     @Test
-    fun noBodyweightSaysWhereToAddOne() {
-        mount()
-        compose.onNodeWithText("No bodyweight logged yet. Add one in Settings.").assertExists()
+    fun noBodyweightOffersTheCheckInAction() {
+        var logged = 0
+        mount(onLogWeight = { logged++ })
+        compose.onNodeWithText("No bodyweight logged yet.").assertExists()
+        compose.onNodeWithTag(BodyTrendTags.LOG_WEIGHT).performClick()
+        assertEquals(1, logged)
+    }
+
+    @Test
+    fun bodyweightUsesTheLastTwelveEntriesNotADateWindow() {
+        // 14 entries a month apart: the oldest two drop, the twelve kept span almost a year.
+        val entries = (0 until 14).map { BodyweightEntry(today - 30L * (13 - it), 90.0 - it) }
+        assertEquals(12, BodyTrendsMath.recentBodyweight(entries).size)
+        assertEquals(today - 30L * 11, BodyTrendsMath.recentBodyweight(entries).first().epochDay)
+        mount(bodyweight = entries)
+        compose.onNodeWithText("77 kg", substring = true).assertExists()
+        compose.onNodeWithText("11 kg since", substring = true).assertExists()
+    }
+
+    @Test
+    fun aFailedBodyweightReadShowsRetryNotNothingYet() {
+        var retried = 0
+        mount(bodyweightRead = CardRead.FAILED, onRetry = { retried++ })
+        assertFailedCard(BodyTrendTags.BODYWEIGHT, "No bodyweight logged yet.")
+        compose.onNodeWithTag(BodyTrendTags.retry(BodyTrendTags.BODYWEIGHT)).performClick()
+        assertEquals(1, retried)
+    }
+
+    @Test
+    fun aFailedRecordsReadShowsRetryNotNothingYet() {
+        mount(recordsRead = CardRead.FAILED)
+        assertFailedCard(BodyTrendTags.RECORDS, "No records yet.")
+    }
+
+    @Test
+    fun aFailedVolumeReadShowsRetryNotNothingYet() {
+        mount(volumeRead = CardRead.FAILED)
+        assertFailedCard(BodyTrendTags.VOLUME, "No working sets in the last 8 weeks.")
+    }
+
+    @Test
+    fun aStaleReadKeepsTheValueAndMarksIt() {
+        mount(records = listOf(record("lift1", 1)), recordsRead = CardRead.STALE)
+        compose.onNodeWithTag(BodyTrendTags.stale(BodyTrendTags.RECORDS)).assertExists()
+        compose.onNodeWithTag(BodyTrendTags.record("lift1")).assertExists()
+    }
+
+    @Test
+    fun anEstimatedOneRepMaxSaysItIsDerivedAndFromWhichSet() {
+        mount(records = listOf(record("bench", 0).copy(kind = PersonalRecordKind.ESTIMATED_ONE_REP_MAX, valueKg = 60.0, reps = 8)))
+        val estimate = WeightConverter.formatDisplayNumber(checkNotNull(PersonalRecords.estimatedOneRepMaxKg(60.0, 8)))
+        compose.onNodeWithText("Est. 1RM $estimate kg from 60 kg × 8", substring = true).assertExists()
     }
 
     @Test
@@ -89,6 +148,76 @@ class BodyTrendsRenderTest {
     }
 
     @Test
+    fun groupsByIsoWeekAndMuscle() {
+        val first = BodyTrendsMath.firstWeekStart(today)
+        val catalog = listOf(
+            Exercise("bench", "Bench", "Chest", "", false),
+            Exercise("fly", "Fly", "Chest", "", false),
+            Exercise("squat", "Squat", "Quads", "", false),
+        )
+        val rows = listOf(
+            WorkingSetCountRow("bench", (first + 7) * DAY_MS, 2),
+            WorkingSetCountRow("fly", (first + 13) * DAY_MS, 3), // the same ISO week's Sunday
+            WorkingSetCountRow("squat", (first + 14) * DAY_MS, 4),
+        )
+        val weeks = BodyTrendsMath.weeklySets(rows, catalog, first) { it / DAY_MS }
+        assertEquals(listOf(0, 5, 0, 0, 0, 0, 0, 0), weeks.single { it.muscle == CanonicalMuscle.CHEST }.sets)
+        assertEquals(listOf(0, 0, 4, 0, 0, 0, 0, 0), weeks.single { it.muscle == CanonicalMuscle.QUADRICEPS }.sets)
+    }
+
+    @Test
+    fun sunday2359AndMonday0000LandInDifferentWeeks() {
+        val zone = ZoneId.of("America/Toronto")
+        val first = BodyTrendsMath.firstWeekStart(today)
+        val sunday = LocalDate.of(2026, 11, 1) // the Sunday before today's ISO week
+        val lateSunday = sunday.atTime(23, 59).atZone(zone).toInstant().toEpochMilli()
+        val monday = sunday.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val catalog = listOf(Exercise("bench", "Bench", "Chest", "", false))
+        val weeks = BodyTrendsMath.weeklySets(
+            listOf(WorkingSetCountRow("bench", lateSunday, 2), WorkingSetCountRow("bench", monday, 3)),
+            catalog, first,
+        ) { ms -> java.time.Instant.ofEpochMilli(ms).atZone(zone).toLocalDate().toEpochDay() }
+        assertEquals(listOf(0, 0, 0, 0, 0, 0, 2, 3), weeks.single().sets)
+    }
+
+    @Test
+    fun musclesComeFromTheJunctionAndSortByThisWeek() {
+        val first = BodyTrendsMath.firstWeekStart(today)
+        // muscleGroup text says Chest, the exercise_muscles primary says Triceps: the junction wins.
+        val dip = Exercise(id = "dip", name = "Dip", muscleGroup = "Chest", notes = "", isCustom = false, muscles = listOf(
+            MuscleCredit(MuscleNormalizer.keyOf(CanonicalMuscle.TRICEPS), 1.0),
+            MuscleCredit(MuscleNormalizer.keyOf(CanonicalMuscle.CHEST), 0.4),
+        ))
+        val squat = Exercise("squat", "Squat", "Quads", "", false)
+        val rows = listOf(
+            WorkingSetCountRow("squat", first * DAY_MS, 20), // big total, nothing this week
+            WorkingSetCountRow("dip", today * DAY_MS, 2),
+        )
+        val weeks = BodyTrendsMath.weeklySets(rows, listOf(dip, squat), first) { it / DAY_MS }
+        assertEquals(listOf(CanonicalMuscle.TRICEPS, CanonicalMuscle.QUADRICEPS), weeks.map { it.muscle })
+    }
+
+    @Test
+    fun bodyHasNoSessionList() {
+        val deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        try {
+            val vm = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            compose.setContent {
+                PersonalTrainerTheme {
+                    CompositionLocalProvider(LocalReducedMotion provides true) {
+                        ProgressScreen(onOpenLibrary = {}, onOpenExercise = {}, onOpenRoutines = {}, viewModel = vm)
+                    }
+                }
+            }
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag(BodyTags.MAP).fetchSemanticsNodes().isNotEmpty() }
+            compose.onAllNodesWithTag(SessionLogTags.ROW).assertCountEquals(0)
+            compose.onAllNodesWithTag(HistoryTags.LIST).assertCountEquals(0)
+        } finally {
+            deps.close()
+        }
+    }
+
+    @Test
     fun emptyVolumeSaysSo() {
         mount()
         compose.onNodeWithText("No working sets in the last 8 weeks.").assertExists()
@@ -99,21 +228,36 @@ class BodyTrendsRenderTest {
         valueKg = 100.0 + n, reps = 5, achievedAt = 1_790_000_000_000L - n,
     )
 
+    private fun assertFailedCard(card: String, emptyCopy: String) {
+        compose.onNodeWithTag(BodyTrendTags.failed(card)).assertExists()
+        compose.onNodeWithTag(BodyTrendTags.retry(card)).assertExists()
+        compose.onAllNodesWithText(emptyCopy).assertCountEquals(0)
+    }
+
     private fun mount(
         bodyweight: List<BodyweightEntry> = emptyList(),
         records: List<PrSummaryRow> = emptyList(),
         weekly: List<MuscleWeeks> = emptyList(),
+        bodyweightRead: CardRead = CardRead.OK,
+        recordsRead: CardRead = CardRead.OK,
+        volumeRead: CardRead = CardRead.OK,
+        onRetry: () -> Unit = {},
+        onLogWeight: () -> Unit = {},
     ) {
         compose.setContent {
             PersonalTrainerTheme {
                 CompositionLocalProvider(LocalReducedMotion provides true) {
                     Column {
-                        BodyweightTrendCard(bodyweight, WeightUnit.KG)
-                        RecordsCard(records = records, unit = WeightUnit.KG, onOpenExercise = { opened += it })
-                        WeeklyVolumeCard(weekly)
+                        BodyweightTrendCard(entries = bodyweight, unit = WeightUnit.KG, read = bodyweightRead, onRetry = onRetry, onLogWeight = onLogWeight)
+                        RecordsCard(records = records, unit = WeightUnit.KG, onOpenExercise = { opened += it }, read = recordsRead, onRetry = onRetry)
+                        WeeklyVolumeCard(weeks = weekly, read = volumeRead, onRetry = onRetry)
                     }
                 }
             }
         }
+    }
+
+    private companion object {
+        const val DAY_MS = 86_400_000L
     }
 }

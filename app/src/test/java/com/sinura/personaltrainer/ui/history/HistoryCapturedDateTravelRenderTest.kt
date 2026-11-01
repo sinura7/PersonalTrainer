@@ -253,7 +253,6 @@ class HistoryCapturedDateTravelRenderTest : HistoryPeriodTestHost() {
                     HistoryScreen(
                         onOpenSession = { routes += HistoryKind.WORKOUT to it },
                         onOpenActivity = { routes += HistoryKind.ACTIVITY to it },
-                        onOpenExercise = { openedExercises += it },
                         onOpenActiveSession = { throw AssertionError("travel review cannot resume training") },
                         onOpenStartSheet = { throw AssertionError("travel review cannot author training") },
                         viewModel = history,

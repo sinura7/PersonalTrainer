@@ -2,7 +2,6 @@ package com.sinura.personaltrainer.ui.history
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,9 +59,7 @@ import com.sinura.personaltrainer.domain.HorizonProgress
 import com.sinura.personaltrainer.domain.HorizonTotals
 import com.sinura.personaltrainer.domain.LiveBarCopy
 import com.sinura.personaltrainer.domain.LiveBarKind
-import com.sinura.personaltrainer.domain.PrSummaryRow
 import com.sinura.personaltrainer.domain.SetCopy
-import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -86,7 +83,6 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.units.DateCopy
-import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.start.StartSheetOpener
 import com.sinura.personaltrainer.util.toYearMonth
@@ -96,7 +92,6 @@ import java.time.LocalDate
 @Composable
 fun HistoryScreen(
     onOpenSession: (String) -> Unit,
-    onOpenExercise: (String) -> Unit,
     onOpenActiveSession: (String) -> Unit,
     onOpenActivity: (String) -> Unit = {},
     onOpenStartSheet: () -> Unit = {},
@@ -323,32 +318,18 @@ fun HistoryScreen(
         confirmEnabled = !memory.saving,
         canConfirm = { !viewModel.periodMemory.snapshot.value.saving },
     )
-    secondary?.let { selected ->
-        val loading = if (selected == RECORDS) state.recordsLoading else state.blocksLoading
-        val unavailable = if (selected == RECORDS) state.recordsUnavailable else state.blocksUnavailable
-        val stale = if (selected == RECORDS) state.recordsStale else state.blocksStale
-        val successfulEmpty = !loading && !unavailable && !stale
+    // D10: blocks are the only lifetime sheet left; records live on Body.
+    if (secondary == BLOCKS) {
+        val successfulEmpty = !state.blocksLoading && !state.blocksUnavailable && !state.blocksStale
         HistoryLifetimeSheet(
-            title = if (selected == RECORDS) HistoryCopy.LIFETIME_RECORDS else HistoryCopy.LIFETIME_BLOCKS,
-            loading = loading, unavailable = unavailable, stale = stale,
+            title = HistoryCopy.LIFETIME_BLOCKS,
+            loading = state.blocksLoading, unavailable = state.blocksUnavailable, stale = state.blocksStale,
             onRetry = viewModel::retryHistory, onDismiss = { secondary = null },
         ) {
-            if (selected == RECORDS) {
-                if (successfulEmpty && state.records.isEmpty()) item(key = "empty-records") {
-                    Text("No lifetime records yet.", style = InstrumentType.body, color = TextSecondary)
-                }
-                items(state.records, key = { "${it.exerciseId}:${it.kind}" }) { record ->
-                    RecordRow(record = record, unit = unit) {
-                        secondary = null
-                        onOpenExercise(record.exerciseId)
-                    }
-                }
-            } else {
-                if (successfulEmpty && state.pastBlocks.isEmpty()) item(key = "empty-blocks") {
-                    Text("No completed blocks yet.", style = InstrumentType.body, color = TextSecondary)
-                }
-                items(state.pastBlocks, key = { it.block.startEpochDay }) { FinishedBlockCard(it, unit) }
+            if (successfulEmpty && state.pastBlocks.isEmpty()) item(key = "empty-blocks") {
+                Text("No completed blocks yet.", style = InstrumentType.body, color = TextSecondary)
             }
+            items(state.pastBlocks, key = { it.block.startEpochDay }) { FinishedBlockCard(it, unit) }
         }
     }
     if (blockedRepeat != null) {
@@ -582,27 +563,6 @@ private fun FinishedBlockCard(finished: FinishedBlock, unit: WeightUnit) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun RecordRow(record: PrSummaryRow, unit: WeightUnit, onClick: () -> Unit) {
-    val clock = LocalClockFormat.current
-    Column(
-        Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin)
-            .clickable(role = Role.Button, onClick = onClick).padding(vertical = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        Text(record.exerciseName, style = InstrumentType.bodyStrong, color = TextPrimary)
-        Text("${record.kind.label} · ${DateCopy.dateTime(record.achievedAt, clock)}",
-            style = InstrumentType.caption, color = TextSecondary)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            HistoryMetric(WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(record.valueKg, unit)), unit.suffix)
-            HistoryMetric(record.reps.toString(), "reps")
-        }
-    }
-}
-
-private const val RECORDS = "records"
 private const val BLOCKS = "blocks"
 
 object HistoryTags {
@@ -630,7 +590,6 @@ object HistoryTags {
     const val CURRENT = "history-period-current"
     const val CALENDAR = "history-period-calendar"
     const val CALENDAR_SCROLL = "history-calendar-scroll"
-    const val LIFETIME_RECORDS = "history-lifetime-records"
     const val LIFETIME_BLOCKS = "history-lifetime-blocks"
     const val SECONDARY_LIST = "history-secondary-list"
     const val SECONDARY_CLOSE = "history-secondary-close"

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.local.TrainerDatabase
+import com.sinura.personaltrainer.data.local.dao.WORKING_SET_COUNTS_SINCE_SQL
 import com.sinura.personaltrainer.data.local.dao.WorkingSetCountRow
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
@@ -73,13 +74,7 @@ class WeeklyVolumeQueryTest {
     fun theQueryUsesExistingIndexesAndScansNoTable() {
         val plan = mutableListOf<String>()
         database.openHelper.readableDatabase.query(
-            """
-            EXPLAIN QUERY PLAN
-            SELECT sl.exerciseId, ws.finishedAt, COUNT(*) FROM workout_sessions ws
-            CROSS JOIN set_logs sl ON sl.sessionId = ws.id
-            WHERE ws.finishedAt IS NOT NULL AND ws.finishedAt >= 0 AND sl.isWarmup = 0
-            GROUP BY ws.id, sl.exerciseId ORDER BY ws.finishedAt ASC, sl.exerciseId ASC
-            """.trimIndent(),
+            "EXPLAIN QUERY PLAN " + WORKING_SET_COUNTS_SINCE_SQL.replace(":sinceMs", "0"),
         ).use { cursor -> while (cursor.moveToNext()) plan += cursor.getString(cursor.columnCount - 1) }
         assertFalse(plan.joinToString(), plan.any { it.startsWith("SCAN ws") || it.startsWith("SCAN sl") || it.contains("SCAN TABLE") })
     }

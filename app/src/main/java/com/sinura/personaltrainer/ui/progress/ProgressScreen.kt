@@ -1,5 +1,13 @@
 package com.sinura.personaltrainer.ui.progress
 
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.res.stringResource
+import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.NumericEntry
+import com.sinura.personaltrainer.ui.components.NumberEntryDialog
+import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -74,11 +82,48 @@ fun ProgressScreen(
     onOpenExercise: (String) -> Unit,
     onOpenRoutines: () -> Unit,
     onOpenStartSheet: () -> Unit = {},
+    focusRecords: Boolean = false,
+    onRecordsFocused: () -> Unit = {},
     viewModel: ProgressViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val trends by viewModel.trends.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
+    val today = LocalTodayEpochDay.current
+    LaunchedEffect(today) { viewModel.setTrendsToday(today) }
+    val listState = rememberLazyListState()
+    var weighingIn by rememberSaveable { mutableStateOf(false) }
+    val showingList = !state.isLoading && state.error == null
+    // History's "See records on Body" lands here: bring the records card into view once.
+    LaunchedEffect(focusRecords, showingList) {
+        if (!focusRecords || !showingList) return@LaunchedEffect
+        repeat(RECORDS_FOCUS_STEPS) {
+            val hit = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == TREND_RECORDS_KEY }
+            if (hit != null) {
+                listState.animateScrollToItem(hit.index)
+                onRecordsFocused()
+                return@LaunchedEffect
+            }
+            if (!listState.canScrollForward && listState.layoutInfo.totalItemsCount > 0) {
+                onRecordsFocused()
+                return@LaunchedEffect
+            }
+            listState.scrollBy(RECORDS_FOCUS_STEP_PX)
+        }
+        onRecordsFocused()
+    }
+    if (weighingIn) {
+        NumberEntryDialog(
+            title = stringResource(R.string.body_trend_bodyweight),
+            unitLabel = unit.suffix,
+            initial = "",
+            decimal = true,
+            helper = stringResource(R.string.body_log_weight_helper),
+            parse = { NumericEntry.parseWeightKg(it, unit) },
+            onConfirm = { kg -> viewModel.recordBodyweight(kg) },
+            onDismiss = { weighingIn = false },
+        )
+    }
     var bodyView by rememberSaveable { mutableStateOf(BodyView.FRONT) }
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = selectedName?.let { runCatching { CanonicalMuscle.valueOf(it) }.getOrNull() }
@@ -120,6 +165,7 @@ fun ProgressScreen(
             else -> {
                 val snap = snapshot ?: emptySnapshot(state.window)
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = Metrics.gutter,
@@ -214,13 +260,20 @@ fun ProgressScreen(
                         }
                     }
                     item(key = "trend-bodyweight") {
-                        BodyweightTrendCard(trends.bodyweight, unit, Modifier.padding(top = Metrics.space5))
+                        BodyweightTrendCard(
+                            entries = trends.bodyweight, unit = unit, modifier = Modifier.padding(top = Metrics.space5),
+                            read = trends.bodyweightRead, onRetry = viewModel::retryTrends,
+                            onLogWeight = { weighingIn = true },
+                        )
                     }
-                    item(key = "trend-records") {
-                        RecordsCard(trends.records, unit, onOpenExercise)
+                    item(key = TREND_RECORDS_KEY) {
+                        RecordsCard(
+                            records = trends.records, unit = unit, onOpenExercise = onOpenExercise,
+                            read = trends.recordsRead, onRetry = viewModel::retryTrends,
+                        )
                     }
                     item(key = "trend-volume") {
-                        WeeklyVolumeCard(trends.weeklySets)
+                        WeeklyVolumeCard(weeks = trends.weeklySets, read = trends.volumeRead, onRetry = viewModel::retryTrends)
                     }
                     if (state.recommendations.isNotEmpty()) {
                         item(key = "recommended-header") {
@@ -501,3 +554,7 @@ private fun emptySnapshot(window: HeatWindow): BodyHeatSnapshot = BodyHeatSnapsh
     hasAnyWorkingSets = false,
     hasWindowWorkingSets = false,
 )
+
+internal const val TREND_RECORDS_KEY = "trend-records"
+private const val RECORDS_FOCUS_STEPS = 40
+private const val RECORDS_FOCUS_STEP_PX = 600f

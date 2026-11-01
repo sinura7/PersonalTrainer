@@ -25,9 +25,6 @@ import com.sinura.personaltrainer.domain.HistoryPeriodSelection
 import com.sinura.personaltrainer.domain.HorizonMath
 import com.sinura.personaltrainer.domain.HorizonProgress
 import com.sinura.personaltrainer.domain.HorizonTotals
-import com.sinura.personaltrainer.domain.PrSummaryRow
-import com.sinura.personaltrainer.domain.RecordSet
-import com.sinura.personaltrainer.domain.RecordsCalculator
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -69,16 +66,6 @@ data class HistoryUiState(
     /** Full catalog membership, independent of the currently scoped list/calendar. */
     val completedEpochDays: Set<Long> = emptySet(),
     val monthGroups: List<HistoryMonthGroup> = emptyList(),
-    /**
-     * Lifetime standing bests, one per lift, newest first. Independent of [horizon]: the
-     * chips retotal the period and the readout's PRs count is period-scoped, but a best is
-     * a claim about the whole log. This used to be built from the 32-day insight window, so
-     * a stronger lift older than a month vanished and a weaker recent set wore the label.
-     */
-    val records: List<PrSummaryRow> = emptyList(),
-    val recordsLoading: Boolean = true,
-    val recordsUnavailable: Boolean = false,
-    val recordsStale: Boolean = false,
     val calendar: TrainingMonth = TrainingMonth(month = CivilYearMonth(1970, 1)),
     val weekStart: Weekday = Weekday.MONDAY,
     val pastBlocks: List<FinishedBlock> = emptyList(),
@@ -306,31 +293,19 @@ class HistoryViewModel internal constructor(
                 revision,
             ) { health, activities, finishedWork -> HistoryReads(health, activities, finishedWork) },
             combine(
-                container.workoutRepository.observeRecordSetsHealth(),
-                container.activityRepository.observeRecordSetsHealth(),
-            ) { workouts, activities -> RecordReads(workouts, activities) },
-            combine(
                 container.preferencesRepository.schedulePreferences,
                 currentPastBlockRead,
             ) { preferences, reviews -> preferences to reviews },
-        ) { reads, recordReads, settings ->
+        ) { reads, settings ->
             val list = historyListFromHealth(reads.health)
             val activities = sidecarFromHealth(reads.activitySummaries)
-            val workoutRecords = sidecarFromHealth(recordReads.workouts)
-            val activityRecords = sidecarFromHealth(recordReads.activities)
             val allSummaries = list.summaries + activities.value
             val preferences = settings.first
             val pastBlocks = settings.second
             HistoryCatalog(
                 unavailable = list.unavailable,
-                stale = list.stale || activities.stale || workoutRecords.stale ||
-                    activityRecords.stale || pastBlocks.stale,
+                stale = list.stale || activities.stale || pastBlocks.stale,
                 summaries = allSummaries,
-                records = RecordsCalculator.standing(workoutRecords.value + activityRecords.value),
-                recordsUnavailable = recordReads.workouts is DataHealth.Unavailable ||
-                    recordReads.activities is DataHealth.Unavailable,
-                recordsStale = recordReads.workouts is DataHealth.Degraded ||
-                    recordReads.activities is DataHealth.Degraded,
                 weekStart = preferences.weekStart,
                 blockRead = pastBlocks,
                 revision = reads.revision,
@@ -438,8 +413,6 @@ class HistoryViewModel internal constructor(
                 horizon = selection.horizon, today = request.today, unit = request.unit,
                 calendar = TrainingMonth(month),
                 stale = cat.stale,
-                records = cat.records, recordsLoading = false,
-                recordsUnavailable = cat.recordsUnavailable, recordsStale = cat.recordsStale,
                 pastBlocks = blocks?.value.orEmpty(), blocksLoading = blocksLoading,
                 blocksUnavailable = blocks?.unavailable == true, blocksStale = blocks?.stale == true,
             )
@@ -455,10 +428,6 @@ class HistoryViewModel internal constructor(
             summaries = request.summaries,
             completedEpochDays = request.completedEpochDays,
             monthGroups = groupHistoryByMonth(request.summaries.map { it.toHistoryEntry() }),
-            records = cat.records,
-            recordsLoading = false,
-            recordsUnavailable = cat.recordsUnavailable,
-            recordsStale = cat.recordsStale,
             calendar = TrainingCalendarBuilder.buildSummaries(
                 month = month,
                 summaries = cat.summaries,
@@ -675,10 +644,6 @@ class HistoryViewModel internal constructor(
         val key: HorizonProgressKey?,
     )
 
-    private data class RecordReads(
-        val workouts: DataHealth<List<RecordSet>>,
-        val activities: DataHealth<List<RecordSet>>,
-    )
 
     /**
      * Compared whole, not by proxy. The log is small (one row per weigh-in) and any entry in
@@ -712,9 +677,6 @@ class HistoryViewModel internal constructor(
         val unavailable: Boolean = false,
         val stale: Boolean = false,
         val summaries: List<SessionSummary> = emptyList(),
-        val records: List<PrSummaryRow> = emptyList(),
-        val recordsUnavailable: Boolean = false,
-        val recordsStale: Boolean = false,
         val weekStart: Weekday = Weekday.MONDAY,
         val blockRead: PastBlockRead? = null,
         val revision: String = "",

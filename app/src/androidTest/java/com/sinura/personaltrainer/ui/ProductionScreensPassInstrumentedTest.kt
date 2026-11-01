@@ -144,7 +144,6 @@ class ProductionScreensPassInstrumentedTest {
         mount(widthDp = 360, fontScale = 2f) {
             HistoryScreen(
                 onOpenSession = {},
-                onOpenExercise = {},
                 onOpenActiveSession = {},
                 viewModel = viewModel,
             )
@@ -156,12 +155,7 @@ class ProductionScreensPassInstrumentedTest {
         compose.onNodeWithTag(HistoryTags.DAY).assertIsDisplayed()
         compose.onNodeWithTag(HistoryTags.ALL).assertIsDisplayed()
 
-        // The lifetime record is the old activity's 120 kg, not the session's 100 kg (R08).
-        compose.waitUntil(15_000) {
-            viewModel.uiState.value.records.any { it.valueKg == 120.0 }
-        }
-        // D10: records moved to Body; History links there instead.
-        compose.onNodeWithTag(HistoryTags.LIFETIME_RECORDS).assertDoesNotExist()
+        // D10: records moved to Body (ProgressViewModelTest covers the activity record); History links there.
         scrollPageTo(hasTestTag(HistoryTags.RECORDS_ON_BODY))
         compose.onNodeWithTag(HistoryTags.RECORDS_ON_BODY).assertIsDisplayed().assertHasClickAction()
 
@@ -176,7 +170,6 @@ class ProductionScreensPassInstrumentedTest {
         mount(widthDp = 412, fontScale = 1.3f) {
             HistoryScreen(
                 onOpenSession = {},
-                onOpenExercise = {},
                 onOpenActiveSession = {},
                 viewModel = viewModel,
             )
@@ -271,7 +264,6 @@ class ProductionScreensPassInstrumentedTest {
         mount(widthDp = 600, fontScale = 1f) {
             HistoryScreen(
                 onOpenSession = {},
-                onOpenExercise = {},
                 onOpenActiveSession = {},
                 viewModel = viewModel,
             )
