@@ -148,6 +148,69 @@ class SessionDetailViewModelTest {
 
     /** v4 D7: the last set of the whole session is blocked; the session's Delete owns that. */
     @Test
+    fun inlineNudgesWriteOnceAfterTheDebounceWithTheNewestValues() = runBlocking {
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)))
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first()
+
+        vm.nudgeSet(target, 102.5, 5)
+        vm.nudgeSet(target, 105.0, 6)
+        dispatcher.scheduler.advanceTimeBy(INLINE_DEBOUNCE_MS - 1)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(100.0, awaitSession(fixture.id) { true }.sets.first { it.id == target.id }.weightKg, 0.0)
+
+        dispatcher.scheduler.advanceTimeBy(2)
+        dispatcher.scheduler.runCurrent()
+        val saved = awaitSession(fixture.id) { s -> s.sets.any { it.id == target.id && it.weightKg == 105.0 } }
+            .sets.first { it.id == target.id }
+        assertEquals(6, saved.reps)
+        assertEquals(8, saved.rpe)
+        assertEquals(target.completedAt, saved.completedAt)
+    }
+
+    @Test
+    fun doneFlushesANudgeStillInsideItsPause() = runBlocking {
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)))
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first()
+
+        vm.nudgeSet(target, 110.0, 4)
+        vm.flushInlineEdits()
+
+        awaitSession(fixture.id) { s -> s.sets.any { it.id == target.id && it.weightKg == 110.0 && it.reps == 4 } }
+        dispatcher.scheduler.advanceTimeBy(INLINE_DEBOUNCE_MS * 2)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(110.0, awaitSession(fixture.id) { true }.sets.first { it.id == target.id }.weightKg, 0.0)
+    }
+
+    @Test
+    fun anInlineEditMovesRecordsProgressionAndExerciseHistory() = runBlocking {
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 90.0, reps = 5, rpe = 8)))
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first { it.weightKg == 90.0 }
+        val repo = deps.workoutRepository
+
+        vm.nudgeSet(target, 120.0, 5)
+        dispatcher.scheduler.advanceTimeBy(INLINE_DEBOUNCE_MS + 1)
+        dispatcher.scheduler.runCurrent()
+
+        withTimeout(TestWaits.FLOW_MS) {
+            // PR: the standing record set is the edited one.
+            repo.observeRecordSetsHealth().first { health ->
+                health.presentValue().orEmpty().any { it.exerciseId == TEST_EXERCISE && it.set.setId == target.id && it.set.weightKg == 120.0 }
+            }
+            // Progression: best working weight follows the edit.
+            repo.observeBestWorkingWeights().first { it[TEST_EXERCISE] == 120.0 }
+            // History: the exercise's set list shows the new value, not the old one.
+            val sets = repo.observeExerciseSets(TEST_EXERCISE).first { list -> list.any { it.record.setId == target.id && it.record.weightKg == 120.0 } }
+            assertFalse(sets.any { it.record.setId == target.id && it.record.weightKg == 90.0 })
+        }
+    }
+
+    @Test
     fun deletingTheLastSetOfTheSessionIsBlocked() = runBlocking {
         val fixture = seedFinished()
         val only = fixture.sets.single()

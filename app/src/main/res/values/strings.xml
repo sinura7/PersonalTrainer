@@ -281,4 +281,8 @@
     <string name="session_edit_done">Done</string>
     <string name="session_delete_set">Delete set %1$d</string>
     <string name="session_last_set_blocked">Delete the session instead</string>
+    <string name="session_weight_down">Weight −</string>
+    <string name="session_weight_up">Weight +</string>
+    <string name="session_reps_down">Reps −</string>
+    <string name="session_reps_up">Reps +</string>
 </resources>

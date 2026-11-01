@@ -34,6 +34,8 @@ import com.sinura.personaltrainer.workout.WorkoutDraftCache
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -609,6 +611,33 @@ class SessionDetailViewModel internal constructor(
         }
     }
 
+    /** v4 V5: inline stepper values per set, written through [updateSet] after [INLINE_DEBOUNCE_MS]. */
+    private val inlinePending = mutableMapOf<String, Pair<SetLog, Pair<Double, Int>>>()
+    private val inlineJobs = mutableMapOf<String, Job>()
+
+    /** A stepper nudge on a saved set: the newest value wins, one write per set per pause. */
+    internal fun nudgeSet(set: SetLog, weightKg: Double, reps: Int) {
+        inlineJobs.remove(set.id)?.cancel()
+        inlinePending[set.id] = set to (weightKg to reps)
+        inlineJobs[set.id] = viewModelScope.launch {
+            delay(INLINE_DEBOUNCE_MS)
+            inlineJobs.remove(set.id)
+            writeInline(set.id)
+        }
+    }
+
+    /** Done (or leaving Edit) writes any nudge still inside its debounce at once. */
+    internal fun flushInlineEdits() {
+        inlineJobs.values.forEach { it.cancel() }
+        inlineJobs.clear()
+        inlinePending.keys.toList().forEach(::writeInline)
+    }
+
+    private fun writeInline(setId: String) {
+        val (set, values) = inlinePending.remove(setId) ?: return
+        updateSet(setId, values.first, values.second, set.rpe, set.isWarmup, set.durationSeconds)
+    }
+
     fun addSet(exerciseId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
         if (setOperationOwned()) return
         SetLogRules.validateEffort(rpe = rpe, isWarmup = isWarmup, isHold = reps == 0)?.let { missing ->
@@ -736,3 +765,6 @@ class SessionDetailViewModel internal constructor(
     }
 
 }
+
+
+internal const val INLINE_DEBOUNCE_MS = 400L

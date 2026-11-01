@@ -96,6 +96,10 @@ object SessionDetailTestTags {
     const val SESSION_EDIT = "session-detail-edit"
     const val SESSION_EDIT_DONE = "session-detail-edit-done"
     fun sessionSetDelete(setId: String) = "session-detail-set-delete-$setId"
+    fun sessionSetWeightDown(setId: String) = "session-detail-set-weight-down-$setId"
+    fun sessionSetWeightUp(setId: String) = "session-detail-set-weight-up-$setId"
+    fun sessionSetRepsDown(setId: String) = "session-detail-set-reps-down-$setId"
+    fun sessionSetRepsUp(setId: String) = "session-detail-set-reps-up-$setId"
     fun liftCard(exerciseId: String) = "session-detail-lift-$exerciseId"
 }
 
@@ -235,7 +239,10 @@ fun SessionDetailScreen(
                 trailing = {
                     if (session != null && session.isFinished) {
                         TextButton(
-                            onClick = { editMode = !editMode },
+                            onClick = {
+                                if (editMode) viewModel.flushInlineEdits()
+                                editMode = !editMode
+                            },
                             modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(
                                 if (editMode) SessionDetailTestTags.SESSION_EDIT_DONE else SessionDetailTestTags.SESSION_EDIT,
                             ),
@@ -424,6 +431,7 @@ fun SessionDetailScreen(
                                 },
                                 editMode = editMode && session.isFinished,
                                 onDeleteSet = { viewModel.deleteSet(it.id) },
+                                onNudgeSet = viewModel::nudgeSet,
                             )
                         }
                     }
