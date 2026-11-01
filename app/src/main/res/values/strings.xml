@@ -100,6 +100,7 @@
     <string name="summary_first">First workout saved</string>
     <string name="summary_up_next">Up next: %1$s, %2$s</string>
     <string name="summary_up_next_tomorrow">Up next: tomorrow, %1$s</string>
+    <string name="summary_up_next_next_week">Up next: %1$s next week, %2$s</string>
     <string name="summary_up_next_none">Up next: plan your week</string>
     <plurals name="preview_subtitle">
         <item quantity="one">%1$d lift · about %2$d min</item>
@@ -278,6 +279,8 @@
     <string name="start_live_cardio">Start cardio</string>
     <string name="start_retry">Retry</string>
     <string name="start_planned_starts_now">Planned: %1$s\nStarts now · %2$s</string>
+    <string name="summary_up_next_unnamed">Training</string>
+    <string name="summary_up_next_open_plan">Open Plan</string>
     <!-- v4 V5 session edit mode -->
     <string name="session_edit">Edit</string>
     <string name="session_editing">Editing</string>
