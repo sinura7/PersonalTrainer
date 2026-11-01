@@ -612,13 +612,14 @@ class SessionDetailViewModel internal constructor(
     }
 
     /** v4 V5: inline stepper values per set, written through [updateSet] after [INLINE_DEBOUNCE_MS]. */
-    private val inlinePending = mutableMapOf<String, Pair<SetLog, Pair<Double, Int>>>()
+    private val inlinePending = linkedMapOf<String, InlineSetEdit>()
     private val inlineJobs = mutableMapOf<String, Job>()
 
     /** A stepper nudge on a saved set: the newest value wins, one write per set per pause. */
     internal fun nudgeSet(set: SetLog, weightKg: Double, reps: Int) {
         inlineJobs.remove(set.id)?.cancel()
-        inlinePending[set.id] = set to (weightKg to reps)
+        inlinePending[set.id] = InlineSetEdit(set.id, weightKg, reps, set.rpe, set.isWarmup, set.durationSeconds)
+        retainInlinePending()
         inlineJobs[set.id] = viewModelScope.launch {
             delay(INLINE_DEBOUNCE_MS)
             inlineJobs.remove(set.id)
@@ -626,7 +627,7 @@ class SessionDetailViewModel internal constructor(
         }
     }
 
-    /** Done (or leaving Edit) writes any nudge still inside its debounce at once. */
+    /** Done, leaving the screen (ON_STOP) or a restore after process death writes every pending nudge at once. */
     internal fun flushInlineEdits() {
         inlineJobs.values.forEach { it.cancel() }
         inlineJobs.clear()
@@ -634,8 +635,25 @@ class SessionDetailViewModel internal constructor(
     }
 
     private fun writeInline(setId: String) {
-        val (set, values) = inlinePending.remove(setId) ?: return
-        updateSet(setId, values.first, values.second, set.rpe, set.isWarmup, set.durationSeconds)
+        val edit = inlinePending.remove(setId) ?: return
+        retainInlinePending()
+        updateSet(edit.setId, edit.weightKg, edit.reps, edit.rpe, edit.isWarmup, edit.durationSeconds)
+    }
+
+    /** The pending nudges live in saved state, so a process death inside the pause does not lose them. */
+    private fun retainInlinePending() {
+        savedStateHandle[INLINE_PENDING_KEY] = ArrayList(inlinePending.values.map(InlineSetEdit::encode))
+    }
+
+    private fun restoreInlinePending() {
+        val saved = savedStateHandle.get<ArrayList<String>>(INLINE_PENDING_KEY).orEmpty()
+        saved.mapNotNull(InlineSetEdit::decode).forEach { inlinePending[it.setId] = it }
+        if (inlinePending.isNotEmpty()) flushInlineEdits()
+    }
+
+    // After the inline fields above exist: a restored process writes what the last one left pending.
+    init {
+        restoreInlinePending()
     }
 
     fun addSet(exerciseId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
@@ -768,3 +786,31 @@ class SessionDetailViewModel internal constructor(
 
 
 internal const val INLINE_DEBOUNCE_MS = 400L
+internal const val INLINE_PENDING_KEY = "history.inlinePending.v1"
+
+/** One stepper nudge not yet written; [encode] keeps it in saved state as plain text. */
+internal data class InlineSetEdit(
+    val setId: String,
+    val weightKg: Double,
+    val reps: Int,
+    val rpe: Int?,
+    val isWarmup: Boolean,
+    val durationSeconds: Int?,
+) {
+    fun encode(): String = listOf(setId, weightKg, reps, rpe ?: "", isWarmup, durationSeconds ?: "").joinToString("\t")
+
+    companion object {
+        fun decode(raw: String): InlineSetEdit? {
+            val parts = raw.split("\t")
+            if (parts.size != 6) return null
+            return InlineSetEdit(
+                setId = parts[0],
+                weightKg = parts[1].toDoubleOrNull() ?: return null,
+                reps = parts[2].toIntOrNull() ?: return null,
+                rpe = parts[3].toIntOrNull(),
+                isWarmup = parts[4].toBooleanStrictOrNull() ?: return null,
+                durationSeconds = parts[5].toIntOrNull(),
+            )
+        }
+    }
+}

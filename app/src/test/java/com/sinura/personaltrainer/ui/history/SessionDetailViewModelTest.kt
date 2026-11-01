@@ -211,6 +211,39 @@ class SessionDetailViewModelTest {
     }
 
     @Test
+    fun aNudgePendingAtProcessDeathIsWrittenWhenTheScreenIsRestored() = runBlocking {
+        val fixture = seedFinished(sets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8), TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)))
+        val handle = SavedStateHandle(mapOf("sessionId" to fixture.id))
+        val first = SessionDetailViewModel(
+            application = ApplicationProvider.getApplicationContext<Application>(),
+            savedStateHandle = handle,
+            container = deps,
+        )
+        first.uiState.awaitFirst { !it.isLoading && it.session != null }
+        val target = fixture.sets.first()
+
+        first.nudgeSet(target, 112.5, 7)
+        // Process death inside the pause: the old view model never runs its write.
+        first.clearAndJoinForTest()
+        assertEquals(100.0, awaitSession(fixture.id) { true }.sets.first { it.id == target.id }.weightKg, 0.0)
+        val restoredState = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+
+        val vm = SessionDetailViewModel(
+            application = ApplicationProvider.getApplicationContext<Application>(),
+            savedStateHandle = restoredState,
+            container = deps,
+        ).also { viewModel = it }
+
+        val saved = awaitSession(fixture.id) { s -> s.sets.any { it.id == target.id && it.weightKg == 112.5 } }
+            .sets.first { it.id == target.id }
+        assertEquals(7, saved.reps)
+        assertEquals(8, saved.rpe)
+        assertTrue(restoredState.get<ArrayList<String>>(INLINE_PENDING_KEY).orEmpty().isEmpty())
+        vm.uiState.awaitFirst { !it.isLoading }
+        Unit
+    }
+
+    @Test
     fun deletingTheLastSetOfTheSessionIsBlocked() = runBlocking {
         val fixture = seedFinished()
         val only = fixture.sets.single()

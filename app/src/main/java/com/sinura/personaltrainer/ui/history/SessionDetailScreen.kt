@@ -1,11 +1,7 @@
 package com.sinura.personaltrainer.ui.history
 
-import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.platform.LocalDensity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,16 +9,20 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,27 +32,30 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.res.stringResource
-import com.sinura.personaltrainer.R
-import com.sinura.personaltrainer.ui.components.ActionState
-import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.workout.WorkoutPreview
-import com.sinura.personaltrainer.ui.workout.WorkoutPreviewScreen
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.ui.units.DateCopy
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LiveBarCopy
+import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.LoadClass
-import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SetCopy
-import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.ui.components.ActionState
+import com.sinura.personaltrainer.ui.components.CompletedNotesConflict
+import com.sinura.personaltrainer.ui.components.CompletedReceiptNotes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -61,26 +64,26 @@ import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
-import com.sinura.personaltrainer.ui.components.OutlinedMarks
-import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
-import com.sinura.personaltrainer.ui.components.CompletedReceiptNotes
-import com.sinura.personaltrainer.ui.components.CompletedNotesConflict
 import com.sinura.personaltrainer.ui.components.NotesLeaveDialog
 import com.sinura.personaltrainer.ui.components.NotesSaveState
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
+import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
-import com.sinura.personaltrainer.domain.LiveBarCopy
-import com.sinura.personaltrainer.domain.LiveBarKind
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.workout.WorkoutPreview
+import com.sinura.personaltrainer.ui.workout.WorkoutPreviewScreen
 
 private const val COMPACT_HEIGHT_DP = 480
 
@@ -129,6 +132,10 @@ fun SessionDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    // v4 V5: leaving the app writes any stepper nudge still inside its 400 ms pause.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flushInlineEdits() }
+    // Back out of the screen: write before the view model is cleared.
+    DisposableEffect(viewModel) { onDispose { viewModel.flushInlineEdits() } }
     val deleted by viewModel.deleted.collectAsStateWithLifecycle()
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
