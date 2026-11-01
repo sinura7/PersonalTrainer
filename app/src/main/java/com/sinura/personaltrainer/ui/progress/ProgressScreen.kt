@@ -35,7 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,6 +56,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.ExerciseRow
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
@@ -112,7 +115,16 @@ fun ProgressScreen(
         }
         onRecordsFocused()
     }
+    val weighIn by viewModel.weighIn.collectAsStateWithLifecycle()
+    // Home's check-in contract: the dialog closes only once the write actually returned.
+    LaunchedEffect(weighIn.saved) {
+        if (weighIn.saved) {
+            weighingIn = false
+            viewModel.onWeighInClosed()
+        }
+    }
     if (weighingIn) {
+        val busy = weighIn.pending || weighIn.saved
         NumberEntryDialog(
             title = stringResource(R.string.body_trend_bodyweight),
             unitLabel = unit.suffix,
@@ -120,8 +132,30 @@ fun ProgressScreen(
             decimal = true,
             helper = stringResource(R.string.body_log_weight_helper),
             parse = { NumericEntry.parseWeightKg(it, unit) },
-            onConfirm = { kg -> viewModel.recordBodyweight(kg) },
-            onDismiss = { weighingIn = false },
+            onConfirm = {},
+            // Refused or failed writes keep the dialog open with the typed text.
+            onConfirmAccepted = { kg ->
+                viewModel.recordBodyweight(kg)
+                false
+            },
+            onDismiss = { if (viewModel.onWeighInClosed()) weighingIn = false },
+            confirmEnabled = !busy,
+            dismissEnabled = !busy,
+            inputEnabled = !busy,
+            recoveryContent = {
+                if (weighIn.pending) {
+                    Text(
+                        stringResource(R.string.body_weight_saving),
+                        modifier = Modifier.testTag(BodyTrendTags.WEIGHT_SAVING)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                    )
+                }
+                weighIn.error?.let { message ->
+                    FieldComplaint(message = message, modifier = Modifier.testTag(BodyTrendTags.WEIGHT_ERROR))
+                }
+            },
         )
     }
     var bodyView by rememberSaveable { mutableStateOf(BodyView.FRONT) }

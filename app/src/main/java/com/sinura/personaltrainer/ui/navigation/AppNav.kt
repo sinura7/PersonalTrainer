@@ -545,6 +545,11 @@ fun PersonalTrainerNav(
     val restCooldownActive = RestTimerMarkers.isCooldown(restSnapshot)
     // History's records link asks Body to scroll to its records card once.
     var focusBodyRecords by rememberSaveable { mutableStateOf(false) }
+    // Leaving Body drops an unconsumed focus, so a later plain Body visit does not jump.
+    val currentRoutePath = currentDestination?.route
+    LaunchedEffect(currentRoutePath) {
+        focusBodyRecords = BodyRecordsFocus.afterRouteChange(focus = focusBodyRecords, route = currentRoutePath)
+    }
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
     // Same guard Today used: a stale attempt is released before a fresh chooser opens.
     var startsNowFrom by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1160,4 +1165,10 @@ internal fun NavGraphBuilder.routineLibraryDestination(
             viewModel = viewModel<RoutinesViewModel>(factory = factory),
         )
     }
+}
+
+/** History's one-shot "scroll Body to its records" flag survives only while Body is showing. */
+internal object BodyRecordsFocus {
+    fun afterRouteChange(focus: Boolean, route: String?): Boolean =
+        focus && (route == null || route == Route.Progress.path)
 }
