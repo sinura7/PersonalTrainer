@@ -144,7 +144,7 @@ jobs:
       # renames the rest. Upload even on workflow_dispatch so a mapping is
       # not thrown away with the APK.
       - name: Upload mapping
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: mapping
           path: app/build/outputs/mapping/release/mapping.txt
@@ -191,7 +191,7 @@ jobs:
       # Always keep the build, even on workflow_dispatch where no Release is published —
       # otherwise a manual run spends 15 minutes and throws the APK away.
       - name: Upload APK artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-apk
           path: ${{ steps.apk.outputs.path }}
