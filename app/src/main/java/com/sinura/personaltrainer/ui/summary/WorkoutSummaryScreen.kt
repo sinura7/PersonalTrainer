@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -93,6 +95,7 @@ import java.util.Date
 fun WorkoutSummaryScreen(
     onDone: () -> Unit,
     onOpenSession: (String) -> Unit,
+    onOpenPlanDay: (Long?) -> Unit = {},
     viewModel: WorkoutSummaryViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -110,6 +113,7 @@ fun WorkoutSummaryScreen(
         onRetry = viewModel::retry,
         onOpenSession = onOpenSession,
         onDone = onDone,
+        onOpenPlanDay = onOpenPlanDay,
         onSkipCooldown = { timerId -> viewModel.skipCooldown(timerId) },
         restSnapshot = viewModel.restTimerSnapshot,
         restRemaining = viewModel.restRemainingSeconds,
@@ -123,6 +127,7 @@ internal fun WorkoutSummaryContent(
     onRetry: () -> Unit,
     onOpenSession: (String) -> Unit,
     onDone: () -> Unit,
+    onOpenPlanDay: (Long?) -> Unit = {},
     onSkipCooldown: (String) -> Unit = {},
     restSnapshot: StateFlow<RestTimerSnapshot>? = null,
     restRemaining: Flow<Int>? = null,
@@ -198,6 +203,14 @@ internal fun WorkoutSummaryContent(
                     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
                         SummaryHeading(summary)
                         SummaryFacts(summary, unit)
+                        // Hidden until the plan read settles, with its row height reserved
+                        // so the receipt does not jump when it lands.
+                        val upNext = state.upNext
+                        if (upNext != null) {
+                            UpNextLine(upNext, state.todayEpochDay, onOpenPlanDay)
+                        } else {
+                            Spacer(Modifier.height(Metrics.rowMin))
+                        }
                     }
                 }
 
@@ -657,6 +670,7 @@ internal fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
 object SummaryTags {
     const val CONTENT = "summary-content"
     const val FACTS = "summary-facts"
+    const val UP_NEXT = "summary-up-next"
     const val WORKING_SETS = "summary-working-sets"
     const val DURATION = "summary-duration"
     const val HEADLINE = "summary-headline"

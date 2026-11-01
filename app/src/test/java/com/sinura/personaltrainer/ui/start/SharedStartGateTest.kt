@@ -114,6 +114,7 @@ class SharedStartGateTest {
         compose.waitForIdle()
         assertEquals(listOf("mixed"), composers)
         assertNull("nothing stays queued", gate.navigateToComposer.value)
+        assertEquals("the chooser closes once for the composer", 1, dismisses)
         val later = compose.runOnUiThread { gate.startFreeWorkout() }
         assertTrue("a later start is admitted", later)
         compose.awaitThat("the later start opens its workout", { started }) { started.isNotEmpty() }
@@ -122,6 +123,8 @@ class SharedStartGateTest {
         assertEquals(1, started.size)
     }
 
+    private var dismisses = 0
+
     private fun showOffHome() {
         gate = startGateFor(deps)
         compose.awaitThat("the gate's board is current", { gate.uiState.value.readState }) {
@@ -129,7 +132,7 @@ class SharedStartGateTest {
         }
         compose.setContent {
             PersonalTrainerTheme {
-                StartChooserHost(gate = gate, deps = deps, onDismiss = {}, onWorkoutStarted = { started += it }, onOpenComposer = { composers += it })
+                StartChooserHost(gate = gate, deps = deps, onDismiss = { dismisses++ }, onWorkoutStarted = { started += it }, onOpenComposer = { composers += it })
             }
         }
         compose.waitForIdle()

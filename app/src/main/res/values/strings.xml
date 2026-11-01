@@ -98,6 +98,9 @@
     <string name="summary_done">Done</string>
     <string name="summary_history">View in History</string>
     <string name="summary_first">First workout saved</string>
+    <string name="summary_up_next">Up next: %1$s, %2$s</string>
+    <string name="summary_up_next_tomorrow">Up next: tomorrow, %1$s</string>
+    <string name="summary_up_next_none">Up next: plan your week</string>
     <plurals name="preview_subtitle">
         <item quantity="one">%1$d lift · about %2$d min</item>
         <item quantity="other">%1$d lifts · about %2$d min</item>

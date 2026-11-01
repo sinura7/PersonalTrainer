@@ -54,6 +54,9 @@ data class WorkoutSummaryUiState(
     val autoBackup: String? = null,
     val tempoNextTime: List<SummaryTempoLine> = emptyList(),
     val firstWorkoutSaved: Boolean = false,
+    /** Blueprint 3.6. Null until the plan read settles, and on a failed read (line hidden). */
+    val upNext: SummaryUpNext? = null,
+    val todayEpochDay: Long = 0L,
 )
 
 data class SummaryTempoLine(
@@ -88,6 +91,29 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
 
     init {
         load()
+        loadUpNext()
+    }
+
+    /**
+     * Reads the plan once for the "Up next" line. Owned outside [settle] like the backup
+     * line: a summary Retry never erases it, and a failed plan read only hides the row.
+     */
+    private fun loadUpNext() {
+        val today = todayEpochDay()
+        viewModelScope.launch {
+            val plan = runCatchingCancellable {
+                container.trainingInsights.observeShared().first().weekPlan
+            }.getOrElse { thrown ->
+                AppLog.w(TAG, "Reading the plan for Up next failed", thrown)
+                return@launch
+            }
+            val next = plan?.nextTrainingOnOrAfter(today + 1)
+            val upNext = SummaryUpNext(
+                epochDay = next?.epochDay,
+                routineName = next?.let { it.routineName ?: it.focusTitle },
+            )
+            _uiState.update { it.copy(upNext = upNext, todayEpochDay = today) }
+        }
     }
 
     /** Re-read after a failed load. A no-op unless the last read actually threw. */
@@ -134,6 +160,8 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 summary = summary,
                 highlightExercises = highlightExercises,
                 autoBackup = current.autoBackup,
+                upNext = current.upNext,
+                todayEpochDay = current.todayEpochDay,
                 tempoNextTime = tempoNextTime,
                 firstWorkoutSaved = firstWorkoutSaved,
             )

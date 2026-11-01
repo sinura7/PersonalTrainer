@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -259,6 +260,9 @@ fun PlanScreen(
     onOpenStartSheet: () -> Unit = {},
     onBuildWeek: () -> Unit = {},
     onOpenLive: (String, Boolean) -> Unit = { _, _ -> },
+    /** One-shot day to scroll into view (Summary "Up next"); cleared through [onFocusDayHandled]. */
+    focusDay: Long? = null,
+    onFocusDayHandled: () -> Unit = {},
     viewModel: PlanViewModel = viewModel(),
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -295,7 +299,26 @@ fun PlanScreen(
             state.proposals.associateBy { it.epochDay }
         }
         val hasProposals = state.proposals.isNotEmpty()
+        val listState = rememberLazyListState()
+        val liveRowId = state.inProgress?.id ?: state.liveActivity?.id
+        // Items above the seven day rows, counted with the same conditions the list uses.
+        val dayRowsStart = 1 +
+            (if (state.error != null) 1 else 0) +
+            (if (liveRowId != null) 1 else 0) +
+            (if (PlanWeekState.isEmpty(state)) 1 else 0) +
+            (if (state.proposals.isNotEmpty()) 1 else 0) +
+            (if (state.block != null) 1 else 0) +
+            (if (missedWork.retained || missedWork.error != null || missedWork.receipt != null) 1 else 0) +
+            (if (state.missedWorkPrompt && !missedWork.retained) 1 else 0) +
+            1
+        LaunchedEffect(focusDay, cells) {
+            val day = focusDay ?: return@LaunchedEffect
+            val row = cells.indexOfFirst { it.epochDay == day }
+            if (row >= 0) listState.scrollToItem(dayRowsStart + row)
+            onFocusDayHandled()
+        }
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize().testTag(PlanTags.CONTENT),
             contentPadding = PaddingValues(
                 start = Metrics.gutter,

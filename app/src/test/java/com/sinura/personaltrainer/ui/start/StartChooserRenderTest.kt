@@ -108,6 +108,21 @@ class StartChooserRenderTest {
         assertTrue("the chooser starts through the shared gate", "gate = startGate" in nav)
     }
 
+    /** #571: off Home the host consumes a mixed Today start; Home skips it so it opens once. */
+    @Test
+    fun appNavConsumesTheComposerStartOffHomeOnly() {
+        val nav = ownedSource("ui/navigation/AppNav.kt")
+        val effect = nav.substringAfter("LaunchedEffect(gateComposer, onHome) {").substringBefore("\n    }")
+        assertTrue("off-Home composer effect exists", "startGate.navigateToComposer" in nav && effect.isNotBlank())
+        assertTrue("it skips Home, was $effect", "if (onHome) return@LaunchedEffect" in effect)
+        assertTrue("it opens the composer, was $effect", "Route.ActivityComposer.create(mode)" in effect)
+        assertTrue("it clears the request, was $effect", "startGate.onComposerNavigationHandled()" in effect)
+        assertTrue("Home is told when it is not current", "isCurrent = onHome" in nav)
+        val home = ownedSource("ui/home/HomeScreen.kt")
+        val homeEffect = home.substringAfter("LaunchedEffect(composerMode, isCurrent) {").substringBefore("\n    }")
+        assertTrue("Home skips the composer off Home, was $homeEffect", "if (!isCurrent) return@LaunchedEffect" in homeEffect)
+    }
+
     private fun top(tag: String): Float = compose.onNodeWithTag(tag).fetchSemanticsNode().positionInRoot.y
 
     private fun show(state: StartOptionsUiState, enabled: Boolean = StartGroups.startsEnabled(state)) {
