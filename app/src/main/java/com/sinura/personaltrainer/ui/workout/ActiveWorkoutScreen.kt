@@ -383,7 +383,6 @@ private fun ActiveWorkoutContent(
     // running clock is never composed off the top of the list.
     // Keyed on the owning lift and the rest's start, not its id: a +/-15 re-issues the id and must
     // not jump the list. Scroll only when the bar is not already on screen.
-    // Rest-scroll key: lift + running state only, so a re-issued rest id (+/-15) never re-scrolls.
     LaunchedEffect(restImmersionLiftId, restBarShown && rest.running) {
         if (!restBarShown || !rest.running) return@LaunchedEffect
         val onScreen = listState.layoutInfo.visibleItemsInfo.any { it.key == REST_BAR_KEY }

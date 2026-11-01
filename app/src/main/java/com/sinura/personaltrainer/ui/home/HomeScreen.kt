@@ -85,6 +85,8 @@ import java.util.UUID
 @Composable
 fun HomeScreen(
     onResumeWorkout: (String) -> Unit,
+    /** False while another tab is current; AppNav then consumes gate navigation instead. */
+    isCurrent: Boolean = true,
     onOpenPlan: () -> Unit,
     onOpenRoutine: (String) -> Unit = {},
     onOpenSession: (String) -> Unit = {},
@@ -196,8 +198,10 @@ fun HomeScreen(
         onOpenLiveCardio(id)
         viewModel.onCardioNavigationHandled()
     }
-    LaunchedEffect(composerMode) {
+    LaunchedEffect(composerMode, isCurrent) {
         val mode = composerMode ?: return@LaunchedEffect
+        // Off Home the AppNav host consumes it; consuming here too would open it twice.
+        if (!isCurrent) return@LaunchedEffect
         plannedStartPending = null
         fallbackStartPending = null
         onLogActivity(mode)
