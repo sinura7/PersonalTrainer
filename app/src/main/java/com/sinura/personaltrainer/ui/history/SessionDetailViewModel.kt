@@ -614,6 +614,7 @@ class SessionDetailViewModel internal constructor(
 
     private val inlinePending = linkedMapOf<String, InlineSetEdit>()
     private val inlineJobs = mutableMapOf<String, Job>()
+    private val inlineWriting = mutableSetOf<String>()
     private val _inlinePendingIds = MutableStateFlow<Set<String>>(emptySet())
 
     /** Sets with a nudge not yet written; their rows keep the shown value instead of resyncing. */
@@ -641,7 +642,12 @@ class SessionDetailViewModel internal constructor(
         inlinePending.keys.toList().forEach(::writeInline)
     }
 
-    /** A delete owns the set from here: a nudge pending on it must not write after it is gone. */
+    /** A delete is starting: stop the timer so the nudge cannot write mid-delete, but keep it. */
+    private fun pauseInline(setId: String) {
+        inlineJobs.remove(setId)?.cancel()
+    }
+
+    /** The delete landed: a nudge pending on the set must not write after it is gone. */
     private fun dropInline(setId: String) {
         inlineJobs.remove(setId)?.cancel()
         if (inlinePending.remove(setId) != null) retainInlinePending()
@@ -649,6 +655,8 @@ class SessionDetailViewModel internal constructor(
 
     private fun writeInline(setId: String) {
         val edit = inlinePending[setId] ?: return
+        // One write per set at a time; the running write re-checks for a newer nudge when it returns.
+        if (setId in inlineWriting) return
         // Another save owns the screen: keep the nudge pending so the next flush writes it.
         if (setOperationOwned()) {
             errors.fail(source = ERR_DETAIL, message = getApplication<Application>().getString(R.string.session_set_save_failed))
@@ -659,15 +667,18 @@ class SessionDetailViewModel internal constructor(
         val violation = SetLogRules.validateEffort(
             rpe = edit.rpe, isWarmup = edit.isWarmup, isHold = timedOriginal || edit.reps == 0,
         )
-        inlinePending.remove(setId)
-        retainInlinePending()
         if (violation != null) {
+            inlinePending.remove(setId)
+            retainInlinePending()
             // Retrying cannot fix the effort rule, so the nudge is dropped and the rule is said.
             report(IllegalArgumentException(violation), violation)
             return
         }
         // Not a child of viewModelScope: a flush from onDispose or ON_STOP still lands when the
         // view model is cleared right after.
+        // The nudge stays pending (rows keep the shown value, process death keeps it) until
+        // updateSet returns.
+        inlineWriting += setId
         viewModelScope.launch(NonCancellable) {
             runCatchingCancellable {
                 container.workoutRepository.updateSet(
@@ -678,12 +689,18 @@ class SessionDetailViewModel internal constructor(
                     isWarmup = edit.isWarmup,
                     durationSeconds = edit.durationSeconds,
                 )
-            }.onFailure { thrown ->
-                // Re-arm unless a newer nudge already replaced it.
-                if (setId !in inlinePending) {
-                    inlinePending[setId] = edit
+            }.onSuccess {
+                inlineWriting -= setId
+                if (inlinePending[setId] == edit) {
+                    inlinePending.remove(setId)
                     retainInlinePending()
+                } else if (setId in inlinePending && setId !in inlineJobs) {
+                    // A newer nudge arrived and its timer already fired while this one ran.
+                    writeInline(setId)
                 }
+            }.onFailure { thrown ->
+                inlineWriting -= setId
+                // The edit (or a newer nudge) is still pending, so the next flush retries it.
                 report(thrown, getApplication<Application>().getString(R.string.session_set_save_failed))
             }
         }
@@ -732,7 +749,7 @@ class SessionDetailViewModel internal constructor(
 
     fun deleteSet(setId: String) {
         if (setOperationOwned()) return
-        dropInline(setId)
+        pauseInline(setId)
         // D7: the last set of the whole session is never deleted here; DELETE session owns that.
         // The repository enforces it in the delete's own transaction; this is the early answer.
         val sets = uiState.value.session?.sets.orEmpty()
@@ -745,6 +762,7 @@ class SessionDetailViewModel internal constructor(
             try {
                 runCatchingCancellable { container.workoutRepository.deleteSet(setId, keepLastSetOfSession = true) }
                     .onSuccess { deleted ->
+                        dropInline(setId)
                         if (deleted?.sessionId == sessionId) markSummaryChanged()
                         _deletedSet.value = deleted
                     }
