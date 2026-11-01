@@ -24,7 +24,7 @@ import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.testutil.ActivityReadGate
 import com.sinura.personaltrainer.testutil.FailingGetGraphDao
-import com.sinura.personaltrainer.testutil.FailingObserveActivityRecordSetsDao
+import com.sinura.personaltrainer.testutil.FailingObserveCompletedSummariesDao
 import com.sinura.personaltrainer.testutil.FailingObserveSessionDao
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
@@ -381,7 +381,7 @@ class CompletedTrainingParityTest {
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
-            activityDaoDecorator = { FailingObserveActivityRecordSetsDao(it, historyGate) },
+            activityDaoDecorator = { FailingObserveCompletedSummariesDao(it, historyGate) },
         )
         val historyFixtures = seedFour()
         val historyVm = HistoryViewModel(

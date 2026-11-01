@@ -76,9 +76,10 @@ class DateCopyTest {
         assertTrue(whenField.contains("DateCopy.weekdayShort"))
         assertTrue(composer.contains("ComposerCopy.cardioEntry"))
 
-        val history = readMain("ui/history/HistoryScreen.kt")
-        assertTrue(history.contains("DateCopy.dateTime"))
-        assertTrue(history.contains("LocalClockFormat"))
+        // D10: the record rows (and their stamps) moved from History to Body.
+        val bodyRecords = readMain("ui/progress/BodyTrends.kt")
+        assertTrue(bodyRecords.contains("DateCopy.dateTime"))
+        assertTrue(bodyRecords.contains("LocalClockFormat"))
 
         val session = readMain("ui/history/SessionDetailScreen.kt")
         assertTrue(session.contains("DateCopy.dateTime"))
