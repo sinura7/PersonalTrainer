@@ -142,6 +142,9 @@ import com.sinura.personaltrainer.ui.start.StartChooser
 
 private const val SUMMARY_CORRECTION_RESULT = "summary.acknowledgedCorrection.v1"
 
+/** One-shot day for Plan to scroll to (blueprint 4.7); Plan clears it once consumed. */
+internal const val PLAN_FOCUS_DAY = "plan_focus_day"
+
 sealed class Route(val path: String) {
     data object Home : Route("home")
     data object Routines : Route("routines")
@@ -636,6 +639,7 @@ fun PersonalTrainerNav(
             ) {
                 composable(Route.Home.path) {
                     HomeScreen(
+                        isCurrent = onHome,
                         pendingOccurrenceStartId = homeTap?.startId,
                         pendingOccurrenceDeliveryId = homeTap?.deliveryId,
                         pendingOccurrenceRequestId = homeTap?.requestId,
@@ -739,8 +743,13 @@ fun PersonalTrainerNav(
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
                     )
                 }
-                composable(Route.Routines.path) {
+                composable(Route.Routines.path) { planEntry ->
+                    val focusDay by planEntry.savedStateHandle
+                        .getStateFlow<Long?>(PLAN_FOCUS_DAY, null)
+                        .collectAsStateWithLifecycle()
                     PlanScreen(
+                        focusDay = focusDay,
+                        onFocusDayHandled = { planEntry.savedStateHandle[PLAN_FOCUS_DAY] = null },
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
                         onOpenRoutines = { navController.navigate(Route.RoutineLibrary.create()) },
                         onOpenDay = { epochDay, add ->
@@ -848,6 +857,13 @@ fun PersonalTrainerNav(
                         onOpenSession = { sessionId ->
                             navController.navigate(Route.SessionDetail.create(sessionId)) {
                                 launchSingleTop = true
+                            }
+                        },
+                        onOpenPlanDay = { day ->
+                            navController.goToTab(Route.Routines.path)
+                            if (day != null) {
+                                runCatching { navController.getBackStackEntry(Route.Routines.path) }
+                                    .getOrNull()?.savedStateHandle?.set(PLAN_FOCUS_DAY, day)
                             }
                         },
                     )
