@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.walkthrough
 
+import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
+import androidx.compose.ui.semantics.getOrNull
 import com.sinura.personaltrainer.ui.start.StartTags
 import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
 import android.content.Intent
@@ -615,6 +617,36 @@ class UxWalkthroughTest {
         finishLiveWorkout()
         awaitSummaryScreenForCapture()
         shot("strength-finished-summary", composeCaptureTag = SummaryTags.CONTENT)
+        captureSessionEdit()
+    }
+
+    /** v4 V5: the finished session read, then Edit with its inline steppers, then Done. */
+    private fun captureSessionEdit() {
+        compose.onNodeWithText("View in History").performClick()
+        harnessWaitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(SessionDetailTestTags.SESSION_EDIT)).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("session-detail-read")
+        compose.onNodeWithTag(SessionDetailTestTags.SESSION_EDIT).performClick()
+        val repsUp = SemanticsMatcher("reps up stepper") { node ->
+            node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("session-detail-set-reps-up-") == true
+        }
+        harnessWaitUntil(15_000) { compose.onAllNodes(repsUp).fetchSemanticsNodes().isNotEmpty() }
+        shot("session-edit")
+        compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(repsUp)
+        // The first set reads "60 kg × 5"; one reps-up must show (and keep) "× 6" on that row.
+        val sixes = { compose.onAllNodes(hasText("× 6", substring = true)).fetchSemanticsNodes().size }
+        val before = sixes()
+        compose.onAllNodes(repsUp).onFirst().performClick()
+        harnessWaitUntil(5_000) { sixes() > before }
+        shot("session-edit-nudged")
+        compose.onNodeWithTag(SessionDetailTestTags.SESSION_EDIT_DONE).performClick()
+        harnessWaitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(SessionDetailTestTags.SESSION_EDIT)).fetchSemanticsNodes().isNotEmpty()
+        }
+        // Done wrote it: read mode still shows the nudged reps.
+        harnessWaitUntil(5_000) { sixes() > before }
+        shot("session-edit-done")
     }
 
     private fun flowLiveCardio() {

@@ -10,17 +10,28 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import com.sinura.personaltrainer.R
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -29,17 +40,23 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.FilledSessionLift
+import com.sinura.personaltrainer.domain.FloorStepper
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.ui.components.LiftCard
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.LiftCard
 import com.sinura.personaltrainer.ui.components.SetTableLine
+import com.sinura.personaltrainer.ui.components.StepperButton
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.RestCyan
@@ -69,6 +86,13 @@ internal fun FilledLiftCard(
     onOpen: () -> Unit,
     onEditSet: (SetLog) -> Unit,
     onAddSet: () -> Unit,
+    /** v4 V5: read mode shows saved sets only; Edit mode adds Edit, Delete and Add set. */
+    editMode: Boolean = true,
+    onDeleteSet: (SetLog) -> Unit = {},
+    /** v4 V5: inline weight and reps steppers in Edit mode; the screen debounces the write. */
+    onNudgeSet: (SetLog, Double, Int) -> Unit = { _, _, _ -> },
+    /** Sets with a nudge not yet written: their shown value is not resynced from storage. */
+    pendingSetIds: Set<String> = emptySet(),
 ) {
     val repeated = lift.prescriptions.size > 1
     val single = lift.prescriptions.singleOrNull()?.row
@@ -201,14 +225,46 @@ internal fun FilledLiftCard(
                 GroupedList {
                     lift.sets.forEachIndexed { index, set ->
                         if (index > 0) HairlineDivider()
+                        // D8: the shown number follows order, so a delete never leaves a gap.
+                        // The stored setNumber is not rewritten.
+                        val shown = index + 1
+                        // Shown at once; the write follows the 400 ms pause in the view model.
+                        var nudged by remember(set.id) { mutableStateOf(set.weightKg to set.reps) }
+                        val pending = set.id in pendingSetIds
+                        // Storage wins only once nothing is pending, so a slow write cannot snap back a newer nudge.
+                        LaunchedEffect(set.weightKg, set.reps, pending) {
+                            if (!pending) nudged = set.weightKg to set.reps
+                        }
+                        val hold = set.reps < 1 && (set.durationSeconds ?: 0) > 0
+                        val shownSet = set.copy(weightKg = nudged.first, reps = nudged.second)
                         RecordedSetRow(
-                            row = SetTableLine.fromLog(set, loadClass, unit),
-                            onEdit = { onEditSet(set) },
+                            row = SetTableLine.fromLog(shownSet, loadClass, unit).copy(
+                                number = shown,
+                                extras = SetCopy.tableExtras("Set $shown", set.rpe),
+                            ),
+                            onEdit = { onEditSet(set) }.takeIf { editMode },
+                            onDelete = { onDeleteSet(set) }.takeIf { editMode },
+                        )
+                        if (editMode && !hold) InlineSetSteppers(
+                            setId = set.id,
+                            showWeight = loadClass.weightMeaning != WeightMeaning.NONE,
+                            onWeight = { direction ->
+                                val kg = FloorStepper.nextWeightKg(
+                                    nudged.first, unit, direction, lift.exercise.loadType, lift.exercise.equipment,
+                                )
+                                nudged = kg to nudged.second
+                                onNudgeSet(set, kg, nudged.second)
+                            },
+                            onReps = { direction ->
+                                val reps = FloorStepper.nextReps(nudged.second, direction)
+                                nudged = nudged.first to reps
+                                onNudgeSet(set, nudged.first, reps)
+                            },
                         )
                     }
                 }
             }
-            TextButton(
+            if (editMode) TextButton(
                 onClick = onAddSet,
                 modifier = Modifier.heightIn(min = Metrics.touchMin)
                     .testTag(FilledLiftCardTags.addSet(lift.exercise.id)),
@@ -255,7 +311,7 @@ private fun PlannedMetric(value: String, label: String, unit: String? = null) {
 
 /** Keep every saved value and the exact correction action readable at large system text. */
 @Composable
-private fun RecordedSetRow(row: SetTableLine, onEdit: () -> Unit) {
+private fun RecordedSetRow(row: SetTableLine, onEdit: (() -> Unit)?, onDelete: (() -> Unit)?) {
     val fontScale = LocalDensity.current.fontScale
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth().padding(Metrics.space3)
@@ -288,18 +344,28 @@ private fun RecordedSetRow(row: SetTableLine, onEdit: () -> Unit) {
             }
         }
         val edit = @Composable {
-            TextButton(
+            if (onEdit != null) TextButton(
                 onClick = onEdit,
                 modifier = Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
                     .testTag(SessionDetailTestTags.EDIT_SET),
             ) {
                 Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
             }
+            if (onDelete != null) {
+                val spoken = stringResource(R.string.session_delete_set, row.number)
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(Metrics.touchMin)
+                        .testTag(SessionDetailTestTags.sessionSetDelete(row.id)),
+                ) {
+                    Icon(TemperIcons.Delete, contentDescription = spoken, tint = TextSecondary)
+                }
+            }
         }
         if (stack) {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
                 values()
-                edit()
+                Row(verticalAlignment = Alignment.CenterVertically) { edit() }
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -307,5 +373,90 @@ private fun RecordedSetRow(row: SetTableLine, onEdit: () -> Unit) {
                 edit()
             }
         }
+    }
+}
+
+/** v4 V5: weight and reps nudges on one saved set, as two compact pairs with 48dp targets. */
+@Composable
+private fun InlineSetSteppers(
+    setId: String,
+    showWeight: Boolean,
+    onWeight: (Int) -> Unit,
+    onReps: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Metrics.space3),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (showWeight) {
+            StepperPair(
+                label = stringResource(R.string.session_weight_label),
+                downDescription = stringResource(R.string.session_weight_down),
+                upDescription = stringResource(R.string.session_weight_up),
+                downTag = SessionDetailTestTags.sessionSetWeightDown(setId),
+                upTag = SessionDetailTestTags.sessionSetWeightUp(setId),
+                onStep = onWeight,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        StepperPair(
+            label = stringResource(R.string.session_reps_label),
+            downDescription = stringResource(R.string.session_reps_down),
+            upDescription = stringResource(R.string.session_reps_up),
+            downTag = SessionDetailTestTags.sessionSetRepsDown(setId),
+            upTag = SessionDetailTestTags.sessionSetRepsUp(setId),
+            onStep = onReps,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** One label with a minus and a plus; the label gives way first so the 48dp targets always fit. */
+@Composable
+private fun StepperPair(
+    label: String,
+    downDescription: String,
+    upDescription: String,
+    downTag: String,
+    upTag: String,
+    onStep: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            style = InstrumentType.caption,
+            color = TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        StepperButton(
+            label = stringResource(R.string.session_step_down),
+            onClick = { onStep(-1) },
+            modifier = Modifier.size(Metrics.touchMin)
+                .testTag(downTag)
+                .clearAndSetSemantics {
+                    contentDescription = downDescription
+                    role = Role.Button
+                    onClick { onStep(-1); true }
+                },
+        )
+        StepperButton(
+            label = stringResource(R.string.session_step_up),
+            onClick = { onStep(1) },
+            modifier = Modifier.size(Metrics.touchMin)
+                .testTag(upTag)
+                .clearAndSetSemantics {
+                    contentDescription = upDescription
+                    role = Role.Button
+                    onClick { onStep(1); true }
+                },
+        )
     }
 }

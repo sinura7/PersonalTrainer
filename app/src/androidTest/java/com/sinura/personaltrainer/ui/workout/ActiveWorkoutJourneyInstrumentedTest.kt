@@ -363,27 +363,23 @@ class ActiveWorkoutJourneyInstrumentedTest {
         }
         compose.onNodeWithText("View in History").performClick()
         compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(SessionDetailTestTags.SESSION_EDIT))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        enterSessionEdit()
+        compose.waitUntil(15_000) {
             compose.onAllNodes(hasTestTag(SessionDetailTestTags.EDIT_SET))
                 .fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(SessionDetailTestTags.CONTENT)
             .performScrollToNode(hasTestTag(SessionDetailTestTags.EDIT_SET))
+        enterSessionEdit()
         compose.onNodeWithTag(SessionDetailTestTags.EDIT_SET).performClick()
+        // v4 D7: the only set of the session is never deleted from Edit; the session's own
+        // Delete owns that. The row stays exactly as saved.
         compose.onNodeWithTag(SetEditTestTags.DELETE).performClick()
         compose.waitUntil(10_000) {
-            compose.onAllNodesWithText("Undo").fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.waitUntil(10_000) {
-            runBlocking(Dispatchers.IO) {
-                container.workoutRepository.getSession(fixture.sessionId)?.sets.isNullOrEmpty()
-            }
-        }
-        compose.onNodeWithText("Undo").performClick()
-        compose.waitUntil(10_000) {
-            runBlocking(Dispatchers.IO) {
-                container.workoutRepository.getSession(fixture.sessionId)?.sets?.singleOrNull()?.id ==
-                    original.id
-            }
+            compose.onAllNodesWithText("Delete the session instead").fetchSemanticsNodes().isNotEmpty()
         }
         val restored = runBlocking(Dispatchers.IO) {
             checkNotNull(container.workoutRepository.getSession(fixture.sessionId)).sets.single()
@@ -391,8 +387,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
         assertEquals(original.id, restored.id)
         assertEquals(original.completedAt, restored.completedAt)
         assertEquals(100.0, restored.weightKg, 0.0001)
-        // The set list is what Undo puts back, and the three waits above are on the
-        // database, not on the screen. Wait for the row to exist, then scroll the list to
+        // The waits above are on the database, not on the screen. Wait for the row to exist, then scroll the list to
         // it: on the 731 dp profile it lands below the fold whenever the detail's header
         // and metrics push it there, which is why this assertion failed on one run of a
         // commit it passed on twice.
@@ -552,5 +547,14 @@ class ActiveWorkoutJourneyInstrumentedTest {
         const val JOURNEY_PREFIX = "Journey lower"
         const val ACTUAL_WEIGHT_KG = 87.5
         const val ACTUAL_REPS = 4
+    }
+
+    /** v4 V5: set actions live in Edit mode; enter it unless a restored screen already is. */
+    private fun enterSessionEdit() {
+        val edit = androidx.compose.ui.test.hasTestTag(com.sinura.personaltrainer.ui.history.SessionDetailTestTags.SESSION_EDIT)
+        if (compose.onAllNodes(edit).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNode(edit).performClick()
+            compose.waitForIdle()
+        }
     }
 }

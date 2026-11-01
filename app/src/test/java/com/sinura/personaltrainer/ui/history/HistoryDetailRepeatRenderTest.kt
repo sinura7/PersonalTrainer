@@ -83,7 +83,7 @@ class HistoryDetailRepeatRenderTest {
         compose.onNodeWithTag(FilledLiftCardTags.warmupMark(warmup.id), useUnmergedTree = true).assertContentDescriptionEquals("Warm-up")
         compose.onNodeWithTag(FilledLiftCardTags.warmupMark(session.sets.single { !it.isWarmup }.id), useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag(SessionDetailTestTags.EFFORT_HINT)
-            .assertTextContains("Right side number is effort. Tap a set to edit.")
+            .assertTextContains("Right side number is effort. Tap Edit to change a set.")
     }
 
     @Test

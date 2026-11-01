@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.history
 
+import androidx.compose.ui.test.performClick
 import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
@@ -257,6 +258,7 @@ class SessionDetailRestoredHoldSafetyRenderTest {
         host.evidence("restored-detail-failed-add-retains-draft-edit-cancel") {
             val model = openFixture(holdFixture(planned = true, originalReps = 8))
             host.touch(host.tag(SetEditTestTags.CANCEL))
+            enterSessionEdit()
             host.touch(host.tag(FilledLiftCardTags.addSet(HOLD_ID)))
             authorAddDraft()
             val before = checkNotNull(restoredInventory)
@@ -274,6 +276,7 @@ class SessionDetailRestoredHoldSafetyRenderTest {
             host.capture("released-add-draft-remains-editable")
             host.touch(host.tag(SetEditTestTags.CANCEL))
             compose.onNodeWithTag(SetEditTestTags.CONTENT).assertDoesNotExist()
+            enterSessionEdit()
             host.touch(host.tag(FilledLiftCardTags.addSet(HOLD_ID)))
             assertAddDraft("12.5", "8", effortSelected = false, warmupSelected = false)
             host.touch(host.tag(SetEditTestTags.CANCEL))
@@ -366,6 +369,7 @@ class SessionDetailRestoredHoldSafetyRenderTest {
         host.evidence("restored-detail-add-target-graph-disappears") {
             val model = openFixture(holdFixture(planned = true, originalReps = 8))
             host.touch(host.tag(SetEditTestTags.CANCEL))
+            enterSessionEdit()
             host.touch(host.tag(FilledLiftCardTags.addSet(HOLD_ID)))
             assertExpandedSheet()
             host.readable(compose.onNode(matcher = hasText("Add set") and hasAnyAncestor(actualDialog()), useUnmergedTree = true), "Add set")
@@ -412,9 +416,11 @@ class SessionDetailRestoredHoldSafetyRenderTest {
             }
             host.drain()
             compose.onNodeWithTag(SetEditTestTags.CONTENT).assertDoesNotExist()
+            enterSessionEdit()
             host.action(host.tag(FilledLiftCardTags.addSet(HOLD_ID)))
             assertEquals("returning graph does not resurrect the cleared draft or change any inventory part", before, inventory())
             host.capture("actual-returning-graph-has-no-stale-add-sheet")
+            enterSessionEdit()
             host.touch(host.tag(FilledLiftCardTags.addSet(HOLD_ID)))
             assertExpandedSheet()
             assertAddDraft(weight = "12.5", reps = "8", effortSelected = false, warmupSelected = false)
@@ -429,6 +435,7 @@ class SessionDetailRestoredHoldSafetyRenderTest {
         host.evidence("restored-detail-add-selection-failed-read-retry") {
             val model = openFixture(holdFixture(planned = true, originalReps = 8))
             host.touch(host.tag(SetEditTestTags.CANCEL))
+            enterSessionEdit()
             host.touch(host.tag(FilledLiftCardTags.addSet(HOLD_ID)))
             assertExpandedSheet()
             host.readable(compose.onNode(matcher = hasText("Add set") and hasAnyAncestor(actualDialog()), useUnmergedTree = true), "Add set")
@@ -463,6 +470,7 @@ class SessionDetailRestoredHoldSafetyRenderTest {
             host.touch(host.tag(SetEditTestTags.CANCEL))
             compose.onNodeWithTag(SetEditTestTags.CONTENT).assertDoesNotExist()
             assertEquals("cancelling the recovered Add leaves all eleven parts exact", before, inventory())
+            enterSessionEdit()
             host.touch(host.tag(FilledLiftCardTags.addSet(HOLD_ID)))
             assertExpandedSheet()
             assertAddDraft(weight = "12.5", reps = "8", effortSelected = false, warmupSelected = false)
@@ -473,29 +481,22 @@ class SessionDetailRestoredHoldSafetyRenderTest {
             assertEquals("cancelling the fresh Add still leaves all eleven parts exact", before, inventory())
         }
 
-    @Test fun actualDeleteAndUndoRestoreTheExactTimedRowAndEveryInventoryPart() =
-        host.evidence("restored-hold-delete-undo") {
+    /**
+     * v4 D7: this restored session holds one set, so Delete is refused with "Delete the
+     * session instead" and every inventory part stays exact. Delete and Undo of a set that
+     * is not the last one is covered in SessionDetailViewModelTest.
+     */
+    @Test fun actualDeleteOfTheOnlySetIsRefusedAndLeavesEveryInventoryPartExact() =
+        host.evidence("restored-hold-delete-refused") {
             val fixture = holdFixture(planned = false, originalReps = -3)
-            val model = openFixture(fixture)
+            openFixture(fixture)
             val before = checkNotNull(restoredInventory)
-            val without = before.toMutableList()
-            @Suppress("UNCHECKED_CAST")
-            val rows = before[2] as List<SetLogEntity>
-            without[2] = rows.filterNot { it.id == SET_ID }
-            without[8] = (before[8] as BackupDocument).let { it.copy(setLogs = it.setLogs.filterNot { row -> row.id == SET_ID }) }
-            permittedInventories += without.toList()
-            completedAction(model) { host.touch(host.tag(SetEditTestTags.DELETE)) }
-            compose.awaitThat("actual Delete removes only the original row", { inventory() }) {
-                @Suppress("UNCHECKED_CAST")
-                (inventory()[2] as List<SetLogEntity>).none { it.id == SET_ID }
+            host.touch(host.tag(SetEditTestTags.DELETE))
+            compose.awaitThat("the only set's Delete is refused", { inventory() }) {
+                compose.onAllNodes(hasText("Delete the session instead")).fetchSemanticsNodes().isNotEmpty()
             }
-            assertEquals("Delete leaves every other inventory part exact", without, inventory())
-            host.readable(host.words("Set deleted · 12.5 kg × 45s"), "Set deleted · 12.5 kg × 45s")
-            host.capture("actual-delete-before-undo")
-            completedAction(model) { host.touch(compose.onNode(hasText("Undo"))) }
-            compose.awaitThat("actual Undo restores the exact complete inventory", { inventory() }) { inventory() == before }
-            host.capture("actual-undo-restored-original")
-            assertEquals(before, inventory())
+            assertEquals("a refused Delete writes nothing", before, inventory())
+            host.capture("actual-delete-refused")
         }
 
     private fun verify(fixture: RestoredFixture, draft: Draft = Draft.NONE, refusal: String? = null) =
@@ -585,6 +586,7 @@ class SessionDetailRestoredHoldSafetyRenderTest {
         val original = rawOriginal(checkNotNull(restoredInventory))
         host.readable(host.words(workWords(original), row), workWords(original))
         assertEquals(1, compose.onAllNodes(hasTestTag(row), useUnmergedTree = true).fetchSemanticsNodes().size)
+        enterSessionEdit()
         val edit = hasTestTag(SessionDetailTestTags.EDIT_SET) and hasAnyAncestor(hasTestTag(row))
         assertEquals(1, compose.onAllNodes(edit).fetchSemanticsNodes().size)
         host.touch(compose.onNode(edit))
@@ -1023,5 +1025,14 @@ class SessionDetailRestoredHoldSafetyRenderTest {
 
         const val STAMP = 1_790_856_000_000L
         const val EXPORTED_AT = "2026-10-09T00:00:00Z"
+    }
+
+    /** v4 V5: set actions live in Edit mode; enter it unless a restored screen already is. */
+    private fun enterSessionEdit() {
+        val edit = androidx.compose.ui.test.hasTestTag(com.sinura.personaltrainer.ui.history.SessionDetailTestTags.SESSION_EDIT)
+        if (compose.onAllNodes(edit).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNode(edit).performClick()
+            compose.waitForIdle()
+        }
     }
 }

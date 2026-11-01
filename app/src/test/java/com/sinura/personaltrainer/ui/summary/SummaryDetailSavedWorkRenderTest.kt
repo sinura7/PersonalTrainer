@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.summary
 
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.assert
 import android.app.Application
 import androidx.activity.ComponentActivity
@@ -491,6 +492,7 @@ class SummaryDetailSavedWorkRenderTest {
         host.tag(FilledLiftCardTags.warmupMark(WARM_SET_ID), unmerged = true)
             .assert(hasContentDescription("Warm-up"))
         host.action(edit(WARM_SET_ID))
+        enterSessionEdit()
         host.action(host.tag(FilledLiftCardTags.addSet(exercise.id)))
         host.capture("detail-recorded-warmup-add-action")
     }
@@ -506,6 +508,7 @@ class SummaryDetailSavedWorkRenderTest {
             assertEquals(original.completedAt, editedSets.last().completedAt)
             host.capture("detail-exact-edit-$id")
         }
+        enterSessionEdit()
         host.touch(host.tag(FilledLiftCardTags.addSet(exercise.id)))
         assertEquals(listOf(exercise.id), addedExercises)
         host.capture("detail-add-exact-exercise")
@@ -537,6 +540,7 @@ class SummaryDetailSavedWorkRenderTest {
         host.drain()
         assertTrue("set-only or unplanned history invents no target section", compose.onAllNodes(hasTestTag(plan)).fetchSemanticsNodes().isEmpty())
         host.readable(host.words("No recorded sets", FilledLiftCardTags.recorded(holdExercise.id)), "No recorded sets")
+        enterSessionEdit()
         host.touch(host.tag(FilledLiftCardTags.addSet(holdExercise.id)))
         assertEquals(holdExercise.id, addedExercises.last())
         host.capture("detail-no-planned-or-recorded-work")
@@ -588,9 +592,12 @@ class SummaryDetailSavedWorkRenderTest {
         host.capture("$stage-body-and-done")
     }
 
-    private fun edit(setId: String) = host.reach(compose.onNode(
-        hasTestTag(SessionDetailTestTags.EDIT_SET) and hasAnyAncestor(hasTestTag(FilledLiftCardTags.setRow(setId))),
-    ))
+    private fun edit(setId: String): androidx.compose.ui.test.SemanticsNodeInteraction {
+        enterSessionEdit()
+        return host.reach(compose.onNode(
+            hasTestTag(SessionDetailTestTags.EDIT_SET) and hasAnyAncestor(hasTestTag(FilledLiftCardTags.setRow(setId))),
+        ))
+    }
 
     private fun assertAbsent(words: String) {
         assertTrue("$words is never claimed in this evidence state", compose.onAllNodes(hasText(words)).fetchSemanticsNodes().isEmpty())
@@ -620,5 +627,14 @@ class SummaryDetailSavedWorkRenderTest {
         const val CARD_CONTENT = "saved-work-card-content"
         const val REFERENCE_ART = "saved-work-independent-exercise-art"
         const val UNRELATED_ART = "saved-work-unrelated-exercise-art"
+    }
+
+    /** v4 V5: set actions live in Edit mode; enter it unless a restored screen already is. */
+    private fun enterSessionEdit() {
+        val edit = androidx.compose.ui.test.hasTestTag(com.sinura.personaltrainer.ui.history.SessionDetailTestTags.SESSION_EDIT)
+        if (compose.onAllNodes(edit).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNode(edit).performClick()
+            compose.waitForIdle()
+        }
     }
 }

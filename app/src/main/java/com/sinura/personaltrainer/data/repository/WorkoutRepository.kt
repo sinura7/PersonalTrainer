@@ -1120,13 +1120,24 @@ class WorkoutRepository(
      * confirm on every delete taxes the common case to prevent the rare one, and an undo
      * costs nothing until it is needed.
      */
-    suspend fun deleteSet(setId: String): DeletedSet? = serialized {
+    /** D7: History refuses to delete the only set of a session; the session delete owns that. */
+    class LastSetOfSessionException : IllegalStateException("Delete the session instead")
+
+    /**
+     * [keepLastSetOfSession] refuses (throws [LastSetOfSessionException]) when the set is the
+     * session's only one, counted inside the delete's transaction so two quick deletes cannot
+     * both pass a stale check.
+     */
+    suspend fun deleteSet(setId: String, keepLastSetOfSession: Boolean = false): DeletedSet? = serialized {
         check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
         fenceWorkoutDrafts()
         // Delete and renumber are one write. A committed delete with a half-applied
         // renumber left a gap that the next logSet would then share a number with.
         return@serialized database.withTransaction {
             val deleted = workoutDao.getSet(setId) ?: return@withTransaction null
+            if (keepLastSetOfSession && workoutDao.countSetsForSession(deleted.sessionId) <= 1) {
+                throw LastSetOfSessionException()
+            }
             workoutDao.deleteSet(setId)
             renumber(deleted.sessionId, deleted.exerciseId)
             DeletedSet(
