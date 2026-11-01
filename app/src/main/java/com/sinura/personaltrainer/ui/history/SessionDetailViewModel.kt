@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.data.draft.FinishedSetDraft
 import com.sinura.personaltrainer.data.draft.FinishedSetDrafts
@@ -33,6 +34,9 @@ import com.sinura.personaltrainer.workout.WorkoutDraftCache
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -608,6 +612,99 @@ class SessionDetailViewModel internal constructor(
         }
     }
 
+    private val inlinePending = linkedMapOf<String, InlineSetEdit>()
+    private val inlineJobs = mutableMapOf<String, Job>()
+    private val _inlinePendingIds = MutableStateFlow<Set<String>>(emptySet())
+
+    /** Sets with a nudge not yet written; their rows keep the shown value instead of resyncing. */
+    val inlinePendingIds: StateFlow<Set<String>> = _inlinePendingIds.asStateFlow()
+
+    /**
+     * v4 V5: a stepper nudge on a saved set. The newest value wins and is written through the
+     * repository's updateSet after [INLINE_DEBOUNCE_MS], one write per set per pause.
+     */
+    internal fun nudgeSet(set: SetLog, weightKg: Double, reps: Int) {
+        inlineJobs.remove(set.id)?.cancel()
+        inlinePending[set.id] = InlineSetEdit(set.id, weightKg, reps, set.rpe, set.isWarmup, set.durationSeconds)
+        retainInlinePending()
+        inlineJobs[set.id] = viewModelScope.launch {
+            delay(INLINE_DEBOUNCE_MS)
+            inlineJobs.remove(set.id)
+            writeInline(set.id)
+        }
+    }
+
+    /** Done, leaving the screen (ON_STOP) or a restore after process death writes every pending nudge at once. */
+    internal fun flushInlineEdits() {
+        inlineJobs.values.forEach { it.cancel() }
+        inlineJobs.clear()
+        inlinePending.keys.toList().forEach(::writeInline)
+    }
+
+    /** A delete owns the set from here: a nudge pending on it must not write after it is gone. */
+    private fun dropInline(setId: String) {
+        inlineJobs.remove(setId)?.cancel()
+        if (inlinePending.remove(setId) != null) retainInlinePending()
+    }
+
+    private fun writeInline(setId: String) {
+        val edit = inlinePending[setId] ?: return
+        // Another save owns the screen: keep the nudge pending so the next flush writes it.
+        if (setOperationOwned()) {
+            errors.fail(source = ERR_DETAIL, message = getApplication<Application>().getString(R.string.session_set_save_failed))
+            return
+        }
+        val original = uiState.value.session?.sets?.firstOrNull { it.id == setId }
+        val timedOriginal = original != null && original.reps < 1 && (original.durationSeconds ?: 0) > 0
+        val violation = SetLogRules.validateEffort(
+            rpe = edit.rpe, isWarmup = edit.isWarmup, isHold = timedOriginal || edit.reps == 0,
+        )
+        inlinePending.remove(setId)
+        retainInlinePending()
+        if (violation != null) {
+            // Retrying cannot fix the effort rule, so the nudge is dropped and the rule is said.
+            report(IllegalArgumentException(violation), violation)
+            return
+        }
+        // Not a child of viewModelScope: a flush from onDispose or ON_STOP still lands when the
+        // view model is cleared right after.
+        viewModelScope.launch(NonCancellable) {
+            runCatchingCancellable {
+                container.workoutRepository.updateSet(
+                    setId = edit.setId,
+                    weightKg = edit.weightKg,
+                    reps = edit.reps,
+                    rpe = edit.rpe,
+                    isWarmup = edit.isWarmup,
+                    durationSeconds = edit.durationSeconds,
+                )
+            }.onFailure { thrown ->
+                // Re-arm unless a newer nudge already replaced it.
+                if (setId !in inlinePending) {
+                    inlinePending[setId] = edit
+                    retainInlinePending()
+                }
+                report(thrown, getApplication<Application>().getString(R.string.session_set_save_failed))
+            }
+        }
+    }
+
+    private fun retainInlinePending() {
+        savedStateHandle[INLINE_PENDING_KEY] = ArrayList(inlinePending.values.map(InlineSetEdit::encode))
+        _inlinePendingIds.value = inlinePending.keys.toSet()
+    }
+
+    private fun restoreInlinePending() {
+        val saved = savedStateHandle.get<ArrayList<String>>(INLINE_PENDING_KEY).orEmpty()
+        saved.mapNotNull(InlineSetEdit::decode).forEach { inlinePending[it.setId] = it }
+        if (inlinePending.isNotEmpty()) flushInlineEdits()
+    }
+
+    // After the inline fields above exist: a restored process writes what the last one left pending.
+    init {
+        restoreInlinePending()
+    }
+
     fun addSet(exerciseId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
         if (setOperationOwned()) return
         SetLogRules.validateEffort(rpe = rpe, isWarmup = isWarmup, isHold = reps == 0)?.let { missing ->
@@ -635,13 +732,32 @@ class SessionDetailViewModel internal constructor(
 
     fun deleteSet(setId: String) {
         if (setOperationOwned()) return
+        dropInline(setId)
+        // D7: the last set of the whole session is never deleted here; DELETE session owns that.
+        // The repository enforces it in the delete's own transaction; this is the early answer.
+        val sets = uiState.value.session?.sets.orEmpty()
+        if (sets.size == 1 && sets.single().id == setId) {
+            errors.fail(source = ERR_DETAIL, message = getApplication<Application>().getString(R.string.session_last_set_blocked))
+            return
+        }
+        if (!mutating.compareAndSet(false, true)) return
         viewModelScope.launch {
-            runCatchingCancellable { container.workoutRepository.deleteSet(setId) }
-                .onSuccess { deleted ->
-                    if (deleted?.sessionId == sessionId) markSummaryChanged()
-                    _deletedSet.value = deleted
-                }
-                .onFailure { report(it, "Could not delete that set. Try again.") }
+            try {
+                runCatchingCancellable { container.workoutRepository.deleteSet(setId, keepLastSetOfSession = true) }
+                    .onSuccess { deleted ->
+                        if (deleted?.sessionId == sessionId) markSummaryChanged()
+                        _deletedSet.value = deleted
+                    }
+                    .onFailure { thrown ->
+                        if (thrown is WorkoutRepository.LastSetOfSessionException) {
+                            errors.fail(source = ERR_DETAIL, message = getApplication<Application>().getString(R.string.session_last_set_blocked))
+                        } else {
+                            report(thrown, "Could not delete that set. Try again.")
+                        }
+                    }
+            } finally {
+                mutating.set(false)
+            }
         }
     }
 
@@ -728,4 +844,35 @@ class SessionDetailViewModel internal constructor(
         )
     }
 
+}
+
+
+internal const val INLINE_DEBOUNCE_MS = 400L
+internal const val INLINE_PENDING_KEY = "history.inlinePending.v1"
+
+/** One stepper nudge not yet written; [encode] keeps it in saved state as plain text. */
+internal data class InlineSetEdit(
+    val setId: String,
+    val weightKg: Double,
+    val reps: Int,
+    val rpe: Int?,
+    val isWarmup: Boolean,
+    val durationSeconds: Int?,
+) {
+    fun encode(): String = listOf(setId, weightKg, reps, rpe ?: "", isWarmup, durationSeconds ?: "").joinToString("\t")
+
+    companion object {
+        fun decode(raw: String): InlineSetEdit? {
+            val parts = raw.split("\t")
+            if (parts.size != 6) return null
+            return InlineSetEdit(
+                setId = parts[0],
+                weightKg = parts[1].toDoubleOrNull() ?: return null,
+                reps = parts[2].toIntOrNull() ?: return null,
+                rpe = parts[3].toIntOrNull(),
+                isWarmup = parts[4].toBooleanStrictOrNull() ?: return null,
+                durationSeconds = parts[5].toIntOrNull(),
+            )
+        }
+    }
 }

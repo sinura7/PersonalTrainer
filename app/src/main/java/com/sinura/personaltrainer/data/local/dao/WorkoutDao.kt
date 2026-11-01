@@ -534,6 +534,9 @@ interface WorkoutDao {
     )
     suspend fun finishedWorkingSetRecords(): List<RecordSetRow>
 
+    @Query("SELECT COUNT(*) FROM set_logs WHERE sessionId = :sessionId")
+    suspend fun countSetsForSession(sessionId: String): Int
+
     @Query("SELECT COUNT(*) FROM set_logs WHERE exerciseId = :exerciseId")
     suspend fun countSetsForExercise(exerciseId: String): Int
 

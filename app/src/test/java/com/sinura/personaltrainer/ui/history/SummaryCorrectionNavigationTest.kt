@@ -142,6 +142,7 @@ class SummaryCorrectionNavigationTest {
         val rowTag = FilledLiftCardTags.setRow(setId = originalSet.id)
         compose.onNodeWithTag(testTag = SessionDetailTestTags.CONTENT)
             .performScrollToNode(matcher = hasTestTag(testTag = rowTag))
+        enterSessionEdit()
         val edit = hasTestTag(testTag = SessionDetailTestTags.EDIT_SET) and
             hasAnyAncestor(matcher = hasTestTag(testTag = rowTag))
         compose.onNode(matcher = edit).performScrollTo().assertIsEnabled().performClick()
@@ -287,5 +288,14 @@ class SummaryCorrectionNavigationTest {
     private companion object {
         const val WAIT_MS = 20_000L
         val HOME_TAB = "navigation-${Route.Home.path}"
+    }
+
+    /** v4 V5: set actions live in Edit mode; enter it unless a restored screen already is. */
+    private fun enterSessionEdit() {
+        val edit = androidx.compose.ui.test.hasTestTag(com.sinura.personaltrainer.ui.history.SessionDetailTestTags.SESSION_EDIT)
+        if (compose.onAllNodes(edit).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNode(edit).performClick()
+            compose.waitForIdle()
+        }
     }
 }

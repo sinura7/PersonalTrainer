@@ -143,7 +143,9 @@ class FinishedSetContinuityInstrumentedTest {
             compose.onNode(discard).performClick()
             compose.waitUntil(30_000) { privateDraft() == null && compose.onAllNodes(hasTestTag(SetEditTestTags.CONTENT)).fetchSemanticsNodes().isEmpty() }
             assertEquals(110.0, read { checkNotNull(container.workoutRepository.getSession(sessionId)).sets.single().weightKg }, 0.0)
+            enterSessionEdit()
             compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(hasTestTag(SessionDetailTestTags.EDIT_SET))
+            enterSessionEdit()
             compose.onNodeWithTag(SessionDetailTestTags.EDIT_SET).performClick()
             awaitTag("Type a weight")
             capture("clean-editor-after-private-discard")
@@ -164,7 +166,9 @@ class FinishedSetContinuityInstrumentedTest {
         }
         if (phase != "resume") {
             awaitTag(SessionDetailTestTags.CONTENT)
+            enterSessionEdit()
             compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(hasTestTag(SessionDetailTestTags.EDIT_SET))
+            enterSessionEdit()
             compose.onNodeWithTag(SessionDetailTestTags.EDIT_SET).performClick()
             awaitTag(SetEditTestTags.CONTENT)
             compose.onNodeWithText("9").performScrollTo().performClick()
@@ -258,5 +262,14 @@ class FinishedSetContinuityInstrumentedTest {
             }
             if (::marker.isInitialized && marker.exists()) check(marker.delete())
         } finally { environment.restore() }
+    }
+
+    /** v4 V5: set actions live in Edit mode; enter it unless a restored screen already is. */
+    private fun enterSessionEdit() {
+        val edit = androidx.compose.ui.test.hasTestTag(com.sinura.personaltrainer.ui.history.SessionDetailTestTags.SESSION_EDIT)
+        if (compose.onAllNodes(edit).fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNode(edit).performClick()
+            compose.waitForIdle()
+        }
     }
 }
