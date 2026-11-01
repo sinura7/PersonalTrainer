@@ -306,6 +306,10 @@
     <string name="body_read_failed">Could not read this. Nothing was lost.</string>
     <string name="body_read_stale">Showing the last good read. It may be out of date.</string>
     <string name="body_retry">Retry</string>
+    <string name="body_read_loading">Loading…</string>
+    <string name="body_weight_saving">Saving weight…</string>
+    <string name="body_weight_out_of_range">Enter a weight in the allowed range.</string>
+    <string name="body_weight_save_failed">Could not finish saving this weight. Keep it here and try again.</string>
     <string name="body_record_e1rm">Est. 1RM %1$s %2$s from %3$s %2$s × %4$d · %5$s</string>
     <string name="body_no_records">No records yet.</string>
     <string name="body_no_volume">No working sets in the last 8 weeks.</string>

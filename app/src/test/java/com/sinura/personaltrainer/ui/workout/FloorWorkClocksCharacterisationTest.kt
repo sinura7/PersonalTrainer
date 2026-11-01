@@ -1461,8 +1461,12 @@ class FloorWorkClocksCharacterisationTest {
         vm.uiState.awaitFirst { it.logCommitReady && it.canLog && !it.mutating }
         vm.logWorkingSet()
         val setId = vm.uiState.awaitFirst { !it.logging && it.session?.sets?.size == 1 }.session!!.sets.single().id
+        // The set row lands before the log's save settles, and deleteSet silently no-ops while
+        // the entry is locked. Under CI load that window was wide enough to drop the delete and
+        // leave the undo wait below to time out, so wait for the lock to clear first.
+        vm.awaitEntryUnlocked()
         vm.deleteSet(setId)
-        vm.uiState.awaitFirst { !it.mutating }
+        vm.awaitState { state -> state.session?.sets?.none { it.id == setId } == true && !state.mutating }
         vm.awaitEntryUnlocked()
         vm.undoEntries.awaitFirst { entries ->
             entries.size > tokensBefore.size ||

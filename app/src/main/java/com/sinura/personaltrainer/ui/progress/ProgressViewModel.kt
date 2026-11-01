@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.BodyExplorer
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
@@ -12,6 +13,8 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.LighterWeek
+import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.RecordsCalculator
@@ -126,12 +129,41 @@ class ProgressViewModel @JvmOverloads constructor(
     }
 
     /** The weekly check-in's write, offered from Body's empty bodyweight card. */
-    fun recordBodyweight(kg: Double) {
+    private val _weighIn = MutableStateFlow(WeighIn())
+
+    /** Body's Log weight, on Home's check-in path: range check, pending, a visible error. */
+    val weighIn: StateFlow<WeighIn> = _weighIn
+
+    /**
+     * Same admission as Home's weekly check-in. The repository silently drops an out of range
+     * value, so the range is checked here and refused with a message; the dialog stays open
+     * with the typed value until the write actually returns.
+     */
+    fun recordBodyweight(kg: Double): Boolean {
+        val current = _weighIn.value
+        if (current.pending || current.saved) return false
+        if (!kg.isFinite() || kg !in OnboardingAnswers.MIN_BODYWEIGHT_KG..OnboardingAnswers.MAX_BODYWEIGHT_KG) {
+            _weighIn.value = WeighIn(error = getApplication<Application>().getString(R.string.body_weight_out_of_range))
+            return false
+        }
+        _weighIn.value = WeighIn(pending = true)
         val day = trendsToday.value
         viewModelScope.launch {
             runCatchingCancellable { container.preferencesRepository.recordBodyweight(kg, day) }
-                .onFailure { retryTrends() }
+                .onSuccess { _weighIn.value = WeighIn(saved = true) }
+                .onFailure { thrown ->
+                    AppLog.w(TAG, "Saving the weigh-in from Body failed", thrown)
+                    _weighIn.value = WeighIn(error = getApplication<Application>().getString(R.string.body_weight_save_failed))
+                }
         }
+        return true
+    }
+
+    /** The dialog closed: after a save, or a dismissal while nothing is in flight. */
+    fun onWeighInClosed(): Boolean {
+        if (_weighIn.value.pending) return false
+        _weighIn.value = WeighIn()
+        return true
     }
 
     fun retryTrends() {
@@ -230,3 +262,8 @@ internal fun cardRead(vararg reads: DataHealth<*>): CardRead = when {
     reads.any { it is DataHealth.Degraded } -> CardRead.STALE
     else -> CardRead.OK
 }
+
+/** Body's Log weight write: [pending] while the repository runs, [saved] until the dialog closes. */
+data class WeighIn(val pending: Boolean = false, val error: String? = null, val saved: Boolean = false)
+
+private const val TAG = "PT/ProgressViewModel"

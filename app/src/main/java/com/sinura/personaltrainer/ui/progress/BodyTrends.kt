@@ -134,6 +134,9 @@ object BodyTrendTags {
     fun failed(card: String) = "$card-failed"
     fun stale(card: String) = "$card-stale"
     fun retry(card: String) = "$card-retry"
+    fun loading(card: String) = "$card-loading"
+    const val WEIGHT_SAVING = "body-trend-weight-saving"
+    const val WEIGHT_ERROR = "body-trend-weight-error"
     fun record(exerciseId: String) = "body-trend-record-$exerciseId"
     fun volume(muscle: CanonicalMuscle) = "body-trend-volume-${muscle.name}"
 }
@@ -163,7 +166,13 @@ private fun readState(card: String, read: CardRead, onRetry: () -> Unit): Boolea
             QuietButton(text = stringResource(R.string.body_retry), onClick = onRetry, plain = true,
                 modifier = Modifier.testTag(BodyTrendTags.retry(card)))
         }
-        else -> Unit
+        CardRead.LOADING -> Text(
+            stringResource(R.string.body_read_loading),
+            modifier = Modifier.padding(Metrics.space3).testTag(BodyTrendTags.loading(card)),
+            style = InstrumentType.body,
+            color = TextSecondary,
+        )
+        CardRead.OK -> Unit
     }
     return read == CardRead.OK || read == CardRead.STALE
 }

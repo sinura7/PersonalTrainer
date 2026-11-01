@@ -5,6 +5,14 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.BodyweightDao
+import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
+import com.sinura.personaltrainer.testutil.FailingWeighInsDao
+import com.sinura.personaltrainer.testutil.ReadGate
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CompletableDeferred
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import com.sinura.personaltrainer.data.local.dao.RecordSetRow
 import com.sinura.personaltrainer.data.local.dao.WorkingSetCountRow
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
@@ -143,6 +151,94 @@ class ProgressViewModelTest {
         val trends = viewModel!!.trends.awaitFirst { it.volumeRead != CardRead.LOADING }
         assertEquals(CardRead.FAILED, trends.volumeRead)
         assertTrue(trends.weeklySets.isEmpty())
+    }
+
+    /** Retry recovers: a failed weigh-in read, the disk comes back, Retry, and the card is OK. */
+    @Test
+    fun retryRecoversAFailedBodyweightRead() = runBlocking {
+        val gate = ReadGate(shouldFail = true)
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            bodyweightDaoDecorator = { FailingWeighInsDao(it, gate) },
+        )
+        viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.trends.awaitFirst { it.bodyweightRead == CardRead.FAILED }
+        gate.shouldFail = false
+        viewModel!!.retryTrends()
+        val trends = viewModel!!.trends.awaitFirst { it.bodyweightRead != CardRead.FAILED }
+        assertEquals(CardRead.OK, trends.bodyweightRead)
+    }
+
+    /** Retry recovers the weekly volume read too, rather than replaying the cached failure. */
+    @Test
+    fun retryRecoversAFailedWeeklyRead() = runBlocking {
+        val failing = AtomicBoolean(true)
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            workoutDaoDecorator = { real ->
+                object : WorkoutDao by real {
+                    override suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow> =
+                        if (failing.get()) error("disk") else real.workingSetCountsSince(sinceMs)
+                }
+            },
+        )
+        viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.trends.awaitFirst { it.volumeRead == CardRead.FAILED }
+        failing.set(false)
+        viewModel!!.retryTrends()
+        val trends = viewModel!!.trends.awaitFirst { it.volumeRead != CardRead.FAILED }
+        assertEquals(CardRead.OK, trends.volumeRead)
+    }
+
+    /** Body's Log weight refuses an out of range value with a message instead of dropping it. */
+    @Test
+    fun anOutOfRangeWeighInIsRefusedWithAMessage() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        assertFalse(viewModel!!.recordBodyweight(kg = 5_000.0))
+        val state = viewModel!!.weighIn.value
+        assertFalse(state.pending)
+        assertFalse(state.saved)
+        assertTrue(state.error != null)
+        assertTrue(deps.database.bodyweightDao().getAll().isEmpty())
+    }
+
+    /** A failed write is pending while it runs, then shows its error; the dialog may not close mid-write. */
+    @Test
+    fun aFailedWeighInIsPendingThenShowsItsError() = runBlocking {
+        val release = CompletableDeferred<Unit>()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            bodyweightDaoDecorator = { real ->
+                object : BodyweightDao by real {
+                    override suspend fun upsert(entry: BodyweightEntryEntity) {
+                        release.await()
+                        error("disk full")
+                    }
+                }
+            },
+        )
+        viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        assertTrue(viewModel!!.recordBodyweight(kg = 80.0))
+        assertTrue(viewModel!!.weighIn.value.pending)
+        assertFalse(viewModel!!.onWeighInClosed())
+        assertFalse(viewModel!!.recordBodyweight(kg = 81.0))
+        release.complete(Unit)
+        val state = viewModel!!.weighIn.awaitFirst { !it.pending }
+        assertFalse(state.saved)
+        assertTrue(state.error != null)
+        assertTrue(viewModel!!.onWeighInClosed())
+        assertNull(viewModel!!.weighIn.value.error)
+    }
+
+    /** A good write reports saved, which is what closes the dialog. */
+    @Test
+    fun aGoodWeighInIsSaved() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        assertTrue(viewModel!!.recordBodyweight(kg = 80.0))
+        viewModel!!.weighIn.awaitFirst { it.saved }
+        assertEquals(80.0, deps.database.bodyweightDao().getAll().single().kg, 0.0)
     }
 
     /** Critic minor 3: the 8 weeks follow the day the screen feeds in, so midnight moves them. */

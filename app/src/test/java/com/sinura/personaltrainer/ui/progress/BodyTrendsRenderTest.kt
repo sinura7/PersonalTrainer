@@ -234,6 +234,22 @@ class BodyTrendsRenderTest {
         compose.onAllNodesWithText(emptyCopy).assertCountEquals(0)
     }
 
+    /** A card still reading says so, instead of drawing an empty body or a false empty state. */
+    @Test
+    fun aLoadingCardShowsItsPlaceholder() {
+        mount(bodyweightRead = CardRead.LOADING, recordsRead = CardRead.LOADING, volumeRead = CardRead.LOADING)
+        listOf(BodyTrendTags.BODYWEIGHT, BodyTrendTags.RECORDS, BodyTrendTags.VOLUME).forEach { card ->
+            compose.onNodeWithTag(BodyTrendTags.loading(card)).assertExists()
+        }
+        compose.onAllNodesWithText("No bodyweight logged yet.").assertCountEquals(0)
+    }
+
+    @Test
+    fun aLoadedCardDropsItsPlaceholder() {
+        mount()
+        compose.onAllNodesWithTag(BodyTrendTags.loading(BodyTrendTags.BODYWEIGHT)).assertCountEquals(0)
+    }
+
     private fun mount(
         bodyweight: List<BodyweightEntry> = emptyList(),
         records: List<PrSummaryRow> = emptyList(),
