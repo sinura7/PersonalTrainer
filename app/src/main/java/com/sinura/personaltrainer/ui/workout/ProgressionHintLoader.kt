@@ -54,23 +54,37 @@ internal class ProgressionHintLoader(
         exerciseId: String,
         planned: SessionExercise?,
         settings: HintSettings,
-    ): ProgressionHint? = container.workoutRepository.progressionFor(
-        exerciseId = exerciseId,
-        exerciseName = planned?.exercise?.name ?: "",
-        targetReps = planned?.targetReps ?: 5,
-        excludeSessionId = sessionId,
-        loadType = planned?.exercise?.loadType,
-        unit = settings.unit,
-        lighterWeek = settings.lighterWeek,
-        equipment = planned?.exercise?.equipment,
-    )
+    ): ProgressionHint? {
+        val gymId = container.workoutRepository.getSession(sessionId)?.gymId
+        return container.workoutRepository.progressionFor(
+            exerciseId = exerciseId,
+            exerciseName = planned?.exercise?.name ?: "",
+            targetReps = planned?.targetReps ?: 5,
+            excludeSessionId = sessionId,
+            loadType = planned?.exercise?.loadType,
+            unit = settings.unit,
+            lighterWeek = settings.lighterWeek,
+            equipment = planned?.exercise?.equipment,
+            gymId = gymId,
+        )
+    }
 
     /**
      * [exerciseId]'s last finished session, this one left out. A lift's first set takes its RPE
      * from these sets (W2b-4: the rest page did not read them, and lost last time's "RPE 8").
      */
-    suspend fun lastPerformance(exerciseId: String): ExerciseSessionSummary? =
-        container.workoutRepository.lastPerformance(exerciseId, sessionId)
+    suspend fun lastPerformance(exerciseId: String, planned: SessionExercise?): ExerciseSessionSummary? {
+        val gymId = container.workoutRepository.getSession(sessionId)?.gymId
+        val equipment = planned?.exercise?.equipment
+            ?: container.exerciseRepository.getById(exerciseId)?.equipment
+            ?: return null
+        return container.workoutRepository.lastPerformance(
+            exerciseId = exerciseId,
+            equipment = equipment,
+            gymId = gymId,
+            excludeSessionId = sessionId,
+        )
+    }
 
     private fun weekStartOf(weekStart: Weekday): Long =
         LighterWeek.weekStartEpochDay(container.time.civilDate(container.time.nowMillis()), weekStart)

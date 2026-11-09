@@ -25,13 +25,14 @@ import kotlinx.coroutines.flow.Flow
 const val WORKING_SET_COUNTS_SINCE_SQL = """
         SELECT sl.exerciseId AS exerciseId,
                ws.finishedAt AS finishedAt,
+               ws.gymId AS sessionGymId,
                COUNT(*) AS workingSets
         FROM workout_sessions ws
         CROSS JOIN set_logs sl ON sl.sessionId = ws.id
         WHERE ws.finishedAt IS NOT NULL
           AND ws.finishedAt >= :sinceMs
           AND sl.isWarmup = 0
-        GROUP BY ws.id, sl.exerciseId
+        GROUP BY ws.id, sl.exerciseId, ws.gymId
         ORDER BY ws.finishedAt ASC, sl.exerciseId ASC
         """
 
@@ -50,6 +51,7 @@ interface WorkoutDao {
         """
         SELECT s.id AS id, s.routineId AS routineId, s.routineName AS routineName,
                s.date AS date, s.finishedAt AS finishedAt, s.durationMinutes AS durationMinutes,
+               s.gymId AS gymId,
                COALESCE(SUM(CASE WHEN l.isWarmup = 0 THEN 1 ELSE 0 END), 0) AS workingSets,
                COALESCE(SUM(CASE WHEN l.isWarmup = 0 AND COALESCE(e.loadType, '') != 'ASSISTED'
                                  THEN l.weightKg * l.reps ELSE 0 END), 0) AS volumeKg
@@ -150,6 +152,7 @@ interface WorkoutDao {
                ws.durationMinutes AS session_durationMinutes,
                ws.startedAt AS session_startedAt,
                ws.finishedAt AS session_finishedAt,
+               ws.gymId AS session_gymId,
                sl.id AS set_id,
                sl.sessionId AS set_sessionId,
                sl.exerciseId AS set_exerciseId,
@@ -194,6 +197,7 @@ interface WorkoutDao {
                ws.durationMinutes AS session_durationMinutes,
                ws.startedAt AS session_startedAt,
                ws.finishedAt AS session_finishedAt,
+               ws.gymId AS session_gymId,
                NULL AS set_id,
                NULL AS set_sessionId,
                NULL AS set_exerciseId,
@@ -393,9 +397,12 @@ interface WorkoutDao {
                sl.reps AS reps,
                sl.completedAt AS completedAt,
                sl.durationSeconds AS durationSeconds,
-               NULL AS sessionLocalEpochDay
+               NULL AS sessionLocalEpochDay,
+               ws.gymId AS sessionGymId,
+               e.equipment AS equipment
         FROM set_logs sl
         JOIN workout_sessions ws ON ws.id = sl.sessionId
+        LEFT JOIN exercises e ON e.id = sl.exerciseId
         WHERE sl.exerciseId = :exerciseId
           AND sl.isWarmup = 0
           AND ws.finishedAt IS NOT NULL
@@ -420,9 +427,12 @@ interface WorkoutDao {
                sl.reps AS reps,
                sl.completedAt AS completedAt,
                sl.rpe AS rpe,
-               ws.finishedAt AS sessionFinishedAt
+               ws.finishedAt AS sessionFinishedAt,
+               ws.gymId AS sessionGymId,
+               e.equipment AS equipment
         FROM set_logs sl
         JOIN workout_sessions ws ON ws.id = sl.sessionId
+        LEFT JOIN exercises e ON e.id = sl.exerciseId
         WHERE sl.exerciseId IN (:exerciseIds)
           AND sl.isWarmup = 0
           AND ws.finishedAt IS NOT NULL
@@ -480,6 +490,7 @@ interface WorkoutDao {
             OR (sl.completedAt = :completedAt AND sl.setNumber < :setNumber)
           )
           AND (ws.finishedAt IS NOT NULL OR sl.sessionId = :sessionId)
+          AND (:scopeShared = 1 OR ws.gymId IS :scopeGymId)
         """,
     )
     /**
@@ -499,6 +510,8 @@ interface WorkoutDao {
         weightKg: Double,
         completedAt: Long,
         setNumber: Int,
+        scopeShared: Boolean,
+        scopeGymId: String?,
     ): ExerciseRecordPriorsRow
 
     @Query(
@@ -514,7 +527,8 @@ interface WorkoutDao {
 
     /**
      * Best finished working weight per lift. One aggregate, no set graph
-     * (P8.2 lift-target goals). ASSISTED lifts are excluded outright:
+     * (P8.2 lift-target goals). Cross-gym: must not feed a gym-specific machine number (G1).
+     * ASSISTED lifts are excluded outright:
      * their weightKg is machine help REMOVED, so MAX picked the
      * most-assisted — easiest — set as the "best". A weight goal on an
      * assisted lift has no honest kilogram answer here.
@@ -548,6 +562,8 @@ interface WorkoutDao {
                sl.exerciseId AS exerciseId,
                e.name AS exerciseName,
                e.loadType AS loadType,
+               e.equipment AS equipment,
+               ws.gymId AS sessionGymId,
                sl.weightKg AS weightKg,
                sl.reps AS reps,
                sl.completedAt AS completedAt
@@ -559,6 +575,45 @@ interface WorkoutDao {
         """,
     )
     suspend fun finishedWorkingSetRecords(): List<RecordSetRow>
+
+    @Query("UPDATE workout_sessions SET gymId = :gymId WHERE id = :sessionId")
+    suspend fun setSessionGym(sessionId: String, gymId: String?)
+
+  @Query(
+        """
+        SELECT COUNT(*) FROM set_logs sl
+        INNER JOIN session_exercises se ON se.sessionId = sl.sessionId AND se.exerciseId = sl.exerciseId
+        INNER JOIN exercises e ON e.id = sl.exerciseId
+        WHERE sl.sessionId = :sessionId
+          AND sl.isWarmup = 0
+          AND e.equipment IN (:gymSpecificEquipment)
+        """,
+    )
+    suspend fun machineSetCountForSession(sessionId: String, gymSpecificEquipment: List<String>): Int
+
+    @Query(
+        """
+        SELECT ws.gymId AS gymId,
+               '' AS gymShortName,
+               sl.weightKg AS weightKg,
+               sl.reps AS reps,
+               ws.finishedAt AS sessionFinishedAt
+        FROM set_logs sl
+        JOIN workout_sessions ws ON ws.id = sl.sessionId
+        WHERE sl.exerciseId = :exerciseId
+          AND sl.isWarmup = 0
+          AND sl.reps > 0
+          AND ws.finishedAt IS NOT NULL
+          AND ws.gymId IS NOT NULL
+          AND ws.gymId IS NOT :excludeGymId
+        ORDER BY ws.finishedAt DESC, sl.weightKg DESC, sl.reps DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun latestOtherGymTopSet(
+        exerciseId: String,
+        excludeGymId: String,
+    ): OtherGymTopSetRow?
 
     @Query("SELECT COUNT(*) FROM set_logs WHERE sessionId = :sessionId")
     suspend fun countSetsForSession(sessionId: String): Int

@@ -9,12 +9,12 @@ package com.sinura.personaltrainer.data.local
  * `TemperDatabase` with generated artifacts and tests. P6.1 is v1 → v2.
  * P7.1 is v2 → v3 (schedule rules and occurrences). P8.1 is v3 → v4
  * (measurable goals and bodyweight four-tuple). Hold prescriptions are
- * v4 → v5. Not a `TrainerDatabase` v3.
+ * v4 → v5. P-gyms is v7 → v8 (gyms and session gymId). Not a `TrainerDatabase` v3.
  */
 object FoundationGeneration {
     const val NAME = "temper"
     const val DATABASE_FILE = "temper.db"
-    const val VERSION = 7
+    const val VERSION = 8
     const val LEGACY_DATABASE_FILE = "personal_trainer.db"
 
     /**

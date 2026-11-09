@@ -127,6 +127,7 @@ fun SessionWithDetails.toDomain(): WorkoutSession = WorkoutSession(
     durationMinutes = session.durationMinutes,
     startedAt = session.startedAt,
     finishedAt = session.finishedAt,
+    gymId = session.gymId,
     exercises = exercises
         .sortedBy { it.item.sortOrder }
         .map { rel ->
@@ -173,6 +174,7 @@ fun WorkoutSessionEntity.toSummary(): WorkoutSession = WorkoutSession(
     finishedAt = finishedAt,
     exercises = emptyList(),
     sets = emptyList(),
+    gymId = gymId,
 )
 
 /**

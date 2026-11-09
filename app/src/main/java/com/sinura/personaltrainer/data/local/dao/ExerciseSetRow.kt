@@ -18,4 +18,6 @@ data class ExerciseSetRow(
     val durationSeconds: Int? = null,
     /** Null for legacy workout rows; activity rows retain their captured day. */
     val sessionLocalEpochDay: Long? = null,
+    val sessionGymId: String? = null,
+    val equipment: String? = null,
 )

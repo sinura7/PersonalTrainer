@@ -79,10 +79,24 @@ class WorkoutSaveRecoveryTest {
                 }
 
                 override suspend fun recordPriorsBefore(
-                    exerciseId: String, sessionId: String, weightKg: Double, completedAt: Long, setNumber: Int,
+                    exerciseId: String,
+                    sessionId: String,
+                    weightKg: Double,
+                    completedAt: Long,
+                    setNumber: Int,
+                    scopeShared: Boolean,
+                    scopeGymId: String?,
                 ): com.sinura.personaltrainer.data.local.entity.ExerciseRecordPriorsRow {
                     recordGate?.await()
-                    return real.recordPriorsBefore(exerciseId, sessionId, weightKg, completedAt, setNumber)
+                    return real.recordPriorsBefore(
+                        exerciseId,
+                        sessionId,
+                        weightKg,
+                        completedAt,
+                        setNumber,
+                        scopeShared,
+                        scopeGymId,
+                    )
                 }
             } },
         )

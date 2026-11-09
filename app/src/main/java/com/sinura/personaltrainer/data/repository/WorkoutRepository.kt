@@ -40,6 +40,9 @@ import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.GymScope
+import com.sinura.personaltrainer.domain.HistoryScope
+import com.sinura.personaltrainer.domain.OtherGymHint
 import com.sinura.personaltrainer.domain.RepeatSessionPlan
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
@@ -349,7 +352,7 @@ class WorkoutRepository(
             is StartSessionOutcome.Unavailable -> error(outcome.message)
         }
 
-    suspend fun startRoutineSafely(routine: Routine): StartSessionOutcome {
+    suspend fun startRoutineSafely(routine: Routine, gymId: String? = null): StartSessionOutcome {
         return try {
             serialized {
             refuseIfRestoreOpen()?.let { return@serialized it }
@@ -364,6 +367,7 @@ class WorkoutRepository(
                 durationMinutes = 0,
                 startedAt = now,
                 finishedAt = null,
+                gymId = gymId,
             )
             val exercises = routine.exercises.mapIndexed { index, item ->
                 SessionExerciseEntity(
@@ -373,7 +377,12 @@ class WorkoutRepository(
                     sortOrder = index,
                     targetSets = item.targetSets,
                     targetReps = item.targetReps,
-                    targetWeightKg = item.targetWeightKg,
+                    targetWeightKg = GymScope.targetWeightFor(
+                        equipment = item.exercise.equipment,
+                        routineKg = item.targetWeightKg,
+                        sameGymAsSource = false,
+                        sourceKg = null,
+                    ),
                     restSeconds = item.restSeconds,
                     targetSeconds = item.targetSeconds,
                     targetSecondsMax = item.targetSecondsMax,
@@ -406,7 +415,7 @@ class WorkoutRepository(
             is StartSessionOutcome.Unavailable -> error(outcome.message)
         }
 
-    suspend fun startFreeWorkoutSafely(focusTitle: String? = null): StartSessionOutcome {
+    suspend fun startFreeWorkoutSafely(focusTitle: String? = null, gymId: String? = null): StartSessionOutcome {
         return try {
             serialized {
             refuseIfRestoreOpen()?.let { return@serialized it }
@@ -422,6 +431,7 @@ class WorkoutRepository(
                 durationMinutes = 0,
                 startedAt = now,
                 finishedAt = null,
+                gymId = gymId,
             )
             startInserted(session, emptyList())
             }
@@ -441,7 +451,7 @@ class WorkoutRepository(
      * already running — silently resuming a different workout than the one tapped is the
      * behaviour this app is trying to get rid of.
      */
-    suspend fun repeatSession(sourceSessionId: String): RepeatOutcome {
+    suspend fun repeatSession(sourceSessionId: String, gymId: String? = null): RepeatOutcome {
         val source = workoutDao.getSession(sourceSessionId)?.toDomain()
             ?: return RepeatOutcome.Failed("That session is no longer available.")
         if (!source.isFinished) {
@@ -460,8 +470,16 @@ class WorkoutRepository(
             durationMinutes = 0,
             startedAt = now,
             finishedAt = null,
+            gymId = gymId,
         )
+        val sameGym = gymId != null && gymId == source.gymId
+        val plannedById = source.exercises.associateBy { it.exercise.id }
         val exercises = RepeatSessionPlan.from(source).mapIndexed { index, item ->
+            val exercise = plannedById[item.exerciseId]?.exercise
+            val sourceKg = source.sets
+                .filter { it.exerciseId == item.exerciseId && !it.isWarmup }
+                .maxByOrNull { it.completedAt }
+                ?.weightKg
             SessionExerciseEntity(
                 id = ids.newId(),
                 sessionId = newId,
@@ -469,8 +487,14 @@ class WorkoutRepository(
                 sortOrder = index,
                 targetSets = item.targetSets,
                 targetReps = item.targetReps,
-                // The progression hint owns weight; a copied one would only contradict it.
-                targetWeightKg = null,
+                targetWeightKg = exercise?.let { ex ->
+                    GymScope.targetWeightFor(
+                        equipment = ex.equipment,
+                        routineKg = null,
+                        sameGymAsSource = sameGym,
+                        sourceKg = sourceKg,
+                    )
+                },
                 restSeconds = item.restSeconds,
                 targetSeconds = item.targetSeconds,
                 targetSecondsMax = item.targetSecondsMax,
@@ -1370,10 +1394,15 @@ class WorkoutRepository(
     private suspend fun lastFinishedWork(
         exerciseId: String,
         excludeSessionId: String,
+        equipment: EquipmentType,
+        gymId: String?,
         limit: Int = RpeModifier.RPE_HOLD_SESSIONS,
     ): List<List<FinishedWorkingSetRow>> {
-        val rows = workoutDao.finishedWorkingSetsForExercises(listOf(exerciseId))
-            .filter { it.sessionId != excludeSessionId }
+        val scope = GymScope.of(equipment, gymId)
+        val rows = ScopedRows.keepTyped(
+            workoutDao.finishedWorkingSetsForExercises(listOf(exerciseId)),
+            scope,
+        ).filter { it.sessionId != excludeSessionId }
         return rows.groupBy { it.sessionId }
             .entries
             .sortedByDescending { (_, sets) -> sets.first().sessionFinishedAt }
@@ -1410,8 +1439,16 @@ class WorkoutRepository(
         unit: WeightUnit,
         lighterWeek: Boolean = false,
         equipment: EquipmentType? = null,
+        gymId: String? = null,
     ): ProgressionHint? {
-        val sessions = lastFinishedWork(exerciseId, excludeSessionId)
+        val resolvedEquipment = equipment ?: database.exerciseDao().getById(exerciseId)?.equipment
+            ?.let(EquipmentType::fromStorage) ?: EquipmentType.OTHER
+        val sessions = lastFinishedWork(
+            exerciseId,
+            excludeSessionId,
+            resolvedEquipment,
+            gymId,
+        )
         val lastSessionSets = sessions.firstOrNull() ?: return null
         val loadClass = LoadClass.of(loadType)
         val topSet = ProgressionBasis.topWorkingSet(
@@ -1455,9 +1492,11 @@ class WorkoutRepository(
      */
     suspend fun lastPerformance(
         exerciseId: String,
+        equipment: EquipmentType,
+        gymId: String?,
         excludeSessionId: String = "",
     ): ExerciseSessionSummary? {
-        val lastSession = lastFinishedWork(exerciseId, excludeSessionId, limit = 1)
+        val lastSession = lastFinishedWork(exerciseId, excludeSessionId, equipment, gymId, limit = 1)
             .firstOrNull()
             ?: return null
         val entries = lastSession.map { set ->
@@ -1499,12 +1538,18 @@ class WorkoutRepository(
         completedAt: Long,
         setNumber: Int,
     ): Set<PersonalRecordKind> {
+        val equipment = database.exerciseDao().getById(exerciseId)?.equipment
+            ?.let(EquipmentType::fromStorage) ?: EquipmentType.OTHER
+        val sessionGym = workoutDao.getSession(sessionId)?.session?.gymId
+        val (scopeShared, scopeGymId) = GymScope.run { GymScope.of(equipment, sessionGym).sqlArgs() }
         val row = workoutDao.recordPriorsBefore(
             exerciseId = exerciseId,
             sessionId = sessionId,
             weightKg = weightKg,
             completedAt = completedAt,
             setNumber = setNumber,
+            scopeShared = scopeShared,
+            scopeGymId = scopeGymId,
         )
         return RecordsCalculator.detect(
             candidate = ExerciseSetRecord(
@@ -1532,9 +1577,13 @@ class WorkoutRepository(
     suspend fun historyBefore(sessionId: String, exerciseIds: Collection<String>): Map<String, List<ExerciseSetRecord>> {
         val ids = exerciseIds.distinct()
         if (ids.isEmpty()) return emptyMap()
+        val sessionGym = workoutDao.getSession(sessionId)?.session?.gymId
         val rows = workoutDao.finishedWorkingSetsForExercises(ids)
         return ids.associateWith { exerciseId ->
-            rows.asSequence()
+            val equipment = database.exerciseDao().getById(exerciseId)?.equipment
+                ?.let(EquipmentType::fromStorage) ?: EquipmentType.OTHER
+            val scope = GymScope.of(equipment, sessionGym)
+            ScopedRows.keepTyped(rows, scope).asSequence()
                 .filter { it.exerciseId == exerciseId && it.sessionId != sessionId }
                 .map { row ->
                     ExerciseSetRecord(
@@ -1594,8 +1643,22 @@ class WorkoutRepository(
         val byExercise = rows.groupBy { it.exerciseId }
         val hints = mutableListOf<ProgressionHint>()
         items.values.forEach { item ->
-            val sessionsNewestFirst = byExercise[item.exercise.id]
-                .orEmpty()
+            val equipment = item.exercise.equipment
+            val scopedRows = if (GymScope.isGymSpecific(equipment)) {
+                val exerciseRows = byExercise[item.exercise.id].orEmpty()
+                if (exerciseRows.isEmpty()) return@forEach
+                val recentGym = exerciseRows.maxByOrNull { it.sessionFinishedAt }?.sessionGymId
+                ScopedRows.keepTyped(
+                    exerciseRows,
+                    GymScope.of(equipment, recentGym),
+                )
+            } else {
+                ScopedRows.keepTyped(
+                    byExercise[item.exercise.id].orEmpty(),
+                    HistoryScope.Shared,
+                )
+            }
+            val sessionsNewestFirst = scopedRows
                 .groupBy { it.sessionId }
                 .entries
                 .sortedByDescending { (_, sets) -> sets.first().sessionFinishedAt }
@@ -1670,6 +1733,34 @@ class WorkoutRepository(
     /** v4 V7: per-session working-set counts since [sinceMs], for Body's weekly sets per muscle. */
     suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow> =
         workoutDao.workingSetCountsSince(sinceMs)
+
+    suspend fun otherGymHint(exerciseId: String, gymId: String): OtherGymHint? {
+        val equipment = database.exerciseDao().getById(exerciseId)?.equipment
+            ?.let(EquipmentType::fromStorage) ?: return null
+        if (!GymScope.isGymSpecific(equipment)) return null
+        val scopedEmpty = lastFinishedWork(exerciseId, "", equipment, gymId, limit = 1).isEmpty()
+        if (!scopedEmpty) return null
+        val row = workoutDao.latestOtherGymTopSet(exerciseId, gymId) ?: return null
+        val shortName = (database as? TemperDatabase)?.gymDao()?.get(row.gymId)?.shortName
+            ?: row.gymShortName.takeIf { it.isNotBlank() }
+            ?: return null
+        return OtherGymHint(
+            gymShortName = shortName,
+            weightKg = row.weightKg,
+            reps = row.reps,
+            dateMs = row.sessionFinishedAt,
+        )
+    }
+
+    sealed interface MoveGymOutcome {
+        data object Moved : MoveGymOutcome
+        data class Refused(val reason: String) : MoveGymOutcome
+    }
+
+    suspend fun moveSessionToGym(sessionId: String, gymId: String?): MoveGymOutcome = serialized {
+        workoutDao.setSessionGym(sessionId, gymId)
+        MoveGymOutcome.Moved
+    }
 }
 
 private const val TAG = "PT/WorkoutRepository"

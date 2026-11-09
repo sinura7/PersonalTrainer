@@ -36,6 +36,8 @@ data class BackupDocument(
     val reminderDeliveries: List<BackupReminderDelivery> = emptyList(),
     /** v5 measurable goals (P8.2). Defaulted so v1–v4 files still decode. */
     val measurableGoals: List<BackupMeasurableGoal> = emptyList(),
+    /** v6 gyms (Packet G1). Defaulted so v1–v5 files still decode. */
+    val gyms: List<BackupGym> = emptyList(),
 ) {
     /**
      * Whether the owner of this backup has plainly already been through the guided setup.
@@ -200,6 +202,17 @@ data class BackupRoutineExercise(
     val targetSecondsMax: Int? = null,
 )
 
+data class BackupGym(
+    val id: String,
+    val name: String,
+    val shortName: String,
+    val badge: String,
+    val sortOrder: Int,
+    val archivedAtMs: Long?,
+    val createdAtMs: Long,
+    val updatedAtMs: Long,
+)
+
 data class BackupSession(
     val id: String,
     val routineId: String?,
@@ -209,6 +222,7 @@ data class BackupSession(
     val durationMinutes: Int,
     val startedAt: Long,
     val finishedAt: Long?,
+    val gymId: String? = null,
 )
 
 data class BackupSessionExercise(
@@ -305,6 +319,7 @@ data class BackupActivity(
     val updatedAtMs: Long,
     val revision: Long,
     val blocks: List<BackupActivityBlock> = emptyList(),
+    val gymId: String? = null,
 )
 
 data class BackupActivityTemplate(

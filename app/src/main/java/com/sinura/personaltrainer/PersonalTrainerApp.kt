@@ -104,6 +104,7 @@ class PersonalTrainerApp : Application() {
         applicationScope.launch {
             try {
                 container.dbMaintenance.seedCatalog()
+                container.gymRepository.repairDangling()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {

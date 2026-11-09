@@ -113,6 +113,7 @@ class BackupScaleEncodeTest {
             sessions = sessions,
             sessionExercises = items,
             setLogs = sets,
+            gyms = BackupTestFixtures.v6Gyms(),
         )
     }
 

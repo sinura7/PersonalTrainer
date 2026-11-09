@@ -14,6 +14,12 @@ data class StallFinding(
     val exerciseId: String,
     val exerciseName: String,
     val sessionsHeld: Int,
+    val gymShortName: String? = null,
+)
+
+private data class StallKey(
+    val exerciseId: String,
+    val scopeKey: String,
 )
 
 object StallSignal {
@@ -23,16 +29,24 @@ object StallSignal {
         val finished = history.filter { it.isFinished }
         if (finished.isEmpty()) return null
 
-        val byExercise = linkedMapOf<String, MutableList<SessionShowing>>()
+        val byKey = linkedMapOf<StallKey, MutableList<SessionShowing>>()
         finished.sortedBy { it.performedAtMs() }.forEach { session ->
             val classes = session.exercises.associate {
                 it.exercise.id to LoadClass.of(it.exercise.loadType)
             }
+            val equipment = session.exercises.associate { it.exercise.id to it.exercise.equipment }
             val names = session.exercises.associate { it.exercise.id to it.exercise.name }
             session.sets
                 .filterNot { it.isWarmup }
                 .groupBy { it.exerciseId }
                 .forEach { (exerciseId, sets) ->
+                    val equip = equipment[exerciseId] ?: EquipmentType.OTHER
+                    val scopeKey = if (GymScope.isGymSpecific(equip)) {
+                        GymScope.stallScopeKey(session.gymId)
+                    } else {
+                        GymScope.RECORD_BUCKET_SHARED
+                    }
+                    val stallKey = StallKey(exerciseId, scopeKey)
                     val loadClass = classes[exerciseId] ?: LoadClass.LOADED
                     val top = ProgressionBasis.topWorkingSet(
                         sets.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
@@ -44,7 +58,7 @@ object StallSignal {
                             it.completedAt == top.completedAt
                     } ?: return@forEach
                     val strength = measure(topSet, loadClass) ?: return@forEach
-                    byExercise.getOrPut(exerciseId) { mutableListOf() }.add(
+                    byKey.getOrPut(stallKey) { mutableListOf() }.add(
                         SessionShowing(
                             exerciseId = exerciseId,
                             exerciseName = names[exerciseId] ?: topSet.exerciseName,
@@ -54,7 +68,7 @@ object StallSignal {
                 }
         }
 
-        return byExercise.values
+        return byKey.values
             .mapNotNull { showings ->
                 val last = showings.takeLast(STALL_SESSIONS)
                 if (last.size < STALL_SESSIONS) return@mapNotNull null

@@ -169,6 +169,7 @@ class RestoreGuardCountsPlanTest {
 
 private fun catalogOnlyJson(): String = BackupJson.encode(
     BackupDocument(
+        version = 5,
         exportedAt = "2026-08-24T10:00:00Z",
         preferences = BackupPreferences(weightUnit = "kg"),
         exercises = listOf(

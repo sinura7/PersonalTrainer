@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
+import com.sinura.personaltrainer.data.repository.GymRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
@@ -69,6 +70,7 @@ interface AppDependencies {
     val plannerRepository: PlannerRepository
     val goalRepository: GoalRepository
     val workoutRepository: WorkoutRepository
+    val gymRepository: GymRepository
     val preferencesRepository: PreferencesRepository
     val onboardingApplier: OnboardingApplier
     val restTimerStatePersistence: RestTimerStatePersistence

@@ -29,7 +29,7 @@ class TemperDatabaseTest {
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        database = Room.inMemoryDatabaseBuilder(context, TemperDatabase::class.java)
+        database = TemperDatabase.inMemoryBuilder(context)
             .allowMainThreadQueries()
             .build()
     }
@@ -42,7 +42,7 @@ class TemperDatabaseTest {
     @Test
     fun opensBesideLegacyNameAndHasNoDestructiveFallback() {
         assertEquals(FoundationGeneration.DATABASE_FILE, "temper.db")
-        assertEquals(7, FoundationGeneration.VERSION)
+        assertEquals(8, FoundationGeneration.VERSION)
         assertTrue(FoundationGeneration.FROZEN)
         val source = java.io.File("src/main/java/com/sinura/personaltrainer/data/local/TemperDatabase.kt")
             .takeIf { it.isFile }

@@ -35,10 +35,24 @@ class WorkoutSetSaveTest {
             context = ApplicationProvider.getApplicationContext(),
             workoutDaoDecorator = { real -> object : WorkoutDao by real {
                 override suspend fun recordPriorsBefore(
-                    exerciseId: String, sessionId: String, weightKg: Double, completedAt: Long, setNumber: Int,
+                    exerciseId: String,
+                    sessionId: String,
+                    weightKg: Double,
+                    completedAt: Long,
+                    setNumber: Int,
+                    scopeShared: Boolean,
+                    scopeGymId: String?,
                 ): ExerciseRecordPriorsRow {
                     check(!failRecordQuery) { "Injected post-commit record read failure" }
-                    return real.recordPriorsBefore(exerciseId, sessionId, weightKg, completedAt, setNumber)
+                    return real.recordPriorsBefore(
+                        exerciseId,
+                        sessionId,
+                        weightKg,
+                        completedAt,
+                        setNumber,
+                        scopeShared,
+                        scopeGymId,
+                    )
                 }
             } },
         )

@@ -89,6 +89,7 @@ fun ActivitySessionGraph.toDomain(): ActivitySession {
         createdAtMs = session.createdAtMs,
         updatedAtMs = session.updatedAtMs,
         revision = session.revision,
+        gymId = session.gymId,
     )
 }
 
@@ -273,6 +274,7 @@ fun ActivitySession.toBackup() = BackupActivity(
     updatedAtMs = updatedAtMs,
     revision = revision,
     blocks = blocks.map { it.toBackup() },
+    gymId = gymId,
 )
 
 fun ActivityBlock.toBackup(): BackupActivityBlock = when (this) {
@@ -345,6 +347,7 @@ fun BackupActivity.toDomain() = ActivitySession(
     createdAtMs = createdAtMs,
     updatedAtMs = updatedAtMs,
     revision = revision,
+    gymId = gymId,
 )
 
 fun BackupActivityTemplate.toDomain() = ActivityTemplate(

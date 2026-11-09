@@ -1264,7 +1264,7 @@ class ActiveWorkoutViewModel internal constructor(
             // process death): an entry nobody touched takes the suggestion just read (W2e, owner
             // decision of 25 September 2026).
             if (keepDraft) followSuggestion(exerciseId)
-            lastPerformance.value = hintLoader.lastPerformance(exerciseId)
+            lastPerformance.value = hintLoader.lastPerformance(exerciseId, planned)
             if (!isCurrentPrefill(exerciseId, generation)) return
             priorHistory.value = container.workoutRepository
                 .historyBefore(sessionId, listOf(exerciseId))[exerciseId].orEmpty()

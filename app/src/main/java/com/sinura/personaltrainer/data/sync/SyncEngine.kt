@@ -348,7 +348,8 @@ class SyncEngine(
         if (local != null && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
             return remote.updatedAtMs
         }
-        activityDao.upsertSessionInPlace(remote.toEntity())
+        val merged = remote.toEntity().copy(gymId = local?.gymId)
+        activityDao.upsertSessionInPlace(merged)
         return remote.updatedAtMs
     }
 

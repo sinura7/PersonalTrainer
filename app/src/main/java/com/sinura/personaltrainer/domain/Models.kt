@@ -82,6 +82,7 @@ data class WorkoutSession(
     val finishedAt: Long?,
     val exercises: List<SessionExercise>,
     val sets: List<SetLog>,
+    val gymId: String? = null,
 ) {
     val isFinished: Boolean get() = finishedAt != null
 
@@ -303,6 +304,8 @@ data class ProgressionHint(
      * rather than the barbell's. Null means the table keys off [loadType] only.
      */
     val equipment: EquipmentType? = null,
+    /** Short name of the gym this machine hint applies at; null for free weights or shared hints. */
+    val gymShortName: String? = null,
 )
 
 enum class ProgressionAction {

@@ -63,6 +63,7 @@ import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
+import com.sinura.personaltrainer.data.repository.GymRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.reminder.WorkManagerReminderScheduler
 import com.sinura.personaltrainer.insights.TrainingInsightsSource
@@ -189,6 +190,7 @@ class AppContainer(context: Context) : AppDependencies {
     }
 
     private val database: TemperDatabase = TemperDatabase.create(context)
+    override val gymRepository: GymRepository = GymRepository(database, database.gymDao())
 
     private val supabaseRuntime = AccountAuthFactory.createRuntime()
     private val syncOutboxWriter = SyncOutboxWriter(database.syncDao())

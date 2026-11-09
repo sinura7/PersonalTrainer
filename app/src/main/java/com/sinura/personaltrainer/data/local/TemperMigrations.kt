@@ -244,3 +244,28 @@ val MIGRATION_TEMPER_6_7 = object : Migration(6, 7) {
         )
     }
 }
+
+/** Temper v7 → v8: gyms table, nullable gymId on workout and activity sessions (Packet G1). */
+val MIGRATION_TEMPER_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val nowMs = System.currentTimeMillis()
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `gyms` (
+              `id` TEXT NOT NULL, `name` TEXT NOT NULL, `shortName` TEXT NOT NULL, `badge` TEXT NOT NULL,
+              `sortOrder` INTEGER NOT NULL, `archivedAtMs` INTEGER, `createdAtMs` INTEGER NOT NULL,
+              `updatedAtMs` INTEGER NOT NULL, PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_gyms_sortOrder` ON `gyms` (`sortOrder`)")
+        db.execSQL("ALTER TABLE `workout_sessions` ADD COLUMN `gymId` TEXT")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_workout_sessions_gymId` ON `workout_sessions` (`gymId`)",
+        )
+        db.execSQL("ALTER TABLE `activity_sessions` ADD COLUMN `gymId` TEXT")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_activity_sessions_gymId` ON `activity_sessions` (`gymId`)",
+        )
+        GymSeed.insertAll(db, nowMs)
+    }
+}

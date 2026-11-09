@@ -413,6 +413,7 @@ class BackupValidatorTest {
     }
 
     private fun catalogOnly() = BackupDocument(
+        version = 5,
         exportedAt = "2026-08-19T10:00:00Z",
         preferences = BackupPreferences(weightUnit = "kg"),
         exercises = listOf(exercise("ex-squat", "Barbell Back Squat", "Quads")),
@@ -424,6 +425,7 @@ class BackupValidatorTest {
     )
 
     private fun empty() = BackupDocument(
+        version = 5,
         exportedAt = "2026-08-19T10:00:00Z",
         preferences = BackupPreferences(weightUnit = "kg"),
         exercises = emptyList(),
@@ -444,6 +446,7 @@ class BackupValidatorTest {
         sessions = listOf(session()),
         sessionExercises = listOf(sessionExercise()),
         setLogs = listOf(setLog("set1"), setLog("set2", setNumber = 2)),
+        gyms = BackupTestFixtures.v6Gyms(),
     )
 
     /**

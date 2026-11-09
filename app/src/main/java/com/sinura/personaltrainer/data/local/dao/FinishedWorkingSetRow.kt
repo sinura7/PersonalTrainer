@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.data.local.dao
 
+import com.sinura.personaltrainer.data.repository.GymScopedRow
+
 /**
  * One finished working set of a requested lift, with the session's finish
  * time so Kotlin can pick the last session (and the RPE window) without a
@@ -16,4 +18,6 @@ data class FinishedWorkingSetRow(
     val completedAt: Long,
     val rpe: Int?,
     val sessionFinishedAt: Long,
-)
+    override val sessionGymId: String? = null,
+    override val equipment: String? = null,
+) : GymScopedRow
