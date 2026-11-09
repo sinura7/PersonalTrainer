@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.data.local
 
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.local.dao.GymDao
 import org.junit.After
@@ -18,10 +17,9 @@ class GymSeedTest {
 
     @Before
     fun setUp() {
-        db = Room.inMemoryDatabaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            TemperDatabase::class.java,
-        ).build()
+        db = TemperDatabase.inMemoryBuilder(ApplicationProvider.getApplicationContext())
+            .allowMainThreadQueries()
+            .build()
         gymDao = db.gymDao()
     }
 
@@ -32,7 +30,6 @@ class GymSeedTest {
 
     @Test
     fun freshCreateSeedsFiveGyms() {
-        GymSeed.insertAll(db.openHelper.writableDatabase, 1L)
         val gyms = runBlocking { gymDao.getAll() }
         assertEquals(5, gyms.size)
         assertEquals(GymSeed.ROWS.map { it.id }.toSet(), gyms.map { it.id }.toSet())

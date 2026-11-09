@@ -510,8 +510,8 @@ interface WorkoutDao {
         weightKg: Double,
         completedAt: Long,
         setNumber: Int,
-        scopeShared: Boolean = true,
-        scopeGymId: String? = null,
+        scopeShared: Boolean,
+        scopeGymId: String?,
     ): ExerciseRecordPriorsRow
 
     @Query(

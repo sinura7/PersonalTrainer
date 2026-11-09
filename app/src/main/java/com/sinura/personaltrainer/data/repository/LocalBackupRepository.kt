@@ -456,28 +456,28 @@ class LocalBackupRepository(
                     },
                 )
             }
-            if (document.sessions.isNotEmpty()) {
-                if (document.version >= 6) {
-                    (database as? TemperDatabase)?.gymDao()?.let { gymDao ->
-                        gymDao.deleteAll()
-                        if (document.gyms.isNotEmpty()) {
-                            gymDao.upsertAll(
-                                document.gyms.map {
-                                    GymEntity(
-                                        id = it.id,
-                                        name = it.name,
-                                        shortName = it.shortName,
-                                        badge = it.badge,
-                                        sortOrder = it.sortOrder,
-                                        archivedAtMs = it.archivedAtMs,
-                                        createdAtMs = it.createdAtMs,
-                                        updatedAtMs = it.updatedAtMs,
-                                    )
-                                },
-                            )
-                        }
+            if (document.version >= 6) {
+                (database as? TemperDatabase)?.gymDao()?.let { gymDao ->
+                    gymDao.deleteAll()
+                    if (document.gyms.isNotEmpty()) {
+                        gymDao.upsertAll(
+                            document.gyms.map {
+                                GymEntity(
+                                    id = it.id,
+                                    name = it.name,
+                                    shortName = it.shortName,
+                                    badge = it.badge,
+                                    sortOrder = it.sortOrder,
+                                    archivedAtMs = it.archivedAtMs,
+                                    createdAtMs = it.createdAtMs,
+                                    updatedAtMs = it.updatedAtMs,
+                                )
+                            },
+                        )
                     }
                 }
+            }
+            if (document.sessions.isNotEmpty()) {
                 val sessionGymId: (BackupSession) -> String? = { session ->
                     if (document.version >= 6) session.gymId else null
                 }

@@ -49,6 +49,14 @@ class TemperMigration7To8Test {
                     "(id, sessionId, exerciseId, setNumber, weightKg, reps, isWarmup, completedAt) VALUES " +
                     "('sl2', 's2', 'machine1', 1, 45.0, 10, 0, $SEED_STAMP_MS)",
             )
+            db.execSQL(
+                "INSERT INTO activity_sessions " +
+                    "(id, status, origin, source, title, notes, performedStartInstantMs, " +
+                    "performedStartZoneId, performedStartOffsetSeconds, performedStartLocalEpochDay, " +
+                    "createdAtMs, updatedAtMs, revision, liveToken) VALUES " +
+                    "('a1', 'COMPLETED', 'BACKDATED', 'TEMPER', 'Easy run', '', $SEED_STAMP_MS, " +
+                    "'UTC', 0, 20000, $SEED_STAMP_MS, $SEED_STAMP_MS, 1, NULL)",
+            )
         }
         val db = helper.runMigrationsAndValidate(DB_POPULATED, 8, true, MIGRATION_TEMPER_7_8)
         db.query("SELECT routineId, routineName, finishedAt FROM workout_sessions WHERE id = 's1'").use { cursor ->
@@ -80,6 +88,10 @@ class TemperMigration7To8Test {
             assertTrue(cursor.moveToFirst())
             assertEquals(45.0, cursor.getDouble(0), 0.0001)
             assertEquals(10, cursor.getInt(1))
+        }
+        db.query("SELECT gymId FROM activity_sessions WHERE id = 'a1'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertNull(if (cursor.isNull(0)) null else cursor.getString(0))
         }
         db.close()
     }

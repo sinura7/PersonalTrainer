@@ -6,13 +6,20 @@ import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.PersonalRecordKind
+import com.sinura.personaltrainer.domain.ProgressionAction
+import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.RoutineExercise
+import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -104,6 +111,122 @@ class GymScopedHistoryTest {
     fun unassignedMachineHistoryDoesNotFeedGymScope() = runBlocking {
         finish("unassigned", null, PEC_ID, 60.0, STAMP)
         assertNull(repository.lastPerformance(PEC_ID, EquipmentType.MACHINE, WESTON))
+    }
+
+    @Test
+    fun readyForProgressionUsesUnassignedMachineHistory() = runBlocking {
+        finish("unassigned", null, PEC_ID, 45.0, STAMP + 1)
+        val hints = repository.readyForProgression(listOf(pecDeckRoutine()), WeightUnit.KG)
+        assertEquals(PEC_ID, hints.single().exerciseId)
+        assertEquals(ProgressionAction.INCREASE, hints.single().action)
+    }
+
+    @Test
+    fun unassignedMachinePrefillUsesUnassignedHistoryOnly() = runBlocking {
+        finish("unassigned", null, PEC_ID, 60.0, STAMP + 1)
+        finish("weston", WESTON, PEC_ID, 80.0, STAMP + 2)
+        val atUnassigned = repository.progressionFor(
+            exerciseId = PEC_ID,
+            exerciseName = "Pec Deck",
+            targetReps = 10,
+            excludeSessionId = "live",
+            loadType = LoadType.EXTERNAL,
+            unit = WeightUnit.KG,
+            equipment = EquipmentType.MACHINE,
+            gymId = null,
+        )
+        assertNotNull(atUnassigned)
+        assertEquals(60.0, atUnassigned!!.lastWeightKg, 0.001)
+        val atWeston = repository.progressionFor(
+            exerciseId = PEC_ID,
+            exerciseName = "Pec Deck",
+            targetReps = 10,
+            excludeSessionId = "live",
+            loadType = LoadType.EXTERNAL,
+            unit = WeightUnit.KG,
+            equipment = EquipmentType.MACHINE,
+            gymId = WESTON,
+        )
+        assertEquals(80.0, atWeston!!.lastWeightKg, 0.001)
+    }
+
+    @Test
+    fun recordPriorsCompareUnassignedVersusNamedGym() = runBlocking {
+        finish("unassigned", null, PEC_ID, 60.0, STAMP)
+        finish("weston", WESTON, PEC_ID, 50.0, STAMP + 1)
+        liveSession("live-weston", WESTON)
+        val westonRecords = repository.recordsBrokenBy(
+            exerciseId = PEC_ID,
+            sessionId = "live-weston",
+            weightKg = 55.0,
+            reps = 10,
+            completedAt = STAMP + 100,
+            setNumber = 1,
+        )
+        assertTrue(PersonalRecordKind.WEIGHT in westonRecords)
+        liveSession("live-un", null)
+        assertTrue(
+            PersonalRecordKind.WEIGHT in repository.recordsBrokenBy(
+                exerciseId = PEC_ID,
+                sessionId = "live-un",
+                weightKg = 65.0,
+                reps = 10,
+                completedAt = STAMP + 200,
+                setNumber = 1,
+            ),
+        )
+        val notUnassignedPr = repository.recordsBrokenBy(
+            exerciseId = PEC_ID,
+            sessionId = "live-un",
+            weightKg = 55.0,
+            reps = 10,
+            completedAt = STAMP + 201,
+            setNumber = 1,
+        )
+        assertTrue(PersonalRecordKind.WEIGHT !in notUnassignedPr)
+    }
+
+    private fun pecDeckRoutine() = Routine(
+        id = "r-pec",
+        name = "Push",
+        notes = "",
+        createdAt = STAMP,
+        updatedAt = STAMP,
+        exercises = listOf(
+            RoutineExercise(
+                id = "re-pec",
+                routineId = "r-pec",
+                exercise = Exercise(
+                    id = PEC_ID,
+                    name = "Pec Deck",
+                    muscleGroup = "Chest",
+                    notes = "",
+                    isCustom = false,
+                    equipment = EquipmentType.MACHINE,
+                ),
+                sortOrder = 0,
+                targetSets = 3,
+                targetReps = 10,
+                targetWeightKg = null,
+                restSeconds = 90,
+            ),
+        ),
+    )
+
+    private suspend fun liveSession(id: String, gymId: String?) {
+        database.workoutDao().upsertSession(
+            WorkoutSessionEntity(
+                id = id,
+                routineId = null,
+                routineName = "Live",
+                date = STAMP,
+                notes = "",
+                durationMinutes = 0,
+                startedAt = STAMP,
+                finishedAt = null,
+                gymId = gymId,
+            ),
+        )
     }
 
     private suspend fun finish(

@@ -1645,13 +1645,11 @@ class WorkoutRepository(
         items.values.forEach { item ->
             val equipment = item.exercise.equipment
             val scopedRows = if (GymScope.isGymSpecific(equipment)) {
-                val recentGym = byExercise[item.exercise.id]
-                    .orEmpty()
-                    .maxByOrNull { it.sessionFinishedAt }
-                    ?.sessionGymId
-                if (recentGym == null) return@forEach
+                val exerciseRows = byExercise[item.exercise.id].orEmpty()
+                if (exerciseRows.isEmpty()) return@forEach
+                val recentGym = exerciseRows.maxByOrNull { it.sessionFinishedAt }?.sessionGymId
                 ScopedRows.keepTyped(
-                    byExercise[item.exercise.id].orEmpty(),
+                    exerciseRows,
                     GymScope.of(equipment, recentGym),
                 )
             } else {
