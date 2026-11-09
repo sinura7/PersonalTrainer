@@ -413,5 +413,6 @@ internal fun witnessFixture(): BackupDocument {
                 updatedAtMs = stamp,
             ),
         ),
+        gyms = BackupTestFixtures.v6Gyms(),
     )
 }

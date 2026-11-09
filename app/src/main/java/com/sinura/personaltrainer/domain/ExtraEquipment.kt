@@ -18,13 +18,8 @@ enum class ExtraEquipment(val label: String, val caption: String) {
         const val PICK = "What equipment is here?"
         const val USUAL = "Usual kit. Change it for this session."
 
-        /** Catalog types Extra treats as a gym stack. Floor work must not include these. */
-        val GYM_STACK: Set<EquipmentType> = setOf(
-            EquipmentType.MACHINE,
-            EquipmentType.CABLE,
-            EquipmentType.SMITH,
-            EquipmentType.HYPER_PRO,
-        )
+        /** Catalog types Extra treats as a gym stack. Same set as [GymScope.GYM_SPECIFIC]. */
+        val GYM_STACK: Set<EquipmentType> = GymScope.GYM_SPECIFIC
 
         val FREE: Set<EquipmentType> = setOf(
             EquipmentType.BARBELL,

@@ -167,6 +167,7 @@ for c in "check-internal-imports.py" \
          "check-import-hygiene.py" \
          "check-doc-authority.py" \
          "check-backup-policy.py" \
+         "check-gym-scope.py" \
          "check-sdk-target.py" \
          "check-lint-policy.py" \
          "check-supply-chain.py" \

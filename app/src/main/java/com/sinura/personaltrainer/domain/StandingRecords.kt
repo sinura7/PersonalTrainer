@@ -15,6 +15,8 @@ data class RecordSet(
     val exerciseName: String,
     val loadClass: LoadClass,
     val set: ExerciseSetRecord,
+    val equipment: EquipmentType? = null,
+    val sessionGymId: String? = null,
 )
 
 /**
@@ -30,11 +32,18 @@ data class RecordSet(
  * count is the period-scoped number. A lifetime best is the one thing that must not shrink when
  * the owner narrows the view.
  */
-fun standingRecords(sets: List<RecordSet>, limit: Int = 3): List<PrSummaryRow> {
+fun standingRecords(
+    sets: List<RecordSet>,
+    limit: Int = 3,
+    recordKey: (RecordSet) -> RecordKey = { s ->
+        GymScope.recordKey(s.exerciseId, s.equipment, s.sessionGymId)
+    },
+): List<PrSummaryRow> {
     if (sets.isEmpty()) return emptyList()
     return sets
-        .groupBy { it.exerciseId }
-        .mapNotNull { (exerciseId, lift) ->
+        .groupBy(recordKey)
+        .mapNotNull { (key, lift) ->
+            val exerciseId = key.exerciseId
             val newest = lift.maxWithOrNull(
                 compareBy<RecordSet> { it.set.completedAt }.thenBy { it.set.setId },
             ) ?: return@mapNotNull null
@@ -66,6 +75,7 @@ fun standingRecords(sets: List<RecordSet>, limit: Int = 3): List<PrSummaryRow> {
 fun WorkoutSession.recordSets(): List<RecordSet> {
     if (!isFinished) return emptyList()
     val classes = exercises.associate { it.exercise.id to LoadClass.of(it.exercise.loadType) }
+    val equipment = exercises.associate { it.exercise.id to it.exercise.equipment }
     return sets
         .filterNot { it.isWarmup }
         .map { set ->
@@ -73,6 +83,8 @@ fun WorkoutSession.recordSets(): List<RecordSet> {
                 exerciseId = set.exerciseId,
                 exerciseName = set.exerciseName,
                 loadClass = classes[set.exerciseId] ?: LoadClass.LOADED,
+                equipment = equipment[set.exerciseId],
+                sessionGymId = gymId,
                 set = ExerciseSetRecord(
                     setId = set.id,
                     sessionId = set.sessionId,

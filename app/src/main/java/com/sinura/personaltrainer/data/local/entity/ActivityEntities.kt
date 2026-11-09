@@ -10,6 +10,7 @@ import androidx.room.PrimaryKey
     indices = [
         Index("performedStartLocalEpochDay"),
         Index(value = ["liveToken"], unique = true),
+        Index("gymId"),
     ],
 )
 data class ActivitySessionEntity(
@@ -37,6 +38,7 @@ data class ActivitySessionEntity(
      * allows many nulls and at most one live row.
      */
     val liveToken: String?,
+    val gymId: String? = null,
 )
 
 @Entity(tableName = "activity_templates")

@@ -26,7 +26,10 @@ import com.sinura.personaltrainer.data.backup.BackupSessionExercise
 import com.sinura.personaltrainer.data.backup.BackupActivity
 import com.sinura.personaltrainer.data.backup.BackupActivityTemplate
 import com.sinura.personaltrainer.data.backup.BackupSetLog
+import com.sinura.personaltrainer.data.backup.BackupGym
 import com.sinura.personaltrainer.data.local.AppRoomDatabase
+import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.local.entity.GymEntity
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.GoalDao
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
@@ -134,6 +137,7 @@ class LocalBackupRepository(
                     )
                 },
                 goals = goalDao?.getAll().orEmpty(),
+                gyms = (database as? TemperDatabase)?.gymDao()?.getAll().orEmpty(),
             )
         }
         val exercises = snapshot.exercises
@@ -235,6 +239,7 @@ class LocalBackupRepository(
                     durationMinutes = it.durationMinutes,
                     startedAt = it.startedAt,
                     finishedAt = it.finishedAt,
+                    gymId = it.gymId,
                 )
             },
             sessionExercises = sessionExercises.map {
@@ -290,6 +295,18 @@ class LocalBackupRepository(
             missedWorkDecisions = snapshot.plannerExport?.decisions.orEmpty().map { it.toBackup() },
             reminderDeliveries = snapshot.plannerExport?.deliveries.orEmpty().map { it.toBackup() },
             measurableGoals = snapshot.goals.map { it.toBackup() },
+            gyms = snapshot.gyms.map {
+                BackupGym(
+                    id = it.id,
+                    name = it.name,
+                    shortName = it.shortName,
+                    badge = it.badge,
+                    sortOrder = it.sortOrder,
+                    archivedAtMs = it.archivedAtMs,
+                    createdAtMs = it.createdAtMs,
+                    updatedAtMs = it.updatedAtMs,
+                )
+            },
         )
     }
 
@@ -440,6 +457,30 @@ class LocalBackupRepository(
                 )
             }
             if (document.sessions.isNotEmpty()) {
+                if (document.version >= 6) {
+                    (database as? TemperDatabase)?.gymDao()?.let { gymDao ->
+                        gymDao.deleteAll()
+                        if (document.gyms.isNotEmpty()) {
+                            gymDao.upsertAll(
+                                document.gyms.map {
+                                    GymEntity(
+                                        id = it.id,
+                                        name = it.name,
+                                        shortName = it.shortName,
+                                        badge = it.badge,
+                                        sortOrder = it.sortOrder,
+                                        archivedAtMs = it.archivedAtMs,
+                                        createdAtMs = it.createdAtMs,
+                                        updatedAtMs = it.updatedAtMs,
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
+                val sessionGymId: (BackupSession) -> String? = { session ->
+                    if (document.version >= 6) session.gymId else null
+                }
                 database.workoutDao().replaceSessions(
                     document.sessions.map {
                         WorkoutSessionEntity(
@@ -451,6 +492,7 @@ class LocalBackupRepository(
                             durationMinutes = it.durationMinutes,
                             startedAt = it.startedAt,
                             finishedAt = it.finishedAt,
+                            gymId = sessionGymId(it),
                         )
                     },
                 )
@@ -708,6 +750,7 @@ class LocalBackupRepository(
         val activityExport: Pair<List<BackupActivity>, List<BackupActivityTemplate>>?,
         val plannerExport: PlannerExport?,
         val goals: List<MeasurableGoalEntity> = emptyList(),
+        val gyms: List<GymEntity> = emptyList(),
     )
 }
 

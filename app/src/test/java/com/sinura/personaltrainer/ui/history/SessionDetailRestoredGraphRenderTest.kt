@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupDocument
+import com.sinura.personaltrainer.data.backup.BackupTestFixtures
 import com.sinura.personaltrainer.data.backup.BackupExercise
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupPreferences
@@ -666,6 +667,7 @@ class SessionDetailRestoredGraphRenderTest {
         setLogs = listOf(BackupSetLog(
             SET_ID, SESSION_ID, recordedExerciseId, 1, 45.0, 6, 8, false, STAMP + 1_000L,
         )),
+        gyms = BackupTestFixtures.v6Gyms(),
     )
 
     private fun exercise(id: String, name: String) = BackupExercise(

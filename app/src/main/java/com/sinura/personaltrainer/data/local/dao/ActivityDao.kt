@@ -116,12 +116,15 @@ interface ActivityDao {
                b.exerciseId AS exerciseId,
                b.exerciseName AS exerciseName,
                b.loadType AS loadType,
+               COALESCE(b.equipment, e.equipment) AS equipment,
+               s.gymId AS sessionGymId,
                st.weightKg AS weightKg,
                st.reps AS reps,
                st.completedAtMs AS completedAt
         FROM activity_strength_sets st
         JOIN activity_blocks b ON b.id = st.blockId
         JOIN activity_sessions s ON s.id = b.sessionId
+        LEFT JOIN exercises e ON e.id = b.exerciseId
         WHERE st.isWarmup = 0
           AND b.kind = 'STRENGTH'
           AND b.exerciseId IS NOT NULL
@@ -145,10 +148,13 @@ interface ActivityDao {
                st.reps AS reps,
                st.completedAtMs AS completedAt,
                NULL AS durationSeconds,
-               s.performedStartLocalEpochDay AS sessionLocalEpochDay
+               s.performedStartLocalEpochDay AS sessionLocalEpochDay,
+               s.gymId AS sessionGymId,
+               COALESCE(b.equipment, e.equipment) AS equipment
         FROM activity_strength_sets st
         JOIN activity_blocks b ON b.id = st.blockId
         JOIN activity_sessions s ON s.id = b.sessionId
+        LEFT JOIN exercises e ON e.id = b.exerciseId
         WHERE b.exerciseId = :exerciseId
           AND st.isWarmup = 0
           AND b.kind = 'STRENGTH'
@@ -170,6 +176,9 @@ interface ActivityDao {
 
     @Update
     suspend fun updateSession(session: ActivitySessionEntity)
+
+    @Query("UPDATE activity_sessions SET gymId = :gymId WHERE id = :sessionId")
+    suspend fun setSessionGym(sessionId: String, gymId: String?)
 
     @Query("DELETE FROM activity_sessions WHERE id = :id")
     suspend fun deleteSession(id: String)

@@ -22,6 +22,7 @@ data class ActivitySession(
     val createdAtMs: Long,
     val updatedAtMs: Long,
     val revision: Long,
+    val gymId: String? = null,
 ) {
     val localEpochDay: Long get() = performedStart.localEpochDay
 

@@ -37,7 +37,7 @@ class FoundationExportTest {
     @Before
     fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        database = Room.inMemoryDatabaseBuilder(context, TemperDatabase::class.java)
+        database = TemperDatabase.inMemoryBuilder(context)
             .allowMainThreadQueries()
             .build()
         activities = ActivityRepository(database)

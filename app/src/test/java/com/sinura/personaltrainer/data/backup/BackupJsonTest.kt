@@ -220,6 +220,7 @@ class BackupJsonTest {
                 BackupScheduleSlot("slot1", 0, "r1", null, 0, 1_700_000_000_000L, 1_700_000_000_000L),
                 BackupScheduleSlot("slot2", 1, null, "pull", null, 1_700_000_000_000L, 1_700_000_000_000L),
             ),
+            gyms = BackupTestFixtures.v6Gyms(),
         )
     }
 

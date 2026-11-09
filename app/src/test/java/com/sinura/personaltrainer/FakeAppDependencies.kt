@@ -50,6 +50,7 @@ import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
+import com.sinura.personaltrainer.data.repository.GymRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.repository.observeHealth
 import com.sinura.personaltrainer.domain.ReminderScheduler
@@ -183,7 +184,7 @@ class FakeAppDependencies(
         Thread(runnable, "room-txn-test").apply { isDaemon = true }
     }
 
-    val database: TemperDatabase = Room.inMemoryDatabaseBuilder(context, TemperDatabase::class.java)
+    val database: TemperDatabase = TemperDatabase.inMemoryBuilder(context)
         .allowMainThreadQueries()
         .setQueryExecutor(queryExecutor)
         .setTransactionExecutor(transactionExecutor)
@@ -218,6 +219,7 @@ class FakeAppDependencies(
             dbMaintenance,
             restoreBlocksStart = { backupService.restoreBlocksStart() },
         )
+    override val gymRepository: GymRepository = GymRepository(database, database.gymDao())
     private val prefsContext = IsolatedAppContext(context.applicationContext)
     private val prefsScope = CoroutineScope(SupervisorJob() + prefsDispatcher)
     private val rawPrefsStore = PreferenceDataStoreFactory.create(

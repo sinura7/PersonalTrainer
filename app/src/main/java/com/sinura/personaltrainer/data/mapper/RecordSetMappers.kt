@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.mapper
 
 import com.sinura.personaltrainer.data.local.dao.RecordSetRow
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.RecordSet
@@ -16,6 +17,8 @@ fun RecordSetRow.toRecordSet(): RecordSet? {
         exerciseId = lift,
         exerciseName = exerciseName.orEmpty(),
         loadClass = LoadClass.of(LoadType.fromStorage(loadType)),
+        equipment = equipment?.let(EquipmentType::fromStorage),
+        sessionGymId = sessionGymId,
         set = ExerciseSetRecord(
             setId = setId,
             sessionId = sessionId,

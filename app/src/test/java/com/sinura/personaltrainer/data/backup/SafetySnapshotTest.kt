@@ -76,6 +76,7 @@ class SafetySnapshotTest {
 }
 
 internal fun catalogOnly() = BackupDocument(
+    version = 5,
     exportedAt = "2026-08-24T10:00:00Z",
     preferences = BackupPreferences(weightUnit = "kg"),
     exercises = listOf(sampleExercise("ex-squat", isCustom = false)),
@@ -109,6 +110,7 @@ internal fun authoredSample(): BackupDocument {
             BackupSetLog("set1", "s1", "ex-squat", 1, 100.0, 5, 8, false, t0 + 60_000),
             BackupSetLog("set2", "s1", "ex-squat", 2, 100.0, 5, 8, false, t0 + 120_000),
         ),
+        gyms = BackupTestFixtures.v6Gyms(),
     )
 }
 

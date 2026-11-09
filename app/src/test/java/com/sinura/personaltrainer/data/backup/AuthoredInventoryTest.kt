@@ -125,6 +125,7 @@ class AuthoredInventoryTest {
     }
 
     private fun catalogOnly() = BackupDocument(
+        version = 5,
         exportedAt = "2026-08-24T10:00:00Z",
         preferences = BackupPreferences(weightUnit = "kg"),
         exercises = listOf(exercise("ex-squat")),

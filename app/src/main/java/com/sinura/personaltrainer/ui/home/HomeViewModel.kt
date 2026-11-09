@@ -169,7 +169,13 @@ class HomeViewModel @JvmOverloads constructor(
         val suggested = mutableMapOf<String, Double>()
         for (planned in routine.exercises) {
             val id = planned.exercise.id
-            perLift { container.workoutRepository.lastPerformance(id)?.topSet?.weightKg }?.let { last[id] = it }
+            perLift {
+                container.workoutRepository.lastPerformance(
+                    exerciseId = id,
+                    equipment = planned.exercise.equipment,
+                    gymId = null,
+                )?.topSet?.weightKg
+            }?.let { last[id] = it }
             if (settings != null) {
                 perLift {
                     container.workoutRepository.progressionFor(
@@ -181,6 +187,7 @@ class HomeViewModel @JvmOverloads constructor(
                         unit = settings.unit,
                         lighterWeek = settings.lighterWeek,
                         equipment = planned.exercise.equipment,
+                        gymId = null,
                     )?.suggestedWeightKg
                 }?.let { suggested[id] = it }
             }

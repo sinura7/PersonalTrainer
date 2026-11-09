@@ -3,6 +3,9 @@ package com.sinura.personaltrainer.data.local
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.sinura.personaltrainer.data.local.dao.GymDao
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.data.local.dao.GoalDao
@@ -17,6 +20,7 @@ import com.sinura.personaltrainer.data.local.entity.ActivityStrengthSetEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityTemplateEntity
 import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.GymEntity
 import com.sinura.personaltrainer.data.local.entity.TrainingBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
@@ -65,6 +69,7 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
         MissedWorkDecisionEntity::class,
         ReminderDeliveryEntity::class,
         MeasurableGoalEntity::class,
+        GymEntity::class,
         SyncOutboxEntity::class,
         SyncTableCursorEntity::class,
         SyncMetadataEntity::class,
@@ -79,8 +84,20 @@ abstract class TemperDatabase : AppRoomDatabase() {
     abstract fun plannerDao(): PlannerDao
     abstract fun goalDao(): GoalDao
     abstract fun syncDao(): SyncDao
+    abstract fun gymDao(): GymDao
 
     companion object {
+        private val gymSeedOnCreate = object : RoomDatabase.Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                GymSeed.insertAll(db, System.currentTimeMillis())
+            }
+        }
+
+        /** In-memory databases skip file `onCreate`; attach gym seed like production. */
+        fun inMemoryBuilder(context: Context): RoomDatabase.Builder<TemperDatabase> =
+            Room.inMemoryDatabaseBuilder(context.applicationContext, TemperDatabase::class.java)
+                .addCallback(gymSeedOnCreate)
+
         fun create(context: Context): TemperDatabase {
             return Room.databaseBuilder(
                 context.applicationContext,
@@ -96,7 +113,9 @@ abstract class TemperDatabase : AppRoomDatabase() {
                     MIGRATION_TEMPER_4_5,
                     MIGRATION_TEMPER_5_6,
                     MIGRATION_TEMPER_6_7,
+                    MIGRATION_TEMPER_7_8,
                 )
+                .addCallback(gymSeedOnCreate)
                 .build()
         }
     }

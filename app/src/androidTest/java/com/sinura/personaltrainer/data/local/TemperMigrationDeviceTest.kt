@@ -33,7 +33,7 @@ class TemperMigrationDeviceTest {
         }
         helper.runMigrationsAndValidate(
             DB,
-            7,
+            8,
             true,
             MIGRATION_TEMPER_1_2,
             MIGRATION_TEMPER_2_3,
@@ -41,6 +41,7 @@ class TemperMigrationDeviceTest {
             MIGRATION_TEMPER_4_5,
             MIGRATION_TEMPER_5_6,
             MIGRATION_TEMPER_6_7,
+            MIGRATION_TEMPER_7_8,
         ).use { db ->
             assertEquals(1, countOf(db, "workout_sessions"))
             assertEquals(0, countOf(db, "bodyweight_entries"))
@@ -48,6 +49,7 @@ class TemperMigrationDeviceTest {
             assertEquals(0, countOf(db, "schedule_rules"))
             assertEquals(0, countOf(db, "schedule_occurrences"))
             assertEquals(0, countOf(db, "measurable_goals"))
+            assertEquals(5, countOf(db, "gyms"))
             db.query("PRAGMA table_info('bodyweight_entries')").use { cursor ->
                 val names = mutableListOf<String>()
                 val nameCol = cursor.getColumnIndex("name")

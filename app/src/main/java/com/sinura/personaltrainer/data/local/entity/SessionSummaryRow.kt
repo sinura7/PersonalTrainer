@@ -10,6 +10,7 @@ data class SessionSummaryRow(
     val durationMinutes: Int,
     val workingSets: Int,
     val volumeKg: Double,
+    val gymId: String? = null,
 )
 
 /** SQL aggregate of a completed activity. No set or interval rows. */

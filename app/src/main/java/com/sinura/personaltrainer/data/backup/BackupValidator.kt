@@ -391,6 +391,25 @@ object BackupValidator {
             }
         }
 
+        if (document.version >= 6) {
+            if (document.gyms.isEmpty()) {
+                return invalid("a v6 backup must include at least one gym")
+            }
+            val gymIds = document.gyms.mapTo(HashSet()) { it.id }
+            document.sessions.forEach { session ->
+                val gymId = session.gymId
+                if (gymId != null && gymId !in gymIds) {
+                    return invalid("This backup names a gym it does not contain.")
+                }
+            }
+            document.activities.forEach { activity ->
+                val gymId = activity.gymId
+                if (gymId != null && gymId !in gymIds) {
+                    return invalid("This backup names a gym it does not contain.")
+                }
+            }
+        }
+
         val summary = BackupSummary(
             exercises = document.exercises.size,
             routines = document.routines.size,

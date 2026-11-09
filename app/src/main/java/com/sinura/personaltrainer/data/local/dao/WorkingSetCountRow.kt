@@ -5,4 +5,5 @@ data class WorkingSetCountRow(
     val exerciseId: String,
     val finishedAt: Long,
     val workingSets: Int,
+    val sessionGymId: String? = null,
 )
