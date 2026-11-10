@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.ui.components.GymTags
 import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
@@ -42,6 +43,10 @@ object StartChooserTestKit {
             }
             when {
                 compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes().isNotEmpty() -> {
+                    val roots = compose.onAllNodes(hasTestTag(WorkoutPreviewTags.ROOT)).fetchSemanticsNodes()
+                    if (roots.isNotEmpty()) {
+                        compose.onNode(hasTestTag(WorkoutPreviewTags.ROOT)).performScrollToNode(hasTestTag(gymTag))
+                    }
                     compose.onNodeWithTag(gymTag).performClick()
                     compose.waitForIdle()
                 }
