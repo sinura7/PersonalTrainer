@@ -1,11 +1,9 @@
 package com.sinura.personaltrainer.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,100 +53,79 @@ internal fun GymsSection(
     val archived = state.gyms.filter { it.archived }.sortedBy { it.sortOrder }
     val activeIds = active.map { it.id }
 
-    LazyColumn(
+    Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .testTag(GymSettingsTags.SETTINGS_SECTION),
-        contentPadding = PaddingValues(
-            start = Metrics.gutter,
-            end = Metrics.gutter,
-            bottom = Metrics.space8,
-        ),
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
-        item("caption") {
-            Text(
-                stringResource(R.string.gym_settings_caption),
-                style = InstrumentType.caption,
-                color = TextTertiary,
-            )
-        }
-        item("reorder-kicker") {
-            Kicker(text = stringResource(R.string.gym_settings_reorder_kicker))
-        }
-        item("active-list") {
-            GroupedList {
-                active.forEachIndexed { index, gym ->
-                    val visit = state.visits[gym.id]
-                    GymManageRow(
-                        gym = gym,
-                        caption = gymVisitCaption(visit),
-                        onClick = { editing = gym },
-                        trailing = {
-                            ReorderRow(
-                                title = gym.name,
-                                occurrenceId = gym.id,
-                                index = index,
-                                lastIndex = active.lastIndex,
-                                onMove = { id, delta -> viewModel.move(activeIds, id, delta) },
-                            )
-                        },
-                    )
-                    if (index < active.lastIndex) HairlineDivider()
-                }
+        Text(
+            stringResource(R.string.gym_settings_caption),
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
+        Kicker(text = stringResource(R.string.gym_settings_reorder_kicker))
+        GroupedList {
+            active.forEachIndexed { index, gym ->
+                val visit = state.visits[gym.id]
+                GymManageRow(
+                    gym = gym,
+                    caption = gymVisitCaption(visit),
+                    onClick = { editing = gym },
+                    trailing = {
+                        ReorderRow(
+                            title = gym.name,
+                            occurrenceId = gym.id,
+                            index = index,
+                            lastIndex = active.lastIndex,
+                            onMove = { id, delta -> viewModel.move(activeIds, id, delta) },
+                        )
+                    },
+                )
+                if (index < active.lastIndex) HairlineDivider()
             }
         }
-        item("add") {
-            SecondaryGymButton(
-                text = stringResource(R.string.gym_settings_add),
-                onClick = { adding = true },
-                modifier = Modifier.testTag(GymSettingsTags.SETTINGS_ADD),
-            )
-        }
+        SecondaryGymButton(
+            text = stringResource(R.string.gym_settings_add),
+            onClick = { adding = true },
+            modifier = Modifier.testTag(GymSettingsTags.SETTINGS_ADD),
+        )
         if (state.unassignedSessions > 0) {
-            item("unassigned-kicker") {
-                Kicker(text = stringResource(R.string.gym_settings_before_gyms))
-            }
-            item("unassigned") {
-                GroupedList {
-                    InstrumentRow(
-                        title = stringResource(R.string.gym_unassigned_label),
-                        subtitle = stringResource(R.string.gym_unassigned_caption) +
-                            " · ${state.unassignedSessions} workouts",
-                        onClick = { showUnassignedInfo = true },
-                        modifier = Modifier.testTag(GymSettingsTags.SETTINGS_UNASSIGNED),
-                        leading = {
-                            GymBadge(
-                                badge = GymCopy.UNASSIGNED_TAG,
-                                size = GymBadgeSize.Large,
-                                visual = GymBadgeVisual.Unassigned,
-                            )
-                        },
-                        trailing = { Text("›", style = InstrumentType.body, color = TextSecondary) },
-                    )
-                }
+            Kicker(text = stringResource(R.string.gym_settings_before_gyms))
+            GroupedList {
+                InstrumentRow(
+                    title = stringResource(R.string.gym_unassigned_label),
+                    subtitle = stringResource(R.string.gym_unassigned_caption) +
+                        " · ${state.unassignedSessions} workouts",
+                    onClick = { showUnassignedInfo = true },
+                    modifier = Modifier.testTag(GymSettingsTags.SETTINGS_UNASSIGNED),
+                    leading = {
+                        GymBadge(
+                            badge = GymCopy.UNASSIGNED_TAG,
+                            size = GymBadgeSize.Large,
+                            visual = GymBadgeVisual.Unassigned,
+                        )
+                    },
+                    trailing = { Text("›", style = InstrumentType.body, color = TextSecondary) },
+                )
             }
         }
         if (archived.isNotEmpty()) {
-            item("archived-kicker") {
-                Kicker(
-                    text = stringResource(R.string.gym_settings_archived_kicker),
-                    modifier = Modifier.testTag(GymSettingsTags.SETTINGS_ARCHIVED_KICKER),
-                )
-            }
-            item("archived-list") {
-                GroupedList {
-                    archived.forEachIndexed { index, gym ->
-                        val visit = state.visits[gym.id]
-                        GymManageRow(
-                            gym = gym,
-                            caption = "Archived · ${visit?.sessions ?: 0} workouts",
-                            onClick = { editing = gym },
-                            archived = true,
-                            modifier = Modifier.testTag(GymSettingsTags.settingsArchivedRow(gym.id)),
-                        )
-                        if (index < archived.lastIndex) HairlineDivider()
-                    }
+            Kicker(
+                text = stringResource(R.string.gym_settings_archived_kicker),
+                modifier = Modifier.testTag(GymSettingsTags.SETTINGS_ARCHIVED_KICKER),
+            )
+            GroupedList {
+                archived.forEachIndexed { index, gym ->
+                    val visit = state.visits[gym.id]
+                    GymManageRow(
+                        gym = gym,
+                        caption = "Archived · ${visit?.sessions ?: 0} workouts",
+                        onClick = { editing = gym },
+                        archived = true,
+                        modifier = Modifier.testTag(GymSettingsTags.settingsArchivedRow(gym.id)),
+                    )
+                    if (index < archived.lastIndex) HairlineDivider()
                 }
             }
         }
