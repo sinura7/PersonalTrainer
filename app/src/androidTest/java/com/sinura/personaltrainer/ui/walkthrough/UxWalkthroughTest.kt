@@ -857,7 +857,7 @@ class UxWalkthroughTest {
         }
         val majorMacInSheet = hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-major-mackenzie")) and
             hasAnyAncestor(hasTestTag("gym-pick-sheet"))
-        compose.onNode(majorMacInSheet, useUnmergedTree = true).performScrollTo().performClick()
+        compose.onNode(majorMacInSheet, useUnmergedTree = true).performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.ROOT)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -865,7 +865,7 @@ class UxWalkthroughTest {
         compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.CHIP).performClick()
         val westonInSheet = hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston")) and
             hasAnyAncestor(hasTestTag("gym-pick-sheet"))
-        compose.onNode(westonInSheet, useUnmergedTree = true).performScrollTo().performClick()
+        compose.onNode(westonInSheet, useUnmergedTree = true).performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }

@@ -143,6 +143,7 @@ class StartOptionsRoutineCardRenderTest {
         }
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { compose.isDisplayed(hasText(ROUTINE)) }
         compose.waitForIdle()
+        compose.runOnIdle { gate.setChooserGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON) }
         StartChooserTestKit.pickWestonIfShown(compose)
         compose.waitForIdle()
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {

@@ -908,6 +908,7 @@ class HomeStartAdmissionRenderTest {
     private fun previewBegin(routineId: String): () -> Boolean {
         reachable(compose.onNodeWithTag(StartTags.routine(routineId))).performClick()
         compose.waitForIdle()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val node = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsEnabled().fetchSemanticsNode()
         return node.config[SemanticsActions.OnClick].action!!
     }

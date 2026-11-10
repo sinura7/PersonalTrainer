@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.ui.start.startGateFor
 import com.sinura.personaltrainer.ui.start.StartTags
 import com.sinura.personaltrainer.ui.start.StartChooserHost
 import com.sinura.personaltrainer.ui.start.StartChooserTestKit
+import com.sinura.personaltrainer.testutil.TestGymIds
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -250,6 +251,7 @@ class StartOptionsSheetMixedRowTest {
 
     private fun openOther() {
         compose.waitForIdle()
+        compose.runOnIdle { gate.setChooserGym(TestGymIds.WESTON) }
         StartChooserTestKit.pickWestonIfShown(compose)
         compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
         compose.waitForIdle()
