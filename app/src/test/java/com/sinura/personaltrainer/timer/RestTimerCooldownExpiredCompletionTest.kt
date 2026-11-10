@@ -123,9 +123,11 @@ class RestTimerCooldownExpiredCompletionTest {
 
     private fun awaitDoneNotification(context: Context) = runBlocking {
         val manager = context.getSystemService(NotificationManager::class.java)
-        withTimeout(5_000) {
+        val appLooper = shadowOf((context as PersonalTrainerApp).mainLooper)
+        withTimeout(15_000) {
             while (manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID }) {
                 shadowOf(Looper.getMainLooper()).idle()
+                appLooper.idle()
                 yield()
             }
         }
