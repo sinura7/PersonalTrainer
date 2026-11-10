@@ -32,6 +32,7 @@ import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.navigation.Route
 import com.sinura.personaltrainer.ui.summary.SummaryTags
 import com.sinura.personaltrainer.testutil.GymStartTestKit
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
 import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.runBlocking
@@ -160,7 +161,10 @@ class ReminderStartOverAScreenTest {
     private fun finishAWorkoutFromTheBar() {
         runBlocking {
             val container = app.container
-            val session = (container.workoutRepository.startFreeWorkoutSafely("Legs") as StartSessionOutcome.Started).session
+            val session = (
+                container.workoutRepository.startFreeWorkoutSafely("Legs", gymId = TestGymIds.WESTON)
+                    as StartSessionOutcome.Started
+            ).session
             val lift = container.exerciseRepository.createCustom(name = "Probe squat", muscleGroup = "Quads")
             container.workoutRepository.logSet(
                 sessionId = session.id,
