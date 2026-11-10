@@ -1117,7 +1117,7 @@ class UxWalkthroughTest {
             }
             if (compose.onAllNodesWithTag(WorkoutTestTags.LIFT_TRANSITION).fetchSemanticsNodes().isNotEmpty()) {
                 shot("strength-between-lifts")
-                compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).performClick()
+                compose.onNode(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).performClick()
             }
         } else if (compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
