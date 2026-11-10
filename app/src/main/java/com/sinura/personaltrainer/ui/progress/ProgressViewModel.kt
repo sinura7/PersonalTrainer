@@ -17,10 +17,14 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.Gym
+import com.sinura.personaltrainer.domain.GymFilter
+import com.sinura.personaltrainer.data.repository.GymFilters
 import com.sinura.personaltrainer.domain.RecordsCalculator
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import com.sinura.personaltrainer.data.repository.observeHealth
 import com.sinura.personaltrainer.domain.DataHealth
@@ -120,6 +124,14 @@ class ProgressViewModel @JvmOverloads constructor(
     /** Civil today for the 8 week window. The screen feeds LocalTodayEpochDay so midnight moves it. */
     private val trendsToday = MutableStateFlow(todayEpochDay())
     private val trendsRetry = MutableStateFlow(0)
+    private val gymFilter = MutableStateFlow<GymFilter>(GymFilter.All)
+    val gymFilterState: StateFlow<GymFilter> = gymFilter.asStateFlow()
+    val activeGyms: StateFlow<List<Gym>> = container.gymRepository.observeActiveGyms()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun setGymFilter(filter: GymFilter) {
+        gymFilter.value = filter
+    }
 
     /** The last volume that was read, kept so a later failed read shows it as stale. */
     @Volatile private var lastVolume: List<MuscleWeeks>? = null
@@ -176,24 +188,29 @@ class ProgressViewModel @JvmOverloads constructor(
      * Records are the union of workout and activity sets, like History's.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val trends: StateFlow<BodyTrends> = combine(trendsToday, trendsRetry) { today, _ -> today }
-        .flatMapLatest { today ->
+    val trends: StateFlow<BodyTrends> = combine(trendsToday, trendsRetry, gymFilter) { today, _, filter -> today to filter }
+        .flatMapLatest { (today, filter) ->
             val first = BodyTrendsMath.firstWeekStart(today)
             val records = combine(
                 container.workoutRepository.observeRecordSetsHealth(),
                 container.activityRepository.observeRecordSetsHealth(),
-            ) { workouts, activities ->
-                RecordsCalculator.standing(
+                gymFilter,
+            ) { workouts, activities, scoped ->
+                val sets = GymFilters.recordSets(
                     workouts.presentValue().orEmpty() + activities.presentValue().orEmpty(),
-                    limit = Int.MAX_VALUE,
-                ) to cardRead(workouts, activities)
+                    scoped,
+                )
+                RecordsCalculator.standing(sets, limit = Int.MAX_VALUE) to cardRead(workouts, activities)
             }
             val bodyweight = container.preferencesRepository.bodyweightLog.observeHealth("the bodyweight log")
             val volume = combine(
                 container.workoutRepository.observeFinishedWorkRevisionHealth(),
                 container.exerciseRepository.observeAllHealth(),
-            ) { revision, catalog -> revision to catalog }
-                .mapLatest { (revision, catalog) -> readVolume(first, revision, catalog) }
+                gymFilter,
+            ) { revision, catalog, scoped -> Triple(revision, catalog, scoped) }
+                .mapLatest { (revision, catalog, scoped) ->
+                    readVolume(first, revision, catalog, scoped)
+                }
             combine(records, bodyweight, volume) { (recordRows, recordsRead), weights, (weeks, volumeRead) ->
                 BodyTrends(
                     bodyweight = weights.presentValue().orEmpty(),
@@ -212,12 +229,16 @@ class ProgressViewModel @JvmOverloads constructor(
         first: Long,
         revision: DataHealth<*>,
         catalog: DataHealth<List<Exercise>>,
+        filter: GymFilter,
     ): Pair<List<MuscleWeeks>, CardRead> {
         val lifts = catalog.presentValue()
         val failedSource = revision.isUnavailable || lifts == null
         if (!failedSource) {
             val sinceMs = time.startOfDayMillis(CivilDate.fromEpochDay(first), time.defaultZoneId())
-            val rows = runCatchingCancellable { container.workoutRepository.workingSetCountsSince(sinceMs) }
+            val rows = runCatchingCancellable {
+                val raw = container.workoutRepository.workingSetCountsSince(sinceMs)
+                GymFilters.workingSetCounts(raw, filter)
+            }
             rows.getOrNull()?.let { read ->
                 val weeks = BodyTrendsMath.weeklySets(read, lifts.orEmpty(), first) { ms ->
                     time.capture(ms, time.defaultZoneId()).localEpochDay

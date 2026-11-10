@@ -319,4 +319,42 @@
     <string name="body_record_line">%1$s %2$s × %3$d · %4$s · %5$s</string>
     <string name="body_volume_spoken">%1$s working sets. This week: %2$d. Last 8 weeks: %3$d.</string>
     <string name="history_records_on_body">See records on Body</string>
+    <!-- Gym profiles (packet G2 shared + G3) -->
+    <string name="gym_change">Change</string>
+    <string name="gym_pick_gym">Pick gym</string>
+    <string name="gym_picker_retry">Try again</string>
+    <string name="gym_unassigned_label">Unassigned</string>
+    <string name="gym_unassigned_caption">Machine history from before gyms</string>
+    <string name="gym_archived_suffix"> · archived</string>
+    <string name="gym_filter_all">All</string>
+    <string name="gym_new_here_lead">New here</string>
+    <string name="gym_new_here_short">New here</string>
+    <string name="gym_new_here_body">No %1$s history at %2$s yet.</string>
+    <string name="gym_new_here_no_history">No history for this machine yet.</string>
+    <string name="gym_composer_field">Gym</string>
+    <!-- Gym profiles (packet G3 settings) -->
+    <string name="gym_settings_title">Gyms</string>
+    <string name="gym_settings_caption">Each start asks which gym. Machines keep separate numbers per gym.</string>
+    <string name="gym_settings_reorder_kicker">Your gyms · drag to reorder</string>
+    <string name="gym_settings_add">Add gym</string>
+    <string name="gym_settings_before_gyms">Before gyms</string>
+    <string name="gym_settings_archived_kicker">Archived</string>
+    <string name="gym_edit_name">Name</string>
+    <string name="gym_edit_short">Short name</string>
+    <string name="gym_edit_badge">Badge</string>
+    <string name="gym_edit_save">Save</string>
+    <string name="gym_edit_archive">Archive gym</string>
+    <string name="gym_edit_restore">Restore gym</string>
+    <string name="gym_edit_name_required">Name is required</string>
+    <string name="gym_edit_name_taken">Another gym is called that</string>
+    <string name="gym_edit_badge_taken">Another gym uses that badge</string>
+    <string name="gym_edit_badge_invalid">Badge needs two letters or digits</string>
+    <string name="gym_archive_confirm">Archive %1$s? Its history stays. It leaves the start list.</string>
+    <string name="gym_archive_last">Keep at least one gym.</string>
+    <string name="gym_archive_live">Finish or move the live workout first.</string>
+    <string name="gym_records_filter_caption">Free weight records count every gym. Machine records count this gym only.</string>
+    <string name="gym_equipment_shared_caption">Free weights share history at every gym.</string>
+    <string name="gym_equipment_per_gym_caption">Machines keep separate numbers at each gym.</string>
+    <string name="gym_unassigned_info">Old sessions without a gym. Open one in History and use Change gym to sort it.</string>
+    <string name="gym_session_gym_caption">Changing the gym moves every machine set in this session. PRs recount on their own.</string>
 </resources>

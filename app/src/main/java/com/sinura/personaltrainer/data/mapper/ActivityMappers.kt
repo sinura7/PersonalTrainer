@@ -419,4 +419,5 @@ fun ActivitySummaryRow.toSummary(
     cardioDistanceMeters = cardioDistanceMeters?.takeIf { it > 0.0 },
     kind = HistoryKind.ACTIVITY,
     stills = stills,
+    gymId = gymId,
 )

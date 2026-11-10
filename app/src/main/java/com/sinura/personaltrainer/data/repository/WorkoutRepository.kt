@@ -1718,6 +1718,7 @@ class WorkoutRepository(
         volumeKg = volumeKg,
         localEpochDay = com.sinura.personaltrainer.util.JvmTime.civilDate(date).epochDay,
         stills = stills,
+        gymId = gymId,
     )
 
     private fun ExerciseRecordPriorsRow.toPriors(): PersonalRecords.RecordPriors =

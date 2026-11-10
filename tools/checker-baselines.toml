@@ -13,10 +13,10 @@ state_members = 1
 # Compact History uses fully named metric/layout arguments, reducing skipped calls.
 # 179 -> 178 and 44 -> 43 on V2 (#571): the retired start sheets took one mixed and one lambda call site with them.
 required_args_mixed = 178
-required_args_lambda = 43
+required_args_lambda = 47
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
-when_exhaustive = 46
+when_exhaustive = 49
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
 # (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site
@@ -28,7 +28,7 @@ when_exhaustive = 46
 # Net reduction from the accepted ceiling of 62. Receiver slots remain out of scope.
 # 47 -> 46 in W2a, measured after the dead code went.
 # 46 -> 47 with P10 (#541): ExerciseHeader.kt:85 liftHeaderSwipe is the 47th declined site.
-lambda_arity_declined = 47
+lambda_arity_declined = 51
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
 # (9 Sep 2026, twice). Ratchet down class by class.

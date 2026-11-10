@@ -66,6 +66,7 @@ data class SessionDetailUiState(
     val notes: String = "",
     val notesSave: NotesSaveState = NotesSaveState(),
     val notesExiting: Boolean = false,
+    val pendingGymId: String? = null,
 )
 
 /**
@@ -245,8 +246,13 @@ class SessionDetailViewModel internal constructor(
     private val notesExiting = combine(notesExitPending, _notesExitRequested, _navigateToSession) { pending, back, target ->
         pending || back || target != null
     }
+    private val pendingGymId = MutableStateFlow<String?>(null)
 
-    val uiState: StateFlow<SessionDetailUiState> = combine(load, sessionNotes.text, sessionNotes.saveState, notesExiting) { load, typed, save, exiting ->
+    val gyms: StateFlow<List<com.sinura.personaltrainer.domain.Gym>> =
+        container.gymRepository.observeGyms()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val uiState: StateFlow<SessionDetailUiState> = combine(load, sessionNotes.text, sessionNotes.saveState, notesExiting, pendingGymId) { load, typed, save, exiting, pendingGym ->
         SessionDetailUiState(
             isLoading = load.isLoading,
             missing = load.missing,
@@ -255,6 +261,7 @@ class SessionDetailViewModel internal constructor(
             notes = typed,
             notesSave = save,
             notesExiting = exiting,
+            pendingGymId = pendingGym,
         )
     }.combine(container.workoutDraftCache.finishing) { state, finishing ->
         state.copy(notesExiting = state.notesExiting || sessionId in finishing)
@@ -636,6 +643,29 @@ class SessionDetailViewModel internal constructor(
     }
 
     /** Done, leaving the screen (ON_STOP) or a restore after process death writes every pending nudge at once. */
+    fun pickGym(gymId: String?) {
+        pendingGymId.value = gymId
+    }
+
+    fun commitPendingGym() {
+        val session = uiState.value.session ?: return
+        val target = pendingGymId.value ?: return
+        if (target == session.gymId) {
+            pendingGymId.value = null
+            return
+        }
+        viewModelScope.launch {
+            runCatchingCancellable {
+                container.workoutRepository.moveSessionToGym(session.id, target)
+            }.onSuccess {
+                pendingGymId.value = null
+                markSummaryChanged()
+            }.onFailure {
+                report(it, "Could not change the gym. Try again.")
+            }
+        }
+    }
+
     internal fun flushInlineEdits() {
         inlineJobs.values.forEach { it.cancel() }
         inlineJobs.clear()

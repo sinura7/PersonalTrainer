@@ -7,6 +7,7 @@ package com.sinura.personaltrainer.domain
  * glance needs: the current choice, not the whole form.
  */
 object SettingsHomeCopy {
+    const val GYMS = "Gyms"
     const val DISPLAY = "Display"
     const val REMINDERS = "Reminders"
     const val GENERATOR = "Week generator"
@@ -42,6 +43,10 @@ object SettingsHomeCopy {
         syncPaused -> ACCOUNT_SIGNED_IN_PAUSED
         else -> ACCOUNT_SIGNED_IN
     }
+
+    fun gymsSummary(activeCount: Int): String =
+        if (activeCount == 1) "1 gym · each start asks which"
+        else "$activeCount gyms · each start asks which"
 
     fun displaySummary(
         unit: WeightUnit,

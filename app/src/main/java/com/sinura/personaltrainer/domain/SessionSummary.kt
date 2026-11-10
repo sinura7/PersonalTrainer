@@ -22,6 +22,7 @@ data class SessionSummary(
     val cardioDistanceMeters: Double? = null,
     val kind: HistoryKind = HistoryKind.WORKOUT,
     val stills: List<Exercise> = emptyList(),
+    val gymId: String? = null,
 )
 
 fun WorkoutSession.toSummary(
@@ -38,6 +39,7 @@ fun WorkoutSession.toSummary(
     volumeKg = work().volumeKg,
     localEpochDay = performedEpochDay(time, zoneId),
     stills = HistoryCardCopy.stills(exercises.map { it.exercise }),
+    gymId = gymId,
 )
 
 fun ActivitySession.toSummary(): SessionSummary = SessionSummary(
@@ -55,6 +57,7 @@ fun ActivitySession.toSummary(): SessionSummary = SessionSummary(
         .takeIf { it > 0.0 },
     kind = HistoryKind.ACTIVITY,
     stills = HistoryCardCopy.stillsFromBlocks(blocks),
+    gymId = gymId,
 )
 
 /** Newest finished session, including ones older than the heat window. */
@@ -127,6 +130,7 @@ fun SessionSummary.toHistoryEntry(): HistoryEntry = HistoryEntry(
     work = SetWork(volumeKg = volumeKg, bodyweightReps = 0),
     durationMinutes = durationMinutes,
     stills = stills,
+    gymId = gymId,
 )
 
 /** Lightweight stub so week derivation can match routine/focus without sets. */

@@ -190,6 +190,14 @@ class SettingsViewModel @JvmOverloads constructor(
         initialValue = SettingsUiState(),
     )
 
+    val activeGymCount: StateFlow<Int> = container.gymRepository.observeGyms()
+        .map { gyms -> gyms.count { !it.archived } }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = 0,
+        )
+
     val launchPermissionsAsked: StateFlow<Boolean> =
         container.preferencesRepository.launchPermissionsAsked.stateIn(
             scope = viewModelScope,

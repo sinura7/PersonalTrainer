@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.domain.HistoryPeriodSelection
 import com.sinura.personaltrainer.domain.HorizonMath
 import com.sinura.personaltrainer.domain.HorizonProgress
 import com.sinura.personaltrainer.domain.HorizonTotals
+import com.sinura.personaltrainer.domain.Gym
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -165,6 +166,10 @@ class HistoryViewModel internal constructor(
 
     private val errors = ErrorSlot()
     val error: StateFlow<String?> = errors.messages
+
+    val gymsById: StateFlow<Map<String, Gym>> = container.gymRepository.observeGyms()
+        .map { gyms -> gyms.associateBy { it.id } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
     private val repeating = AtomicBoolean(false)
 
     private val historyRetry = MutableStateFlow(0)

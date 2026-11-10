@@ -1,5 +1,12 @@
 # Start here
 
+## Gym profiles (G1–G3)
+
+G1 (schema 8, backup v6, scoped history), G2 (start pick and switch — separate branch), and G3
+(settings gyms, history tags, session gym change, Body and exercise filters) are implemented on
+`cursor/g3-gyms-everywhere-b5dd`. Gym and session `gymId` sync to Supabase remain deferred. Next
+program item after gyms: visual refresh (separate blueprint).
+
 **In plain terms:** Temper works offline on the phone. Its optional cloud sync
 (Temper Account) is switched off until it is made safe. The work under way is
 the 22 September whole-app audit, done in small packets, each one tested and

@@ -59,6 +59,8 @@ fun standingRecords(
                 valueKg = best.weightKg,
                 reps = best.reps,
                 achievedAt = best.achievedAt,
+                recordBucket = key.bucket,
+                gymId = key.bucket?.takeUnless { it == GymScope.RECORD_BUCKET_SHARED },
             )
         }
         .sortedWith(compareByDescending<PrSummaryRow> { it.achievedAt }.thenBy { it.exerciseName })

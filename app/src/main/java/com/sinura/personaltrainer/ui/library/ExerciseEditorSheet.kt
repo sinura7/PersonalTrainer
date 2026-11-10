@@ -20,7 +20,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.GymScope
 import com.sinura.personaltrainer.domain.MuscleGroups
+import com.sinura.personaltrainer.ui.components.EquipmentChipRow
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.LoadTypeChipRow
@@ -29,6 +33,7 @@ import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
 
 /**
  * One way to classify a lift, not two.
@@ -125,8 +130,34 @@ fun ExerciseEditorSheet(
             }
             LoadTypeChipRow(
                 selected = draft.loadType,
-                onSelect = { onDraftChange(draft.copy(loadType = it)) },
+                onSelect = { type ->
+                    onDraftChange(
+                        draft.copy(
+                            loadType = type,
+                            equipment = type.kitFor(draft.equipment),
+                        ),
+                    )
+                },
             )
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                Kicker("Equipment")
+                EquipmentChipRow(
+                    selected = draft.equipment,
+                    onSelect = { onDraftChange(draft.copy(equipment = it)) },
+                )
+                val gymSpecific = GymScope.isGymSpecific(draft.equipment)
+                Text(
+                    stringResource(
+                        if (gymSpecific) {
+                            R.string.gym_equipment_per_gym_caption
+                        } else {
+                            R.string.gym_equipment_shared_caption
+                        },
+                    ),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+            }
             OutlinedTextField(
                 value = draft.notes,
                 onValueChange = { onDraftChange(draft.copy(notes = it)) },

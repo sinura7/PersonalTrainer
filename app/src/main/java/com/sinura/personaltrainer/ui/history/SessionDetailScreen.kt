@@ -65,7 +65,17 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.GymBadge
+import com.sinura.personaltrainer.ui.components.GymBadgeSize
+import com.sinura.personaltrainer.ui.components.GymBadgeVisual
+import com.sinura.personaltrainer.ui.components.GymPickerList
+import com.sinura.personaltrainer.ui.components.GymTag
+import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.NotesLeaveDialog
 import com.sinura.personaltrainer.ui.components.NotesSaveState
@@ -104,6 +114,8 @@ object SessionDetailTestTags {
     fun sessionSetRepsDown(setId: String) = "session-detail-set-reps-down-$setId"
     fun sessionSetRepsUp(setId: String) = "session-detail-set-reps-up-$setId"
     fun liftCard(exerciseId: String) = "session-detail-lift-$exerciseId"
+    const val GYM_ROW = "session-detail-gym"
+    const val GYM_CHANGE = "session-detail-gym-change"
 }
 
 internal fun sessionDeleteTitle(routineName: String?): String =
@@ -123,6 +135,7 @@ internal fun sessionDeleteTitle(routineName: String?): String =
  * the session's own window; the duration is never recomputed. A repair fixes
  * what was recorded, never when it happened.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SessionDetailScreen(
     onBack: () -> Unit,
@@ -166,6 +179,8 @@ fun SessionDetailScreen(
     var editingSetId by rememberSaveable { mutableStateOf<String?>(null) }
     // v4 V5 (3.5): editing is explicit. Saved across process death; read mode by default.
     var editMode by rememberSaveable { mutableStateOf(false) }
+    var gymPickerOpen by rememberSaveable { mutableStateOf(false) }
+    val gyms by viewModel.gyms.collectAsStateWithLifecycle()
     var addingToExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
     var addingSessionId by rememberSaveable { mutableStateOf<String?>(null) }
     val addDrafts = rememberSaveableStateHolder()
@@ -248,7 +263,10 @@ fun SessionDetailScreen(
                     if (session != null && session.isFinished) {
                         TextButton(
                             onClick = {
-                                if (editMode) viewModel.flushInlineEdits()
+                                if (editMode) {
+                                    viewModel.flushInlineEdits()
+                                    viewModel.commitPendingGym()
+                                }
                                 editMode = !editMode
                             },
                             modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(
@@ -362,6 +380,48 @@ fun SessionDetailScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
                     ) {
+                        item(key = "gym") {
+                            val effectiveId = state.pendingGymId ?: session.gymId
+                            val gym = gyms.firstOrNull { it.id == effectiveId }
+                            if (editMode) {
+                                GroupedList {
+                                    InstrumentRow(
+                                        title = stringResource(R.string.gym_composer_field),
+                                        subtitle = stringResource(R.string.gym_session_gym_caption),
+                                        onClick = { gymPickerOpen = true },
+                                        modifier = Modifier.testTag(SessionDetailTestTags.GYM_ROW),
+                                        leading = {
+                                            GymBadge(
+                                                badge = gym?.badge ?: com.sinura.personaltrainer.domain.GymCopy.UNASSIGNED_TAG,
+                                                size = GymBadgeSize.Large,
+                                                visual = if (gym == null) GymBadgeVisual.Unassigned else GymBadgeVisual.Normal,
+                                            )
+                                        },
+                                        trailing = {
+                                            TextButton(
+                                                onClick = { gymPickerOpen = true },
+                                                modifier = Modifier.testTag(SessionDetailTestTags.GYM_CHANGE),
+                                            ) {
+                                                Text(stringResource(R.string.gym_change), color = TextSecondary)
+                                            }
+                                        },
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    GymTag(gym = gym)
+                                    Text(
+                                        gym?.name ?: stringResource(R.string.gym_unassigned_label),
+                                        style = InstrumentType.body,
+                                        color = TextSecondary,
+                                    )
+                                }
+                            }
+                        }
                         item {
                             SessionReceipt(
                                 dateLabel = DateCopy.dateTime(session.date, clock),
@@ -654,6 +714,30 @@ fun SessionDetailScreen(
                 else viewModel.closeHistoricalEditor { editingSetId = null; discardAddDraft() }
             },
         )
+    }
+
+    if (gymPickerOpen && session != null) {
+        val visits = emptyMap<String?, com.sinura.personaltrainer.domain.GymVisit>()
+        val pickerState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val effectiveId = state.pendingGymId ?: session.gymId
+        ModalBottomSheet(onDismissRequest = { gymPickerOpen = false }, sheetState = pickerState) {
+            GymPickerList(
+                gyms = gyms.filterNot { it.archived },
+                visits = visits,
+                selectedId = effectiveId,
+                onPick = { picked ->
+                    val id = if (picked == com.sinura.personaltrainer.ui.components.GymTags.UNASSIGNED_PICK) {
+                        null
+                    } else {
+                        picked
+                    }
+                    viewModel.pickGym(id)
+                    gymPickerOpen = false
+                },
+                includeUnassigned = true,
+                modifier = Modifier.padding(bottom = Metrics.space8),
+            )
+        }
     }
 
     if (confirmDelete && session != null) {

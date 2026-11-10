@@ -539,6 +539,8 @@ fun SessionLogRow(
     stills: List<Exercise> = emptyList(),
     reflowContent: Boolean = false,
     durationLabel: String? = null,
+    gym: com.sinura.personaltrainer.domain.Gym? = null,
+    showGymTag: Boolean = false,
 ) {
     var menuOpen by rememberSaveable(title, dateLabel) { mutableStateOf(false) }
     val hasWorkMeasures = work.volumeKg > 0.0 || work.bodyweightReps > 0
@@ -628,6 +630,15 @@ fun SessionLogRow(
                     }
                 }
             }
+        }
+        if (showGymTag) {
+            GymTag(
+                gym = gym,
+                modifier = Modifier.padding(
+                    start = if (reflowContent) 0.dp else Metrics.space4,
+                    end = if (reflowContent) 0.dp else Metrics.space4,
+                ),
+            )
         }
         if (reflowContent) {
             val column = SetCopy.workColumn(work, unit)

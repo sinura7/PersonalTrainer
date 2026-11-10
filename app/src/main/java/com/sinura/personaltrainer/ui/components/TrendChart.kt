@@ -61,6 +61,23 @@ import com.sinura.personaltrainer.ui.theme.Volt
  * incapable of showing that you were.
  */
 
+/** Marker shape for a [TrendSeries] point when several gyms share one chart. */
+enum class TrendPointShape {
+    Circle,
+    Square,
+    Triangle,
+    Diamond,
+    Ring,
+}
+
+/** One gym's line on a shared plot; spacing is per-series session order. */
+data class TrendSeries(
+    val values: List<Double>,
+    val pointShape: TrendPointShape = TrendPointShape.Circle,
+)
+
+private val SERIES_STROKES = listOf(ChartNow, Volt, PrGold, TextSecondary, ChartPast)
+
 /** A trend of additive quantities. Zero is a real floor here, so bars start from it. */
 @Composable
 fun TrendBars(
@@ -136,10 +153,13 @@ fun LineTrend(
     contentDescription: String? = null,
     progress: Float = 1f,
     prValue: Double? = null,
+    series: List<TrendSeries>? = null,
 ) {
-    if (values.isEmpty()) return
-    val seriesMin = values.min()
-    val seriesMax = values.max()
+    val plotted = series?.takeIf { it.size > 1 } ?: listOf(TrendSeries(values))
+    if (plotted.all { it.values.isEmpty() }) return
+    val allValues = plotted.flatMap { it.values }
+    val seriesMin = allValues.min()
+    val seriesMax = allValues.max()
     val min = minOf(seriesMin, prValue ?: seriesMin)
     val max = maxOf(seriesMax, prValue ?: seriesMax)
     // A flat series still needs a domain with width, or every point lands on one pixel.
@@ -164,16 +184,18 @@ fun LineTrend(
         clipRect(right = size.width * progress.coerceIn(0f, 1f)) {
             val inset = DOT_RADIUS_PX * 2f
             val usableHeight = size.height - inset * 2f
-            val step = if (values.size > 1) size.width / (values.size - 1) else 0f
 
             fun yFor(value: Double): Float {
                 val fraction = ((value - low) / range).toFloat().coerceIn(0f, 1f)
                 return inset + usableHeight * (1f - fraction)
             }
 
-            fun pointAt(index: Int): Offset {
-                val x = if (values.size > 1) step * index else size.width / 2f
-                return Offset(x, yFor(values[index]))
+            fun pointsFor(lineValues: List<Double>): List<Offset> {
+                val step = if (lineValues.size > 1) size.width / (lineValues.size - 1) else 0f
+                return lineValues.indices.map { index ->
+                    val x = if (lineValues.size > 1) step * index else size.width / 2f
+                    Offset(x, yFor(lineValues[index]))
+                }
             }
 
             prValue?.let { mark ->
@@ -187,40 +209,61 @@ fun LineTrend(
                 )
             }
 
-            val points = values.indices.map(::pointAt)
-
-            // Area under the line, fading out downward: it gives the stroke a body without
-            // implying the area itself is the quantity.
-            if (points.size > 1) {
-                val area = Path().apply {
-                    moveTo(points.first().x, size.height)
-                    points.forEach { lineTo(it.x, it.y) }
-                    lineTo(points.last().x, size.height)
-                    close()
+            plotted.forEachIndexed { seriesIndex, line ->
+                val lineValues = line.values
+                if (lineValues.isEmpty()) return@forEachIndexed
+                val strokeColor = SERIES_STROKES[seriesIndex % SERIES_STROKES.size]
+                val points = pointsFor(lineValues)
+                if (points.size > 1) {
+                    val linePath = Path().apply {
+                        moveTo(points.first().x, points.first().y)
+                        points.drop(1).forEach { lineTo(it.x, it.y) }
+                    }
+                    drawPath(
+                        path = linePath,
+                        color = strokeColor,
+                        style = Stroke(width = LINE_WIDTH_PX, cap = StrokeCap.Round),
+                    )
                 }
-                drawPath(
-                    path = area,
-                    brush = Brush.verticalGradient(
-                        listOf(ChartNow.copy(alpha = AREA_ALPHA), Color.Transparent),
-                    ),
-                )
-
-                val line = Path().apply {
-                    moveTo(points.first().x, points.first().y)
-                    points.drop(1).forEach { lineTo(it.x, it.y) }
-                }
-                drawPath(
-                    path = line,
-                    brush = Brush.horizontalGradient(listOf(ChartPast, ChartNow)),
-                    style = Stroke(width = LINE_WIDTH_PX, cap = StrokeCap.Round),
-                )
+                val mark = points.lastOrNull() ?: return@forEachIndexed
+                drawTrendPoint(strokeColor, mark, line.pointShape)
             }
+        }
+    }
+}
 
-            // Only the latest point is marked. Dotting every point turns a trend into a
-            // scatter and hides which one is now.
-            points.lastOrNull()?.let { last ->
-                drawCircle(color = ChartNow, radius = DOT_RADIUS_PX, center = last)
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTrendPoint(
+    color: Color,
+    center: Offset,
+    shape: TrendPointShape,
+) {
+    when (shape) {
+        TrendPointShape.Circle -> drawCircle(color = color, radius = DOT_RADIUS_PX, center = center)
+        TrendPointShape.Square -> {
+            val half = DOT_RADIUS_PX
+            drawRect(color = color, topLeft = Offset(center.x - half, center.y - half), size = Size(half * 2f, half * 2f))
+        }
+        TrendPointShape.Triangle -> {
+            val path = Path().apply {
+                moveTo(center.x, center.y - DOT_RADIUS_PX)
+                lineTo(center.x + DOT_RADIUS_PX, center.y + DOT_RADIUS_PX)
+                lineTo(center.x - DOT_RADIUS_PX, center.y + DOT_RADIUS_PX)
+                close()
             }
+            drawPath(path, color)
+        }
+        TrendPointShape.Diamond -> {
+            val path = Path().apply {
+                moveTo(center.x, center.y - DOT_RADIUS_PX)
+                lineTo(center.x + DOT_RADIUS_PX, center.y)
+                lineTo(center.x, center.y + DOT_RADIUS_PX)
+                lineTo(center.x - DOT_RADIUS_PX, center.y)
+                close()
+            }
+            drawPath(path, color)
+        }
+        TrendPointShape.Ring -> {
+            drawCircle(color = color, radius = DOT_RADIUS_PX, center = center, style = Stroke(width = 3f))
         }
     }
 }
@@ -248,6 +291,7 @@ fun LabelledTrend(
     line: Boolean = false,
     contentDescription: String? = null,
     prValue: Double? = null,
+    series: List<TrendSeries>? = null,
 ) {
     val reduced = LocalReducedMotion.current
     val progress = remember { Animatable(if (reduced) 1f else 0f) }
@@ -302,6 +346,7 @@ fun LabelledTrend(
                 contentDescription = contentDescription,
                 progress = progress.value,
                 prValue = prValue,
+                series = series,
             )
         } else {
             TrendBars(

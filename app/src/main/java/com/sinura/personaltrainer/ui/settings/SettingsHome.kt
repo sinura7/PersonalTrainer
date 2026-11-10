@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 @Composable
 internal fun SettingsHome(
+    gymsSummary: String,
     displaySummary: String,
     remindersSummary: String,
     generatorSummary: String,
@@ -64,6 +65,14 @@ internal fun SettingsHome(
         }
         item(key = "training") {
             GroupedList {
+                SettingsIndexRow(
+                    title = SettingsHomeCopy.GYMS,
+                    subtitle = gymsSummary,
+                    icon = TemperIcons.Generator,
+                    tag = SettingsTags.ROW_GYMS,
+                    onClick = { onOpen(SettingsPage.GYMS) },
+                )
+                IndexHairline()
                 SettingsIndexRow(
                     title = SettingsHomeCopy.DISPLAY,
                     subtitle = displaySummary,

@@ -184,7 +184,8 @@ internal class CustomExerciseDrafts(
         val name = fields.name.trim().also { require(it.isNotBlank()) }
         val id = fields.editId ?: fields.createId
         val before = fields.before
-        val equipment = before?.row?.equipment?.let { fields.loadType.kitFor(EquipmentType.fromStorage(it)) }
+        val equipment = fields.equipment
+            ?: before?.row?.equipment?.let { fields.loadType.kitFor(EquipmentType.fromStorage(it)) }
             ?: fields.loadType.defaultEquipment
         val row = before?.row?.copy(
             name = name, muscleGroup = group, notes = fields.notes.trim(),
