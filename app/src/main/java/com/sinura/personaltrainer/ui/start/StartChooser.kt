@@ -133,7 +133,9 @@ fun StartChooser(
     val gymVisits by (gymRepo?.observeVisits() ?: kotlinx.coroutines.flow.flowOf(emptyMap()))
         .collectAsStateWithLifecycle(initialValue = emptyMap())
     LaunchedEffect(Unit) { gate.onChooserOpened() }
-    LaunchedEffect(previewRoutineId) { previewGymId = null }
+    LaunchedEffect(previewRoutineId, chooserGymId) {
+        previewGymId = previewRoutineId?.let { chooserGymId }
+    }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     // Capture the attempt this frame presents: a callback from an older frame acts on nothing.
     val renderedAttemptId = starting.attemptId

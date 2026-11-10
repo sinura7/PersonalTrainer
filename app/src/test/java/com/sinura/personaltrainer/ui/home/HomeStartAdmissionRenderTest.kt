@@ -73,6 +73,7 @@ import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.testutil.FrozenTime
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
 import com.sinura.personaltrainer.ui.components.WeekStripTags
@@ -878,6 +879,7 @@ class HomeStartAdmissionRenderTest {
         boardNode(HomeTags.START).performClick()
         // Blueprint 3.1: routines sit on the chooser itself, no routine page to open.
         reachable(compose.onNodeWithTag(StartTags.START_TITLE)).assertIsDisplayed()
+        compose.runOnUiThread { vm.setChooserGym(TestGymIds.WESTON) }
         StartChooserTestKit.pickWestonIfShown(compose)
         StartChooserTestKit.waitForRoutineEnabled(compose, routineId)
     }
