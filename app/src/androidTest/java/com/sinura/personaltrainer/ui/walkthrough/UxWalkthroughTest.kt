@@ -845,9 +845,13 @@ class UxWalkthroughTest {
         }
         shot("history-gym-tags")
         goToTab("progress")
+        scrollBodyListTo(BodyTrendTags.RECORDS)
+        val westonFilter = "refresh-gym-filter-gym-af-weston"
         harnessWaitUntil(15_000) {
-            compose.onAllNodesWithTag(BodyTrendTags.RECORDS).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag(westonFilter).fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithTag(westonFilter).performClick()
+        compose.waitForIdle()
         shot("body-filter-weston")
     }
 
