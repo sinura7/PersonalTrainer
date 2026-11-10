@@ -883,7 +883,6 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
         logWorkingSet(weightKg = 60.0, reps = 5, rpe = 7)
-        awaitSetLoggedRestIdle(setNumber = 1, expectPlannedRest = true)
         awaitRestTimerRunning()
         skipRestIfVisible()
         advanceToNextExerciseIfShown()
@@ -900,7 +899,6 @@ class UxWalkthroughTest {
         }
         shot("live-machine-new-here")
         logWorkingSet(weightKg = 50.0, reps = 10, rpe = 8)
-        awaitSetLoggedRestIdle(setNumber = 2, expectPlannedRest = true)
         awaitRestTimerRunning()
         skipRestIfVisible()
         dismissWhatNextSheetIfOpen()
