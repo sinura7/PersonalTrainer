@@ -40,7 +40,7 @@ cancellation_swallow = 0
 # 28 -> 27 with TH3: RemovedLiftObserverOrderingTest pumpUntil no longer uses Thread.sleep(1).
 real_time_sleeps = 27
 # delay() calls in test files with no virtual-time marker string (file-level heuristic).
-real_time_delays = 6
+real_time_delays = 7
 
 [tokens]
 # Ratched 2026-09-05 so live test 21 / further packets have a green

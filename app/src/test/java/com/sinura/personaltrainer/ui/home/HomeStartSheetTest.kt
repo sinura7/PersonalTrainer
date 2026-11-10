@@ -39,7 +39,7 @@ class HomeStartSheetTest {
         assertTrue(sheet.contains("R.string.start_group_routine"))
         assertTrue(sheet.contains("HomeStartCopy.CARDIO"))
         assertTrue(sheet.contains("HomeStartCopy.EXTRA"))
-        assertTrue(sheet.contains("gate.startFreeWorkout()"))
+        assertTrue(sheet.contains("gate.startFreeWorkout(gymId = gym)"))
         assertTrue(sheet.contains("StartGroups.routines"))
         assertTrue(readOwned("ui/start/StartGroups.kt").contains("HomeStart.namedRoutines"))
         assertTrue(sheet.contains("CardioPickCard("))

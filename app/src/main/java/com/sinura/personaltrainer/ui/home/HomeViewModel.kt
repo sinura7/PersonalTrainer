@@ -219,10 +219,37 @@ class HomeViewModel @JvmOverloads constructor(
 
     override fun requestStart(command: StartCommand, expectedAttemptId: Long?): Boolean {
         if (command.requiresGym() && command.gymId == null) {
+            blockedBeforeGymPick(command)?.let { blocked ->
+                markStartBlocked(blocked = blocked)
+                return false
+            }
             _pendingGymCommand.value = command
             return false
         }
         return admitStart(command = command, explicitRetry = expectedAttemptId != null)
+    }
+
+    /** One-live guard runs before the gym sheet so a live workout blocks the same as a full start. */
+    private fun blockedBeforeGymPick(command: StartCommand): BlockedStart? {
+        if (command is StartCommand.Discard) return null
+        val live = board.value.inProgress ?: return null
+        val day = freeDay(title = live.routineName.orEmpty().ifBlank { "Workout" }, routineId = live.routineId)
+        return when (command) {
+            is StartCommand.Occurrence -> BlockedStart(
+                day = day,
+                sessionId = live.id,
+                occurrenceId = command.occurrenceId,
+                reminder = command.deliveryId?.let { ReminderTap(occurrenceId = command.occurrenceId, deliveryId = it) },
+            )
+            is StartCommand.Free,
+            is StartCommand.Routine,
+            is StartCommand.Suggested,
+            is StartCommand.Aux,
+            -> BlockedStart(day = day, sessionId = live.id)
+            is StartCommand.Cardio,
+            is StartCommand.Discard,
+            -> null
+        }
     }
 
     private suspend fun perLift(read: suspend () -> Double?): Double? = try {
@@ -780,8 +807,8 @@ class HomeViewModel @JvmOverloads constructor(
         }
     }
 
-    override fun startAux(packId: String): Boolean {
-        return requestStart(StartCommand.Aux(packId = packId))
+    override fun startAux(packId: String, gymId: String): Boolean {
+        return requestStart(StartCommand.Aux(packId = packId, gymId = gymId))
     }
 
     private suspend fun startAuxCommand(packId: String, gymId: String?) {

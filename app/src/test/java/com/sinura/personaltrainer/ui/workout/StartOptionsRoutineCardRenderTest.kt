@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasTestTag
 import com.sinura.personaltrainer.ui.home.HomeViewModel
 import com.sinura.personaltrainer.ui.start.startGateFor
 import com.sinura.personaltrainer.ui.start.StartChooserHost
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -141,6 +142,10 @@ class StartOptionsRoutineCardRenderTest {
         }
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { compose.isDisplayed(hasText(ROUTINE)) }
         compose.waitForIdle()
+        StartChooserTestKit.pickWestonIfShown(compose)
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {
+            !compose.onNode(CARD).fetchSemanticsNode().config.contains(androidx.compose.ui.semantics.SemanticsProperties.Disabled)
+        }
     }
 
     /** A four-lift push day, each 3 × 8 with 90 s rest, on four kinds of kit. */

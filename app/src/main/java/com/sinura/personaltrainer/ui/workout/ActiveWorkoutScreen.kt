@@ -80,7 +80,6 @@ import com.sinura.personaltrainer.ui.components.InstrumentPreset
 import com.sinura.personaltrainer.ui.components.QuietButton
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.NewHereHintCard
-import com.sinura.personaltrainer.ui.components.GymTags
 import com.sinura.personaltrainer.ui.start.GymPickMode
 import com.sinura.personaltrainer.ui.start.GymPickSheet
 import com.sinura.personaltrainer.PersonalTrainerApp

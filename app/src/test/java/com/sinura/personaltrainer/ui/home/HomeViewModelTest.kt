@@ -640,7 +640,7 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.awaitFirst { !it.isLoading }
 
-        viewModel!!.startAux("golf")
+        viewModel!!.startAux("golf", TestGymIds.WESTON)
         val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         val session = deps.workoutRepository.getSession(sessionId)!!
         assertEquals("Golf warm-up", session.routineName)

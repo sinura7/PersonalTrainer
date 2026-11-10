@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer
 
 import com.sinura.personaltrainer.testutil.TestGymIds
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
@@ -114,6 +115,7 @@ class SharedStartGateTest {
         compose.awaitThat("Today offers the planned mixed start", { gate.uiState.value }) {
             compose.onAllNodesWithTag(StartTags.START_TODAY).fetchSemanticsNodes().isNotEmpty()
         }
+        StartChooserTestKit.pickWestonIfShown(compose)
         compose.onNodeWithTag(StartTags.START_TODAY).performScrollTo().performClick()
         compose.awaitThat("the composer opens", { composers }) { composers.isNotEmpty() }
         compose.waitForIdle()

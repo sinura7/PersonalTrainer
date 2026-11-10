@@ -39,7 +39,7 @@ class RecordingStartGate : StartGate {
     override fun startFreeWorkout(gymId: String): Boolean = starts.add("free:$gymId").let { true }
     override fun startRoutine(routineId: String, gymId: String): Boolean = starts.add("routine:$routineId:$gymId").let { true }
     override fun startCardio(type: CardioType): Boolean = starts.add("cardio:${type.name}").let { true }
-    override fun startAux(packId: String): Boolean = starts.add("aux:$packId").let { true }
+    override fun startAux(packId: String, gymId: String): Boolean = starts.add("aux:$packId:$gymId").let { true }
     override fun startOccurrence(occurrenceId: String, gymId: String, deliveryId: String?): Boolean =
         starts.add("occurrence:$occurrenceId:$gymId").let { true }
     override fun startSuggestedDay(day: SuggestedTrainingDay, gymId: String): Boolean =

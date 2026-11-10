@@ -577,6 +577,7 @@ class HomeStartAdmissionRenderTest {
         show()
         selectDay(selectedDay)
         boardNode(HomeTags.agendaRow(checkNotNull(occurrenceId))).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val date = reachable(compose.onNodeWithTag(HomeStartTags.DATE))
         date.assertTextContains("Planned: ${DateCopy.civilDate(selectedDay)}", substring = true)
         date.assertTextContains("Starts now · ${DateCopy.civilDate(today)}", substring = true)
@@ -614,6 +615,7 @@ class HomeStartAdmissionRenderTest {
         val rulesBefore = runBlocking { base.database.plannerDao().getRules() }
         show()
         boardNode(HomeTags.agendaRow(originalId)).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         writes.held = CompletableDeferred()
         writes.failNext.set(1)
         val confirm = enabledClick(WorkoutPreviewTags.BEGIN)
@@ -722,6 +724,7 @@ class HomeStartAdmissionRenderTest {
         show()
         selectDay(today - 1)
         boardNode(HomeTags.START).performClick()
+        StartChooserTestKit.pickWestonIfShown(compose)
         reachable(compose.onNodeWithTag(HomeStartTags.DATE))
             .assertTextContains("Starts now · ${DateCopy.civilDate(today)}", substring = true)
         capture("selected-day-free-confirm")
@@ -756,6 +759,7 @@ class HomeStartAdmissionRenderTest {
             assertTrue(file.length() > 100)
         } finally { bitmap.recycle() }
         planned.performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         assertOneSavedStart()
         val saved = runBlocking { checkNotNull(base.workoutRepository.getSession(openedSessions.single())) }

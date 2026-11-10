@@ -521,6 +521,8 @@ class HomeReadRecoveryTest {
     fun aFailedActualReminderStartIsTerminalForThatRequestAndLeavesItsDeliveryPending() = runBlocking {
         graph()
         val graph = checkNotNull(deps)
+        graph.database.workoutDao().deleteInProgressSession(liveId)
+        graph.restTimerController.stop()
         val deliveryId = "failed-actual-start"
         graph.database.plannerDao().upsertDelivery(ReminderDeliveryEntity(
             deliveryId, occurrence.id, 1L, ReminderDeliveryStatus.PENDING.name, 1L, 1L,
@@ -531,6 +533,7 @@ class HomeReadRecoveryTest {
         val before = inventory()
         faults.failStartLookup = true
         assertTrue(model.dispatchPendingOccurrenceStart(occurrence.id, deliveryId, "failed-start-request"))
+        assertTrue(model.fulfillGymPick(TestGymIds.WESTON, expectedAttemptId = null))
         model.uiState.awaitFirst { it.error == com.sinura.personaltrainer.domain.ReminderCopy.START_FAILED }
         faults.failStartLookup = false
         assertTrue(model.dispatchPendingOccurrenceStart(occurrence.id, deliveryId, "failed-start-request"))
@@ -557,6 +560,7 @@ class HomeReadRecoveryTest {
         val model = checkNotNull(vm)
         model.uiState.awaitFirst { it.readState == HomeReadState.CURRENT && it.inProgress == null }
         assertTrue(model.dispatchPendingOccurrenceStart(occurrence.id, deliveryId, "once-request"))
+        assertTrue(model.fulfillGymPick(TestGymIds.WESTON, expectedAttemptId = null))
         val sessionId = model.navigateToSession.awaitFirst { it != null }
         assertEquals(sessionId, graph.workoutRepository.getInProgress()?.id)
         assertEquals(occurrence.id, PendingOccurrence.followedBy(graph, checkNotNull(sessionId)))
@@ -737,7 +741,7 @@ class HomeReadRecoveryTest {
             "free" to model.startFreeWorkout(TestGymIds.WESTON),
             "routine" to model.startRoutine(routineId, gymId = TestGymIds.WESTON),
             "cardio" to model.startCardio(CardioType.WALK),
-            "extra before routine mint" to model.startAux("golf"),
+            "extra before routine mint" to model.startAux("golf", TestGymIds.WESTON),
             "suggested" to model.startSuggestedDay(suggestedDay, gymId = TestGymIds.WESTON),
             "planned" to model.startOccurrence(occurrence.id, gymId = TestGymIds.WESTON),
             "leftover before relocation" to model.startOccurrence(leftover.id, gymId = TestGymIds.WESTON),

@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.workout
 
 import com.sinura.personaltrainer.ui.start.startGateFor
 import com.sinura.personaltrainer.ui.start.StartChooserHost
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 import com.sinura.personaltrainer.ui.start.StartOptionsViewModel
 import android.app.Application
 import android.graphics.Bitmap
@@ -143,6 +144,7 @@ class ConnectedWorkoutJourneyTest {
     fun manualResultRestSwitchCorrectionAndFinishAgreeInSummaryHistoryAndDetail() {
         val routineId = seedRoutine()
         showJourney()
+        StartChooserTestKit.pickWestonIfShown(compose)
         compose.awaitThat("the synthetic routine is available", { destination }) {
             compose.onAllNodes(hasText(ROUTINE) and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
         }

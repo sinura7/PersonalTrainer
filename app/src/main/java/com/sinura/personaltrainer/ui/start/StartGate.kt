@@ -50,7 +50,7 @@ interface StartGate {
     fun startFreeWorkout(gymId: String): Boolean
     fun startRoutine(routineId: String, gymId: String): Boolean
     fun startCardio(type: CardioType): Boolean
-    fun startAux(packId: String): Boolean
+    fun startAux(packId: String, gymId: String): Boolean
     fun startOccurrence(occurrenceId: String, gymId: String, deliveryId: String? = null): Boolean
     fun startSuggestedDay(day: SuggestedTrainingDay, gymId: String): Boolean
 

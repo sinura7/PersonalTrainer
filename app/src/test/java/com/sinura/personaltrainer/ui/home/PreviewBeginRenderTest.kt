@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
 import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
 import androidx.activity.ComponentActivity
@@ -196,6 +197,7 @@ class PreviewBeginRenderTest {
         compose.settle()
         if (!expectPreview) return
         compose.onNodeWithTag(WorkoutPreviewTags.ROOT).assertExists()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
     }
 
     private companion object {

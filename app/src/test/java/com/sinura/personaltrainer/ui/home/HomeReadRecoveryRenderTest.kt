@@ -198,7 +198,7 @@ class HomeReadRecoveryRenderTest {
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
         compose.onNodeWithTag(WeekStripTags.STRIP).assertExists()
-        scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
+        openAgendaPreview()
         compose.mainClock.autoAdvance = false
         try {
             compose.settle()
@@ -522,6 +522,7 @@ class HomeReadRecoveryRenderTest {
         }
         addVirtualizationBoundary()
         scrollTo(HomeTags.SESSION).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -562,6 +563,7 @@ class HomeReadRecoveryRenderTest {
         val oldSecondCell = scrollTo(WeekStripTags.cell(secondDay))
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         scrollTo(HomeTags.SESSION).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -591,6 +593,7 @@ class HomeReadRecoveryRenderTest {
         show()
         awaitFallbackPlan(plan = original)
         scrollTo(HomeTags.SESSION).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -654,7 +657,7 @@ class HomeReadRecoveryRenderTest {
                 vm.uiState.value.occurrences.any { it.id == occurrenceId } &&
                 vm.uiState.value.occurrences.any { it.id == secondOccurrence }
         }
-        scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
+        openAgendaPreview()
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val oldDismiss = compose.onNodeWithTag(WorkoutPreviewTags.BACK)
@@ -663,7 +666,7 @@ class HomeReadRecoveryRenderTest {
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BACK)).performClick()
         // Reopening the same occurrence creates another modal owner. Its ID alone cannot
         // authorize the old owner's queued confirmation or cancellation.
-        scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
+        openAgendaPreview()
         compose.runOnUiThread { oldConfirm(); oldDismiss() }
         compose.settle()
         compose.onNode(hasText("Upper B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
@@ -671,7 +674,7 @@ class HomeReadRecoveryRenderTest {
         assertNull(openedSession)
         assertEquals(before, inventory())
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BACK)).performClick()
-        scrollTo(HomeTags.agendaRow(secondOccurrence)).performClick()
+        openAgendaPreview(secondOccurrence)
         compose.runOnUiThread { oldConfirm(); oldDismiss() }
         compose.settle()
         compose.onNode(hasText("Lower B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
@@ -728,7 +731,7 @@ class HomeReadRecoveryRenderTest {
         show(restoration)
         await(HomeReadState.CURRENT)
         addVirtualizationBoundary()
-        scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
+        openAgendaPreview()
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -922,6 +925,12 @@ class HomeReadRecoveryRenderTest {
         reachable(recoveryNode(HomeTags.RETRY)).assertIsEnabled().performClick()
         compose.awaitThat("a fresh required DAO collection", read.collections::get) { read.collections.get() > before }
         if (!held) await(HomeReadState.CURRENT) else compose.settle()
+    }
+
+    private fun openAgendaPreview(occurrence: String = occurrenceId) {
+        scrollTo(HomeTags.agendaRow(occurrence)).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
+        compose.settle()
     }
 
     private fun scrollTo(tag: String): SemanticsNodeInteraction {

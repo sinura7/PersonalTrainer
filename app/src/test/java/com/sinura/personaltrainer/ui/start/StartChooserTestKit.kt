@@ -23,4 +23,17 @@ object StartChooserTestKit {
         }
         compose.onNodeWithTag(StartTags.routine(routineId)).assertIsEnabled()
     }
+
+    /** Gym pick on Home planned/fallback preview before Begin is enabled. */
+    fun pickWestonOnStrengthPreview(compose: ComposeTestRule) {
+        val tag = GymTags.row(TestGymIds.WESTON)
+        compose.waitUntil(10_000) {
+            val visible = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
+            if (visible) {
+                compose.onNodeWithTag(tag).performClick()
+                compose.waitForIdle()
+            }
+            visible
+        }
+    }
 }
