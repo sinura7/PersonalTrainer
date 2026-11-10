@@ -837,6 +837,15 @@ class UxWalkthroughTest {
     }
 
     private fun flowGymStartAndSwitch() {
+        WalkthroughRestCaptureHook.setHoldPlannedRestAfterLogMs(8_000)
+        try {
+            flowGymStartAndSwitchCaptures()
+        } finally {
+            WalkthroughRestCaptureHook.setHoldPlannedRestAfterLogMs(0)
+        }
+    }
+
+    private fun flowGymStartAndSwitchCaptures() {
         preparePopulatedApp()
         seedGymFlowWalkthroughRoutine()
         seedMajorMacPecDeckHistory()
