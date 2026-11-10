@@ -111,6 +111,8 @@ internal fun WeightRepsEditor(
     plannedKg: Double? = null,
     lastKg: Double? = null,
     focused: Boolean = false,
+    loadedWeightUnset: Boolean = false,
+    otherGymCaption: String? = null,
 ) {
     val meaning = loadClass.weightMeaning
     val showWeight = meaning != WeightMeaning.NONE
@@ -143,7 +145,7 @@ internal fun WeightRepsEditor(
     val stepShown = IncrementTable.displayStep(loadType, unit, equipment)
         ?.let { WeightConverter.formatDisplayNumber(it) }
         ?: unit.stepLabel
-    val weightHero = SetCopy.weightEntryHero(meaning, weightKg, unit)
+    val weightHero = SetCopy.weightEntryHero(meaning, weightKg, unit, loadedWeightUnset = loadedWeightUnset)
     val plates = if (plated && meaning == WeightMeaning.LIFTED) PlateMath.load(weightKg, unit)?.caption() else null
     val weightField = meaning.fieldLabel.lowercase()
     // Plan / Last as one-tap fills, only while the entry holds something else.
@@ -190,7 +192,7 @@ internal fun WeightRepsEditor(
             // Only the bar's loading earns this line. The source label said "Plan" to
             // confirm a weight the entry already showed; the quick fills below are what
             // matter when it does not match.
-            caption = plates ?: weightHero.caption,
+            caption = otherGymCaption ?: plates ?: weightHero.caption,
             tag = WorkoutTestTags.WEIGHT_STEPPER,
         )
     }

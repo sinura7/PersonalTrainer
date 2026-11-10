@@ -66,6 +66,7 @@ internal fun workoutCoachInputs(
     historySets: List<ExerciseSetRecord> = emptyList(),
     coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
     draftRpeIntent: Boolean = false,
+    loadedWeightUnset: Boolean = false,
 ): SetMicroRecInputs? {
     if (session == null) return null
     val exerciseId = session.resolveSelectedExerciseId(selectedExerciseId) ?: return null
@@ -110,6 +111,7 @@ internal fun workoutCoachInputs(
             )
         },
         targetRir = coachPrefs.targetRepsInReserve(),
+        loadedWeightUnset = loadedWeightUnset,
     )
 }
 

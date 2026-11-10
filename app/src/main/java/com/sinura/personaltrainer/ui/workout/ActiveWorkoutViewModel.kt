@@ -964,6 +964,8 @@ class ActiveWorkoutViewModel internal constructor(
             MicroRecCore(current, selected, currentDraft, currentHint, extra)
         }.combine(lastPerformance) { core, last ->
             core.copy(lastPerformance = last)
+        }.combine(machineWeightUnset) { core, weightUnset ->
+            core.copy(loadedWeightUnset = weightUnset)
         },
         combine(
             editingSetId,
@@ -993,6 +995,7 @@ class ActiveWorkoutViewModel internal constructor(
             unit = extras.unit,
             coachPrefs = extras.coachPrefs,
             draftRpeIntent = extras.draftRpeIntent,
+            loadedWeightUnset = core.loadedWeightUnset,
         ).coachKey()
     }.distinctUntilChanged()
 
@@ -1678,6 +1681,7 @@ class ActiveWorkoutViewModel internal constructor(
         if (!weightKg.isFinite()) return
         editEntry {
             draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
+            if (weightKg > 0.0) machineWeightUnset.value = false
             markDraftDirty()
         }
     }
@@ -3452,6 +3456,7 @@ class ActiveWorkoutViewModel internal constructor(
         val draft: ActiveExerciseDraft,
         val hint: ProgressionHint?,
         val wantAnother: Boolean,
+        val loadedWeightUnset: Boolean = false,
         val lastPerformance: ExerciseSessionSummary? = null,
     )
 

@@ -51,6 +51,8 @@ data class SetMicroRecInputs(
     val equipment: EquipmentType? = null,
     /** Reps to hold in reserve at the next set (from goal thresholds, ADR-025). */
     val targetRir: Int = 1,
+    /** Machine at this gym with no history: next load is reps-only until the user enters weight. */
+    val loadedWeightUnset: Boolean = false,
 )
 
 data class SetMicroRec(
@@ -205,11 +207,22 @@ object SetMicroRecCalculator {
     }
 
     private fun firstSet(inputs: SetMicroRecInputs): SetMicroRec? {
+        val reps = (inputs.hint?.targetReps ?: inputs.targetReps).coerceAtLeast(1)
+        if (inputs.loadedWeightUnset && inputs.thisSessionWorking.isEmpty()) {
+            return rec(
+                inputs = inputs,
+                weight = 0.0,
+                reps = reps,
+                rpe = historyRpe(inputs),
+                previewOnly = false,
+                showApply = false,
+                reason = NEW_AT_GYM,
+            )
+        }
         val hint = inputs.hint
         val weight = hint?.suggestedWeightKg
             ?: inputs.targetWeightKg
             ?: return null
-        val reps = (hint?.targetReps ?: inputs.targetReps).coerceAtLeast(1)
         val reason = if (inputs.lastAnySetWasWarmup) WARMUP_DONE else FIRST_SET
         return rec(
             inputs = inputs,
@@ -530,6 +543,7 @@ fun setMicroRecInputs(
     historyWorking: List<LoggedSetView> = emptyList(),
     equipment: EquipmentType? = null,
     targetRir: Int = 1,
+    loadedWeightUnset: Boolean = false,
 ): SetMicroRecInputs = SetMicroRecInputs(
     editing = editing,
     loadType = loadType,
@@ -552,6 +566,7 @@ fun setMicroRecInputs(
     historyWorking = historyWorking,
     equipment = equipment,
     targetRir = targetRir,
+    loadedWeightUnset = loadedWeightUnset,
 )
 
 object SetMicroRecCopy {
@@ -562,14 +577,17 @@ object SetMicroRecCopy {
     const val ALT_BACK_OFF = "Back off"
 
     fun payload(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String {
+        val unset = rec.reasonCode == SetMicroRecCalculator.NEW_AT_GYM
         return buildString {
-            append(SetCopy.setLine(rec.nextWeightKg, rec.nextReps, loadClass, unit))
+            append(SetCopy.setLine(rec.nextWeightKg, rec.nextReps, loadClass, unit, loadedWeightUnset = unset))
             rec.nextRpe?.let { append(" · RPE $it") }
         }
     }
 
-    fun numbers(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String =
-        SetCopy.setLine(rec.nextWeightKg, rec.nextReps, loadClass, unit)
+    fun numbers(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String {
+        val unset = rec.reasonCode == SetMicroRecCalculator.NEW_AT_GYM
+        return SetCopy.setLine(rec.nextWeightKg, rec.nextReps, loadClass, unit, loadedWeightUnset = unset)
+    }
 
     fun visibleOnEntry(rec: SetMicroRec): Boolean =
         rec.reasonCode != SetMicroRecCalculator.LIFT_DONE &&
@@ -582,7 +600,13 @@ object SetMicroRecCopy {
         loadClass: LoadClass,
         unit: WeightUnit,
     ): String {
-        val numbers = SetCopy.setLine(weightKg, reps, loadClass, unit)
+        val numbers = SetCopy.setLine(
+            weightKg,
+            reps,
+            loadClass,
+            unit,
+            loadedWeightUnset = reason == SetMicroRecCalculator.NEW_AT_GYM,
+        )
         return when (reason) {
             SetMicroRecCalculator.RPE_HOLD,
             SetMicroRecCalculator.CLOSE_HOLD,
@@ -624,6 +648,7 @@ object SetMicroRecCopy {
         SetMicroRecCalculator.BW_DROP_REP,
         -> "Missed target — go lighter"
         SetMicroRecCalculator.CLOSE_HOLD -> "Close — hold the weight"
+        SetMicroRecCalculator.NEW_AT_GYM -> "New at this gym — enter the load"
         else -> RuleTraceCopy.reasonLabel(reason)
     }
 

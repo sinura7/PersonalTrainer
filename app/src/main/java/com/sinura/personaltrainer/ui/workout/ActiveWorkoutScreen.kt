@@ -79,7 +79,7 @@ import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.InstrumentPreset
 import com.sinura.personaltrainer.ui.components.QuietButton
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.NewHereHintCard
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.start.GymPickMode
 import com.sinura.personaltrainer.ui.start.GymPickSheet
 import com.sinura.personaltrainer.PersonalTrainerApp
@@ -676,7 +676,11 @@ private fun ActiveWorkoutContent(
                                 // lift on the commit's capped supporting line; a 360 dp landscape has
                                 // no room for a second line there, so it only speaks it.
                                 verb = primaryAction.verb(includeNextName = false),
-                                payload = primaryAction.payload(unit = unit, loadClass = loadClass)
+                                payload = primaryAction.payload(
+                                    unit = unit,
+                                    loadClass = loadClass,
+                                    loadedWeightUnset = state.machineWeightUnset,
+                                )
                                     ?: primaryAction.nextName.takeIf { !landscape && primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
                                 spokenPayload = primaryAction.nextName.takeIf { primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
                                 editing = state.editingSetId != null,
@@ -915,20 +919,6 @@ private fun ActiveWorkoutContent(
                                         canSwap = logged.isEmpty(),
                                     )
                                 }
-                                if (state.machineWeightUnset && state.otherGymHint != null && logged.isEmpty()) {
-                                    item(key = "new-at-gym-hint") {
-                                        val hint = state.otherGymHint!!
-                                        val unit = LocalWeightUnit.current
-                                        val otherLine = "At ${hint.gymShortName}: " +
-                                            SetCopy.setLine(hint.weightKg, hint.reps, LoadClass.of(currentLift.exercise.loadType), unit)
-                                        NewHereHintCard(
-                                            exerciseName = currentLift.exercise.name,
-                                            gymShortName = sessionGym?.shortName,
-                                            otherGymLine = otherLine,
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-                                    }
-                                }
                                 if (restBarShown) {
                                     item(key = REST_BAR_KEY) {
                                         RestBar(
@@ -954,6 +944,13 @@ private fun ActiveWorkoutContent(
                                         horizontalPadding = Metrics.space1,
                                         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
                                     ) {
+                                        val otherGymCaption =
+                                            if (state.machineWeightUnset && state.otherGymHint != null && logged.isEmpty()) {
+                                                val hint = state.otherGymHint!!
+                                                "At ${hint.gymShortName}: ${hint.weightKg.toWeightLabel(unit)}"
+                                            } else {
+                                                null
+                                            }
                                         WeightRepsEditor(
                                             enabled = entryEnabled,
                                             weightKg = state.draft.weightKg,
@@ -969,6 +966,8 @@ private fun ActiveWorkoutContent(
                                             holdRunning = holdTimer.running,
                                             holdRemainingSeconds = holdTimer.remainingSeconds,
                                             focused = true,
+                                            loadedWeightUnset = state.machineWeightUnset && !state.draft.isWarmup,
+                                            otherGymCaption = otherGymCaption,
                                             onWeightKgChange = viewModel::setWeight,
                                             onRepsChange = viewModel::setReps,
                                             onSecondsChange = viewModel::setHoldSeconds,
