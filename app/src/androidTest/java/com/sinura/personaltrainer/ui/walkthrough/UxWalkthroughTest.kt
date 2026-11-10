@@ -942,7 +942,7 @@ class UxWalkthroughTest {
             container.routineRepository.addExercise(
                 routineId = routine.id,
                 exercise = primaryLift,
-                targetSets = 1,
+                targetSets = 2,
                 targetReps = 5,
                 targetWeightKg = 60.0,
                 restSeconds = 60,
@@ -950,7 +950,7 @@ class UxWalkthroughTest {
             container.routineRepository.addExercise(
                 routineId = routine.id,
                 exercise = secondaryLift,
-                targetSets = 1,
+                targetSets = 2,
                 targetReps = 10,
                 targetWeightKg = null,
                 restSeconds = 60,
