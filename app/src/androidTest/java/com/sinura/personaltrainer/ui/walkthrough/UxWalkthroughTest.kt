@@ -829,6 +829,7 @@ class UxWalkthroughTest {
         pressBackToSettingsHome()
     }
 
+    /** G3 packet: settings gyms, history tags, Body gym filter (flow id 11). */
     private fun flowGymsEverywhere() {
         preparePopulatedApp()
         goToTab("settings")
