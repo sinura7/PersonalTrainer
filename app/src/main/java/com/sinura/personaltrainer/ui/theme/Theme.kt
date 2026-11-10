@@ -70,7 +70,7 @@ private val InstrumentColorScheme = darkColorScheme(
 
     outline = OutlineSolid,
     outlineVariant = OutlineSolidVariant,
-    scrim = Color.Black,
+    scrim = Scrim,
 
     surfaceBright = Surface3,
     surfaceDim = Pit,

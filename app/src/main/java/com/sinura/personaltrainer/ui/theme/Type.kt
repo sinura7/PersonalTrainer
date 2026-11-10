@@ -72,6 +72,9 @@ private fun style(
  * governed it. These five sizes are the whole vocabulary; a call site picks one.
  */
 object InstrumentType {
+    /** Today hero title and summary hero — at most one per screen. */
+    val displayHero = style(SpaceGrotesk, FontWeight.Bold, 40.sp, 44.sp, (-0.6).sp)
+
     /** Compact workout entry; still the loudest information on the recording floor. */
     val workoutNumeral = style(SpaceGrotesk, FontWeight.Medium, 44.sp, 48.sp, (-0.4).sp)
 
@@ -92,6 +95,9 @@ object InstrumentType {
 
     /** Inline metrics and the trailing value of a list row. */
     val numeralSm = style(SpaceGrotesk, FontWeight.Medium, 17.sp, 20.sp)
+
+    /** Set pill weight × reps. */
+    val numeralPill = style(SpaceGrotesk, FontWeight.Medium, 13.sp, 16.sp)
 
     /** Screen titles. */
     val display = style(SpaceGrotesk, FontWeight.Bold, 28.sp, 32.sp, (-0.3).sp)
@@ -129,6 +135,9 @@ object InstrumentType {
      * rather than deliberate.
      */
     val kicker = style(Inter, FontWeight.SemiBold, 11.sp, 13.sp, 0.88.sp)
+
+    /** Role tags (MAIN, WARM-UP, PR, …). Uppercase at the call site. */
+    val roleTag = style(Inter, FontWeight.SemiBold, 9.sp, 11.sp, 0.7.sp)
 
     /**
      * `kg`, `lbs`, `min`. Subordinate on purpose: the numeral carries and the unit

@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
@@ -38,12 +39,15 @@ import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.PitOnVoltSubtle
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
@@ -118,8 +122,12 @@ fun PrimaryGymButton(
                 )
                 Text(
                     supporting,
-                    style = InstrumentType.bodyStrong,
-                    color = if (enabled) contentColor else TextDisabled,
+                    style = InstrumentType.caption,
+                    color = when {
+                        !enabled -> TextTertiary
+                        contentColor == Pit -> PitOnVoltSubtle
+                        else -> contentColor
+                    },
                     textAlign = TextAlign.Center,
                     // Capped, so a long payload (the next lift's name) never grows the commit
                     // into the floor; the whole string stays in semantics.
@@ -269,4 +277,31 @@ fun DestructiveButton(
         height = Metrics.rowMin,
         textStyle = InstrumentType.bodyStrong,
     )
+}
+
+/** Inline text action (Change, Undo, Why). */
+@Composable
+fun TextAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accent: Boolean = false,
+    subdued: Boolean = false,
+    testTag: String? = null,
+) {
+    val ink = when {
+        accent -> Volt
+        subdued -> TextSecondary
+        else -> Volt
+    }
+    androidx.compose.foundation.layout.Box(
+        modifier = modifier
+            .heightIn(min = Metrics.touchMin)
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Metrics.space2),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, style = InstrumentType.bodyStrong, color = ink, maxLines = 1)
+    }
 }
