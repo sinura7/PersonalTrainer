@@ -882,7 +882,10 @@ class UxWalkthroughTest {
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT)
+            .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(primaryLift.id)))
         logWorkingSet(weightKg = 60.0, reps = 5, rpe = 7)
+        awaitSetLoggedRestIdle(setNumber = 1, expectPlannedRest = true)
         awaitRestTimerRunning()
         skipRestIfVisible()
         advanceToNextExerciseIfShown()
@@ -898,7 +901,10 @@ class UxWalkthroughTest {
                     .fetchSemanticsNodes().isEmpty()
         }
         shot("live-machine-new-here")
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT)
+            .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id)))
         logWorkingSet(weightKg = 50.0, reps = 10, rpe = 8)
+        awaitSetLoggedRestIdle(setNumber = 2, expectPlannedRest = true)
         awaitRestTimerRunning()
         skipRestIfVisible()
         dismissWhatNextSheetIfOpen()
