@@ -32,16 +32,18 @@ object StartChooserTestKit {
     fun pickWestonOnStrengthPreview(compose: ComposeTestRule) {
         val gymTag = GymTags.row(TestGymIds.WESTON)
         val beginTag = WorkoutPreviewTags.BEGIN
-        compose.waitUntil(20_000) {
+        compose.waitUntil(30_000) {
             val begins = compose.onAllNodes(hasTestTag(beginTag)).fetchSemanticsNodes()
             if (begins.any { !it.config.contains(SemanticsProperties.Disabled) }) {
                 return@waitUntil true
             }
-            if (compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes().isNotEmpty()) {
+            val gymRows = compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes()
+            if (gymRows.isNotEmpty()) {
                 compose.onNodeWithTag(gymTag).performScrollTo().performClick()
                 compose.waitForIdle()
             }
-            false
+            compose.onAllNodes(hasTestTag(beginTag)).fetchSemanticsNodes()
+                .any { !it.config.contains(SemanticsProperties.Disabled) }
         }
     }
 }

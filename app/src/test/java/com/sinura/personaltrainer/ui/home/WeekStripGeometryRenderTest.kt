@@ -452,7 +452,7 @@ class WeekStripGeometryRenderTest {
         tapReached(compose.onNodeWithTag(PickerHeaderTags.CANCEL))
         assertPickerHeader(ExtraEquipment.PICK)
         tapReached(compose.onNodeWithTag(PickerHeaderTags.CANCEL))
-        reach(compose.onNodeWithTag(StartTags.EXTRA_PAGE)).assertExists()
+        reach(compose.onNodeWithTag(StartTags.START_TILE_WARMUP)).assertIsEnabled()
         compose.onNodeWithTag(PickerHeaderTags.TITLE).assertDoesNotExist()
         assertEquals("opening and cancelling the extra picker starts or saves nothing", stored, inventory())
         assertEquals(0, navigation)

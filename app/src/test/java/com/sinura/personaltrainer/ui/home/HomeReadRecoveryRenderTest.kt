@@ -540,6 +540,7 @@ class HomeReadRecoveryRenderTest {
         assertEquals(before, inventory())
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         compose.awaitThat("the deliberately accepted fallback start", { openedSession }) { openedSession != null }
         compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertDoesNotExist()
