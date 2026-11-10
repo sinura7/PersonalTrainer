@@ -13,7 +13,6 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.estimatedSessionMinutes
 import com.sinura.personaltrainer.ui.components.ActionState
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
-import com.sinura.personaltrainer.ui.components.GymChip
 import com.sinura.personaltrainer.ui.components.GymPickerList
 import com.sinura.personaltrainer.ui.start.GymPickMode
 import com.sinura.personaltrainer.ui.start.GymPickSheet
@@ -103,8 +102,6 @@ internal fun HomeStartPrompt(
                     selectedId = null,
                     onPick = onPickGym,
                 )
-            } else {
-                GymChip(gym = pickedGym, onClick = { showGymSheet = true })
             }
         },
         actionKey = actionKey,

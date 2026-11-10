@@ -46,6 +46,7 @@ import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.SessionHighlight
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -587,6 +588,9 @@ private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit, exercises: 
                                 weightKg = top.weightKg, reps = top.reps,
                                 loadClass = highlight.loadClass, unit = unit,
                                 durationSeconds = top.durationSeconds,
+                                loadedWeightUnset = highlight.loadClass == LoadClass.LOADED &&
+                                    top.weightKg <= 0.0 && top.reps > 0 &&
+                                    (top.durationSeconds ?: 0) < 1,
                             ),
                         style = InstrumentType.body,
                         color = TextSecondary,

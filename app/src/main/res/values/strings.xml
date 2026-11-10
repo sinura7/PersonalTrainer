@@ -337,7 +337,7 @@
     <string name="gym_new_here_short">New here</string>
     <string name="gym_new_here_body">No %1$s history at %2$s yet.</string>
     <string name="gym_new_here_no_history">No history for this machine yet.</string>
-    <string name="gym_at_preview">At %1$s · Change</string>
+    <string name="gym_at_preview">At %1$s</string>
     <string name="gym_composer_field">Gym</string>
     <string name="gym_composer_not_sure">Not sure (Unassigned)</string>
     <string name="gym_composer_pick_required">Pick a gym</string>

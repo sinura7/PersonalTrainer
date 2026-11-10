@@ -1339,13 +1339,17 @@ private fun ActiveWorkoutContent(
     }
 
     if (whatNextVisible && selected != null && session != null) {
-        val nextLift = advance.nextLift
-        val targetLine = nextLift?.let {
-            SetCopy.setLine(it.targetWeightKg ?: 0.0, it.targetReps, LoadClass.of(it.exercise.loadType), unit)
-        }
+        val loadClass = LoadClass.of(selected.exercise.loadType)
+        val addSetLine = SetCopy.setLine(
+            weightKg = state.draft.weightKg,
+            reps = state.draft.reps,
+            loadClass = loadClass,
+            unit = unit,
+            loadedWeightUnset = state.machineWeightUnset && !state.draft.isWarmup && state.draft.weightKg <= 0.0,
+        )
         val liftsLeft = session.exercises.count { !session.isTargetMet(it.exercise.id) }
         WhatNextSheet(
-            addSetSubLabel = targetLine?.let { stringResource(R.string.next_add_set_sub, it) },
+            addSetSubLabel = stringResource(R.string.next_add_set_sub, addSetLine),
             swapSubLabel = state.swapSiblings.take(2).joinToString(", ") { it.name }.takeIf { it.isNotBlank() }?.let {
                 stringResource(R.string.next_swap_sub, it)
             },

@@ -35,7 +35,7 @@ object StartChooserTestKit {
     fun pickWestonOnStrengthPreview(compose: ComposeTestRule) {
         val gymTag = GymTags.row(TestGymIds.WESTON)
         val beginTag = WorkoutPreviewTags.BEGIN
-        val chipTag = GymTags.CHIP
+        val changeTag = WorkoutPreviewTags.GYM_CHANGE
         val previewRoot = WorkoutPreviewTags.ROOT
         if (compose.onAllNodes(hasTestTag(previewRoot)).fetchSemanticsNodes().isNotEmpty() &&
             compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes().isNotEmpty()
@@ -60,8 +60,8 @@ object StartChooserTestKit {
                     compose.onNode(hasText("Weston", substring = true) and hasClickAction()).performClick()
                     compose.waitForIdle()
                 }
-                compose.onAllNodes(hasTestTag(chipTag)).fetchSemanticsNodes().isNotEmpty() -> {
-                    compose.onNodeWithTag(chipTag).performClick()
+                compose.onAllNodes(hasTestTag(changeTag)).fetchSemanticsNodes().isNotEmpty() -> {
+                    compose.onNodeWithTag(changeTag).performClick()
                     compose.waitForIdle()
                     if (compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes().isNotEmpty()) {
                         compose.onNodeWithTag(gymTag).performClick()

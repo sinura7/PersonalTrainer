@@ -52,6 +52,7 @@ object WorkoutPreviewTags {
     const val BACK = "preview_back"
     const val LOADING = "preview_loading"
     const val LIFT = "preview_lift"
+    const val GYM_CHANGE = "preview_gym_change"
 }
 
 /** What each lift last looked like. Null map: still loading. A missing id: first time. */
@@ -255,7 +256,11 @@ internal fun WorkoutPreviewContent(
                     color = TextSecondary,
                     modifier = Modifier.weight(1f),
                 )
-                GhostButton(label = stringResource(R.string.gym_change), onClick = onChangeGym)
+                GhostButton(
+                    label = stringResource(R.string.gym_change),
+                    onClick = onChangeGym,
+                    modifier = Modifier.testTag(WorkoutPreviewTags.GYM_CHANGE),
+                )
             }
         }
         Column(

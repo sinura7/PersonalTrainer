@@ -851,7 +851,7 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.ROOT)).fetchSemanticsNodes().isNotEmpty()
         }
         shot("preview-weights-weston")
-        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.CHIP).performClick()
+        compose.onNodeWithTag(WorkoutPreviewTags.GYM_CHANGE).performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag("gym-pick-sheet")).fetchSemanticsNodes().isNotEmpty()
         }
@@ -862,7 +862,7 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.ROOT)).fetchSemanticsNodes().isNotEmpty()
         }
         shot("preview-weights-majormac")
-        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.CHIP).performClick()
+        compose.onNodeWithTag(WorkoutPreviewTags.GYM_CHANGE).performClick()
         val westonInSheet = hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston")) and
             hasAnyAncestor(hasTestTag("gym-pick-sheet"))
         compose.onNode(westonInSheet, useUnmergedTree = true).performClick()
@@ -877,9 +877,11 @@ class UxWalkthroughTest {
         awaitSetLoggedRestIdle(setNumber = 1, expectPlannedRest = true)
         skipRestIfVisible()
         advanceToNextExerciseIfShown()
+        dismissWhatNextSheetIfOpen()
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id))).fetchSemanticsNodes().isNotEmpty()
         }
+        dismissWhatNextSheetIfOpen()
         harnessWaitUntil(15_000) {
             compose.onAllNodes(hasText("At Major Mac:", substring = true))
                 .fetchSemanticsNodes().isNotEmpty() &&
@@ -890,6 +892,7 @@ class UxWalkthroughTest {
         logWorkingSet(weightKg = 50.0, reps = 10, rpe = 8)
         awaitSetLoggedRestIdle(setNumber = 2, expectPlannedRest = true)
         skipRestIfVisible()
+        dismissWhatNextSheetIfOpen()
         performHarnessClickOnTag(com.sinura.personaltrainer.ui.components.GymTags.CHIP)
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.MOVE_SHEET))
@@ -1077,6 +1080,16 @@ class UxWalkthroughTest {
         compose.onNodeWithText("Set").performClick()
     }
 
+    private fun dismissWhatNextSheetIfOpen() {
+        if (compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isEmpty()) return
+        val primary = hasTestTag(WorkoutTestTags.NEXT) or hasTestTag(WorkoutTestTags.DOCK_FINISH)
+        compose.onNode(primary, useUnmergedTree = true).performClick()
+        harnessWaitUntil(15_000) {
+            compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isEmpty()
+        }
+        compose.waitForIdle()
+    }
+
     private fun advanceToNextExerciseIfShown() {
         harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isNotEmpty() ||
@@ -1086,13 +1099,17 @@ class UxWalkthroughTest {
         if (compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
             harnessWaitUntil(30_000) {
-                compose.onAllNodesWithTag(WorkoutTestTags.LIFT_TRANSITION).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag(WorkoutTestTags.LIFT_TRANSITION).fetchSemanticsNodes().isNotEmpty() ||
+                    compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isEmpty()
             }
-            shot("strength-between-lifts")
-            compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).performClick()
+            if (compose.onAllNodesWithTag(WorkoutTestTags.LIFT_TRANSITION).fetchSemanticsNodes().isNotEmpty()) {
+                shot("strength-between-lifts")
+                compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).performClick()
+            }
         } else if (compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
         }
+        dismissWhatNextSheetIfOpen()
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }

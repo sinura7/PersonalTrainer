@@ -57,6 +57,30 @@ class NewAtGymSetCopyTest {
     }
 
     @Test
+    fun whatNextAddSetAgainUsesRepsOnlyWhenWeightUnset() {
+        val line = SetCopy.setLine(
+            weightKg = 0.0,
+            reps = 10,
+            loadClass = LoadClass.LOADED,
+            unit = WeightUnit.KG,
+            loadedWeightUnset = true,
+        )
+        assertEquals("10 reps again", "$line again")
+    }
+
+    @Test
+    fun summaryTopSetUsesRepsOnlyWhenWeightUnset() {
+        val line = SetCopy.setLine(
+            weightKg = 0.0,
+            reps = 10,
+            loadClass = LoadClass.LOADED,
+            unit = WeightUnit.KG,
+            loadedWeightUnset = true,
+        )
+        assertEquals("Top set 10 reps", "Top set $line")
+    }
+
+    @Test
     fun logCommitOmitsBlankLoadPayload() {
         val draft = ActiveExerciseDraft(weightKg = 0.0, reps = 10, rpe = 7, isWarmup = false)
         val action = WorkoutPrimaryAction(
