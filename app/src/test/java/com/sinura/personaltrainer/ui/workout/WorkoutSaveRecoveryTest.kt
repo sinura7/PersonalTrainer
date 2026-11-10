@@ -476,7 +476,8 @@ class WorkoutSaveRecoveryTest {
         val review = vm.primaryAction.awaitFirst { it.kind == WorkoutPrimaryKind.REVIEW_SAVE && it.enabled }
         assertEquals(command.exerciseId, review.identity.exerciseId)
         assertEquals(command, review.identity.pendingSave)
-        assertTrue(vm.performPrimary(review))
+        // Primary identity includes activation; use the live action at tap time.
+        assertTrue(vm.performPrimary(vm.primaryAction.value))
         vm.editFailedSave()
         val released = vm.uiState.awaitFirst {
             !it.save.pending && !it.logging && it.selectedExerciseId != command.exerciseId
