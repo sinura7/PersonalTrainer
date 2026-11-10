@@ -43,7 +43,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EarlyFinishCopy
 import com.sinura.personaltrainer.domain.EmptyScene
+import com.sinura.personaltrainer.domain.PlanCreditCopy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.SessionHighlight
 import com.sinura.personaltrainer.domain.SetCopy
@@ -71,6 +73,7 @@ import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.sinura.personaltrainer.ui.theme.GoldContainer
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -96,6 +99,7 @@ fun WorkoutSummaryScreen(
     onDone: () -> Unit,
     onOpenSession: (String) -> Unit,
     onOpenPlanDay: (Long?) -> Unit = {},
+    onStartToday: (com.sinura.personaltrainer.domain.TodaySheetStart) -> Unit = {},
     viewModel: WorkoutSummaryViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -114,7 +118,11 @@ fun WorkoutSummaryScreen(
         onOpenSession = onOpenSession,
         onDone = onDone,
         onOpenPlanDay = onOpenPlanDay,
+        onStartToday = onStartToday,
         onSkipCooldown = { timerId -> viewModel.skipCooldown(timerId) },
+        onCountForPlan = viewModel::countForTodayPlan,
+        onKeepPlanSeparate = viewModel::keepPlanSeparate,
+        onUndoPlanCredit = viewModel::undoPlanCredit,
         restSnapshot = viewModel.restTimerSnapshot,
         restRemaining = viewModel.restRemainingSeconds,
     )
@@ -128,7 +136,11 @@ internal fun WorkoutSummaryContent(
     onOpenSession: (String) -> Unit,
     onDone: () -> Unit,
     onOpenPlanDay: (Long?) -> Unit = {},
+    onStartToday: (com.sinura.personaltrainer.domain.TodaySheetStart) -> Unit = {},
     onSkipCooldown: (String) -> Unit = {},
+    onCountForPlan: () -> Unit = {},
+    onKeepPlanSeparate: () -> Unit = {},
+    onUndoPlanCredit: () -> Unit = {},
     restSnapshot: StateFlow<RestTimerSnapshot>? = null,
     restRemaining: Flow<Int>? = null,
 ) {
@@ -202,12 +214,81 @@ internal fun WorkoutSummaryContent(
                 item(key = "receipt") {
                     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
                         SummaryHeading(summary)
+                        state.liftCompletion?.let { completion ->
+                            Text(
+                                stringResource(R.string.summary_finished_early),
+                                style = InstrumentType.bodyStrong,
+                                color = TextPrimary,
+                                modifier = Modifier.testTag(SummaryTags.FINISHED_EARLY),
+                            )
+                            Text(
+                                EarlyFinishCopy.SKIPPED_LIFTS + ": " + completion.skippedLiftNames.joinToString(", "),
+                                style = InstrumentType.body,
+                                color = TextSecondary,
+                                modifier = Modifier.testTag(SummaryTags.SKIPPED_LIFTS),
+                            )
+                        }
+                        when (val credit = state.planCredit) {
+                            is com.sinura.personaltrainer.domain.PlanCreditUiState.Credited -> {
+                                Text(
+                                    PlanCreditCopy.CREDITED,
+                                    style = InstrumentType.body,
+                                    color = TextSecondary,
+                                    modifier = Modifier.testTag(SummaryTags.PLAN_CREDITED),
+                                )
+                                TextButton(onClick = onUndoPlanCredit, modifier = Modifier.testTag(SummaryTags.PLAN_UNDO)) {
+                                    Text(stringResource(R.string.summary_plan_credit_undo))
+                                }
+                            }
+                            is com.sinura.personaltrainer.domain.PlanCreditUiState.NeedsChoice -> {
+                                Text(
+                                    PlanCreditCopy.countPrompt(credit.dayTitle),
+                                    style = InstrumentType.body,
+                                    color = TextPrimary,
+                                    modifier = Modifier.testTag(SummaryTags.PLAN_PROMPT),
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                                    PrimaryGymButton(
+                                        text = PlanCreditCopy.COUNT,
+                                        onClick = onCountForPlan,
+                                        modifier = Modifier.testTag(SummaryTags.PLAN_COUNT),
+                                    )
+                                    SecondaryGymButton(
+                                        text = PlanCreditCopy.KEEP_SEPARATE,
+                                        onClick = onKeepPlanSeparate,
+                                        modifier = Modifier.testTag(SummaryTags.PLAN_KEEP),
+                                    )
+                                }
+                            }
+                            is com.sinura.personaltrainer.domain.PlanCreditUiState.Error -> {
+                                Text(
+                                    credit.message,
+                                    style = InstrumentType.body,
+                                    color = TextSecondary,
+                                    modifier = Modifier.testTag(SummaryTags.PLAN_ERROR),
+                                )
+                                if (credit.occurrenceId != null) {
+                                    TextButton(
+                                        onClick = onCountForPlan,
+                                        modifier = Modifier.testTag(SummaryTags.PLAN_COUNT),
+                                    ) {
+                                        Text(PlanCreditCopy.COUNT)
+                                    }
+                                }
+                            }
+                            null -> Unit
+                        }
                         SummaryFacts(summary, unit)
                         // Hidden until the plan read settles, with its row height reserved
                         // so the receipt does not jump when it lands.
                         val upNext = state.upNext
                         if (upNext != null) {
-                            UpNextLine(upNext, state.todayEpochDay, onOpenPlanDay)
+                            UpNextLine(
+                                upNext = upNext,
+                                todayEpochDay = state.todayEpochDay,
+                                onOpenPlanDay = onOpenPlanDay,
+                                onStartToday = onStartToday,
+                            )
                         } else {
                             Spacer(Modifier.height(Metrics.rowMin))
                         }
@@ -370,6 +451,34 @@ private fun SummaryHeading(summary: WorkoutSummary) {
  */
 @Composable
 private fun SummaryFacts(summary: WorkoutSummary, unit: WeightUnit) {
+  val auxiliary = summary.isAuxiliaryPack
+  if (auxiliary) {
+    FlowRow(
+      modifier = Modifier.fillMaxWidth().testTag(SummaryTags.FACTS),
+      horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+      verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+    ) {
+      StatTile(
+        label = SummaryCopy.DURATION,
+        value = summary.durationMinutes.coerceAtLeast(1).toString(),
+        unit = "min",
+        modifier = Modifier.testTag(SummaryTags.DURATION),
+      )
+      if (summary.auxiliaryHoldSets > 0) {
+        StatTile(
+          label = "Holds",
+          value = summary.auxiliaryHoldSets.toString(),
+          spokenOverride = pluralStringResource(
+            R.plurals.summary_auxiliary_holds,
+            summary.auxiliaryHoldSets,
+            summary.auxiliaryHoldSets,
+          ),
+          modifier = Modifier.testTag(SummaryTags.WORKING_SETS),
+        )
+      }
+    }
+    return
+  }
     val volumeWhole = WeightConverter.formatVolumeNumber(summary.volumeKg, unit)
     val prLabel = summary.recordCount.toString()
     FlowRow(
@@ -684,6 +793,15 @@ object SummaryTags {
     const val PR_COUNT = "summary-pr-count"
     const val TEMPO_NEXT = "summary-tempo-next"
     const val FIRST_WORKOUT = "summary-first-workout"
+    const val FINISHED_EARLY = "summary-finished-early"
+    const val SKIPPED_LIFTS = "summary-skipped-lifts"
+    const val PLAN_CREDITED = "summary-plan-credited"
+    const val PLAN_UNDO = "summary-plan-undo"
+    const val PLAN_PROMPT = "summary-plan-prompt"
+    const val PLAN_COUNT = "summary-plan-count"
+    const val PLAN_KEEP = "summary-plan-keep"
+    const val PLAN_ERROR = "summary-plan-error"
+    const val UP_NEXT_START = "summary-up-next-start"
     fun lift(exerciseId: String) = "summary-lift-$exerciseId"
     fun art(exerciseId: String) = "summary-art-$exerciseId"
     fun recordArt(exerciseId: String) = "summary-record-art-$exerciseId"

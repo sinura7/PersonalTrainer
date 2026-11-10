@@ -829,7 +829,6 @@ private fun ActiveWorkoutContent(
                             restTotalSeconds = rest.totalSeconds,
                             restRunning = rest.running,
                             restCompleted = rest.completedTimerId != null && !rest.running,
-                            onStartNext = viewModel::completeLiftTransition,
                             onChooseOther = { liftSwitcherOpen = true },
                             modifier = Modifier.fillMaxSize(),
                         )

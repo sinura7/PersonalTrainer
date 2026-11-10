@@ -802,7 +802,10 @@ class SessionDetailViewModel internal constructor(
             try {
                 runCatchingCancellable { container.workoutRepository.deleteFinishedSessionAcknowledged(sessionId) }
                     .onSuccess { changed ->
-                        if (changed) markSummaryChanged()
+                        if (changed) {
+                            container.preferencesRepository.setPlanCreditKeptSeparate(sessionId, kept = false)
+                            markSummaryChanged()
+                        }
                         _deleted.value = true
                     }
                     .onFailure { report(it, "Could not delete that session. Try again.") }

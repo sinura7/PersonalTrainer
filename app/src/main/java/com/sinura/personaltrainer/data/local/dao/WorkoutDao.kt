@@ -26,13 +26,15 @@ const val WORKING_SET_COUNTS_SINCE_SQL = """
         SELECT sl.exerciseId AS exerciseId,
                ws.finishedAt AS finishedAt,
                ws.gymId AS sessionGymId,
+               ws.routineId AS routineId,
+               ws.routineName AS routineName,
                COUNT(*) AS workingSets
         FROM workout_sessions ws
         CROSS JOIN set_logs sl ON sl.sessionId = ws.id
         WHERE ws.finishedAt IS NOT NULL
           AND ws.finishedAt >= :sinceMs
           AND sl.isWarmup = 0
-        GROUP BY ws.id, sl.exerciseId, ws.gymId
+        GROUP BY ws.id, sl.exerciseId, ws.gymId, ws.routineId, ws.routineName
         ORDER BY ws.finishedAt ASC, sl.exerciseId ASC
         """
 
@@ -516,6 +518,48 @@ interface WorkoutDao {
 
     @Query(
         """
+        SELECT COUNT(*) AS priorSetCount,
+               MAX(sl.weightKg) AS maxWeightKg,
+               MAX(sl.reps) AS maxReps,
+               MAX(CASE WHEN sl.weightKg = :weightKg THEN sl.reps ELSE NULL END) AS maxRepsAtWeight,
+               MAX(
+                 CASE WHEN sl.weightKg >= :weightKg THEN sl.reps ELSE NULL END
+               ) AS maxRepsAtEqualOrMoreAssistance,
+               MAX(
+                 CASE
+                   WHEN sl.weightKg <= 0 THEN NULL
+                   WHEN sl.reps = 1 THEN sl.weightKg
+                   WHEN sl.reps BETWEEN 2 AND 12 THEN sl.weightKg * (1.0 + sl.reps / 30.0)
+                   ELSE NULL
+                 END
+               ) AS maxEstimatedOneRepMaxKg
+        FROM set_logs sl
+        JOIN workout_sessions ws ON ws.id = sl.sessionId
+        WHERE sl.exerciseId = :exerciseId
+          AND sl.isWarmup = 0
+          AND sl.reps > 0
+          AND (
+            sl.completedAt < :completedAt
+            OR (sl.completedAt = :completedAt AND sl.setNumber < :setNumber)
+          )
+          AND (ws.finishedAt IS NOT NULL OR sl.sessionId = :sessionId)
+          AND (:scopeShared = 1 OR ws.gymId IS :scopeGymId)
+          AND (ws.routineId IS NULL OR ws.routineId NOT IN (:excludeRoutineIds))
+        """,
+    )
+    suspend fun recordPriorsBeforeExcludingAuxiliary(
+        exerciseId: String,
+        sessionId: String,
+        weightKg: Double,
+        completedAt: Long,
+        setNumber: Int,
+        scopeShared: Boolean,
+        scopeGymId: String?,
+        excludeRoutineIds: List<String>,
+    ): ExerciseRecordPriorsRow
+
+    @Query(
+        """
         SELECT targetReps FROM session_exercises
         WHERE exerciseId = :exerciseId
           AND sessionId IN (SELECT id FROM workout_sessions WHERE finishedAt IS NOT NULL)
@@ -564,6 +608,8 @@ interface WorkoutDao {
                e.loadType AS loadType,
                e.equipment AS equipment,
                ws.gymId AS sessionGymId,
+               ws.routineId AS sessionRoutineId,
+               ws.routineName AS sessionRoutineName,
                sl.weightKg AS weightKg,
                sl.reps AS reps,
                sl.completedAt AS completedAt

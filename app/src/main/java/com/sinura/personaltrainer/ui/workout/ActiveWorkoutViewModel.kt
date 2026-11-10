@@ -35,6 +35,7 @@ import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
+import com.sinura.personaltrainer.workout.PlanCreditOnFinish
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.EffortPrefillPolicy
 import com.sinura.personaltrainer.domain.EffortSource
@@ -2329,7 +2330,13 @@ class ActiveWorkoutViewModel internal constructor(
             WorkoutPrimaryKind.START_HOLD -> startHoldSet()
             WorkoutPrimaryKind.LOG_SET, WorkoutPrimaryKind.LOG_WARMUP, WorkoutPrimaryKind.LOG_HOLD, WorkoutPrimaryKind.SAVE_CHANGES ->
                 logSetWithDuration(action.durationSeconds, freezeDisplayedDuration = true)
-            WorkoutPrimaryKind.NEXT_EXERCISE -> action.identity.nextExerciseId?.let(::beginLiftTransition)
+            WorkoutPrimaryKind.NEXT_EXERCISE -> {
+                if (liftTransitionNextIdStore.value != null) {
+                    completeLiftTransition()
+                } else {
+                    action.identity.nextExerciseId?.let(::beginLiftTransition)
+                }
+            }
             WorkoutPrimaryKind.RETRY_SAVE -> retrySave()
             WorkoutPrimaryKind.FINISH, WorkoutPrimaryKind.REVIEW_SAVE -> Unit // The screen opens its confirmation/details.
             WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING, WorkoutPrimaryKind.UPDATING, WorkoutPrimaryKind.GET_READY -> return false
@@ -2900,7 +2907,17 @@ class ActiveWorkoutViewModel internal constructor(
         launchEntryMutation(source = ERR_FINISH) {
             when (val outcome = sessionNotes.finishWithLatest { notes -> container.finishWorkout(sessionId, notes) }) {
                 is FinishOutcome.Finished -> {
+                    val bound = PendingOccurrence.followedBy(container, outcome.sessionId)
                     PendingOccurrence.complete(container, outcome.sessionId)
+                    val finishedSession = container.workoutRepository.getSession(outcome.sessionId)
+                    if (finishedSession != null) {
+                        PlanCreditOnFinish.afterFinish(
+                            deps = container,
+                            session = finishedSession,
+                            boundOccurrenceId = bound,
+                            todayEpochDay = todayEpochDay(),
+                        )
+                    }
                     error.clearFrom(source = ERR_FINISH, before = started)
                     // The use case clears the process-wide cache; the SavedStateHandle mirror
                     // is scoped to this nav entry and unreachable from anywhere else, so it

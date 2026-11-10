@@ -38,14 +38,13 @@ class LiftTransitionPanelStatesRenderTest {
                     restTotalSeconds = 90,
                     restRunning = true,
                     restCompleted = false,
-                    onStartNext = {},
                     onChooseOther = {},
                 )
             }
         }
         compose.onNodeWithTag(WorkoutTestTags.LIFT_TRANSITION).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.BETWEEN_MINI_RING).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.BETWEEN_OTHER).assertIsDisplayed()
     }
 
     @Test
@@ -68,7 +67,6 @@ class LiftTransitionPanelStatesRenderTest {
                     restTotalSeconds = 60,
                     restRunning = false,
                     restCompleted = false,
-                    onStartNext = {},
                     onChooseOther = {},
                 )
             }
@@ -96,7 +94,6 @@ class LiftTransitionPanelStatesRenderTest {
                     restTotalSeconds = 60,
                     restRunning = false,
                     restCompleted = true,
-                    onStartNext = {},
                     onChooseOther = {},
                 )
             }

@@ -98,6 +98,7 @@ class LiveCardioStatesRenderTest {
         val vm = viewModel(id, clock)
         vm.uiState.awaitFirst { it.session != null }
         show(vm)
+        compose.onNodeWithTag(CardioTags.TYPE_CHIP).performClick()
         compose.onNodeWithText(CardioCopy.name(CardioType.WALK)).performClick()
         compose.waitForIdle()
         assertEquals(CardioType.WALK, vm.uiState.awaitFirst { it.type == CardioType.WALK }.type)
