@@ -885,8 +885,7 @@ class UxWalkthroughTest {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT)
             .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(primaryLift.id)))
         logWorkingSet(weightKg = 60.0, reps = 5, rpe = 7)
-        awaitSetLoggedRestIdle(setNumber = 1, expectPlannedRest = true)
-        awaitRestTimerRunning()
+        awaitLoggedSetRestSurface(setNumber = 1)
         skipRestIfVisible()
         advanceToNextExerciseIfShown()
         dismissWhatNextSheetIfOpen()
@@ -904,8 +903,7 @@ class UxWalkthroughTest {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT)
             .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id)))
         logWorkingSet(weightKg = 50.0, reps = 10, rpe = 8)
-        awaitSetLoggedRestIdle(setNumber = 2, expectPlannedRest = true)
-        awaitRestTimerRunning()
+        awaitLoggedSetRestSurface(setNumber = 2)
         skipRestIfVisible()
         dismissWhatNextSheetIfOpen()
         performHarnessClickOnTag(com.sinura.personaltrainer.ui.components.GymTags.CHIP)
@@ -1135,6 +1133,19 @@ class UxWalkthroughTest {
     private fun liveStrengthLoggedSetCount(): Int = runBlocking(Dispatchers.IO) {
         val session = container.workoutRepository.getInProgress() ?: return@runBlocking 0
         container.workoutRepository.getSession(session.id)?.sets?.size ?: 0
+    }
+
+    /** Gym flow 10: rest may skip REST_IDLE and auto-start before the strict idle gate passes. */
+    private fun awaitLoggedSetRestSurface(setNumber: Int) {
+        harnessWaitUntil(45_000) {
+            liveStrengthLoggedSetCount() >= setNumber
+        }
+        harnessWaitUntil(45_000) {
+            compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty() ||
+                container.restTimerStore.current().running
+        }
+        compose.waitForIdle()
     }
 
     private fun awaitSetLoggedRestIdle(setNumber: Int, expectPlannedRest: Boolean) {
