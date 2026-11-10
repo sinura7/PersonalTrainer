@@ -181,6 +181,8 @@ fun WorkoutPreviewScreen(
     backEnabled: Boolean = true,
     /** False hides Reorder, for a preview whose order is not editable (History Repeat). */
     showReorder: Boolean = true,
+    gymShortName: String? = null,
+    onChangeGym: (() -> Unit)? = null,
 ) {
     Dialog(
         onDismissRequest = { if (backEnabled) onBack() },
@@ -190,6 +192,7 @@ fun WorkoutPreviewScreen(
             model = model, unit = unit, onBegin = onBegin, onBack = onBack, onReorder = onReorder,
             onAddLift = onAddLift, beginState = beginState, beginLabel = beginLabel, showReorder = showReorder,
             contextContent = contextContent, actionKey = actionKey, backEnabled = backEnabled,
+            gymShortName = gymShortName, onChangeGym = onChangeGym,
         )
     }
 }
@@ -208,6 +211,8 @@ internal fun WorkoutPreviewContent(
     actionKey: Any? = null,
     backEnabled: Boolean = true,
     showReorder: Boolean = true,
+    gymShortName: String? = null,
+    onChangeGym: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
@@ -235,6 +240,22 @@ internal fun WorkoutPreviewContent(
                         style = InstrumentType.caption, color = TextSecondary,
                     )
                 }
+            }
+        }
+        if (gymShortName != null && onChangeGym != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Metrics.gutter),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.gym_at_preview, gymShortName),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    modifier = Modifier.weight(1f),
+                )
+                GhostButton(label = stringResource(R.string.gym_change), onClick = onChangeGym)
             }
         }
         Column(

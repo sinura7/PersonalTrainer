@@ -57,11 +57,12 @@ import com.sinura.personaltrainer.domain.LiveBarCopy
 import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GhostButton
+import com.sinura.personaltrainer.ui.components.GymPickerList
 import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -71,6 +72,9 @@ import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
+import androidx.compose.ui.draw.alpha
+import com.sinura.personaltrainer.domain.GymVisit
 import java.time.LocalDate
 import java.time.format.TextStyle
 
@@ -120,6 +124,13 @@ fun StartChooser(
     val page = runCatching { StartPage.valueOf(pageName) }.getOrDefault(StartPage.CHOOSER_PAGE)
     var kitName by rememberSaveable { mutableStateOf<String?>(null) }
     var previewRoutineId by rememberSaveable { mutableStateOf<String?>(null) }
+    var previewGymId by rememberSaveable { mutableStateOf<String?>(null) }
+    val chooserGymId by gate.chooserGymId.collectAsStateWithLifecycle()
+    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as com.sinura.personaltrainer.PersonalTrainerApp
+    val gyms by app.container.gymRepository.observeActiveGyms().collectAsStateWithLifecycle(initialValue = emptyList())
+    val gymVisits by app.container.gymRepository.observeVisits().collectAsStateWithLifecycle(initialValue = emptyMap())
+    LaunchedEffect(Unit) { gate.onChooserOpened() }
+    LaunchedEffect(previewRoutineId) { previewGymId = null }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     // Capture the attempt this frame presents: a callback from an older frame acts on nothing.
     val renderedAttemptId = starting.attemptId
@@ -250,6 +261,10 @@ fun StartChooser(
                 StartPage.CHOOSER_PAGE -> MainPage(
                     state = state,
                     enabled = startsEnabled,
+                    chooserGymId = chooserGymId,
+                    gyms = gyms,
+                    gymVisits = gymVisits,
+                    onPickGym = { gate.setChooserGym(it) },
                     onResume = {
                         onDismiss()
                         onWorkoutStarted(it)
@@ -261,10 +276,14 @@ fun StartChooser(
                     onDiscard = { confirmDiscard = true },
                     onStartToday = {
                         val today = state.todayStart
-                        if (today != null && mayStart()) gate.startToday(start = today)
+                        val gym = chooserGymId
+                        if (today != null && gym != null && mayStart()) gate.startToday(start = today, gymId = gym)
                     },
                     onStartRoutine = { if (mayOpenStart()) previewRoutineId = it },
-                    onStartEmpty = { if (mayStart()) gate.startFreeWorkout() },
+                    onStartEmpty = {
+                        val gym = chooserGymId
+                        if (gym != null && mayStart()) gate.startFreeWorkout(gymId = gym)
+                    },
                     onOther = { if (mayOpenStart()) pageName = StartPage.OTHER_PAGE.name },
                     onOpenPlan = {
                         onDismiss()
@@ -301,7 +320,10 @@ fun StartChooser(
                 )
                 StartPage.EXTRA_PAGE -> AuxiliaryPackList(
                     usedPackIds = emptySet(),
-                    onPick = { if (mayStart()) gate.startAux(packId = it) },
+                    onPick = { packId ->
+                        val gym = chooserGymId ?: return@AuxiliaryPackList
+                        if (mayStart()) gate.requestStart(StartCommand.Aux(packId = packId, gymId = gym))
+                    },
                     onCancel = { pageName = StartPage.OTHER_PAGE.name },
                     suggestedKit = suggestedKit,
                     modifier = Modifier.testTag(StartTags.EXTRA_PAGE),
@@ -319,7 +341,11 @@ fun StartChooser(
         HomeStartPrompt(
             routine = previewRoutine,
             unit = LocalWeightUnit.current,
-            loadWeights = gate::previewWeights,
+            loadWeights = { routine, gymId -> gate.previewWeights(routine, gymId) },
+            gyms = gyms,
+            gymVisits = gymVisits,
+            pickedGymId = previewGymId,
+            onPickGym = { previewGymId = it },
             onEditRoutine = { id ->
                 previewRoutineId = null
                 onDismiss()
@@ -335,10 +361,13 @@ fun StartChooser(
                 else -> stringResource(R.string.home_preview_begin)
             },
             onConfirm = {
-                if (previewRoutineId == previewRoutine.id && owns()) gate.startRoutine(routineId = previewRoutine.id)
+                val gym = previewGymId ?: return@HomeStartPrompt
+                if (previewRoutineId == previewRoutine.id && owns()) {
+                    gate.startRoutine(routineId = previewRoutine.id, gymId = gym)
+                }
             },
             onDismiss = { previewRoutineId = null },
-            confirmEnabled = !starting.pending && starting.error == null && blocked == null,
+            confirmEnabled = !starting.pending && starting.error == null && blocked == null && previewGymId != null,
             dismissEnabled = !starting.pending,
             canDismiss = { !gate.startState.value.pending },
             canConfirm = owns,
@@ -414,6 +443,10 @@ private fun GateStatus(
 internal fun MainPage(
     state: StartOptionsUiState,
     enabled: Boolean,
+    chooserGymId: String?,
+    gyms: List<com.sinura.personaltrainer.domain.Gym>,
+    gymVisits: Map<String?, GymVisit>,
+    onPickGym: (String) -> Unit,
     onResume: (String) -> Unit,
     onResumeActivity: (String) -> Unit,
     onDiscard: () -> Unit,
@@ -424,15 +457,38 @@ internal fun MainPage(
     onOpenPlan: () -> Unit,
     onOpenRoutines: () -> Unit,
 ) {
+    val gymPicked = chooserGymId != null
+    val groupsEnabled = enabled && gymPicked
+    Column(modifier = Modifier.testTag(StartTags.GYM_GROUP)) {
+        Kicker(
+            stringResource(R.string.gym_step_kicker),
+            color = if (gymPicked) TextTertiary else Volt,
+        )
+        GymPickerList(
+            gyms = gyms,
+            visits = gymVisits,
+            selectedId = chooserGymId,
+            onPick = onPickGym,
+            enabled = enabled && state.inProgress == null && state.liveActivity == null,
+        )
+        Text(
+            stringResource(R.string.gym_step_caption),
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
+    }
     Group(kicker = stringResource(R.string.start_group_today)) {
+        Column(Modifier.alpha(if (gymPicked) 1f else 0.38f)) {
         if (state.isLoading) {
             // Never blank: a quiet placeholder holds the row's place until the plan is read.
             Column(modifier = Modifier.fillMaxWidth().height(Metrics.commit).background(Surface2)) {}
         } else {
-            TodayRow(state, enabled, onResume, onResumeActivity, onDiscard, onStartToday, onOpenPlan)
+            TodayRow(state, groupsEnabled, onResume, onResumeActivity, onDiscard, onStartToday, onOpenPlan)
+        }
         }
     }
     Group(kicker = stringResource(R.string.start_group_routine)) {
+        Column(Modifier.alpha(if (gymPicked) 1f else 0.38f)) {
         val routines = StartGroups.routines(state.routines)
         if (routines.isEmpty()) {
             Text(
@@ -454,7 +510,7 @@ internal fun MainPage(
                             routine.exercises.size,
                         ),
                         onClick = { onStartRoutine(routine.id) },
-                        enabled = enabled && routine.exercises.isNotEmpty(),
+                        enabled = groupsEnabled && routine.exercises.isNotEmpty(),
                         modifier = Modifier.heightIn(min = Metrics.rowMin).testTag(StartTags.routine(routine.id)),
                     )
                 }
@@ -468,15 +524,18 @@ internal fun MainPage(
                 }
             }
         }
+        }
     }
     Group(kicker = stringResource(R.string.start_group_empty)) {
+        Column(Modifier.alpha(if (gymPicked) 1f else 0.38f)) {
         SecondaryGymButton(
             text = stringResource(R.string.start_empty),
             onClick = onStartEmpty,
-            enabled = enabled,
+            enabled = groupsEnabled,
             height = Metrics.rowMin,
             modifier = Modifier.fillMaxWidth().testTag(StartTags.START_EMPTY),
         )
+        }
     }
     Group(kicker = stringResource(R.string.start_group_other)) {
         GroupedList {

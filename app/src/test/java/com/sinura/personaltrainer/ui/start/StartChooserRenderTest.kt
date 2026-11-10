@@ -132,6 +132,10 @@ class StartChooserRenderTest {
                     MainPage(
                         state = state,
                         enabled = enabled,
+                        chooserGymId = null,
+                        gyms = emptyList(),
+                        gymVisits = emptyMap(),
+                        onPickGym = {},
                         onResume = { taps += "resume:$it" },
                         onResumeActivity = { taps += "activity:$it" },
                         onDiscard = { taps += "discard" },

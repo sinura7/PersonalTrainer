@@ -53,6 +53,7 @@ class BackupV6GymRestoreWithoutSessionsTest {
             activities = listOf(
                 BackupActivity(
                     id = "act-1",
+                    gymId = gym.id,
                     status = "COMPLETED",
                     origin = "BACKDATED",
                     source = "TEMPER",
@@ -74,5 +75,6 @@ class BackupV6GymRestoreWithoutSessionsTest {
         assertEquals(1, gyms.size)
         assertEquals(gym.id, gyms.single().id)
         assertEquals(1, database.activityDao().getAllGraphs().size)
+        assertEquals(gym.id, database.activityDao().getAllGraphs().single().session.gymId)
     }
 }

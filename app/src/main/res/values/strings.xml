@@ -319,4 +319,35 @@
     <string name="body_record_line">%1$s %2$s × %3$d · %4$s · %5$s</string>
     <string name="body_volume_spoken">%1$s working sets. This week: %2$d. Last 8 weeks: %3$d.</string>
     <string name="history_records_on_body">See records on Body</string>
+    <!-- Gym profiles (packet G2) -->
+    <string name="gym_step_kicker">Step 1 · Where are you training?</string>
+    <string name="gym_step_caption">Machines keep their own numbers at each gym. Free weights are shared.</string>
+    <string name="gym_training_at">Training at</string>
+    <string name="gym_change">Change</string>
+    <string name="gym_pick_first">Pick a gym first</string>
+    <string name="gym_pick_sheet_title">Where are you training?</string>
+    <string name="gym_pick_gym">Pick gym</string>
+    <string name="gym_picker_retry">Try again</string>
+    <string name="gym_unassigned_label">Unassigned</string>
+    <string name="gym_unassigned_caption">Machine history from before gyms</string>
+    <string name="gym_archived_suffix"> · archived</string>
+    <string name="gym_filter_all">All</string>
+    <string name="gym_move_title">Move this workout</string>
+    <string name="gym_move_caption">Machine numbers and hints refresh from the gym you pick.</string>
+    <string name="gym_new_here_lead">New here</string>
+    <string name="gym_new_here_short">New here</string>
+    <string name="gym_new_here_body">No %1$s history at %2$s yet.</string>
+    <string name="gym_new_here_no_history">No history for this machine yet.</string>
+    <string name="gym_at_preview">At %1$s · Change</string>
+    <string name="gym_begin_at">Begin at %1$s</string>
+    <string name="gym_lifts_for">Lifts · weights for %1$s</string>
+    <string name="gym_shared_caption">Shared</string>
+    <string name="gym_first_time">First time</string>
+    <string name="gym_composer_field">Gym</string>
+    <string name="gym_composer_not_sure">Not sure (Unassigned)</string>
+    <string name="gym_composer_pick_required">Pick a gym</string>
+    <string name="gym_upgrade_sheet_title">Which gym is this workout at?</string>
+    <string name="gym_upgrade_decide_later">Decide later</string>
+    <string name="gym_summary_at">at %1$s</string>
+    <string name="gym_pr_at">PR at %1$s</string>
 </resources>

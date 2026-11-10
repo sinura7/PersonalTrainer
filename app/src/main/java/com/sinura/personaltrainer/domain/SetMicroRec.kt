@@ -107,6 +107,7 @@ object SetMicroRecCalculator {
     const val LIFT_DONE = "LIFT_DONE"
     const val NO_HISTORY = "NO_HISTORY"
     const val FIRST_SET = "FIRST_SET"
+    const val NEW_AT_GYM = "NEW_AT_GYM"
     const val WARMUP_DONE = "WARMUP_DONE"
     const val SKIP_RPE_HOLD = "SKIP_RPE_HOLD"
     const val SKIP_RPE_DROP = "SKIP_RPE_DROP"

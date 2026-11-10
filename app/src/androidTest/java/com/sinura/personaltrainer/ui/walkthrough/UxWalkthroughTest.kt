@@ -588,6 +588,8 @@ class UxWalkthroughTest {
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston"))
+            .performScrollTo().performClick()
         compose.onNodeWithTag(StartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
@@ -835,6 +837,8 @@ class UxWalkthroughTest {
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston"))
+            .performScrollTo().performClick()
         compose.onNodeWithTag(StartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()

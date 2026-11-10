@@ -1,4 +1,6 @@
-package com.sinura.personaltrainer.ui.start
+package com.sinura.personaltrainer
+
+import com.sinura.personaltrainer.testutil.TestGymIds
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,6 +19,9 @@ import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.ui.home.HomeReadState
 import com.sinura.personaltrainer.ui.home.HomeViewModel
+import com.sinura.personaltrainer.ui.start.StartChooserHost
+import com.sinura.personaltrainer.ui.start.StartTags
+import com.sinura.personaltrainer.ui.start.startGateFor
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.workout.awaitThat
 import kotlinx.coroutines.Dispatchers
@@ -68,8 +73,8 @@ class SharedStartGateTest {
     fun aDoubleStartFromANonHomeTabAdmitsOneWorkout() {
         showOffHome()
         // Two taps from one frame: the second is refused by the gate, not by recomposition.
-        val first = compose.runOnUiThread { gate.startFreeWorkout() }
-        val second = compose.runOnUiThread { gate.startFreeWorkout() }
+        val first = compose.runOnUiThread { gate.startFreeWorkout(TestGymIds.WESTON) }
+        val second = compose.runOnUiThread { gate.startFreeWorkout(TestGymIds.WESTON) }
         assertTrue(first)
         assertFalse("the second start in flight is refused", second)
         compose.awaitThat("the one admitted start opens its workout", { started }) { started.isNotEmpty() }
@@ -81,9 +86,9 @@ class SharedStartGateTest {
 
     @Test
     fun aStartDuringALiveWorkoutFromANonHomeTabIsBlocked() {
-        val live = runBlocking { deps.workoutRepository.startFreeWorkout() }
+        val live = runBlocking { deps.workoutRepository.startFreeWorkout(TestGymIds.WESTON) }
         showOffHome()
-        compose.runOnUiThread { gate.startFreeWorkout() }
+        compose.runOnUiThread { gate.startFreeWorkout(TestGymIds.WESTON) }
         compose.awaitThat("the live workout blocks the start", { gate.blockedByInProgress.value }) {
             gate.blockedByInProgress.value != null || !gate.startState.value.pending
         }
@@ -115,7 +120,7 @@ class SharedStartGateTest {
         assertEquals(listOf("mixed"), composers)
         assertNull("nothing stays queued", gate.navigateToComposer.value)
         assertEquals("the chooser closes once for the composer", 1, dismisses)
-        val later = compose.runOnUiThread { gate.startFreeWorkout() }
+        val later = compose.runOnUiThread { gate.startFreeWorkout(TestGymIds.WESTON) }
         assertTrue("a later start is admitted", later)
         compose.awaitThat("the later start opens its workout", { started }) { started.isNotEmpty() }
         compose.waitForIdle()

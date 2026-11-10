@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
 import kotlinx.coroutines.flow.first
+import com.sinura.personaltrainer.ui.start.StartCommand
 import com.sinura.personaltrainer.ui.start.StartGate
 import com.sinura.personaltrainer.ui.workout.PreviewWeights
 import com.sinura.personaltrainer.ui.workout.ProgressionHintLoader
@@ -19,6 +20,8 @@ import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.DayBlockOrder
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.ExtraEquipment
+import com.sinura.personaltrainer.domain.Gym
+import com.sinura.personaltrainer.domain.GymVisit
 import com.sinura.personaltrainer.domain.HomeLogged
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
@@ -157,7 +160,7 @@ class HomeViewModel @JvmOverloads constructor(
      * read on its own: a failed read drops only that lift, which then reads "First time" and
      * falls back to its planned target, and Begin is never blocked.
      */
-    override suspend fun previewWeights(routine: Routine): PreviewWeights {
+    override suspend fun previewWeights(routine: Routine, gymId: String): PreviewWeights {
         val settings = try {
             ProgressionHintLoader(container = container, sessionId = "").settings().first()
         } catch (thrown: CancellationException) {
@@ -173,7 +176,7 @@ class HomeViewModel @JvmOverloads constructor(
                 container.workoutRepository.lastPerformance(
                     exerciseId = id,
                     equipment = planned.exercise.equipment,
-                    gymId = null,
+                    gymId = gymId,
                 )?.topSet?.weightKg
             }?.let { last[id] = it }
             if (settings != null) {
@@ -187,12 +190,39 @@ class HomeViewModel @JvmOverloads constructor(
                         unit = settings.unit,
                         lighterWeek = settings.lighterWeek,
                         equipment = planned.exercise.equipment,
-                        gymId = null,
+                        gymId = gymId,
                     )?.suggestedWeightKg
                 }?.let { suggested[id] = it }
             }
         }
         return PreviewWeights(lastKg = last, suggestedKg = suggested)
+    }
+
+    override fun onChooserOpened() {
+        _chooserGymId.value = null
+    }
+
+    override fun setChooserGym(gymId: String) {
+        _chooserGymId.value = gymId
+    }
+
+    override fun clearPendingGymPick() {
+        _pendingGymCommand.value = null
+    }
+
+    override fun fulfillGymPick(gymId: String, expectedAttemptId: Long?): Boolean {
+        if (!matchesStartAttempt(expectedAttemptId)) return false
+        val pending = _pendingGymCommand.value ?: return false
+        _pendingGymCommand.value = null
+        return requestStart(pending.withGym(gymId), expectedAttemptId = expectedAttemptId)
+    }
+
+    override fun requestStart(command: StartCommand, expectedAttemptId: Long?): Boolean {
+        if (command.requiresGym() && command.gymId == null) {
+            _pendingGymCommand.value = command
+            return false
+        }
+        return admitStart(command = command, explicitRetry = expectedAttemptId != null)
     }
 
     private suspend fun perLift(read: suspend () -> Double?): Double? = try {
@@ -205,6 +235,10 @@ class HomeViewModel @JvmOverloads constructor(
     private val bodyweightSave = MutableStateFlow(BodyweightSave())
     private val _startState = MutableStateFlow(HomeStartState())
     override val startState: StateFlow<HomeStartState> = _startState.asStateFlow()
+    private val _chooserGymId = MutableStateFlow<String?>(null)
+    override val chooserGymId: StateFlow<String?> = _chooserGymId.asStateFlow()
+    private val _pendingGymCommand = MutableStateFlow<StartCommand?>(null)
+    override val pendingGymCommand: StateFlow<StartCommand?> = _pendingGymCommand.asStateFlow()
     private var startAttemptSerial = 0L
     private var startCommand: StartCommand? = null
     private var blockedStartCommand: StartCommand? = null
@@ -223,6 +257,11 @@ class HomeViewModel @JvmOverloads constructor(
     private var authoritativeRetryPending = false
     private var healthRevision = 0L
     private val terminalReminderRequests = mutableSetOf<String>()
+
+    val activeGyms: StateFlow<List<Gym>> = container.gymRepository.observeActiveGyms()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val gymVisits: StateFlow<Map<String?, GymVisit>> = container.gymRepository.observeVisits()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     val uiState: StateFlow<HomeUiState> = combine(
         board,
@@ -644,15 +683,16 @@ class HomeViewModel @JvmOverloads constructor(
 
     private suspend fun executeStart(command: StartCommand) {
         when (command) {
-            StartCommand.Free -> openWorkout(
-                outcome = container.workoutRepository.startFreeWorkoutSafely(),
+            is StartCommand.Free -> openWorkout(
+                outcome = container.workoutRepository.startFreeWorkoutSafely(gymId = command.gymId),
                 blockedDay = freeDay(),
             )
-            is StartCommand.Routine -> startRoutineCommand(routineId = command.routineId)
+            is StartCommand.Routine -> startRoutineCommand(routineId = command.routineId, gymId = command.gymId)
             is StartCommand.Cardio -> startCardioCommand(type = command.type)
-            is StartCommand.Aux -> startAuxCommand(packId = command.packId)
+            is StartCommand.Aux -> startAuxCommand(packId = command.packId, gymId = command.gymId)
             is StartCommand.Suggested -> start(
                 day = command.day,
+                gymId = command.gymId,
                 occurrenceId = PendingOccurrence.plannedOccurrenceId(deps = container, day = command.day),
             )
             is StartCommand.Occurrence -> startOccurrenceCommand(command = command)
@@ -685,27 +725,20 @@ class HomeViewModel @JvmOverloads constructor(
         executeStart(command = command.requested)
     }
 
-    override fun startSuggestedDay(day: SuggestedTrainingDay): Boolean {
-        // A confirmation owns the day it showed, even when selection or the plan changes.
-        // Consult the completed board directly: the presentation flow may still be behind it.
+    override fun startSuggestedDay(day: SuggestedTrainingDay, gymId: String): Boolean {
         if (!canMutate() || board.value.weekPlan?.dayOn(day.epochDay) != day) return false
-        return admitStart(command = StartCommand.Suggested(day = day))
+        return requestStart(StartCommand.Suggested(day = day, gymId = gymId))
     }
 
-    /**
-     * Empty session the lifter fills in real time. Not today's plan, so the
-     * pending occurrence is cleared — finishing this must not mark a Plan
-     * row DONE.
-     */
-    override fun startFreeWorkout(): Boolean {
-        return admitStart(command = StartCommand.Free)
+    override fun startFreeWorkout(gymId: String): Boolean {
+        return requestStart(StartCommand.Free(gymId = gymId))
     }
 
-    override fun startRoutine(routineId: String): Boolean {
-        return admitStart(command = StartCommand.Routine(routineId = routineId))
+    override fun startRoutine(routineId: String, gymId: String): Boolean {
+        return requestStart(StartCommand.Routine(routineId = routineId, gymId = gymId))
     }
 
-    private suspend fun startRoutineCommand(routineId: String) {
+    private suspend fun startRoutineCommand(routineId: String, gymId: String?) {
         val routine = runCatchingCancellable { container.routineRepository.getById(id = routineId) }
             .getOrElse { thrown ->
                 AppLog.w(TAG, "Reading the routine to start failed", thrown)
@@ -721,13 +754,13 @@ class HomeViewModel @JvmOverloads constructor(
             return
         }
         openWorkout(
-            outcome = container.workoutRepository.startRoutineSafely(routine = routine),
+            outcome = container.workoutRepository.startRoutineSafely(routine = routine, gymId = gymId),
             blockedDay = freeDay(title = routine.name, routineId = routine.id),
         )
     }
 
     override fun startCardio(type: CardioType): Boolean {
-        return admitStart(command = StartCommand.Cardio(type = type))
+        return requestStart(StartCommand.Cardio(type = type))
     }
 
     private suspend fun startCardioCommand(type: CardioType) {
@@ -748,10 +781,10 @@ class HomeViewModel @JvmOverloads constructor(
     }
 
     override fun startAux(packId: String): Boolean {
-        return admitStart(command = StartCommand.Aux(packId = packId))
+        return requestStart(StartCommand.Aux(packId = packId))
     }
 
-    private suspend fun startAuxCommand(packId: String) {
+    private suspend fun startAuxCommand(packId: String, gymId: String?) {
         val pack = AuxiliaryPacks.byId(id = packId)
         if (pack == null) {
             failStart(message = "That extra is no longer available.", canRetry = false)
@@ -774,7 +807,7 @@ class HomeViewModel @JvmOverloads constructor(
             return
         }
         openWorkout(
-            outcome = container.workoutRepository.startRoutineSafely(routine = routine),
+            outcome = container.workoutRepository.startRoutineSafely(routine = routine, gymId = gymId),
             blockedDay = freeDay(title = pack.title, routineId = routine.id),
         )
     }
@@ -830,8 +863,10 @@ class HomeViewModel @JvmOverloads constructor(
      * (audit UI-1). A refused or failed start leaves the reminder as it was, except for a
      * leftover from an earlier day: moving it to today already cancels its reminders.
      */
-    override fun startOccurrence(occurrenceId: String, deliveryId: String?): Boolean {
-        return admitStart(command = StartCommand.Occurrence(occurrenceId = occurrenceId, deliveryId = deliveryId))
+    override fun startOccurrence(occurrenceId: String, gymId: String, deliveryId: String?): Boolean {
+        return requestStart(
+            StartCommand.Occurrence(occurrenceId = occurrenceId, deliveryId = deliveryId, gymId = gymId),
+        )
     }
 
     private suspend fun startOccurrenceCommand(command: StartCommand.Occurrence) {
@@ -843,7 +878,7 @@ class HomeViewModel @JvmOverloads constructor(
             failStart(message = ReminderCopy.START_FAILED)
             return
         } ?: return
-        when (val outcome = container.startOccurrence(occurrenceId = startId)) {
+        when (val outcome = container.startOccurrence(occurrenceId = startId, gymId = command.gymId)) {
             is StartOccurrenceOutcome.OpenWorkout -> {
                 PendingOccurrence.bindForSession(
                     deps = container,
@@ -899,7 +934,7 @@ class HomeViewModel @JvmOverloads constructor(
         if (_startState.value.error != null && retained == requested) {
             retryStart()
         } else {
-            startOccurrence(occurrenceId = occurrenceId, deliveryId = deliveryId)
+            requestStart(StartCommand.Occurrence(occurrenceId = occurrenceId, deliveryId = deliveryId, gymId = null))
         }
         return true
     }
@@ -963,10 +998,11 @@ class HomeViewModel @JvmOverloads constructor(
     /** Starts [day]. The [reminder] that asked for it is used up only if the session opens. */
     private suspend fun start(
         day: SuggestedTrainingDay,
+        gymId: String?,
         occurrenceId: String? = null,
         reminder: ReminderTap? = null,
     ) {
-        when (val outcome = container.startTrainingDay(day = day)) {
+        when (val outcome = container.startTrainingDay(day = day, gymId = gymId)) {
             is StartDayOutcome.Open -> {
                 // The binding is armed only now, for exactly this session. Arming
                 // before the outcome let a Blocked start leave the intent live, so
@@ -1181,26 +1217,6 @@ class HomeViewModel @JvmOverloads constructor(
      */
     fun requestAnswerReplay() {
         container.pendingAnswerReplay.value = true
-    }
-
-    private sealed interface StartCommand {
-        val originalOccurrenceId: String? get() = null
-
-        data object Free : StartCommand
-        data class Routine(val routineId: String) : StartCommand
-        data class Cardio(val type: CardioType) : StartCommand
-        data class Aux(val packId: String) : StartCommand
-        data class Suggested(val day: SuggestedTrainingDay) : StartCommand
-        data class Occurrence(val occurrenceId: String, val deliveryId: String?) : StartCommand {
-            override val originalOccurrenceId: String get() = occurrenceId
-        }
-        data class Discard(
-            val blocked: BlockedStart,
-            val requested: StartCommand,
-            val discarded: Boolean = false,
-        ) : StartCommand {
-            override val originalOccurrenceId: String? get() = requested.originalOccurrenceId
-        }
     }
 
     data class BlockedStart(

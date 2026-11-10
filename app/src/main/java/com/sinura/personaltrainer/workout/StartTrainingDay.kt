@@ -41,7 +41,7 @@ class StartTrainingDay(
     private val workoutRepository: WorkoutRepository,
     private val routineRepository: RoutineRepository,
 ) {
-    suspend operator fun invoke(day: SuggestedTrainingDay): StartDayOutcome {
+    suspend operator fun invoke(day: SuggestedTrainingDay, gymId: String? = null): StartDayOutcome {
         if (day.isRest) return StartDayOutcome.Ignored
 
         return runCatchingCancellable {
@@ -54,7 +54,7 @@ class StartTrainingDay(
                 // The read above gives the immediate message. The transactional outcome still
                 // owns the race where another start lands between that read and this write.
                 is StartDayDecision.StartRoutine -> when (
-                    val outcome = workoutRepository.startRoutineSafely(decision.routine)
+                    val outcome = workoutRepository.startRoutineSafely(decision.routine, gymId = gymId)
                 ) {
                     is StartSessionOutcome.Started -> StartDayOutcome.Open(outcome.session.id)
                     is StartSessionOutcome.Blocked ->
@@ -62,7 +62,7 @@ class StartTrainingDay(
                     is StartSessionOutcome.Unavailable -> StartDayOutcome.Failed(outcome.message)
                 }
                 is StartDayDecision.StartFree -> when (
-                    val outcome = workoutRepository.startFreeWorkoutSafely(decision.focusTitle)
+                    val outcome = workoutRepository.startFreeWorkoutSafely(decision.focusTitle, gymId = gymId)
                 ) {
                     is StartSessionOutcome.Started -> StartDayOutcome.Open(outcome.session.id)
                     is StartSessionOutcome.Blocked ->

@@ -4,4 +4,6 @@ package com.sinura.personaltrainer.domain
 object GymCopy {
     const val UNASSIGNED_TAG = "UN"
     const val RESTORED_GYM_NAME = "Restored gym"
+
+    fun startsOnPick(sessionName: String): String = "$sessionName starts as soon as you pick."
 }

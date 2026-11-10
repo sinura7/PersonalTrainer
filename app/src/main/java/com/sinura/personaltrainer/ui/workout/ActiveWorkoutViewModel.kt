@@ -77,6 +77,8 @@ import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.GymScope
+import com.sinura.personaltrainer.domain.OtherGymHint
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.ui.theme.Motion
@@ -219,6 +221,9 @@ data class ActiveWorkoutUiState(
     val effortValue: Int? = null,
     /** Whether [effortValue] is prefilled, coach-applied, user-picked, or absent (R1 lane B). */
     val effortSource: EffortSource = EffortSource.NONE,
+    val otherGymHint: OtherGymHint? = null,
+    /** Machine lift with no history at this gym: weight stays blank until the user types one. */
+    val machineWeightUnset: Boolean = false,
 ) {
     val isLoading: Boolean get() = loadState == SessionLoadState.LOADING
 
@@ -240,7 +245,10 @@ data class ActiveWorkoutUiState(
             return SetLogRules.validateEffort(rpe = effortValue, isWarmup = draft.isWarmup, isHold = hold) != null
         }
 
-    val logCommitReady: Boolean get() = canLog && !effortMissingForCommit
+    val machineWeightBlocksCommit: Boolean
+        get() = machineWeightUnset && !draft.isWarmup && draft.weightKg <= 0.0
+
+    val logCommitReady: Boolean get() = canLog && !effortMissingForCommit && !machineWeightBlocksCommit
 
     /** Explicit chip selection ([EffortSource.USER] or coach Apply [EffortSource.COACH]). */
     val effortChipSelected: Int?
@@ -678,6 +686,16 @@ class ActiveWorkoutViewModel internal constructor(
     /** The rest commands and the history reads this screen shares with the rest page. */
     private val restCommands = RestCommands(container, viewModelScope, sessionId)
     private val hintLoader = ProgressionHintLoader(container, sessionId)
+    private val otherGymHint = MutableStateFlow<OtherGymHint?>(null)
+    private val machineWeightUnset = MutableStateFlow(false)
+    val gymMovePrompt = MutableStateFlow<GymMovePrompt?>(null)
+    val showGymMovePicker = MutableStateFlow(false)
+
+    data class GymMovePrompt(
+        val targetGymId: String,
+        val targetShortName: String,
+        val machineSets: Int,
+    )
 
     /** The unit and the week's mark, as they change. The hint is read under them (W2e). */
     private val hintSettings: StateFlow<HintSettings?> =
@@ -1202,6 +1220,10 @@ class ActiveWorkoutViewModel internal constructor(
             effortSource = source,
             effortValue = state.draft.rpe.takeIf { effortApplies },
         )
+    }.combine(otherGymHint) { state, hint ->
+        state.copy(otherGymHint = hint)
+    }.combine(machineWeightUnset) { state, unset ->
+        state.copy(machineWeightUnset = unset)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -1265,6 +1287,17 @@ class ActiveWorkoutViewModel internal constructor(
             // decision of 25 September 2026).
             if (keepDraft) followSuggestion(exerciseId)
             lastPerformance.value = hintLoader.lastPerformance(exerciseId, planned)
+            val gymId = current.gymId
+            val equipment = planned?.exercise?.equipment
+            val newAtGym = gymId != null && equipment != null &&
+                GymScope.isGymSpecific(equipment) && lastPerformance.value == null
+            if (newAtGym) {
+                otherGymHint.value = container.workoutRepository.otherGymHint(exerciseId, gymId)
+                machineWeightUnset.value = true
+            } else {
+                otherGymHint.value = null
+                machineWeightUnset.value = false
+            }
             if (!isCurrentPrefill(exerciseId, generation)) return
             priorHistory.value = container.workoutRepository
                 .historyBefore(sessionId, listOf(exerciseId))[exerciseId].orEmpty()
@@ -1317,9 +1350,12 @@ class ActiveWorkoutViewModel internal constructor(
                     hintStamp.value = HintStamp(exerciseId = exerciseId, generation = generation, settings = settings)
                     wrote
                 } else {
-                    val lastWeight = progression?.suggestedWeightKg
-                        ?: planned?.targetWeightKg
-                        ?: 0.0
+                    val lastWeight = when {
+                        machineWeightUnset.value -> 0.0
+                        else -> progression?.suggestedWeightKg
+                            ?: planned?.targetWeightKg
+                            ?: 0.0
+                    }
                     val seededEffort = EffortPrefillPolicy.effortForAutomaticSeed(
                         isWarmup = false,
                         isHold = hold,
@@ -3311,6 +3347,59 @@ class ActiveWorkoutViewModel internal constructor(
         // lift without dropping the others.
         savedDraft.write(current, editingSetId.value)
         return stagePrivateEntry()
+    }
+
+    fun openGymMovePicker() {
+        if (session.value?.isFinished != false) return
+        showGymMovePicker.value = true
+    }
+
+    fun dismissGymMovePicker() {
+        showGymMovePicker.value = false
+    }
+
+    fun requestGymMove(targetGymId: String) {
+        val currentGym = session.value?.gymId
+        if (targetGymId == currentGym) {
+            showGymMovePicker.value = false
+            return
+        }
+        viewModelScope.launch {
+            val count = container.workoutRepository.machineSetCountForSession(sessionId)
+            val short = container.gymRepository.observeActiveGyms().first()
+                .firstOrNull { it.id == targetGymId }?.shortName ?: return@launch
+            showGymMovePicker.value = false
+            if (count == 0) {
+                applyGymMove(targetGymId)
+            } else {
+                gymMovePrompt.value = GymMovePrompt(
+                    targetGymId = targetGymId,
+                    targetShortName = short,
+                    machineSets = count,
+                )
+            }
+        }
+    }
+
+    fun confirmGymMove() {
+        val prompt = gymMovePrompt.value ?: return
+        gymMovePrompt.value = null
+        viewModelScope.launch { applyGymMove(prompt.targetGymId) }
+    }
+
+    fun dismissGymMoveConfirm() {
+        gymMovePrompt.value = null
+    }
+
+    private suspend fun applyGymMove(targetGymId: String) {
+        when (container.workoutRepository.moveSessionToGym(sessionId, targetGymId)) {
+            WorkoutRepository.MoveGymOutcome.Moved -> {
+                prefillGeneration++
+                selectedExerciseId.value?.let { prefill(it) }
+            }
+            is WorkoutRepository.MoveGymOutcome.Refused ->
+                error.fail(source = ERR_LOAD, message = "Could not move this workout. Try again.")
+        }
     }
 
     private data class WorkoutCore(

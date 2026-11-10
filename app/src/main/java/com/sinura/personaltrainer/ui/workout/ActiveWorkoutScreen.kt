@@ -79,6 +79,11 @@ import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.InstrumentPreset
 import com.sinura.personaltrainer.ui.components.QuietButton
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.NewHereHintCard
+import com.sinura.personaltrainer.ui.components.GymTags
+import com.sinura.personaltrainer.ui.start.GymPickMode
+import com.sinura.personaltrainer.ui.start.GymPickSheet
+import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.FloorSection
 import com.sinura.personaltrainer.ui.components.NotesBlock
@@ -283,6 +288,11 @@ private fun ActiveWorkoutContent(
     val privateRecovery by viewModel.privateRecovery.collectAsStateWithLifecycle()
     val logReceipt by viewModel.logReceipt.collectAsStateWithLifecycle()
     val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
+    val showGymMovePicker by viewModel.showGymMovePicker.collectAsStateWithLifecycle()
+    val gymMovePrompt by viewModel.gymMovePrompt.collectAsStateWithLifecycle()
+    val app = LocalContext.current.applicationContext as PersonalTrainerApp
+    val gyms by app.container.gymRepository.observeActiveGyms().collectAsStateWithLifecycle(initialValue = emptyList())
+    val gymVisits by app.container.gymRepository.observeVisits().collectAsStateWithLifecycle(initialValue = emptyMap())
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmEntryDiscard by rememberSaveable { mutableStateOf(false) }
@@ -328,6 +338,8 @@ private fun ActiveWorkoutContent(
         )
     RestExteriorPermissionGate(active = restExteriorActive)
     val session = state.session
+    val sessionGym = session?.gymId?.let { id -> gyms.firstOrNull { it.id == id } }
+    val gymMissing = session != null && session.gymId == null
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
     val logged = remember(session, selected) {
         selected?.let { lift -> session?.setsFor(lift.exercise.id) }.orEmpty()
@@ -570,6 +582,9 @@ private fun ActiveWorkoutContent(
                 compact = LandscapeChrome.compactHeader(landscape),
                 focused = true,
                 onExit = { keepAndExit() },
+                sessionGym = sessionGym,
+                gymMissing = gymMissing,
+                onGymChip = { viewModel.openGymMovePicker() },
                 overflow = {
                     when {
                         selected != null -> LiftOverflowMenu(
@@ -897,6 +912,20 @@ private fun ActiveWorkoutContent(
                                         onSwap = viewModel::requestSwap,
                                         canSwap = logged.isEmpty(),
                                     )
+                                }
+                                if (state.machineWeightUnset && state.otherGymHint != null && logged.isEmpty()) {
+                                    item(key = "new-at-gym-hint") {
+                                        val hint = state.otherGymHint!!
+                                        val unit = LocalWeightUnit.current
+                                        val otherLine = "At ${hint.gymShortName}: " +
+                                            SetCopy.setLine(hint.weightKg, hint.reps, LoadClass.of(currentLift.exercise.loadType), unit)
+                                        NewHereHintCard(
+                                            exerciseName = currentLift.exercise.name,
+                                            gymShortName = sessionGym?.shortName,
+                                            otherGymLine = otherLine,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        )
+                                    }
                                 }
                                 if (restBarShown) {
                                     item(key = REST_BAR_KEY) {
@@ -1378,6 +1407,33 @@ private fun ActiveWorkoutContent(
             onRetry = viewModel::retrySave,
             onRetryNotes = viewModel::retryNotesSave,
             savePending = state.save.pending,
+        )
+    }
+
+    GymPickSheet(
+        visible = showGymMovePicker,
+        mode = GymPickMode.MOVE,
+        title = stringResource(R.string.gym_move_title),
+        caption = stringResource(R.string.gym_move_caption),
+        gyms = gyms,
+        visits = gymVisits,
+        selectedId = session?.gymId,
+        pendingGymId = null,
+        loading = false,
+        error = null,
+        onRetry = {},
+        onPick = viewModel::requestGymMove,
+        onCancel = viewModel::dismissGymMovePicker,
+    )
+    gymMovePrompt?.let { prompt ->
+        ConfirmActionDialog(
+            title = "Move this workout to ${prompt.targetShortName}?",
+            body = "${prompt.machineSets} machine ${if (prompt.machineSets == 1) "set" else "sets"} " +
+                "already logged will count for ${prompt.targetShortName}.",
+            confirmLabel = "Move to ${prompt.targetShortName}",
+            destructive = false,
+            onConfirm = viewModel::confirmGymMove,
+            onDismiss = viewModel::dismissGymMoveConfirm,
         )
     }
 

@@ -397,6 +397,10 @@ fun HomeScreen(
             names,
         )
     }
+    var plannedPreviewGymId by rememberSaveable { mutableStateOf<String?>(null) }
+    var fallbackPreviewGymId by rememberSaveable { mutableStateOf<String?>(null) }
+    val gyms by viewModel.activeGyms.collectAsStateWithLifecycle()
+    val gymVisits by viewModel.gymVisits.collectAsStateWithLifecycle()
     val leftoverSlot = plan?.dayOn(selectedEpochDay)
     val leftoverBelongs = remember(selectedEpochDay, leftoverSlot, state.occurrences, state.rules) {
         WeekBoard.leftoverBelongsOn(
@@ -526,10 +530,15 @@ fun HomeScreen(
             val plannedDay = heldPlanned?.plannedEpochDay ?: pendingItem?.occurrence?.localEpochDay ?: today
             val previewRoutine = heldPlanned?.routineId?.let { id -> state.routines.firstOrNull { it.id == id } }
                 ?: pendingItem?.let { HomeToday.previewRoutine(it, state.routines) }
+            LaunchedEffect(plannedOwner.requestId) { plannedPreviewGymId = null }
             HomeStartPrompt(
                 routine = previewRoutine,
                 unit = unit,
                 loadWeights = viewModel::previewWeights,
+                gyms = gyms,
+                gymVisits = gymVisits,
+                pickedGymId = plannedPreviewGymId,
+                onPickGym = { plannedPreviewGymId = it },
                 onEditRoutine = onOpenRoutine,
                 pending = starting.pending,
                 labelOverridden = starting.pending || starting.error != null,
@@ -542,12 +551,13 @@ fun HomeScreen(
                     else -> confirm.confirmLabel
                 },
                 onConfirm = {
+                    val gymId = plannedPreviewGymId ?: return@HomeStartPrompt
                     if (plannedStartPending?.requestId == plannedOwner.requestId &&
                         viewModel.startState.value.attemptId == renderedStartAttemptId
                     ) {
                         val accepted = if (renderedCanRetry && renderedOccurrenceId == plannedOwner.occurrenceId) {
                             viewModel.retryStart(expectedAttemptId = renderedStartAttemptId)
-                        } else viewModel.startOccurrence(plannedOwner.occurrenceId)
+                        } else viewModel.startOccurrence(plannedOwner.occurrenceId, gymId = gymId)
                         if (accepted && plannedStartPending?.requestId == plannedOwner.requestId) {
                             plannedStartPending = plannedOwner.copy(
                                 accepted = true, confirm = confirm, plannedEpochDay = plannedDay,
@@ -584,10 +594,15 @@ fun HomeScreen(
     }
     if (confirmFallback != null) {
         val confirm = confirmFallback.confirm ?: HomeToday.fallbackStartConfirm(confirmFallback.day, state.routines)
+        LaunchedEffect(confirmFallback.requestId) { fallbackPreviewGymId = null }
         HomeStartPrompt(
             routine = HomeToday.previewRoutine(confirmFallback.day, state.routines),
             unit = unit,
             loadWeights = viewModel::previewWeights,
+            gyms = gyms,
+            gymVisits = gymVisits,
+            pickedGymId = fallbackPreviewGymId,
+            onPickGym = { fallbackPreviewGymId = it },
             onEditRoutine = onOpenRoutine,
             pending = starting.pending,
             labelOverridden = starting.pending || starting.error != null,
@@ -600,15 +615,14 @@ fun HomeScreen(
                 else -> confirm.confirmLabel
             },
             onConfirm = {
-                // The selected cell and a new healthy plan may change behind this modal.
-                // A queued callback must still belong to the exact authored target and owner.
+                val gymId = fallbackPreviewGymId ?: return@HomeStartPrompt
                 if (fallbackStartPending?.requestId == confirmFallback.requestId &&
                     viewModel.startState.value.attemptId == renderedStartAttemptId
                 ) {
                     val accepted = if (confirmFallback.accepted && renderedCanRetry) {
                         viewModel.retryStart(expectedAttemptId = renderedStartAttemptId)
                     } else if (fallbackTargetMatches(state = viewModel.uiState.value, day = confirmFallback.day, today = today)) {
-                        viewModel.startSuggestedDay(confirmFallback.day)
+                        viewModel.startSuggestedDay(confirmFallback.day, gymId = gymId)
                     } else false
                     if (accepted && fallbackStartPending?.requestId == confirmFallback.requestId) {
                         fallbackStartPending = confirmFallback.copy(accepted = true, confirm = confirm)
@@ -822,8 +836,26 @@ fun HomeScreen(
                     HomeToday.Surface.AGENDA -> DailyAgendaCard(
                         items = selectedAgenda,
                         sessionLive = sessionLive,
-                        onStartOccurrence = { viewModel.startOccurrence(it) },
-                        onStartOccurrenceAccepted = { viewModel.startOccurrence(it) },
+                        onStartOccurrence = { id ->
+                            if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+                                fallbackStartPending = null
+                                plannedStartPending = HomePlannedStart(
+                                    requestId = UUID.randomUUID().toString(),
+                                    occurrenceId = id,
+                                )
+                                true
+                            } else false
+                        },
+                        onStartOccurrenceAccepted = { id ->
+                            if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+                                fallbackStartPending = null
+                                plannedStartPending = HomePlannedStart(
+                                    requestId = UUID.randomUUID().toString(),
+                                    occurrenceId = id,
+                                )
+                                true
+                            } else false
+                        },
                         mutationEnabled = state.mutationEnabled,
                         recoveryContent = recoveryContent,
                         onOpenStartConfirm = { id ->
@@ -861,11 +893,17 @@ fun HomeScreen(
                         quietStart = state.missedWorkPrompt,
                         setupComplete = state.setupComplete,
                         onPrimary = {
-                            leftoverDay?.takeUnless { it.isRest }?.let(viewModel::startSuggestedDay)
+                            leftoverDay?.takeUnless { it.isRest }?.let { day ->
+                                if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+                                    plannedStartPending = null
+                                    fallbackStartPending = HomeFallbackStart(
+                                        requestId = UUID.randomUUID().toString(),
+                                        day = day,
+                                    )
+                                }
+                            }
                         },
-                        onPrimaryAccepted = {
-                            leftoverDay?.takeUnless { it.isRest }?.let(viewModel::startSuggestedDay) ?: false
-                        },
+                        onPrimaryAccepted = { false },
                         mutationEnabled = state.mutationEnabled,
                         recoveryContent = recoveryContent,
                         onOpenStartConfirm = {

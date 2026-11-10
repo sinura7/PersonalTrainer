@@ -206,7 +206,7 @@ private fun Specimen(name: String, sample: String, style: TextStyle) {
 }
 
 private fun Color.hex(): String {
-    val argb = (alpha * 255).toInt().shl(24) or
+    val argb = (this.alpha * 255).toInt().shl(24) or
         (red * 255).toInt().shl(16) or
         (green * 255).toInt().shl(8) or
         (blue * 255).toInt()

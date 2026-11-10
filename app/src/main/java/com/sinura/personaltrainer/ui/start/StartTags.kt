@@ -27,6 +27,7 @@ object StartTags {
     const val START_PENDING = "start-pending"
     const val START_BLOCKED = "start-blocked"
     const val CANCEL = "start-cancel"
+    const val GYM_GROUP = "start-gym-group"
 
     fun routine(id: String): String = "start-routine-$id"
 }
