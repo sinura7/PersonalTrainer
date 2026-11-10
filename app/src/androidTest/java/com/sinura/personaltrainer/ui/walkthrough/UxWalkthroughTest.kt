@@ -911,8 +911,9 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.MOVE_SHEET))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-contrelle"))
-            .performScrollTo().performClick()
+        val contrelleInMoveSheet = hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-contrelle")) and
+            hasAnyAncestor(hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.MOVE_SHEET))
+        compose.onNode(contrelleInMoveSheet, useUnmergedTree = true).performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(com.sinura.personaltrainer.ui.components.ConfirmActionTags.CONFIRM))
                 .fetchSemanticsNodes().isNotEmpty()
