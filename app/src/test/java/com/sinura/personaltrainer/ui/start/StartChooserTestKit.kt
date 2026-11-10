@@ -32,15 +32,27 @@ object StartChooserTestKit {
     fun pickWestonOnStrengthPreview(compose: ComposeTestRule) {
         val gymTag = GymTags.row(TestGymIds.WESTON)
         val beginTag = WorkoutPreviewTags.BEGIN
+        val chipTag = GymTags.CHIP
+        val deadline = System.currentTimeMillis() + 30_000
         compose.waitUntil(30_000) {
+            if (System.currentTimeMillis() > deadline) return@waitUntil false
             val begins = compose.onAllNodes(hasTestTag(beginTag)).fetchSemanticsNodes()
             if (begins.any { !it.config.contains(SemanticsProperties.Disabled) }) {
                 return@waitUntil true
             }
-            val gymRows = compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes()
-            if (gymRows.isNotEmpty()) {
-                compose.onNodeWithTag(gymTag).performScrollTo().performClick()
-                compose.waitForIdle()
+            when {
+                compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes().isNotEmpty() -> {
+                    compose.onNodeWithTag(gymTag).performClick()
+                    compose.waitForIdle()
+                }
+                compose.onAllNodes(hasTestTag(chipTag)).fetchSemanticsNodes().isNotEmpty() -> {
+                    compose.onNodeWithTag(chipTag).performClick()
+                    compose.waitForIdle()
+                    if (compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes().isNotEmpty()) {
+                        compose.onNodeWithTag(gymTag).performClick()
+                        compose.waitForIdle()
+                    }
+                }
             }
             compose.onAllNodes(hasTestTag(beginTag)).fetchSemanticsNodes()
                 .any { !it.config.contains(SemanticsProperties.Disabled) }

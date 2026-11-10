@@ -457,7 +457,7 @@ class HomeReadRecoveryRenderTest {
         assertEquals(before, inventory())
         retry()
         reachable(compose.onNodeWithTag(StartTags.OTHER_BACK)).performClick()
-        compose.onNodeWithTag(StartTags.EXTRA).performClick()
+        compose.onNodeWithTag(StartTags.START_TILE_WARMUP).performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
         val pack = AuxiliaryPacks.visibleFor(ExtraEquipment.NONE, emptySet()).first()
         val oldExtra = compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id))
@@ -613,6 +613,7 @@ class HomeReadRecoveryRenderTest {
             compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertDoesNotExist()
             scrollTo(HomeTags.SESSION).performClick()
             compose.settle()
+            StartChooserTestKit.pickWestonOnStrengthPreview(compose)
             compose.onNode(hasText("Lower B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
             // A replaced owner's callback cannot dismiss or admit the new confirmation.
             compose.runOnUiThread { oldConfirm() }
@@ -751,6 +752,7 @@ class HomeReadRecoveryRenderTest {
         assertEquals(before, inventory())
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         compose.awaitThat("the deliberate recovered planned start", { openedSession }) { openedSession != null }
         val saved = runBlocking { checkNotNull(deps.workoutRepository.getSession(checkNotNull(openedSession))) }

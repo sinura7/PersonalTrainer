@@ -540,7 +540,8 @@ class HomeReadRecoveryTest {
         assertNull(model.blockedByInProgress.value)
         assertEquals(before, inventory())
         assertTrue(model.dispatchPendingOccurrenceStart(occurrence.id, deliveryId, "new-start-request"))
-        model.blockedByInProgress.awaitFirst { it != null }
+        checkNotNull(model.pendingGymCommand.value)
+        assertNull(model.navigateToSession.value)
         assertEquals(ReminderDeliveryStatus.PENDING.name, graph.database.plannerDao().getDelivery(deliveryId)?.status)
     }
 

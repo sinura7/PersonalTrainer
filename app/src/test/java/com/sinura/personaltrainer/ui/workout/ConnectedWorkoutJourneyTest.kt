@@ -1,9 +1,11 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.ui.home.HomeViewModel
 import com.sinura.personaltrainer.ui.start.startGateFor
 import com.sinura.personaltrainer.ui.start.StartChooserHost
 import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 import com.sinura.personaltrainer.ui.start.StartOptionsViewModel
+import com.sinura.personaltrainer.testutil.TestGymIds
 import android.app.Application
 import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
@@ -115,6 +117,7 @@ class ConnectedWorkoutJourneyTest {
     private lateinit var history: HistoryViewModel
     private lateinit var detail: SessionDetailViewModel
     private var destination by mutableStateOf(Destination.START)
+    private var gate: HomeViewModel? = null
     private val startedIds = mutableListOf<String>()
     private val finishedIds = mutableListOf<String>()
     private val openedHistoryIds = mutableListOf<String>()
@@ -144,12 +147,11 @@ class ConnectedWorkoutJourneyTest {
     fun manualResultRestSwitchCorrectionAndFinishAgreeInSummaryHistoryAndDetail() {
         val routineId = seedRoutine()
         showJourney()
-        StartChooserTestKit.pickWestonIfShown(compose)
-        compose.awaitThat("the synthetic routine is available", { destination }) {
-            compose.onAllNodes(hasText(ROUTINE) and hasClickAction()).fetchSemanticsNodes().isNotEmpty()
-        }
-        compose.onNode(hasText(ROUTINE) and hasClickAction()).performScrollTo().performClick()
+        compose.runOnIdle { checkNotNull(gate).setChooserGym(TestGymIds.WESTON) }
+        StartChooserTestKit.waitForRoutineEnabled(compose, routineId)
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.start.StartTags.routine(routineId)).performScrollTo().performClick()
         // R5: the routine tap opens its preview; Begin is the one start.
+        compose.waitForIdle()
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {
             compose.onAllNodesWithTag(WorkoutPreviewTags.BEGIN).fetchSemanticsNodes().isNotEmpty()
         }
@@ -313,7 +315,7 @@ class ConnectedWorkoutJourneyTest {
 
     private fun showJourney() {
         val start = rememberModel(StartOptionsViewModel(application(), deps))
-        val gate = rememberModel(startGateFor(deps))
+        val gate = rememberModel(startGateFor(deps).also { this@ConnectedWorkoutJourneyTest.gate = it })
         compose.showFloor {
             Box(Modifier.width(360.dp).height(800.dp)) {
                 when (destination) {
