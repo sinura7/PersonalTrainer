@@ -13,8 +13,11 @@ import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.Weekday
-import com.sinura.personaltrainer.domain.AuxiliarySessions
+import com.sinura.personaltrainer.workout.AuxiliarySessionRules
 import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.PlanCreditApplyResult
+import com.sinura.personaltrainer.domain.PlanCreditCopy
+import com.sinura.personaltrainer.domain.TodaySheetStart
 import com.sinura.personaltrainer.domain.EarlyFinish
 import com.sinura.personaltrainer.domain.LiftCompletion
 import com.sinura.personaltrainer.domain.OccurrenceStatus
@@ -117,7 +120,7 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
      * rules supply the next week's first day.
      */
     private suspend fun readUpNext(today: Long, session: WorkoutSession?): SummaryUpNext? {
-        if (session != null && AuxiliarySessions.isAuxiliarySession(session)) {
+        if (session != null && AuxiliarySessionRules.isAuxiliarySession(container, session)) {
             val occurrences = container.plannerRepository.occurrencesBetween(today, today)
             val open = DailyAgenda.forDay(today, occurrences, container.plannerRepository.rules())
                 .firstOrNull { item ->
@@ -125,7 +128,15 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                         (item.rule?.modality ?: ScheduleModality.STRENGTH) == ScheduleModality.STRENGTH
                 }
             if (open != null) {
-                return SummaryUpNext(epochDay = today, routineName = open.title, startToday = true)
+                return SummaryUpNext(
+                    epochDay = today,
+                    routineName = open.title,
+                    startToday = true,
+                    todayStart = TodaySheetStart(
+                        title = open.title,
+                        occurrenceId = open.occurrence.id,
+                    ),
+                )
             }
         }
         val health = container.trainingInsights.observeSharedHealth().first()
@@ -239,9 +250,10 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 settle(failed = true, savedConfirmed = saved)
                 return@launch
             }
+            val routine = session.routineId?.let { container.routineRepository.getById(it) }
             runCatchingCancellable {
                 withContext(container.computeDispatcher) {
-                    WorkoutSummaryBuilder.build(session, prior)
+                    WorkoutSummaryBuilder.build(session, prior, routine)
                 }
             }.onSuccess { summary ->
                 val readExercises = session.exercises.associate { it.exercise.id to it.exercise }
@@ -334,13 +346,27 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
     fun countForTodayPlan() {
         val choice = _uiState.value.planCredit as? PlanCreditUiState.NeedsChoice ?: return
         viewModelScope.launch {
-            PlanCreditOnFinish.applyChoice(container, choice.occurrenceId, sessionId, countForPlan = true)
-            _uiState.update { it.copy(planCredit = PlanCreditUiState.Credited(choice.occurrenceId, choice.dayTitle)) }
+            when (
+                PlanCreditOnFinish.applyChoice(container, choice.occurrenceId, sessionId, countForPlan = true)
+            ) {
+                PlanCreditApplyResult.Applied ->
+                    _uiState.update {
+                        it.copy(planCredit = PlanCreditUiState.Credited(choice.occurrenceId, choice.dayTitle))
+                    }
+                PlanCreditApplyResult.AlreadyDone -> _uiState.update { it.copy(planCredit = null) }
+                PlanCreditApplyResult.Failed ->
+                    _uiState.update { it.copy(planCredit = PlanCreditUiState.Error(PlanCreditCopy.APPLY_FAILED)) }
+                PlanCreditApplyResult.Declined -> Unit
+            }
         }
     }
 
     fun keepPlanSeparate() {
-        _uiState.update { it.copy(planCredit = null) }
+        val choice = _uiState.value.planCredit as? PlanCreditUiState.NeedsChoice ?: return
+        viewModelScope.launch {
+            PlanCreditOnFinish.applyChoice(container, choice.occurrenceId, sessionId, countForPlan = false)
+            _uiState.update { it.copy(planCredit = null) }
+        }
     }
 
     fun undoPlanCredit() {

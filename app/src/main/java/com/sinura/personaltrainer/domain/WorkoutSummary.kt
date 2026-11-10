@@ -121,8 +121,9 @@ object WorkoutSummaryBuilder {
     fun build(
         session: WorkoutSession,
         priorByExercise: Map<String, List<ExerciseSetRecord>>,
+        routine: Routine? = null,
     ): WorkoutSummary {
-        if (AuxiliarySessions.isAuxiliarySession(session)) {
+        if (AuxiliarySessions.isAuxiliarySession(session, routine)) {
             return buildAuxiliary(session)
         }
         val working = session.sets.filterNot { it.isWarmup }

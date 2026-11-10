@@ -99,6 +99,7 @@ fun WorkoutSummaryScreen(
     onDone: () -> Unit,
     onOpenSession: (String) -> Unit,
     onOpenPlanDay: (Long?) -> Unit = {},
+    onStartToday: (com.sinura.personaltrainer.domain.TodaySheetStart) -> Unit = {},
     viewModel: WorkoutSummaryViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -117,6 +118,7 @@ fun WorkoutSummaryScreen(
         onOpenSession = onOpenSession,
         onDone = onDone,
         onOpenPlanDay = onOpenPlanDay,
+        onStartToday = onStartToday,
         onSkipCooldown = { timerId -> viewModel.skipCooldown(timerId) },
         onCountForPlan = viewModel::countForTodayPlan,
         onKeepPlanSeparate = viewModel::keepPlanSeparate,
@@ -134,6 +136,7 @@ internal fun WorkoutSummaryContent(
     onOpenSession: (String) -> Unit,
     onDone: () -> Unit,
     onOpenPlanDay: (Long?) -> Unit = {},
+    onStartToday: (com.sinura.personaltrainer.domain.TodaySheetStart) -> Unit = {},
     onSkipCooldown: (String) -> Unit = {},
     onCountForPlan: () -> Unit = {},
     onKeepPlanSeparate: () -> Unit = {},
@@ -257,6 +260,14 @@ internal fun WorkoutSummaryContent(
                                     )
                                 }
                             }
+                            is com.sinura.personaltrainer.domain.PlanCreditUiState.Error -> {
+                                Text(
+                                    credit.message,
+                                    style = InstrumentType.body,
+                                    color = TextSecondary,
+                                    modifier = Modifier.testTag(SummaryTags.PLAN_ERROR),
+                                )
+                            }
                             null -> Unit
                         }
                         SummaryFacts(summary, unit)
@@ -264,7 +275,12 @@ internal fun WorkoutSummaryContent(
                         // so the receipt does not jump when it lands.
                         val upNext = state.upNext
                         if (upNext != null) {
-                            UpNextLine(upNext, state.todayEpochDay, onOpenPlanDay)
+                            UpNextLine(
+                                upNext = upNext,
+                                todayEpochDay = state.todayEpochDay,
+                                onOpenPlanDay = onOpenPlanDay,
+                                onStartToday = onStartToday,
+                            )
                         } else {
                             Spacer(Modifier.height(Metrics.rowMin))
                         }
@@ -776,6 +792,8 @@ object SummaryTags {
     const val PLAN_PROMPT = "summary-plan-prompt"
     const val PLAN_COUNT = "summary-plan-count"
     const val PLAN_KEEP = "summary-plan-keep"
+    const val PLAN_ERROR = "summary-plan-error"
+    const val UP_NEXT_START = "summary-up-next-start"
     fun lift(exerciseId: String) = "summary-lift-$exerciseId"
     fun art(exerciseId: String) = "summary-art-$exerciseId"
     fun recordArt(exerciseId: String) = "summary-record-art-$exerciseId"

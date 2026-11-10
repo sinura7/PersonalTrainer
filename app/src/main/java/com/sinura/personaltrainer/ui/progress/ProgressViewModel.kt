@@ -17,7 +17,6 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.CivilDate
-import com.sinura.personaltrainer.domain.AuxiliarySessions
 import com.sinura.personaltrainer.domain.BodyWeekActivity
 import com.sinura.personaltrainer.domain.BodyWeekActivityMath
 import com.sinura.personaltrainer.domain.RecordsCalculator
@@ -253,9 +252,11 @@ class ProgressViewModel @JvmOverloads constructor(
                     .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
                     .toEpochDay()
                 val weekEnd = weekStart + 6
+                val auxIds = runCatchingCancellable { container.workoutRepository.auxiliaryRoutineIds() }
+                    .getOrDefault(emptySet())
                 val auxMinutes = workouts.presentValue().orEmpty()
                     .filter { summary ->
-                        AuxiliarySessions.isAuxiliaryRoutineName(summary.routineName) &&
+                        summary.routineId != null && summary.routineId in auxIds &&
                             summary.localEpochDay in weekStart..weekEnd
                     }
                     .sumOf { it.durationMinutes }

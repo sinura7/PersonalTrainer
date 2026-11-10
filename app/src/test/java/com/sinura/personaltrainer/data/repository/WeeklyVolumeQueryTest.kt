@@ -66,23 +66,63 @@ class WeeklyVolumeQueryTest {
                     exerciseId = BENCH,
                     finishedAt = START + 10,
                     workingSets = 1,
+                    routineId = null,
                     routineName = "Lower",
                 ),
                 WorkingSetCountRow(
                     exerciseId = SQUAT,
                     finishedAt = START + 10,
                     workingSets = 2,
+                    routineId = null,
                     routineName = "Lower",
                 ),
                 WorkingSetCountRow(
                     exerciseId = BENCH,
                     finishedAt = START + 20,
                     workingSets = 2,
+                    routineId = null,
                     routineName = "Lower",
                 ),
             ),
             repository.workingSetCountsSince(START),
         )
+    }
+
+    @Test
+    fun packRoutineSessionsAreFilteredOutByRepository() = runBlocking {
+        val pack = com.sinura.personaltrainer.domain.AuxiliaryPacks.Stretch
+        pack.lifts.map { it.exerciseId }.forEach { id ->
+            database.exerciseDao().insertAll(listOf(exercise(id)))
+        }
+        val packRoutineId = "r-stretch-pack"
+        database.routineDao().upsertRoutine(
+            com.sinura.personaltrainer.data.local.entity.RoutineEntity(
+                id = packRoutineId,
+                name = pack.title,
+                notes = pack.caption,
+                createdAt = START,
+                updatedAt = START,
+            ),
+        )
+        pack.lifts.forEachIndexed { index, lift ->
+            database.routineDao().upsertRoutineExercise(
+                com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity(
+                    id = "re-$index",
+                    routineId = packRoutineId,
+                    exerciseId = lift.exerciseId,
+                    sortOrder = index,
+                    targetSets = lift.sets,
+                    targetReps = lift.reps,
+                    targetWeightKg = null,
+                    restSeconds = lift.restSeconds,
+                ),
+            )
+        }
+        session("pack", finishedAt = START + 15, routineId = packRoutineId, routineName = pack.title, sets = listOf(BENCH to false))
+        session("a", finishedAt = START + 10, sets = listOf(SQUAT to true, SQUAT to false, SQUAT to false, BENCH to false))
+        val rows = repository.workingSetCountsSince(START)
+        assertFalse(rows.any { it.routineId == packRoutineId })
+        assertEquals(2, rows.size)
     }
 
     @Test
@@ -94,10 +134,16 @@ class WeeklyVolumeQueryTest {
         assertFalse(plan.joinToString(), plan.any { it.startsWith("SCAN ws") || it.startsWith("SCAN sl") || it.contains("SCAN TABLE") })
     }
 
-    private suspend fun session(id: String, finishedAt: Long?, sets: List<Pair<String, Boolean>>) {
+    private suspend fun session(
+        id: String,
+        finishedAt: Long?,
+        sets: List<Pair<String, Boolean>>,
+        routineId: String? = null,
+        routineName: String = "Lower",
+    ) {
         database.workoutDao().upsertSession(
             WorkoutSessionEntity(
-                id = id, routineId = null, routineName = "Lower", date = START, notes = "",
+                id = id, routineId = routineId, routineName = routineName, date = START, notes = "",
                 durationMinutes = 45, startedAt = START, finishedAt = finishedAt,
             ),
         )

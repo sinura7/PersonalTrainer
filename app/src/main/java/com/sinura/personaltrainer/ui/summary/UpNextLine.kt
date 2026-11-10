@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.summary
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -15,6 +16,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.TodaySheetStart
+import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -35,6 +38,7 @@ data class SummaryUpNext(
     val nextWeek: Boolean = false,
     /** F1: after a standalone warm-up, today's planned strength day is still open. */
     val startToday: Boolean = false,
+    val todayStart: TodaySheetStart? = null,
 )
 
 /** Blueprint 3.6: one row between the facts and Done. Tap opens Plan on that day, or on the current week with no scroll for a next-week day. */
@@ -44,6 +48,7 @@ internal fun UpNextLine(
     todayEpochDay: Long,
     onOpenPlanDay: (Long?) -> Unit,
     modifier: Modifier = Modifier,
+    onStartToday: (TodaySheetStart) -> Unit = {},
 ) {
     val day = upNext.epochDay
     val name = upNext.routineName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.summary_up_next_unnamed)
@@ -63,6 +68,32 @@ internal fun UpNextLine(
         }
     }
     val openPlan = stringResource(R.string.summary_up_next_open_plan)
+    val start = upNext.todayStart
+  if (upNext.startToday && start != null) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .heightIn(min = Metrics.rowMin)
+                .background(Surface1)
+                .padding(horizontal = Metrics.space3)
+                .testTag(SummaryTags.UP_NEXT),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            Text(
+                text,
+                style = InstrumentType.body,
+                color = TextPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            PrimaryGymButton(
+                text = stringResource(R.string.start_title),
+                onClick = { onStartToday(start) },
+                modifier = Modifier.testTag(SummaryTags.UP_NEXT_START),
+            )
+        }
+        return
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()

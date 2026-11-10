@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WorkoutAlarms
 import com.sinura.personaltrainer.data.sync.SyncAccountPrefs
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 /** The reminder opt-out, quiet hours, per-day alarms, and the occurrence a live session came from. */
 interface ReminderPrefs {
@@ -27,6 +28,9 @@ interface ReminderPrefs {
     suspend fun clearDayAlarm(weekday: Weekday)
     suspend fun setPendingOccurrenceId(id: String?)
     suspend fun setLaunchPermissionsAsked(asked: Boolean)
+
+    suspend fun setPlanCreditKeptSeparate(sessionId: String, kept: Boolean)
+    suspend fun isPlanCreditKeptSeparate(sessionId: String): Boolean
 }
 
 internal class ReminderPrefsStore(
@@ -104,5 +108,18 @@ internal class ReminderPrefsStore(
 
     override suspend fun setLaunchPermissionsAsked(asked: Boolean) {
         store.data.edit { prefs -> prefs[LAUNCH_PERMISSIONS_ASKED] = asked }
+    }
+
+    override suspend fun setPlanCreditKeptSeparate(sessionId: String, kept: Boolean) {
+        if (sessionId.isBlank()) return
+        store.data.edit { prefs ->
+            val existing = prefs[PLAN_CREDIT_KEPT_SEPARATE].orEmpty()
+            prefs[PLAN_CREDIT_KEPT_SEPARATE] = if (kept) existing + sessionId else existing - sessionId
+        }
+    }
+
+    override suspend fun isPlanCreditKeptSeparate(sessionId: String): Boolean {
+        if (sessionId.isBlank()) return false
+        return store.safePreferences.first()[PLAN_CREDIT_KEPT_SEPARATE].orEmpty().contains(sessionId)
     }
 }

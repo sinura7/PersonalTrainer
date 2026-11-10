@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.workout
 
-import com.sinura.personaltrainer.domain.AuxiliarySessions
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.PlanCreditUiState
@@ -16,6 +15,7 @@ object PlanCreditSummary {
         session: WorkoutSession,
         todayEpochDay: Long,
     ): PlanCreditUiState? {
+        if (deps.preferencesRepository.isPlanCreditKeptSeparate(session.id)) return null
         val occurrences = deps.plannerRepository.occurrencesBetween(todayEpochDay, todayEpochDay)
         val credited = occurrences.firstOrNull { occ ->
             occ.status == OccurrenceStatus.DONE && occ.completedActivityId == session.id
@@ -24,7 +24,7 @@ object PlanCreditSummary {
             val title = titleFor(deps, credited) ?: return null
             return PlanCreditUiState.Credited(credited.id, title)
         }
-        if (AuxiliarySessions.isAuxiliarySession(session)) return null
+        if (AuxiliarySessionRules.isAuxiliarySession(deps, session)) return null
         val items = DailyAgenda.forDay(todayEpochDay, occurrences, deps.plannerRepository.rules())
         val open = items.firstOrNull { item ->
             item.occurrence.status == OccurrenceStatus.PLANNED &&

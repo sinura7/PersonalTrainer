@@ -20,6 +20,14 @@ object PlanCreditCopy {
     const val KEEP_SEPARATE = "Keep separate"
     const val CREDITED = "Counted for today's plan"
     const val UNDO = "Undo"
+    const val APPLY_FAILED = "Could not update today's plan. Try again."
+}
+
+enum class PlanCreditApplyResult {
+    Applied,
+    Declined,
+    AlreadyDone,
+    Failed,
 }
 
 sealed interface PlanCreditUiState {
@@ -32,4 +40,6 @@ sealed interface PlanCreditUiState {
         val occurrenceId: String,
         val dayTitle: String,
     ) : PlanCreditUiState
+
+    data class Error(val message: String = PlanCreditCopy.APPLY_FAILED) : PlanCreditUiState
 }

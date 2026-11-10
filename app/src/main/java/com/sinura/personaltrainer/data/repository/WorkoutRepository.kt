@@ -111,6 +111,8 @@ class WorkoutRepository(
     private val time: TimePort = JvmTime,
     private val ids: IdPort = IdFactory.Uuid,
 ) {
+    private val auxiliaryResolver = AuxiliaryRoutineResolver(database)
+
     /** JVM tests only: runs after [removeExerciseFromSession] commits, before its caller resumes. */
     internal var afterRemoveExerciseCommitForTest: (suspend () -> Unit)? = null
     /** Private draft fences precede destructive changes; no portable/schema contract changes. */
@@ -251,7 +253,10 @@ class WorkoutRepository(
         observeFinishedWorkRevision()
             .distinctUntilChanged()
             .mapLatest {
-                workoutDao.finishedWorkingSetRecords().mapNotNull { it.toRecordSet() }
+                val auxIds = auxiliaryResolver.auxiliaryRoutineIds()
+                workoutDao.finishedWorkingSetRecords()
+                    .filterNot { row -> row.sessionRoutineId != null && row.sessionRoutineId in auxIds }
+                    .mapNotNull { it.toRecordSet() }
             }
             .observeHealth("standing records")
 
@@ -1538,19 +1543,36 @@ class WorkoutRepository(
         completedAt: Long,
         setNumber: Int,
     ): Set<PersonalRecordKind> {
+        val sessionRow = workoutDao.getSession(sessionId) ?: return emptySet()
+        val session = sessionRow.toDomain()
+        if (auxiliaryResolver.isAuxiliarySession(session)) return emptySet()
         val equipment = database.exerciseDao().getById(exerciseId)?.equipment
             ?.let(EquipmentType::fromStorage) ?: EquipmentType.OTHER
-        val sessionGym = workoutDao.getSession(sessionId)?.session?.gymId
+        val sessionGym = sessionRow.session.gymId
         val (scopeShared, scopeGymId) = GymScope.run { GymScope.of(equipment, sessionGym).sqlArgs() }
-        val row = workoutDao.recordPriorsBefore(
-            exerciseId = exerciseId,
-            sessionId = sessionId,
-            weightKg = weightKg,
-            completedAt = completedAt,
-            setNumber = setNumber,
-            scopeShared = scopeShared,
-            scopeGymId = scopeGymId,
-        )
+        val auxIds = auxiliaryResolver.auxiliaryRoutineIds().toList()
+        val row = if (auxIds.isEmpty()) {
+            workoutDao.recordPriorsBefore(
+                exerciseId = exerciseId,
+                sessionId = sessionId,
+                weightKg = weightKg,
+                completedAt = completedAt,
+                setNumber = setNumber,
+                scopeShared = scopeShared,
+                scopeGymId = scopeGymId,
+            )
+        } else {
+            workoutDao.recordPriorsBeforeExcludingAuxiliary(
+                exerciseId = exerciseId,
+                sessionId = sessionId,
+                weightKg = weightKg,
+                completedAt = completedAt,
+                setNumber = setNumber,
+                scopeShared = scopeShared,
+                scopeGymId = scopeGymId,
+                excludeRoutineIds = auxIds,
+            )
+        }
         return RecordsCalculator.detect(
             candidate = ExerciseSetRecord(
                 setId = "",
@@ -1731,9 +1753,13 @@ class WorkoutRepository(
         )
 
     /** v4 V7: per-session working-set counts since [sinceMs], for Body's weekly sets per muscle. */
-    suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow> =
-        workoutDao.workingSetCountsSince(sinceMs)
-            .filterNot { com.sinura.personaltrainer.domain.AuxiliarySessions.isAuxiliaryRoutineName(it.routineName) }
+    suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow> {
+        val auxIds = auxiliaryResolver.auxiliaryRoutineIds()
+        return workoutDao.workingSetCountsSince(sinceMs)
+            .filterNot { row -> row.routineId != null && row.routineId in auxIds }
+    }
+
+    suspend fun auxiliaryRoutineIds(): Set<String> = auxiliaryResolver.auxiliaryRoutineIds()
 
     suspend fun otherGymHint(exerciseId: String, gymId: String): OtherGymHint? {
         val equipment = database.exerciseDao().getById(exerciseId)?.equipment

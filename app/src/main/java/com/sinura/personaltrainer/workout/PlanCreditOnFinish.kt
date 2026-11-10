@@ -1,10 +1,10 @@
 package com.sinura.personaltrainer.workout
 
 import com.sinura.personaltrainer.domain.AgendaItem
-import com.sinura.personaltrainer.domain.AuxiliarySessions
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.PlanCreditApplyResult
 import com.sinura.personaltrainer.domain.PlanCreditResult
 import com.sinura.personaltrainer.domain.WorkoutSession
 
@@ -38,6 +38,9 @@ object PlanCreditOnFinish {
         }
         val open = openStrengthOccurrence(deps, todayEpochDay) ?: return PlanCreditResult.None
         val title = open.title
+        if (open.occurrence.status != OccurrenceStatus.PLANNED) {
+            return PlanCreditResult.None
+        }
         val plannedRoutine = open.rule?.routineId
         if (plannedRoutine != null && session.routineId == plannedRoutine) {
             runCatchingCancellable {
@@ -49,7 +52,7 @@ object PlanCreditOnFinish {
                 }
             return PlanCreditResult.Credited(occurrenceId = open.occurrence.id, dayTitle = title)
         }
-        if (AuxiliarySessions.isAuxiliarySession(session)) {
+        if (AuxiliarySessionRules.isAuxiliarySession(deps, session)) {
             return PlanCreditResult.None
         }
         return PlanCreditResult.NeedsChoice(occurrenceId = open.occurrence.id, dayTitle = title)
@@ -60,10 +63,26 @@ object PlanCreditOnFinish {
         occurrenceId: String,
         sessionId: String,
         countForPlan: Boolean,
-    ) {
-        if (!countForPlan) return
-        runCatchingCancellable { deps.plannerRepository.markOccurrenceDone(occurrenceId, sessionId) }
-            .onFailure { thrown -> AppLog.e(TAG, "Applying plan credit choice failed", thrown) }
+    ): PlanCreditApplyResult {
+        if (!countForPlan) {
+            deps.preferencesRepository.setPlanCreditKeptSeparate(sessionId, kept = true)
+            return PlanCreditApplyResult.Declined
+        }
+        val current = deps.plannerRepository.getOccurrence(occurrenceId)
+            ?: return PlanCreditApplyResult.Failed
+        if (current.status != OccurrenceStatus.PLANNED) {
+            return PlanCreditApplyResult.AlreadyDone
+        }
+        return runCatchingCancellable {
+            deps.plannerRepository.markOccurrenceDone(occurrenceId, sessionId)
+        }
+            .fold(
+                onSuccess = { PlanCreditApplyResult.Applied },
+                onFailure = { thrown ->
+                    AppLog.e(TAG, "Applying plan credit choice failed", thrown)
+                    PlanCreditApplyResult.Failed
+                },
+            )
     }
 
     suspend fun undoCredit(deps: AppDependencies, occurrenceId: String, sessionId: String) {
