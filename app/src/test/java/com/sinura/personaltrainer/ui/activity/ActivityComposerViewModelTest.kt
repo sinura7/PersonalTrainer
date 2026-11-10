@@ -402,6 +402,7 @@ class ActivityComposerViewModelTest {
         vm.addStrength(exercise, 80.0, 5)
         vm.addCardio(CardioType.RIDE, 15, 3.0, false)
         vm.prepareSave()
+        vm.resolveComposerGymForTest(TestGymIds.WESTON)
         val first = vm.confirmDraft()
         check(first is CompleteTrainingOutcome.Written)
         val noted = deps.activityRepository.updateCompletedNotes(first.id, "Easy on the knees", 1_700_000_000_000L)
@@ -449,6 +450,7 @@ class ActivityComposerViewModelTest {
         first.addStrength(exercise, 80.0, 5)
         first.addCardio(CardioType.RIDE, 15, 3.0, false)
         first.prepareSave()
+        first.resolveComposerGymForTest(TestGymIds.WESTON)
         val written = first.confirmDraft()
         check(written is CompleteTrainingOutcome.Written)
         viewModel = composer(handle)
@@ -527,12 +529,14 @@ class ActivityComposerViewModelTest {
     }
 
     private suspend fun ActivityComposerViewModel.prepareSave() {
+        uiState.awaitFirst { it.todayEpochDay != 0L }
         if (uiState.value.strength.isNotEmpty()) {
-            uiState.awaitFirst { it.strength.isNotEmpty() }
-            if (!uiState.value.gymResolved) {
-                pickComposerGym(TestGymIds.WESTON)
-                uiState.awaitFirst { it.gymResolved && it.gymId == TestGymIds.WESTON }
-            }
+            uiState.awaitFirst { it.catalog.isNotEmpty() }
+        }
+        formRecovery?.opening?.join()
+        formRecovery?.status?.awaitFirst { it.ready }
+        if (uiState.value.strength.isNotEmpty() && !uiState.value.gymResolved) {
+            resolveComposerGymForTest(TestGymIds.WESTON)
         }
     }
 
