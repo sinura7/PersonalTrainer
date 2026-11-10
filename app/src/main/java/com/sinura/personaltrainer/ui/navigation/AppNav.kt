@@ -871,6 +871,7 @@ fun PersonalTrainerNav(
                             }
                         }
                     }
+                    val summaryState by summary.uiState.collectAsStateWithLifecycle()
                     WorkoutSummaryScreen(
                         viewModel = summary,
                         onDone = {
@@ -889,7 +890,8 @@ fun PersonalTrainerNav(
                             }
                         },
                         onStartToday = { start ->
-                            if (startGate.startToday(start)) {
+                            val gymId = summaryState.sessionGymId ?: return@WorkoutSummaryScreen
+                            if (startGate.startToday(start, gymId)) {
                                 navController.popBackStack(Route.Home.path, inclusive = false)
                             }
                         },

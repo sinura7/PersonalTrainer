@@ -74,6 +74,8 @@ data class WorkoutSummaryUiState(
     val todayEpochDay: Long = 0L,
     val liftCompletion: LiftCompletion? = null,
     val planCredit: PlanCreditUiState? = null,
+    /** Gym of the finished session; "Start today" on the receipt reuses it for [StartGate]. */
+    val sessionGymId: String? = null,
 )
 
 data class SummaryTempoLine(
@@ -192,6 +194,7 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
         planCredit: PlanCreditUiState? = null,
         upNext: SummaryUpNext? = null,
         todayEpochDay: Long = 0L,
+        sessionGymId: String? = null,
     ) {
         // update, not read-then-write: the backup's line arrives from its own thread and must
         // not be lost to a settle landing at the same moment, or overwrite one.
@@ -211,6 +214,7 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 planCredit = planCredit ?: current.planCredit,
                 tempoNextTime = tempoNextTime,
                 firstWorkoutSaved = firstWorkoutSaved,
+                sessionGymId = sessionGymId ?: current.sessionGymId,
             )
         }
     }
@@ -307,6 +311,7 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 planCredit = PlanCreditSummary.resolve(container, session, todayEpochDay()),
                 upNext = readUpNext(todayEpochDay(), session),
                 todayEpochDay = todayEpochDay(),
+                sessionGymId = session.gymId,
             )
         }.onFailure { thrown ->
                 AppLog.w(TAG, "Building the workout summary failed", thrown)
