@@ -608,7 +608,7 @@ class FloorScreenWiringRenderTest {
         assertNull("the receipt's dwell ran to its end", vm.logReceipt.value)
         assertEquals("time alone must not move the lifter", LEG_EXTENSION, vm.uiState.value.selectedExerciseId)
         compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
-        compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.selectedExerciseId == NEXT_LIFT }
     }
 

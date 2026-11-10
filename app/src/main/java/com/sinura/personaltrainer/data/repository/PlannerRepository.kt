@@ -471,6 +471,24 @@ class PlannerRepository(
     }
 
     /**
+     * Reopens a plan row this session had just credited. Only when it is still DONE for
+     * [activityId]; other completions are left alone.
+     */
+    suspend fun undoOccurrenceDone(occurrenceId: String, activityId: String, nowMs: Long = time.nowMillis()) {
+        val current = dao.getOccurrence(occurrenceId) ?: return
+        if (current.status != OccurrenceStatus.DONE.name) return
+        if (current.completedActivityId != activityId) return
+        dao.upsertOccurrence(
+            current.copy(
+                status = OccurrenceStatus.PLANNED.name,
+                completedActivityId = null,
+                updatedAtMs = nowMs,
+            ),
+        )
+        notifyScheduleSync()
+    }
+
+    /**
      * Mark a planned day skipped.
      *
      * Refuses anything that is not still ahead of the user. You did the session, the reminder

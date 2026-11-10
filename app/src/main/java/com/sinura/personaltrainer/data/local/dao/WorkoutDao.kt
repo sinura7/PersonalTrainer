@@ -26,13 +26,14 @@ const val WORKING_SET_COUNTS_SINCE_SQL = """
         SELECT sl.exerciseId AS exerciseId,
                ws.finishedAt AS finishedAt,
                ws.gymId AS sessionGymId,
+               ws.routineName AS routineName,
                COUNT(*) AS workingSets
         FROM workout_sessions ws
         CROSS JOIN set_logs sl ON sl.sessionId = ws.id
         WHERE ws.finishedAt IS NOT NULL
           AND ws.finishedAt >= :sinceMs
           AND sl.isWarmup = 0
-        GROUP BY ws.id, sl.exerciseId, ws.gymId
+        GROUP BY ws.id, sl.exerciseId, ws.gymId, ws.routineName
         ORDER BY ws.finishedAt ASC, sl.exerciseId ASC
         """
 

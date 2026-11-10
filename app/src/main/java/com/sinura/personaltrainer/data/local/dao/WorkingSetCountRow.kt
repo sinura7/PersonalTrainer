@@ -6,4 +6,5 @@ data class WorkingSetCountRow(
     val finishedAt: Long,
     val workingSets: Int,
     val sessionGymId: String? = null,
+    val routineName: String? = null,
 )

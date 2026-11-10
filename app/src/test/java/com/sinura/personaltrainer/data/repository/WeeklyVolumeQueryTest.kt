@@ -62,9 +62,24 @@ class WeeklyVolumeQueryTest {
 
         assertEquals(
             listOf(
-                WorkingSetCountRow(BENCH, START + 10, 1),
-                WorkingSetCountRow(SQUAT, START + 10, 2),
-                WorkingSetCountRow(BENCH, START + 20, 2),
+                WorkingSetCountRow(
+                    exerciseId = BENCH,
+                    finishedAt = START + 10,
+                    workingSets = 1,
+                    routineName = "Lower",
+                ),
+                WorkingSetCountRow(
+                    exerciseId = SQUAT,
+                    finishedAt = START + 10,
+                    workingSets = 2,
+                    routineName = "Lower",
+                ),
+                WorkingSetCountRow(
+                    exerciseId = BENCH,
+                    finishedAt = START + 20,
+                    workingSets = 2,
+                    routineName = "Lower",
+                ),
             ),
             repository.workingSetCountsSince(START),
         )

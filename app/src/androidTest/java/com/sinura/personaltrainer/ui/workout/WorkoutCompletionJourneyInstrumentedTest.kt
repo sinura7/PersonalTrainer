@@ -86,7 +86,7 @@ class WorkoutCompletionJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
         compose.waitUntil(15_000) { fixture.vm.liftTransitionNextId.value == next.id }
         compose.onNodeWithTag(WorkoutTestTags.LIFT_TRANSITION).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
         compose.waitUntil(15_000) {
             fixture.vm.liftTransitionNextId.value == null &&
                 fixture.vm.uiState.value.selectedExerciseId == next.id &&

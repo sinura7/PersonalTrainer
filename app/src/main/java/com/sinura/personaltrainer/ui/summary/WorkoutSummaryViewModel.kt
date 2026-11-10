@@ -13,6 +13,16 @@ import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.AuxiliarySessions
+import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.EarlyFinish
+import com.sinura.personaltrainer.domain.LiftCompletion
+import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.PlanCreditUiState
+import com.sinura.personaltrainer.workout.PlanCreditOnFinish
+import com.sinura.personaltrainer.workout.PlanCreditSummary
+import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
 import com.sinura.personaltrainer.logging.AppLog
@@ -59,6 +69,8 @@ data class WorkoutSummaryUiState(
     /** Blueprint 3.6. Null until the plan read settles, and on a failed read (line hidden). */
     val upNext: SummaryUpNext? = null,
     val todayEpochDay: Long = 0L,
+    val liftCompletion: LiftCompletion? = null,
+    val planCredit: PlanCreditUiState? = null,
 )
 
 data class SummaryTempoLine(
@@ -93,30 +105,29 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
 
     init {
         load()
-        loadUpNext()
     }
 
     /**
      * Reads the plan once for the "Up next" line. Owned outside [settle] like the backup
      * line: a summary Retry never erases it, and a failed plan read only hides the row.
      */
-    private fun loadUpNext() {
-        val today = todayEpochDay()
-        viewModelScope.launch {
-            val upNext = runCatchingCancellable { readUpNext(today) }.getOrElse { thrown ->
-                AppLog.w(TAG, "Reading the plan for Up next failed", thrown)
-                null
-            } ?: return@launch
-            _uiState.update { it.copy(upNext = upNext, todayEpochDay = today) }
-        }
-    }
-
     /**
      * Null hides the row: a plan that could not be read must never claim "nothing planned".
      * On the week's last day the current plan has nothing after today, so the enabled weekly
      * rules supply the next week's first day.
      */
-    private suspend fun readUpNext(today: Long): SummaryUpNext? {
+    private suspend fun readUpNext(today: Long, session: WorkoutSession?): SummaryUpNext? {
+        if (session != null && AuxiliarySessions.isAuxiliarySession(session)) {
+            val occurrences = container.plannerRepository.occurrencesBetween(today, today)
+            val open = DailyAgenda.forDay(today, occurrences, container.plannerRepository.rules())
+                .firstOrNull { item ->
+                    item.occurrence.status == OccurrenceStatus.PLANNED &&
+                        (item.rule?.modality ?: ScheduleModality.STRENGTH) == ScheduleModality.STRENGTH
+                }
+            if (open != null) {
+                return SummaryUpNext(epochDay = today, routineName = open.title, startToday = true)
+            }
+        }
         val health = container.trainingInsights.observeSharedHealth().first()
         // Available with no week plan is not a readable plan either: hide rather than guess.
         val plan = (health as? DataHealth.Available)?.value?.weekPlan ?: return null
@@ -166,6 +177,10 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
         highlightExercises: Map<String, Exercise> = emptyMap(),
         tempoNextTime: List<SummaryTempoLine> = emptyList(),
         firstWorkoutSaved: Boolean = false,
+        liftCompletion: LiftCompletion? = null,
+        planCredit: PlanCreditUiState? = null,
+        upNext: SummaryUpNext? = null,
+        todayEpochDay: Long = 0L,
     ) {
         // update, not read-then-write: the backup's line arrives from its own thread and must
         // not be lost to a settle landing at the same moment, or overwrite one.
@@ -179,8 +194,10 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 summary = summary,
                 highlightExercises = highlightExercises,
                 autoBackup = current.autoBackup,
-                upNext = current.upNext,
-                todayEpochDay = current.todayEpochDay,
+                upNext = upNext ?: current.upNext,
+                todayEpochDay = todayEpochDay.takeIf { it != 0L } ?: current.todayEpochDay,
+                liftCompletion = liftCompletion ?: current.liftCompletion,
+                planCredit = planCredit ?: current.planCredit,
                 tempoNextTime = tempoNextTime,
                 firstWorkoutSaved = firstWorkoutSaved,
             )
@@ -268,9 +285,13 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                     summary = summary,
                     highlightExercises = identities,
                     tempoNextTime = tempoLines,
-                    firstWorkoutSaved = firstSaved,
-                )
-            }.onFailure { thrown ->
+                firstWorkoutSaved = firstSaved,
+                liftCompletion = EarlyFinish.liftCompletion(session).takeIf { it.finishedEarly },
+                planCredit = PlanCreditSummary.resolve(container, session, todayEpochDay()),
+                upNext = readUpNext(todayEpochDay(), session),
+                todayEpochDay = todayEpochDay(),
+            )
+        }.onFailure { thrown ->
                 AppLog.w(TAG, "Building the workout summary failed", thrown)
                 // Never strand the user on a spinner because a summary would not compute — but
                 // never call the row missing either. It was just read.
@@ -307,6 +328,26 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
     fun skipCooldown(timerId: String) {
         if (timerId.isNotBlank()) {
             container.restTimerController.skipIfShown(timerId)
+        }
+    }
+
+    fun countForTodayPlan() {
+        val choice = _uiState.value.planCredit as? PlanCreditUiState.NeedsChoice ?: return
+        viewModelScope.launch {
+            PlanCreditOnFinish.applyChoice(container, choice.occurrenceId, sessionId, countForPlan = true)
+            _uiState.update { it.copy(planCredit = PlanCreditUiState.Credited(choice.occurrenceId, choice.dayTitle)) }
+        }
+    }
+
+    fun keepPlanSeparate() {
+        _uiState.update { it.copy(planCredit = null) }
+    }
+
+    fun undoPlanCredit() {
+        val credited = _uiState.value.planCredit as? PlanCreditUiState.Credited ?: return
+        viewModelScope.launch {
+            PlanCreditOnFinish.undoCredit(container, credited.occurrenceId, sessionId)
+            _uiState.update { it.copy(planCredit = null) }
         }
     }
 }

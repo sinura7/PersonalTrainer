@@ -17,6 +17,9 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.AuxiliarySessions
+import com.sinura.personaltrainer.domain.BodyWeekActivity
+import com.sinura.personaltrainer.domain.BodyWeekActivityMath
 import com.sinura.personaltrainer.domain.RecordsCalculator
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -192,42 +195,90 @@ class ProgressViewModel @JvmOverloads constructor(
             val volume = combine(
                 container.workoutRepository.observeFinishedWorkRevisionHealth(),
                 container.exerciseRepository.observeAllHealth(),
-            ) { revision, catalog -> revision to catalog }
-                .mapLatest { (revision, catalog) -> readVolume(first, revision, catalog) }
-            combine(records, bodyweight, volume) { (recordRows, recordsRead), weights, (weeks, volumeRead) ->
+                container.activityRepository.observeCompletedSummariesHealth(),
+                container.workoutRepository.observeSessionSummariesHealth(),
+            ) { revision, catalog, activities, workouts ->
+                Quad(revision, catalog, activities, workouts)
+            }.mapLatest { (revision, catalog, activities, workouts) ->
+                readVolume(first, today, revision, catalog, activities, workouts)
+            }
+            combine(records, bodyweight, volume) { (recordRows, recordsRead), weights, volumeResult ->
                 BodyTrends(
                     bodyweight = weights.presentValue().orEmpty(),
                     bodyweightRead = cardRead(weights),
                     records = recordRows,
                     recordsRead = recordsRead,
-                    weeklySets = weeks,
-                    volumeRead = volumeRead,
+                    weeklySets = volumeResult.weeks,
+                    volumeRead = volumeResult.read,
+                    weekActivity = volumeResult.weekActivity,
                     firstWeekStartEpochDay = first,
                 )
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BodyTrends())
 
+    private data class VolumeRead(
+        val weeks: List<MuscleWeeks>,
+        val read: CardRead,
+        val weekActivity: BodyWeekActivity,
+    )
+
+    private var lastWeekActivity: BodyWeekActivity? = null
+
+    private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
     private suspend fun readVolume(
         first: Long,
+        todayEpochDay: Long,
         revision: DataHealth<*>,
         catalog: DataHealth<List<Exercise>>,
-    ): Pair<List<MuscleWeeks>, CardRead> {
+        activities: DataHealth<List<com.sinura.personaltrainer.domain.SessionSummary>>,
+        workouts: DataHealth<List<com.sinura.personaltrainer.domain.SessionSummary>>,
+    ): VolumeRead {
         val lifts = catalog.presentValue()
         val failedSource = revision.isUnavailable || lifts == null
+        val activityFailed = activities.isUnavailable
         if (!failedSource) {
             val sinceMs = time.startOfDayMillis(CivilDate.fromEpochDay(first), time.defaultZoneId())
-            val rows = runCatchingCancellable { container.workoutRepository.workingSetCountsSince(sinceMs) }
+            val rows = runCatchingCancellable {
+                container.workoutRepository.workingSetCountsSince(sinceMs) +
+                    container.activityRepository.workingSetCountsSince(sinceMs)
+            }
             rows.getOrNull()?.let { read ->
                 val weeks = BodyTrendsMath.weeklySets(read, lifts.orEmpty(), first) { ms ->
                     time.capture(ms, time.defaultZoneId()).localEpochDay
                 }
                 lastVolume = weeks
-                return weeks to cardRead(revision, catalog)
+                val weekStart = java.time.LocalDate.ofEpochDay(todayEpochDay)
+                    .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                    .toEpochDay()
+                val weekEnd = weekStart + 6
+                val auxMinutes = workouts.presentValue().orEmpty()
+                    .filter { summary ->
+                        AuxiliarySessions.isAuxiliaryRoutineName(summary.routineName) &&
+                            summary.localEpochDay in weekStart..weekEnd
+                    }
+                    .sumOf { it.durationMinutes }
+                val weekActivity = if (!activityFailed) {
+                    BodyWeekActivityMath.forWeek(
+                        weekStartEpochDay = weekStart,
+                        weekEndEpochDay = weekEnd,
+                        activitySummaries = activities.presentValue().orEmpty(),
+                        auxiliaryWorkoutMinutes = auxMinutes,
+                    ).also { lastWeekActivity = it }
+                } else {
+                    lastWeekActivity ?: BodyWeekActivity()
+                }
+                return VolumeRead(weeks, cardRead(revision, catalog, activities), weekActivity)
             }
         }
         val held = lastVolume
-        return if (held != null) held to CardRead.STALE else emptyList<MuscleWeeks>() to CardRead.FAILED
+        val activityHeld = lastWeekActivity ?: BodyWeekActivity()
+        return if (held != null) {
+            VolumeRead(held, CardRead.STALE, activityHeld)
+        } else {
+            VolumeRead(emptyList(), CardRead.FAILED, activityHeld)
+        }
     }
 
     fun setWindow(value: HeatWindow) {

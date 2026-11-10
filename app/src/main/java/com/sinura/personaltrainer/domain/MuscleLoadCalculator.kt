@@ -57,7 +57,7 @@ object MuscleLoadCalculator {
         val windowSessionIds = mutableSetOf<String>()
         var lastFinishedAtMs: Long? = null
 
-        finished.forEach { session ->
+        finished.filter(AuxiliarySessions::countsAsWorkingVolume).forEach { session ->
             val working = session.sets.filterNot { it.isWarmup }
             if (working.isNotEmpty()) {
                 val finishedAt = session.finishedAt ?: session.date

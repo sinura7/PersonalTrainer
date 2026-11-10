@@ -171,6 +171,27 @@ interface ActivityDao {
     @Query("SELECT COUNT(*) FROM activity_sessions")
     suspend fun sessionCount(): Int
 
+    /** Working strength sets from past or mixed activities, for Body weekly volume (F1). */
+    @Query(
+        """
+        SELECT b.exerciseId AS exerciseId,
+               COALESCE(s.performedEndInstantMs, s.performedStartInstantMs) AS finishedAt,
+               s.gymId AS sessionGymId,
+               NULL AS routineName,
+               COUNT(*) AS workingSets
+        FROM activity_strength_sets st
+        JOIN activity_blocks b ON b.id = st.blockId
+        JOIN activity_sessions s ON s.id = b.sessionId
+        WHERE st.isWarmup = 0
+          AND b.kind = 'STRENGTH'
+          AND s.status = 'COMPLETED'
+          AND COALESCE(s.performedEndInstantMs, s.performedStartInstantMs) >= :sinceMs
+        GROUP BY s.id, b.exerciseId, s.gymId
+        ORDER BY finishedAt ASC, b.exerciseId ASC
+        """,
+    )
+    suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertSession(session: ActivitySessionEntity)
 

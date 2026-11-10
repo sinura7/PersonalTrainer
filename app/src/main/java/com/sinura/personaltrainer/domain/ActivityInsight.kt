@@ -19,7 +19,7 @@ fun windowedInsightHistory(
     activities: List<ActivitySession>,
     minPerformedAtMs: Long,
 ): List<WorkoutSession> =
-    sessions.filter { it.performedAtMs() >= minPerformedAtMs } +
+    sessions.filter { it.performedAtMs() >= minPerformedAtMs && AuxiliarySessions.countsAsWorkingVolume(it) } +
         activities.mapNotNull { activity ->
             activity.toInsightSession()?.takeIf { it.performedAtMs() >= minPerformedAtMs }
         }

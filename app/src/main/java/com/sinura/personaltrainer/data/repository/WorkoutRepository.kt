@@ -1733,6 +1733,7 @@ class WorkoutRepository(
     /** v4 V7: per-session working-set counts since [sinceMs], for Body's weekly sets per muscle. */
     suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow> =
         workoutDao.workingSetCountsSince(sinceMs)
+            .filterNot { com.sinura.personaltrainer.domain.AuxiliarySessions.isAuxiliaryRoutineName(it.routineName) }
 
     suspend fun otherGymHint(exerciseId: String, gymId: String): OtherGymHint? {
         val equipment = database.exerciseDao().getById(exerciseId)?.equipment

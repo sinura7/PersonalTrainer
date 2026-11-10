@@ -307,7 +307,12 @@ fun ProgressScreen(
                         )
                     }
                     item(key = "trend-volume") {
-                        WeeklyVolumeCard(weeks = trends.weeklySets, read = trends.volumeRead, onRetry = viewModel::retryTrends)
+                        WeeklyVolumeCard(
+                            weeks = trends.weeklySets,
+                            read = trends.volumeRead,
+                            weekActivity = trends.weekActivity,
+                            onRetry = viewModel::retryTrends,
+                        )
                     }
                     if (state.recommendations.isNotEmpty()) {
                         item(key = "recommended-header") {

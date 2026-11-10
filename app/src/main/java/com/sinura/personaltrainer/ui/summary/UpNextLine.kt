@@ -33,6 +33,8 @@ data class SummaryUpNext(
     val routineName: String?,
     /** True when the day comes from next week's rules: Plan only shows the current week. */
     val nextWeek: Boolean = false,
+    /** F1: after a standalone warm-up, today's planned strength day is still open. */
+    val startToday: Boolean = false,
 )
 
 /** Blueprint 3.6: one row between the facts and Done. Tap opens Plan on that day, or on the current week with no scroll for a next-week day. */
@@ -46,6 +48,8 @@ internal fun UpNextLine(
     val day = upNext.epochDay
     val name = upNext.routineName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.summary_up_next_unnamed)
     val text = when {
+        upNext.startToday && day == todayEpochDay ->
+            stringResource(R.string.summary_warmup_next_today, name)
         day == null -> stringResource(R.string.summary_up_next_none)
         upNext.nextWeek -> stringResource(
             R.string.summary_up_next_next_week,
