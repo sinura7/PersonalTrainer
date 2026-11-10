@@ -95,8 +95,21 @@ internal fun WorkoutHeader(
         )
         if (headline.isNotBlank() && !planAsTitle) {
             if (focused && !largeText) {
-                WorkoutProgressBar(segments = progress.segments,
-                    modifier = Modifier.padding(start = Metrics.space2 + Metrics.touchMin, end = Metrics.gutter))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = Metrics.space2 + Metrics.touchMin, end = Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    if (onGymChip != null) {
+                        GymChip(
+                            gym = sessionGym,
+                            onClick = onGymChip,
+                            missingGym = gymMissing,
+                        )
+                    }
+                    WorkoutProgressBar(segments = progress.segments)
+                }
             } else {
                 Column(
                     modifier = Modifier
