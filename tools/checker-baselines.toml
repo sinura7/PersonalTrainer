@@ -16,7 +16,8 @@ required_args_mixed = 179
 required_args_lambda = 46
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
-when_exhaustive = 50
+# G2 coach key: one more combine lambda declined exhaustive indexing (51 skips, 0 defects).
+when_exhaustive = 51
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
 # (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site

@@ -881,10 +881,10 @@ class UxWalkthroughTest {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id))).fetchSemanticsNodes().isNotEmpty()
         }
         harnessWaitUntil(15_000) {
-            compose.onAllNodesWithText(com.sinura.personaltrainer.domain.SetCopy.NOTHING_YET)
+            compose.onAllNodes(hasText("At Major Mac:", substring = true))
                 .fetchSemanticsNodes().isNotEmpty() &&
-                compose.onAllNodes(hasText("At Major", substring = true))
-                    .fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithText("0 kg", substring = true)
+                    .fetchSemanticsNodes().isEmpty()
         }
         shot("live-machine-new-here")
         logWorkingSet(weightKg = 50.0, reps = 10, rpe = 8)
