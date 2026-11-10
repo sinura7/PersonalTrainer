@@ -658,8 +658,7 @@ class UxWalkthroughTest {
         preparePopulatedApp()
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
-        compose.onNodeWithTag(StartTags.LIVE_CARDIO).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_TILE_CARDIO).performScrollTo().performClick()
         harnessWaitUntil(15_000) {
             compose.onAllNodesWithTag(StartTags.CARDIO_PAGE).fetchSemanticsNodes().isNotEmpty()
         }
@@ -856,15 +855,17 @@ class UxWalkthroughTest {
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag("gym-pick-sheet")).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-major-mackenzie"))
-            .performScrollTo().performClick()
+        val majorMacInSheet = hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-major-mackenzie")) and
+            hasAnyAncestor(hasTestTag("gym-pick-sheet"))
+        compose.onNode(majorMacInSheet, useUnmergedTree = true).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.ROOT)).fetchSemanticsNodes().isNotEmpty()
         }
         shot("preview-weights-majormac")
         compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.CHIP).performClick()
-        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston"))
-            .performScrollTo().performClick()
+        val westonInSheet = hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston")) and
+            hasAnyAncestor(hasTestTag("gym-pick-sheet"))
+        compose.onNode(westonInSheet, useUnmergedTree = true).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
         }
