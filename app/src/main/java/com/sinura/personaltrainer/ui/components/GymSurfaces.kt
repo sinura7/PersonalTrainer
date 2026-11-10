@@ -53,8 +53,10 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.theme.BorderSurfaceScope
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.SectionEdge
+import com.sinura.personaltrainer.ui.theme.WarnBorderedSurfaceNesting
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -165,38 +167,41 @@ fun Panel(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    WarnBorderedSurfaceNesting("Panel")
     val shape = RoundedCornerShape(Radius.lg)
     val border = when (emphasis) {
         PanelEmphasis.None -> BorderStroke(Metrics.hairline, OutlineSolidVariant)
         PanelEmphasis.Emphasis -> BorderStroke(Metrics.emphasisBorder, Volt)
     }
     val colors = CardDefaults.cardColors(containerColor = Surface1)
-    if (onClick != null) {
-        Card(
-            onClick = onClick,
-            modifier = modifier.fillMaxWidth(),
-            colors = colors,
-            shape = shape,
-            border = border,
-        ) {
-            Column(
-                modifier = Modifier.padding(Metrics.space4),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                content = content,
-            )
-        }
-    } else {
-        Card(
-            modifier = modifier.fillMaxWidth(),
-            colors = colors,
-            shape = shape,
-            border = border,
-        ) {
-            Column(
-                modifier = Modifier.padding(Metrics.space4),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                content = content,
-            )
+    BorderSurfaceScope {
+        if (onClick != null) {
+            Card(
+                onClick = onClick,
+                modifier = modifier.fillMaxWidth(),
+                colors = colors,
+                shape = shape,
+                border = border,
+            ) {
+                Column(
+                    modifier = Modifier.padding(Metrics.space4),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    content = content,
+                )
+            }
+        } else {
+            Card(
+                modifier = modifier.fillMaxWidth(),
+                colors = colors,
+                shape = shape,
+                border = border,
+            ) {
+                Column(
+                    modifier = Modifier.padding(Metrics.space4),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    content = content,
+                )
+            }
         }
     }
 }
@@ -216,35 +221,38 @@ fun GymCard(
     enabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    WarnBorderedSurfaceNesting("GymCard")
     val shape = RoundedCornerShape(Radius.md)
     val border = BorderStroke(Metrics.hairline, SectionEdge)
-    if (onClick != null) {
-        Card(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = modifier.fillMaxWidth(),
-            colors = colors,
-            shape = shape,
-            border = border,
-        ) {
-            Column(
-                modifier = Modifier.padding(Metrics.cardPadding),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                content = content,
-            )
-        }
-    } else {
-        Card(
-            modifier = modifier.fillMaxWidth(),
-            colors = colors,
-            shape = shape,
-            border = border,
-        ) {
-            Column(
-                modifier = Modifier.padding(Metrics.cardPadding),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                content = content,
-            )
+    BorderSurfaceScope {
+        if (onClick != null) {
+            Card(
+                onClick = onClick,
+                enabled = enabled,
+                modifier = modifier.fillMaxWidth(),
+                colors = colors,
+                shape = shape,
+                border = border,
+            ) {
+                Column(
+                    modifier = Modifier.padding(Metrics.cardPadding),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    content = content,
+                )
+            }
+        } else {
+            Card(
+                modifier = modifier.fillMaxWidth(),
+                colors = colors,
+                shape = shape,
+                border = border,
+            ) {
+                Column(
+                    modifier = Modifier.padding(Metrics.cardPadding),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    content = content,
+                )
+            }
         }
     }
 }
@@ -316,14 +324,17 @@ fun GroupedList(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Radius.sm))
-            .background(Surface1)
-            .border(Metrics.hairline, SectionEdge, RoundedCornerShape(Radius.sm)),
-        content = content,
-    )
+    WarnBorderedSurfaceNesting("GroupedList")
+    BorderSurfaceScope {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(Radius.sm))
+                .background(Surface1)
+                .border(Metrics.hairline, SectionEdge, RoundedCornerShape(Radius.sm)),
+            content = content,
+        )
+    }
 }
 
 /**

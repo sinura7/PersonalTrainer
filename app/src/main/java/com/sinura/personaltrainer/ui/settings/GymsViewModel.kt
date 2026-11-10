@@ -71,17 +71,3 @@ class GymsViewModel @JvmOverloads constructor(
 
     suspend fun restore(id: String): GymRestoreOutcome = gymRepository.restore(id)
 }
-
-object GymsTags {
-    const val SECTION = "settings-gyms"
-    const val ADD = "gyms-add"
-    fun row(id: String): String = "gyms-row-$id"
-    const val UNASSIGNED = "gyms-unassigned"
-    const val ARCHIVED_KICKER = "gyms-archived-kicker"
-    fun archivedRow(id: String): String = "gyms-archived-$id"
-    const val EDIT_SHEET = "gym-edit-sheet"
-    const val EDIT_SAVE = "gym-edit-save"
-    const val EDIT_ARCHIVE = "gym-edit-archive"
-    const val EDIT_RESTORE = "gym-edit-restore"
-    fun editField(field: String): String = "gym-edit-$field"
-}

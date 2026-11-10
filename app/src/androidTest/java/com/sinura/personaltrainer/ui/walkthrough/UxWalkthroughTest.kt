@@ -834,7 +834,7 @@ class UxWalkthroughTest {
         goToTab("settings")
         openSettingsRow(SettingsHomeCopy.GYMS)
         harnessWaitUntil(15_000) {
-            compose.onAllNodesWithTag(com.sinura.personaltrainer.ui.settings.GymsTags.SECTION)
+            compose.onAllNodesWithTag(com.sinura.personaltrainer.ui.components.GymSettingsTags.SETTINGS_SECTION)
                 .fetchSemanticsNodes().isNotEmpty()
         }
         shot("settings-gyms")

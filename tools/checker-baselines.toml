@@ -12,10 +12,13 @@ state_members = 1
 # with SetEntryPanel's unused compact path.
 # Compact History uses fully named metric/layout arguments, reducing skipped calls.
 # 179 -> 178 and 44 -> 43 on V2 (#571): the retired start sheets took one mixed and one lambda call site with them.
-required_args_mixed = 178
+# Refresh V1 kit: four new kit composables (InstrumentSheet, GymPlateRow, StatStrip, SegmentedControl).
+required_args_mixed = 182
 required_args_lambda = 47
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
+# Refresh V1: RoleTagKind and StartTileKind when blocks in kit.
+# Refresh V1 review: SupportingLineStyle when in GymButtons.
 when_exhaustive = 49
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
@@ -28,7 +31,9 @@ when_exhaustive = 49
 # Net reduction from the accepted ceiling of 62. Receiver slots remain out of scope.
 # 47 -> 46 in W2a, measured after the dead code went.
 # 46 -> 47 with P10 (#541): ExerciseHeader.kt:85 liftHeaderSwipe is the 47th declined site.
-lambda_arity_declined = 51
+# Refresh V1: one new declined receiver slot in kit wiring.
+# Refresh V1 review: GymPlates width helper plus RefreshKitRenderTest touch harness sites.
+lambda_arity_declined = 55
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
 # (9 Sep 2026, twice). Ratchet down class by class.
@@ -56,14 +61,14 @@ rounded_percent = 0
 circle = 0
 # 20 -> 14 in W2a: the icon vectors' 24 dp is Metrics.icon, the switch's 4 dp inset and a debug
 # gallery bar's 4 dp are Metrics.space1 (TokenIdentityTest). The rest have no honest token.
-raw_dp = 14
+raw_dp = 13
 sp_style = 0
 motion = 11
 haptic = 0
 m3_scheme = 0
 # 14 -> 9 in W2a: five Icons.Outlined.MoreVert are OutlinedMarks.MoreVert, pixel for pixel
 # (MoreVertMarkRenderTest). The nine left: Close ×4, Search, Add ×2, Check ×2.
-stock_icons = 9
+stock_icons = 8
 shadow = 0
 defaults_elevation = 1
 stock_component = 1

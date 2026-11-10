@@ -319,18 +319,12 @@
     <string name="body_record_line">%1$s %2$s × %3$d · %4$s · %5$s</string>
     <string name="body_volume_spoken">%1$s working sets. This week: %2$d. Last 8 weeks: %3$d.</string>
     <string name="history_records_on_body">See records on Body</string>
-    <!-- Gym profiles (packet G2 shared + G3) -->
+    <!-- Gym profiles (packet G3; G2 owns picker/filter copy on its branch) -->
     <string name="gym_change">Change</string>
-    <string name="gym_pick_gym">Pick gym</string>
     <string name="gym_picker_retry">Try again</string>
     <string name="gym_unassigned_label">Unassigned</string>
     <string name="gym_unassigned_caption">Machine history from before gyms</string>
     <string name="gym_archived_suffix"> · archived</string>
-    <string name="gym_filter_all">All</string>
-    <string name="gym_new_here_lead">New here</string>
-    <string name="gym_new_here_short">New here</string>
-    <string name="gym_new_here_body">No %1$s history at %2$s yet.</string>
-    <string name="gym_new_here_no_history">No history for this machine yet.</string>
     <string name="gym_composer_field">Gym</string>
     <!-- Gym profiles (packet G3 settings) -->
     <string name="gym_settings_title">Gyms</string>

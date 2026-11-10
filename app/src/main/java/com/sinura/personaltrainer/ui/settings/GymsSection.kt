@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.domain.GymVisit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GymBadge
 import com.sinura.personaltrainer.ui.components.GymBadgeSize
+import com.sinura.personaltrainer.ui.components.GymSettingsTags
 import com.sinura.personaltrainer.ui.components.GymBadgeVisual
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -57,7 +58,7 @@ internal fun GymsSection(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .testTag(GymsTags.SECTION),
+            .testTag(GymSettingsTags.SETTINGS_SECTION),
         contentPadding = PaddingValues(
             start = Metrics.gutter,
             end = Metrics.gutter,
@@ -101,7 +102,7 @@ internal fun GymsSection(
             SecondaryGymButton(
                 text = stringResource(R.string.gym_settings_add),
                 onClick = { adding = true },
-                modifier = Modifier.testTag(GymsTags.ADD),
+                modifier = Modifier.testTag(GymSettingsTags.SETTINGS_ADD),
             )
         }
         if (state.unassignedSessions > 0) {
@@ -115,7 +116,7 @@ internal fun GymsSection(
                         subtitle = stringResource(R.string.gym_unassigned_caption) +
                             " · ${state.unassignedSessions} workouts",
                         onClick = { showUnassignedInfo = true },
-                        modifier = Modifier.testTag(GymsTags.UNASSIGNED),
+                        modifier = Modifier.testTag(GymSettingsTags.SETTINGS_UNASSIGNED),
                         leading = {
                             GymBadge(
                                 badge = GymCopy.UNASSIGNED_TAG,
@@ -132,7 +133,7 @@ internal fun GymsSection(
             item("archived-kicker") {
                 Kicker(
                     text = stringResource(R.string.gym_settings_archived_kicker),
-                    modifier = Modifier.testTag(GymsTags.ARCHIVED_KICKER),
+                    modifier = Modifier.testTag(GymSettingsTags.SETTINGS_ARCHIVED_KICKER),
                 )
             }
             item("archived-list") {
@@ -144,7 +145,7 @@ internal fun GymsSection(
                             caption = "Archived · ${visit?.sessions ?: 0} workouts",
                             onClick = { editing = gym },
                             archived = true,
-                            modifier = Modifier.testTag(GymsTags.archivedRow(gym.id)),
+                            modifier = Modifier.testTag(GymSettingsTags.settingsArchivedRow(gym.id)),
                         )
                         if (index < archived.lastIndex) HairlineDivider()
                     }
@@ -190,7 +191,7 @@ private fun GymManageRow(
             onClick = onClick,
             modifier = Modifier
                 .weight(1f)
-                .testTag(GymsTags.row(gym.id))
+                .testTag(GymSettingsTags.settingsRow(gym.id))
                 .semantics { contentDescription = gym.name },
             leading = {
                 GymBadge(

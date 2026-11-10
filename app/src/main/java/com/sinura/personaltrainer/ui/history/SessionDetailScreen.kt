@@ -726,7 +726,7 @@ fun SessionDetailScreen(
                 visits = visits,
                 selectedId = effectiveId,
                 onPick = { picked ->
-                    val id = if (picked == com.sinura.personaltrainer.ui.components.GymTags.UNASSIGNED_PICK) {
+                    val id = if (picked == com.sinura.personaltrainer.ui.components.GymSettingsTags.UNASSIGNED_PICK) {
                         null
                     } else {
                         picked

@@ -30,6 +30,7 @@ import com.sinura.personaltrainer.data.repository.GymSaveOutcome
 import com.sinura.personaltrainer.domain.Gym
 import com.sinura.personaltrainer.domain.GymBadge
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.components.GymSettingsTags
 import com.sinura.personaltrainer.ui.components.DangerGymButton
 import com.sinura.personaltrainer.ui.components.GhostButton
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -78,7 +79,7 @@ internal fun GymEditSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = Modifier.testTag(GymsTags.EDIT_SHEET),
+        modifier = Modifier.testTag(GymSettingsTags.EDIT_SHEET),
     ) {
         Column(
             Modifier
@@ -93,7 +94,7 @@ internal fun GymEditSheet(
                 label = { Text(stringResource(R.string.gym_edit_name)) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(GymsTags.editField("name")),
+                    .testTag(GymSettingsTags.editField("name")),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 singleLine = true,
             )
@@ -103,7 +104,7 @@ internal fun GymEditSheet(
                 label = { Text(stringResource(R.string.gym_edit_short)) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(GymsTags.editField("short")),
+                    .testTag(GymSettingsTags.editField("short")),
                 singleLine = true,
             )
             OutlinedTextField(
@@ -112,7 +113,7 @@ internal fun GymEditSheet(
                 label = { Text(stringResource(R.string.gym_edit_badge)) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(GymsTags.editField("badge")),
+                    .testTag(GymSettingsTags.editField("badge")),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Characters,
                     keyboardType = KeyboardType.Ascii,
@@ -144,7 +145,7 @@ internal fun GymEditSheet(
                     }
                 },
                 enabled = valid && changed,
-                modifier = Modifier.testTag(GymsTags.EDIT_SAVE),
+                modifier = Modifier.testTag(GymSettingsTags.EDIT_SAVE),
             )
             when {
                 gym == null -> GhostButton(label = "Cancel", onClick = onDismiss)
@@ -160,12 +161,12 @@ internal fun GymEditSheet(
                             }
                         }
                     },
-                    modifier = Modifier.testTag(GymsTags.EDIT_RESTORE),
+                    modifier = Modifier.testTag(GymSettingsTags.EDIT_RESTORE),
                 )
                 else -> DangerGymButton(
                     text = stringResource(R.string.gym_edit_archive),
                     onClick = { pendingArchive = true },
-                    modifier = Modifier.testTag(GymsTags.EDIT_ARCHIVE),
+                    modifier = Modifier.testTag(GymSettingsTags.EDIT_ARCHIVE),
                 )
             }
         }

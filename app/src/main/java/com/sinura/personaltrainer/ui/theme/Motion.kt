@@ -148,6 +148,9 @@ object Motion {
     /** Colour changes, small reveals. */
     const val FAST = 150
 
+    /** Gym plate check glyph scale (refresh kit). */
+    const val PLATE_CHECK_MS = FAST
+
     /** The default: content swaps, expansions, screen transitions. */
     const val BASE = 240
 

@@ -4,6 +4,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import com.sinura.personaltrainer.ui.components.GymSettingsTags
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import org.junit.Rule
 import org.junit.Test
@@ -23,10 +24,10 @@ class GymsSectionTest {
             PersonalTrainerTheme {
                 androidx.compose.material3.Text(
                     "Gyms",
-                    modifier = Modifier.testTag(GymsTags.SECTION),
+                    modifier = Modifier.testTag(GymSettingsTags.SETTINGS_SECTION),
                 )
             }
         }
-        compose.onNodeWithTag(GymsTags.SECTION).assertExists()
+        compose.onNodeWithTag(GymSettingsTags.SETTINGS_SECTION).assertExists()
     }
 }
