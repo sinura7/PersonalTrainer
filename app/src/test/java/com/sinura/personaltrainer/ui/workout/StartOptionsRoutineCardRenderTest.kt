@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasTestTag
 import com.sinura.personaltrainer.ui.home.HomeViewModel
 import com.sinura.personaltrainer.ui.start.startGateFor
 import com.sinura.personaltrainer.ui.start.StartChooserHost
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -117,6 +118,7 @@ class StartOptionsRoutineCardRenderTest {
         card().performClick()
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { compose.isDisplayed(hasTestTag(WorkoutPreviewTags.BEGIN)) }
         assertTrue("the tap alone starts nothing", started.isEmpty())
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
         compose.awaitThat(what = "Begin started a routine", now = ::started) { started.isNotEmpty() }
         val session = checkNotNull(runBlocking { deps.workoutRepository.getSession(started.single()) })
@@ -141,6 +143,12 @@ class StartOptionsRoutineCardRenderTest {
         }
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { compose.isDisplayed(hasText(ROUTINE)) }
         compose.waitForIdle()
+        compose.runOnIdle { gate.setChooserGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON) }
+        StartChooserTestKit.pickWestonIfShown(compose)
+        compose.waitForIdle()
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {
+            !compose.onNode(CARD).fetchSemanticsNode().config.contains(androidx.compose.ui.semantics.SemanticsProperties.Disabled)
+        }
     }
 
     /** A four-lift push day, each 3 × 8 with 90 s rest, on four kinds of kit. */

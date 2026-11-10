@@ -138,7 +138,13 @@ import com.sinura.personaltrainer.ui.workout.LocalRestExteriorAsk
 import com.sinura.personaltrainer.ui.workout.RestAlertsAsk
 import com.sinura.personaltrainer.ui.workout.RestExteriorAsk
 import com.sinura.personaltrainer.ui.home.HomeViewModel
+import com.sinura.personaltrainer.ui.start.GymPickMode
+import com.sinura.personaltrainer.ui.start.GymPickSheet
 import com.sinura.personaltrainer.ui.start.StartChooser
+import com.sinura.personaltrainer.ui.start.StartCommand
+import com.sinura.personaltrainer.domain.GymCopy
+import com.sinura.personaltrainer.R
+import androidx.compose.ui.res.stringResource
 
 private const val SUMMARY_CORRECTION_RESULT = "summary.acknowledgedCorrection.v1"
 
@@ -551,6 +557,10 @@ fun PersonalTrainerNav(
         focusBodyRecords = BodyRecordsFocus.afterRouteChange(focus = focusBodyRecords, route = currentRoutePath)
     }
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
+    val pendingGymCommand by startGate.pendingGymCommand.collectAsStateWithLifecycle()
+    val gateGyms by startGate.activeGyms.collectAsStateWithLifecycle()
+    val gateGymVisits by startGate.gymVisits.collectAsStateWithLifecycle()
+    val gateStarting by startGate.startState.collectAsStateWithLifecycle()
     // Same guard Today used: a stale attempt is released before a fresh chooser opens.
     var startsNowFrom by rememberSaveable { mutableStateOf<Long?>(null) }
     val openStartSheet = {
@@ -861,6 +871,7 @@ fun PersonalTrainerNav(
                             }
                         }
                     }
+                    val summaryState by summary.uiState.collectAsStateWithLifecycle()
                     WorkoutSummaryScreen(
                         viewModel = summary,
                         onDone = {
@@ -879,7 +890,8 @@ fun PersonalTrainerNav(
                             }
                         },
                         onStartToday = { start ->
-                            if (startGate.startToday(start)) {
+                            val gymId = summaryState.sessionGymId ?: return@WorkoutSummaryScreen
+                            if (startGate.startToday(start, gymId)) {
                                 navController.popBackStack(Route.Home.path, inclusive = false)
                             }
                         },
@@ -953,6 +965,33 @@ fun PersonalTrainerNav(
                     )
                 }
             }
+        }
+        pendingGymCommand?.let { command ->
+            val caption = when (command) {
+                is StartCommand.Occurrence -> GymCopy.startsOnPick("This workout")
+                is StartCommand.Free -> GymCopy.startsOnPick("Empty workout")
+                is StartCommand.Routine -> GymCopy.startsOnPick("This routine")
+                is StartCommand.Suggested -> GymCopy.startsOnPick(command.day.focusTitle)
+                is StartCommand.Aux -> GymCopy.startsOnPick("Extra workout")
+                is StartCommand.Cardio, is StartCommand.Discard -> null
+            }
+            GymPickSheet(
+                visible = true,
+                mode = GymPickMode.START,
+                title = stringResource(R.string.gym_pick_sheet_title),
+                caption = caption,
+                gyms = gateGyms,
+                visits = gateGymVisits,
+                selectedId = null,
+                pendingGymId = null,
+                loading = false,
+                error = null,
+                onRetry = {},
+                onPick = { gymId ->
+                    startGate.fulfillGymPick(gymId, expectedAttemptId = gateStarting.attemptId)
+                },
+                onCancel = startGate::clearPendingGymPick,
+            )
         }
         if (showStartSheet) {
             StartChooser(

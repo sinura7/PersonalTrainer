@@ -270,9 +270,14 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.setContent {
             CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG) {
                 HomeStartPrompt(
-                    routine = routine, unit = WeightUnit.KG, loadWeights = home::previewWeights,
+                    routine = routine, unit = WeightUnit.KG,
+                    loadWeights = { r, g -> home.previewWeights(r, g) },
+                    gyms = emptyList(), gymVisits = emptyMap(),
+                    pickedGymId = "gym-af-weston", onPickGym = {},
                     onEditRoutine = {}, title = routine.name, body = "", confirmLabel = "Begin",
-                    pending = false, onConfirm = { home.startRoutine(routineId = routine.id) }, onDismiss = {},
+                    pending = false,
+                    onConfirm = { home.startRoutine(routineId = routine.id, gymId = "gym-af-weston") },
+                    onDismiss = {},
                     confirmEnabled = true, dismissEnabled = true, canDismiss = { true },
                     canConfirm = { !home.startState.value.pending }, contextContent = {}, actionKey = null,
                     labelOverridden = false,

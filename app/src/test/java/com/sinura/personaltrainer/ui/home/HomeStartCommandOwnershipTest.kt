@@ -1,4 +1,9 @@
-package com.sinura.personaltrainer.ui.home
+package com.sinura.personaltrainer
+
+import com.sinura.personaltrainer.testutil.TestGymIds
+import com.sinura.personaltrainer.ui.home.HomeReadState
+import com.sinura.personaltrainer.ui.home.HomeStartState
+import com.sinura.personaltrainer.ui.home.HomeViewModel
 
 import android.app.Application
 import android.database.sqlite.SQLiteFullException
@@ -89,7 +94,7 @@ class HomeStartCommandOwnershipTest {
         createGraph()
         val before = inventory()
         reads.failNext.set(1)
-        val oldStart = { vm.startRoutine(routineId = selected.id) }
+        val oldStart = { vm.startRoutine(routineId = selected.id, gymId = TestGymIds.WESTON) }
 
         assertTrue(oldStart())
         // Main's unconfined test dispatcher enters this launch immediately. The decorated
@@ -98,8 +103,8 @@ class HomeStartCommandOwnershipTest {
         assertTrue(vm.startState.value.canRetry)
         assertTrue(vm.startState.value.error != null)
         assertFalse(oldStart())
-        assertFalse(vm.startRoutine(routineId = other.id))
-        assertFalse(vm.startFreeWorkout())
+        assertFalse(vm.startRoutine(routineId = other.id, gymId = TestGymIds.WESTON))
+        assertFalse(vm.startFreeWorkout(TestGymIds.WESTON))
         assertEquals(1, reads.attempts.get())
         assertEquals(0, writes.insertAttempts.get())
         assertEquals(before, inventory())
@@ -123,7 +128,7 @@ class HomeStartCommandOwnershipTest {
         createGraph()
         val before = inventory()
         reads.failNext.set(1)
-        assertTrue(vm.startRoutine(routineId = selected.id))
+        assertTrue(vm.startRoutine(routineId = selected.id, gymId = TestGymIds.WESTON))
         assertTrue(vm.startState.value.canRetry)
         assertFalse(vm.startState.value.pending)
         val firstAttempt = vm.startState.value.attemptId
@@ -155,7 +160,7 @@ class HomeStartCommandOwnershipTest {
     @Test fun actionsCapturedForBlockerACannotActOnTheNewBlockerB() = runBlocking {
         createGraph()
         val originalA = base.workoutRepository.startFreeWorkout(focusTitle = "Original A")
-        assertTrue(vm.startRoutine(routineId = selected.id))
+        assertTrue(vm.startRoutine(routineId = selected.id, gymId = TestGymIds.WESTON))
         awaitBlocked(sessionId = originalA.id)
         val blockerA = checkNotNull(vm.blockedByInProgress.value)
         val attemptA = vm.startState.value.attemptId
@@ -168,7 +173,7 @@ class HomeStartCommandOwnershipTest {
         assertEquals(HomeStartState(attemptId = attemptA), vm.startState.value)
         assertEquals(1, base.database.workoutDao().deleteInProgressSession(id = originalA.id))
         val originalB = base.workoutRepository.startFreeWorkout(focusTitle = "Original B")
-        assertTrue(vm.startRoutine(routineId = other.id))
+        assertTrue(vm.startRoutine(routineId = other.id, gymId = TestGymIds.WESTON))
         awaitBlocked(sessionId = originalB.id)
         val blockerB = checkNotNull(vm.blockedByInProgress.value)
         val attemptB = vm.startState.value.attemptId
@@ -203,10 +208,10 @@ class HomeStartCommandOwnershipTest {
         createGraph()
         val original = base.workoutRepository.startFreeWorkout(focusTitle = "Original workout")
         val before = inventory()
-        assertTrue(vm.startRoutine(routineId = selected.id))
+        assertTrue(vm.startRoutine(routineId = selected.id, gymId = TestGymIds.WESTON))
         awaitBlocked(sessionId = original.id)
-        assertFalse(vm.startFreeWorkout())
-        assertFalse(vm.startRoutine(routineId = other.id))
+        assertFalse(vm.startFreeWorkout(TestGymIds.WESTON))
+        assertFalse(vm.startRoutine(routineId = other.id, gymId = TestGymIds.WESTON))
         assertEquals(before, inventory())
 
         writes.failNextInsert.set(1)
@@ -247,7 +252,7 @@ class HomeStartCommandOwnershipTest {
     @Test fun aBlockedFreeWorkoutStaysEmptyFreeWorkAfterDiscardRatherThanSuggestedFocus() = runBlocking {
         createGraph()
         val original = base.workoutRepository.startFreeWorkout(focusTitle = "Original workout")
-        assertTrue(vm.startFreeWorkout())
+        assertTrue(vm.startFreeWorkout(TestGymIds.WESTON))
         awaitBlocked(sessionId = original.id)
         assertTrue(vm.discardBlockedAndStart())
         val opened = awaitWorkoutOpen()
@@ -273,7 +278,7 @@ class HomeStartCommandOwnershipTest {
     @Test fun aFailedDiscardKeepsTheOriginalResumeChoiceUntilDiscardIsAcknowledged() = runBlocking {
         createGraph()
         val original = base.workoutRepository.startFreeWorkout(focusTitle = "Original workout")
-        assertTrue(vm.startRoutine(routineId = selected.id))
+        assertTrue(vm.startRoutine(routineId = selected.id, gymId = TestGymIds.WESTON))
         awaitBlocked(sessionId = original.id)
         val before = inventory()
         writes.failNextDiscard.set(1)
@@ -374,7 +379,7 @@ class HomeStartCommandOwnershipTest {
             val rulesBefore = base.database.plannerDao().getRules()
             writes.failNextInsert.set(1)
 
-            assertTrue(vm.startOccurrence(occurrenceId = original.id))
+            assertTrue(vm.startOccurrence(occurrenceId = original.id, gymId = TestGymIds.WESTON))
             awaitFailed()
             val movedRows = base.database.plannerDao().getAllOccurrences()
             assertEquals(OccurrenceStatus.MOVED.name, movedRows.single { it.id == original.id }.status)
@@ -441,7 +446,7 @@ class HomeStartCommandOwnershipTest {
             ).single()
             val originalWorkout = base.workoutRepository.startFreeWorkout(focusTitle = "Original workout")
             val workBefore = inventory()
-            assertTrue(vm.startOccurrence(occurrenceId = originalOccurrence.id))
+            assertTrue(vm.startOccurrence(occurrenceId = originalOccurrence.id, gymId = TestGymIds.WESTON))
             awaitBlocked(sessionId = originalWorkout.id)
             writes.failNextDiscard.set(1)
             assertTrue(vm.discardBlockedAndStart())

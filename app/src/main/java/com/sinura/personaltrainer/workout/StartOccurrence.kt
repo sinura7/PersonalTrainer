@@ -52,7 +52,7 @@ class StartOccurrence(
     private val startTrainingDay: StartTrainingDay,
     private val startLiveCardio: StartLiveCardio,
 ) {
-    suspend operator fun invoke(occurrenceId: String): StartOccurrenceOutcome {
+    suspend operator fun invoke(occurrenceId: String, gymId: String? = null): StartOccurrenceOutcome {
         return runCatchingCancellable {
             val occurrence = plannerRepository.getOccurrence(occurrenceId)
                 ?: return@runCatchingCancellable StartOccurrenceOutcome.Missing
@@ -76,7 +76,7 @@ class StartOccurrence(
                     StartOccurrenceOutcome.OpenComposer(occurrence.id).also { dismissShownReminder(occurrence.id) }
                 ScheduleModality.STRENGTH -> {
                     val day = plannedDay(occurrence, rule)
-                    when (val outcome = startTrainingDay(day)) {
+                    when (val outcome = startTrainingDay(day, gymId = gymId)) {
                         is StartDayOutcome.Open -> StartOccurrenceOutcome.OpenWorkout(
                             sessionId = outcome.sessionId,
                             occurrenceId = occurrence.id,

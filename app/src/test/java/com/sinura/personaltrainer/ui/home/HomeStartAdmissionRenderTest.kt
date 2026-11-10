@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.ui.test.onFirst
 import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
 import android.database.sqlite.SQLiteFullException
@@ -72,6 +73,7 @@ import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.testutil.FrozenTime
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.ui.workout.WorkoutPreviewTags
 import com.sinura.personaltrainer.ui.components.WeekStripTags
@@ -575,6 +577,7 @@ class HomeStartAdmissionRenderTest {
         show()
         selectDay(selectedDay)
         boardNode(HomeTags.agendaRow(checkNotNull(occurrenceId))).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val date = reachable(compose.onNodeWithTag(HomeStartTags.DATE))
         date.assertTextContains("Planned: ${DateCopy.civilDate(selectedDay)}", substring = true)
         date.assertTextContains("Starts now · ${DateCopy.civilDate(today)}", substring = true)
@@ -612,6 +615,7 @@ class HomeStartAdmissionRenderTest {
         val rulesBefore = runBlocking { base.database.plannerDao().getRules() }
         show()
         boardNode(HomeTags.agendaRow(originalId)).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         writes.held = CompletableDeferred()
         writes.failNext.set(1)
         val confirm = enabledClick(WorkoutPreviewTags.BEGIN)
@@ -720,6 +724,7 @@ class HomeStartAdmissionRenderTest {
         show()
         selectDay(today - 1)
         boardNode(HomeTags.START).performClick()
+        StartChooserTestKit.pickWestonIfShown(compose)
         reachable(compose.onNodeWithTag(HomeStartTags.DATE))
             .assertTextContains("Starts now · ${DateCopy.civilDate(today)}", substring = true)
         capture("selected-day-free-confirm")
@@ -754,6 +759,7 @@ class HomeStartAdmissionRenderTest {
             assertTrue(file.length() > 100)
         } finally { bitmap.recycle() }
         planned.performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         assertOneSavedStart()
         val saved = runBlocking { checkNotNull(base.workoutRepository.getSession(openedSessions.single())) }
@@ -877,7 +883,9 @@ class HomeStartAdmissionRenderTest {
         boardNode(HomeTags.START).performClick()
         // Blueprint 3.1: routines sit on the chooser itself, no routine page to open.
         reachable(compose.onNodeWithTag(StartTags.START_TITLE)).assertIsDisplayed()
-        reachable(compose.onNodeWithTag(StartTags.routine(routineId))).assertIsEnabled()
+        compose.runOnUiThread { vm.setChooserGym(TestGymIds.WESTON) }
+        StartChooserTestKit.pickWestonIfShown(compose)
+        StartChooserTestKit.waitForRoutineEnabled(compose, routineId)
     }
 
     private fun selectDay(day: Long) {
@@ -900,6 +908,7 @@ class HomeStartAdmissionRenderTest {
     private fun previewBegin(routineId: String): () -> Boolean {
         reachable(compose.onNodeWithTag(StartTags.routine(routineId))).performClick()
         compose.waitForIdle()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val node = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertIsEnabled().fetchSemanticsNode()
         return node.config[SemanticsActions.OnClick].action!!
     }

@@ -168,6 +168,7 @@ fun ActivitySession.toEntity() = ActivitySessionEntity(
     updatedAtMs = updatedAtMs,
     revision = revision,
     liveToken = if (status == ActivityStatus.ACTIVE) "LIVE" else null,
+    gymId = gymId,
 )
 
 fun ActivityBlock.toEntity(sessionId: String?, templateId: String?): ActivityBlockEntity =

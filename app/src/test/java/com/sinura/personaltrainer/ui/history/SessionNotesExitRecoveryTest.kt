@@ -165,7 +165,9 @@ class SessionNotesExitRecoveryTest {
         withControlledModel(original.id) { model ->
             failNext.set(true)
             model.setNotes(" repeat draft ")
+            model.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
             model.repeatSession()
+            model.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
             model.repeatSession()
             awaitBlockedNotes(model)
             assertEquals(1, writes.get())
@@ -222,6 +224,7 @@ class SessionNotesExitRecoveryTest {
         val original = finishedWithNotes()
         val live = deps.workoutRepository.startFreeWorkout()
         withControlledModel(original.id) { model ->
+            model.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
             model.repeatSession()
             pumpUntil(what = "blocked Repeat before Resume", read = { model.blockedRepeat.value }) { it != null }
             failNext.set(true)
@@ -303,6 +306,7 @@ class SessionNotesExitRecoveryTest {
         withControlledModel(original.id) { model ->
             failNext.set(true)
             model.setNotes("discard this Repeat draft")
+            model.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
             model.repeatSession()
             awaitBlockedNotes(model)
             model.requestNotesExit(leaveWithoutChanges = true)
@@ -334,6 +338,7 @@ class SessionNotesExitRecoveryTest {
         val original = finishedWithNotes()
         val live = deps.workoutRepository.startFreeWorkout()
         withControlledModel(original.id) { model ->
+            model.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
             model.repeatSession()
             pumpUntil(what = "blocked Repeat before discarded Resume", read = { model.blockedRepeat.value }) { it != null }
             failNext.set(true)
@@ -367,6 +372,7 @@ class SessionNotesExitRecoveryTest {
         withControlledModel(original.id) { model ->
             failNext.set(true)
             model.setNotes("failed Repeat draft")
+            model.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
             model.repeatSession()
             awaitBlockedNotes(model)
             model.keepEditingNotes()
@@ -387,6 +393,7 @@ class SessionNotesExitRecoveryTest {
         withControlledModel(original.id) { model ->
             failNext.set(true)
             model.setNotes(" words chosen for discard ")
+            model.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
             model.repeatSession()
             awaitBlockedNotes(model)
             assertEquals(1, writes.get())

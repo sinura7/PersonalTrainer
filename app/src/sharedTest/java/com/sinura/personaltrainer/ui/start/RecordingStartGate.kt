@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class RecordingStartGate : StartGate {
     override val startState = MutableStateFlow(HomeStartState())
     override val homeReads = MutableStateFlow(com.sinura.personaltrainer.ui.home.HomeUiState(readState = com.sinura.personaltrainer.ui.home.HomeReadState.CURRENT))
+    override val chooserGymId = MutableStateFlow<String?>(null)
+    override val pendingGymCommand = MutableStateFlow<StartCommand?>(null)
     override fun retryRead(): Boolean = false
     override val blockedByInProgress = MutableStateFlow<HomeViewModel.BlockedStart?>(null)
     override val navigateToSession = MutableStateFlow<String?>(null)
@@ -22,18 +24,37 @@ class RecordingStartGate : StartGate {
     override fun onSessionNavigationHandled() { navigateToSession.value = null }
     override fun onCardioNavigationHandled() { navigateToCardio.value = null }
     override fun onComposerNavigationHandled() { navigateToComposer.value = null }
+    override fun onChooserOpened() { chooserGymId.value = null }
+    override fun setChooserGym(gymId: String) { chooserGymId.value = gymId }
+    override fun clearPendingGymPick() { pendingGymCommand.value = null }
+    override fun fulfillGymPick(gymId: String, expectedAttemptId: Long?): Boolean {
+        val pending = pendingGymCommand.value ?: return false
+        pendingGymCommand.value = null
+        return requestStart(pending.withGym(gymId), expectedAttemptId)
+    }
     override fun canDismissStart(): Boolean = true
     override fun canEditStartChoice(): Boolean = true
     override fun dismissStart(expectedAttemptId: Long?): Boolean = true
     override fun retryStart(expectedAttemptId: Long?): Boolean = false
-    override fun startFreeWorkout(): Boolean = starts.add("free")
-    override fun startRoutine(routineId: String): Boolean = starts.add("routine:$routineId")
-    override fun startCardio(type: CardioType): Boolean = starts.add("cardio:${type.name}")
-    override fun startAux(packId: String): Boolean = starts.add("aux:$packId")
-    override fun startOccurrence(occurrenceId: String, deliveryId: String?): Boolean = starts.add("occurrence:$occurrenceId")
-    override fun startSuggestedDay(day: SuggestedTrainingDay): Boolean = starts.add("suggested")
+    override fun startFreeWorkout(gymId: String): Boolean = starts.add("free:$gymId").let { true }
+    override fun startRoutine(routineId: String, gymId: String): Boolean = starts.add("routine:$routineId:$gymId").let { true }
+    override fun startCardio(type: CardioType): Boolean = starts.add("cardio:${type.name}").let { true }
+    override fun startAux(packId: String, gymId: String): Boolean = starts.add("aux:$packId:$gymId").let { true }
+    override fun startOccurrence(occurrenceId: String, gymId: String, deliveryId: String?): Boolean =
+        starts.add("occurrence:$occurrenceId:$gymId").let { true }
+    override fun startSuggestedDay(day: SuggestedTrainingDay, gymId: String): Boolean =
+        starts.add("suggested:$gymId").let { true }
     override fun resumeBlocked(expectedBlocked: HomeViewModel.BlockedStart?, expectedAttemptId: Long?) = Unit
     override fun discardBlockedAndStart(expectedBlocked: HomeViewModel.BlockedStart?, expectedAttemptId: Long?): Boolean = false
     override fun dismissBlockedStart(expectedBlocked: HomeViewModel.BlockedStart?, expectedAttemptId: Long?) = Unit
-    override suspend fun previewWeights(routine: Routine): PreviewWeights = PreviewWeights(emptyMap(), emptyMap())
+    override suspend fun previewWeights(routine: Routine, gymId: String): PreviewWeights =
+        PreviewWeights(emptyMap(), emptyMap())
+    override fun requestStart(command: StartCommand, expectedAttemptId: Long?): Boolean {
+        if (command.requiresGym() && command.gymId == null) {
+            pendingGymCommand.value = command
+            return false
+        }
+        starts.add("request:${command::class.simpleName}")
+        return true
+    }
 }

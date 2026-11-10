@@ -71,6 +71,10 @@ object ActivityRules {
         if (draft.cardioClaims.any { !cardioMetricsAgree(it.block, it.secondsPerMeter, it.metersPerSecond) }) {
             return ActivityWrite.Rejected("Pace and speed must match distance and time.")
         }
+        val needsGym = draft.blocks.any { it is StrengthBlock }
+        if (needsGym && !draft.gymResolved) {
+            return ActivityWrite.Rejected("Pick a gym.")
+        }
         val nowMs = clock.nowMillis()
         val session = ActivitySession(
             id = draft.id ?: ids.newId(),
@@ -84,6 +88,7 @@ object ActivityRules {
             templateId = draft.templateId,
             occurrenceId = draft.occurrenceId,
             blocks = draft.blocks,
+            gymId = draft.gymId,
             createdAtMs = nowMs,
             updatedAtMs = nowMs,
             revision = 1L,
@@ -110,6 +115,9 @@ data class ActivityDraft(
     val occurrenceId: String? = null,
     val blocks: List<ActivityBlock>,
     val cardioClaims: List<CardioRateClaim> = emptyList(),
+    val gymId: String? = null,
+    /** When true, the author explicitly chose a gym or Unassigned. Cardio-only drafts may stay false. */
+    val gymResolved: Boolean = true,
 )
 
 data class CardioRateClaim(

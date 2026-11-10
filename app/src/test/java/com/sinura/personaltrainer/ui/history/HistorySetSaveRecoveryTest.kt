@@ -162,6 +162,7 @@ class HistorySetSaveRecoveryTest {
         vm.releaseSetSave(cancel = true)
         vm.deleteSet(session.sets.single().id)
         vm.deleteSession()
+        vm.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
         vm.repeatSession()
         vm.requestNotesExit()
         assertEquals(frozen, vm.setSave.value.command)

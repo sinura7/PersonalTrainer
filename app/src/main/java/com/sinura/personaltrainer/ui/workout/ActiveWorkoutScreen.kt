@@ -79,6 +79,10 @@ import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.InstrumentPreset
 import com.sinura.personaltrainer.ui.components.QuietButton
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.ui.start.GymPickMode
+import com.sinura.personaltrainer.ui.start.GymPickSheet
+import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.FloorSection
 import com.sinura.personaltrainer.ui.components.NotesBlock
@@ -283,6 +287,14 @@ private fun ActiveWorkoutContent(
     val privateRecovery by viewModel.privateRecovery.collectAsStateWithLifecycle()
     val logReceipt by viewModel.logReceipt.collectAsStateWithLifecycle()
     val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
+    val showGymMovePicker by viewModel.showGymMovePicker.collectAsStateWithLifecycle()
+    val showGymUpgrade by viewModel.showGymUpgrade.collectAsStateWithLifecycle()
+    val gymMovePrompt by viewModel.gymMovePrompt.collectAsStateWithLifecycle()
+    val gymRepo = (LocalContext.current.applicationContext as? PersonalTrainerApp)?.container?.gymRepository
+    val gyms by (gymRepo?.observeActiveGyms() ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val gymVisits by (gymRepo?.observeVisits() ?: kotlinx.coroutines.flow.flowOf(emptyMap()))
+        .collectAsStateWithLifecycle(initialValue = emptyMap())
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmEntryDiscard by rememberSaveable { mutableStateOf(false) }
@@ -328,6 +340,8 @@ private fun ActiveWorkoutContent(
         )
     RestExteriorPermissionGate(active = restExteriorActive)
     val session = state.session
+    val sessionGym = session?.gymId?.let { id -> gyms.firstOrNull { it.id == id } }
+    val gymMissing = session != null && session.gymId == null
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
     val logged = remember(session, selected) {
         selected?.let { lift -> session?.setsFor(lift.exercise.id) }.orEmpty()
@@ -570,6 +584,9 @@ private fun ActiveWorkoutContent(
                 compact = LandscapeChrome.compactHeader(landscape),
                 focused = true,
                 onExit = { keepAndExit() },
+                sessionGym = sessionGym,
+                gymMissing = gymMissing,
+                onGymChip = { viewModel.openGymMovePicker() },
                 overflow = {
                     when {
                         selected != null -> LiftOverflowMenu(
@@ -659,7 +676,11 @@ private fun ActiveWorkoutContent(
                                 // lift on the commit's capped supporting line; a 360 dp landscape has
                                 // no room for a second line there, so it only speaks it.
                                 verb = primaryAction.verb(includeNextName = false),
-                                payload = primaryAction.payload(unit = unit, loadClass = loadClass)
+                                payload = primaryAction.payload(
+                                    unit = unit,
+                                    loadClass = loadClass,
+                                    loadedWeightUnset = state.machineWeightUnset,
+                                )
                                     ?: primaryAction.nextName.takeIf { !landscape && primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
                                 spokenPayload = primaryAction.nextName.takeIf { primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
                                 editing = state.editingSetId != null,
@@ -922,6 +943,13 @@ private fun ActiveWorkoutContent(
                                         horizontalPadding = Metrics.space1,
                                         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
                                     ) {
+                                        val otherGymCaption =
+                                            if (state.machineWeightUnset && state.otherGymHint != null && logged.isEmpty()) {
+                                                val hint = state.otherGymHint!!
+                                                "At ${hint.gymShortName}: ${hint.weightKg.toWeightLabel(unit)}"
+                                            } else {
+                                                null
+                                            }
                                         WeightRepsEditor(
                                             enabled = entryEnabled,
                                             weightKg = state.draft.weightKg,
@@ -937,6 +965,8 @@ private fun ActiveWorkoutContent(
                                             holdRunning = holdTimer.running,
                                             holdRemainingSeconds = holdTimer.remainingSeconds,
                                             focused = true,
+                                            loadedWeightUnset = state.machineWeightUnset && !state.draft.isWarmup,
+                                            otherGymCaption = otherGymCaption,
                                             onWeightKgChange = viewModel::setWeight,
                                             onRepsChange = viewModel::setReps,
                                             onSecondsChange = viewModel::setHoldSeconds,
@@ -1308,13 +1338,17 @@ private fun ActiveWorkoutContent(
     }
 
     if (whatNextVisible && selected != null && session != null) {
-        val nextLift = advance.nextLift
-        val targetLine = nextLift?.let {
-            SetCopy.setLine(it.targetWeightKg ?: 0.0, it.targetReps, LoadClass.of(it.exercise.loadType), unit)
-        }
+        val loadClass = LoadClass.of(selected.exercise.loadType)
+        val addSetLine = SetCopy.setLine(
+            weightKg = state.draft.weightKg,
+            reps = state.draft.reps,
+            loadClass = loadClass,
+            unit = unit,
+            loadedWeightUnset = state.machineWeightUnset && !state.draft.isWarmup && state.draft.weightKg <= 0.0,
+        )
         val liftsLeft = session.exercises.count { !session.isTargetMet(it.exercise.id) }
         WhatNextSheet(
-            addSetSubLabel = targetLine?.let { stringResource(R.string.next_add_set_sub, it) },
+            addSetSubLabel = stringResource(R.string.next_add_set_sub, addSetLine),
             swapSubLabel = state.swapSiblings.take(2).joinToString(", ") { it.name }.takeIf { it.isNotBlank() }?.let {
                 stringResource(R.string.next_swap_sub, it)
             },
@@ -1377,6 +1411,49 @@ private fun ActiveWorkoutContent(
             onRetry = viewModel::retrySave,
             onRetryNotes = viewModel::retryNotesSave,
             savePending = state.save.pending,
+        )
+    }
+
+    GymPickSheet(
+        visible = showGymMovePicker,
+        mode = GymPickMode.MOVE,
+        title = stringResource(R.string.gym_move_title),
+        caption = stringResource(R.string.gym_move_caption),
+        gyms = gyms,
+        visits = gymVisits,
+        selectedId = session?.gymId,
+        pendingGymId = null,
+        loading = false,
+        error = null,
+        onRetry = {},
+        onPick = viewModel::requestGymMove,
+        onCancel = viewModel::dismissGymMovePicker,
+    )
+    GymPickSheet(
+        visible = showGymUpgrade,
+        mode = GymPickMode.START,
+        title = stringResource(R.string.gym_upgrade_sheet_title),
+        caption = stringResource(R.string.gym_step_caption),
+        gyms = gyms,
+        visits = gymVisits,
+        selectedId = null,
+        pendingGymId = null,
+        loading = false,
+        error = null,
+        onRetry = {},
+        onPick = viewModel::assignGymUpgrade,
+        onCancel = viewModel::deferGymUpgrade,
+        cancelLabel = stringResource(R.string.gym_upgrade_decide_later),
+    )
+    gymMovePrompt?.let { prompt ->
+        ConfirmActionDialog(
+            title = "Move this workout to ${prompt.targetShortName}?",
+            body = "${prompt.machineSets} machine ${if (prompt.machineSets == 1) "set" else "sets"} " +
+                "already logged will count for ${prompt.targetShortName}.",
+            confirmLabel = "Move to ${prompt.targetShortName}",
+            destructive = false,
+            onConfirm = viewModel::confirmGymMove,
+            onDismiss = viewModel::dismissGymMoveConfirm,
         )
     }
 

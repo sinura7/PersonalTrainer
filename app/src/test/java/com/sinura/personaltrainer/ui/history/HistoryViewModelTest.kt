@@ -26,6 +26,7 @@ import com.sinura.personaltrainer.testutil.FailingWeighInsDao
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.ReadGate
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.TEST_STAMP
 import com.sinura.personaltrainer.testutil.awaitFirst
@@ -91,6 +92,7 @@ class HistoryViewModelTest {
 
         viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.repeatSession(finished.id)
+        viewModel!!.fulfillRepeatGym(TestGymIds.WESTON)
 
         val blocked = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.blockedRepeat.first { it != null }
@@ -109,6 +111,7 @@ class HistoryViewModelTest {
         )
         viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.repeatSession("missing")
+        viewModel!!.fulfillRepeatGym(TestGymIds.WESTON)
 
         val message = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.error.first { it == "That session is no longer available." }
@@ -131,11 +134,13 @@ class HistoryViewModelTest {
 
         viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.repeatSession("missing")
+        viewModel!!.fulfillRepeatGym(TestGymIds.WESTON)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.error.first { it == "That session is no longer available." }
         }
 
         viewModel!!.repeatSession(finished.id)
+        viewModel!!.fulfillRepeatGym(TestGymIds.WESTON)
 
         val newId = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.navigateToSession.first { it != null }

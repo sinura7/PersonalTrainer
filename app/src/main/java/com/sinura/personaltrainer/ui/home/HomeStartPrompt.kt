@@ -1,30 +1,38 @@
 package com.sinura.personaltrainer.ui.home
 
-import com.sinura.personaltrainer.ui.workout.PreviewWeights
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.sinura.personaltrainer.domain.Gym
+import com.sinura.personaltrainer.domain.GymVisit
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.estimatedSessionMinutes
 import com.sinura.personaltrainer.ui.components.ActionState
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.components.GymPickerList
+import com.sinura.personaltrainer.ui.start.GymPickMode
+import com.sinura.personaltrainer.ui.start.GymPickSheet
 import com.sinura.personaltrainer.ui.workout.WorkoutPreview
 import com.sinura.personaltrainer.ui.workout.WorkoutPreviewScreen
+import com.sinura.personaltrainer.ui.workout.PreviewWeights
 
 /**
- * One prompt in front of every Home start. A strength routine opens the pre-workout preview
- * (screen 06, D6); anything else keeps the plain confirm. Both call the same [onConfirm], with
- * the same [canConfirm] guard, so Begin is the existing single start path and never a second one.
+ * One prompt in front of every Home start. Strength routines show the preview (D6) with a required
+ * gym pick (D5) before weights load and Begin is enabled.
  */
 @Composable
 internal fun HomeStartPrompt(
     routine: Routine?,
     unit: WeightUnit,
-    loadWeights: suspend (Routine) -> PreviewWeights,
+    loadWeights: suspend (Routine, String) -> PreviewWeights,
+    gyms: List<Gym>,
+    gymVisits: Map<String?, GymVisit>,
+    pickedGymId: String?,
+    onPickGym: (String) -> Unit,
     onEditRoutine: (String) -> Unit,
     title: String,
     body: String,
@@ -49,8 +57,12 @@ internal fun HomeStartPrompt(
         )
         return
     }
-    var weights by remember(routine.id) { mutableStateOf<PreviewWeights?>(null) }
-    LaunchedEffect(routine.id) { weights = loadWeights(routine) }
+    var weights by remember(routine.id, pickedGymId) { mutableStateOf<PreviewWeights?>(null) }
+    var showGymSheet by remember { mutableStateOf(false) }
+    val pickedGym = gyms.firstOrNull { it.id == pickedGymId }
+    LaunchedEffect(routine.id, pickedGymId) {
+        weights = if (pickedGymId != null) loadWeights(routine, pickedGymId) else null
+    }
     val model = WorkoutPreview.build(
         title = routine.name,
         routine = routine,
@@ -66,21 +78,52 @@ internal fun HomeStartPrompt(
             onEditRoutine(routine.id)
         }
     }
-    WorkoutPreviewScreen(
+    val gymReady = pickedGymId != null
+  WorkoutPreviewScreen(
         model = model,
         unit = unit,
-        onBegin = { if (canConfirm()) onConfirm() },
+        onBegin = { if (canConfirm() && gymReady) onConfirm() },
         onBack = leave,
         backEnabled = dismissEnabled,
         onReorder = edit,
         onAddLift = edit,
         beginState = when {
             pending -> ActionState.Loading
-            !confirmEnabled -> ActionState.Disabled
+            !confirmEnabled || !gymReady -> ActionState.Disabled
             else -> ActionState.Enabled
         },
         beginLabel = confirmLabel.takeIf { labelOverridden },
-        contextContent = contextContent,
+        contextContent = {
+            contextContent()
+            if (pickedGym == null) {
+                GymPickerList(
+                    gyms = gyms.filterNot { it.archived },
+                    visits = gymVisits,
+                    selectedId = null,
+                    onPick = onPickGym,
+                )
+            }
+        },
         actionKey = actionKey,
+        gymShortName = pickedGym?.shortName,
+        onChangeGym = { showGymSheet = true },
+    )
+    GymPickSheet(
+        visible = showGymSheet,
+        mode = GymPickMode.SELECT_ONLY,
+        title = title,
+        caption = null,
+        gyms = gyms.filterNot { it.archived },
+        visits = gymVisits,
+        selectedId = pickedGymId,
+        pendingGymId = null,
+        loading = false,
+        error = null,
+        onRetry = {},
+        onPick = { id ->
+            showGymSheet = false
+            onPickGym(id)
+        },
+        onCancel = { showGymSheet = false },
     )
 }

@@ -811,7 +811,10 @@ class TrainingInsightsSourceTest {
             assertFalse("failure was hidden until cleanup released", releaseCleanup.isCompleted)
             assertEquals(oldBoard.routines, home.uiState.value.routines)
             assertFalse(home.uiState.value.mutationEnabled)
-            assertFalse("a known insight-only read fault admitted a workout", home.startFreeWorkout())
+            assertFalse(
+                "a known insight-only read fault admitted a workout",
+                home.startFreeWorkout(com.sinura.personaltrainer.testutil.TestGymIds.WESTON),
+            )
             val failureAt = seen.lastIndex
             releaseCleanup.complete(Unit)
             settle()

@@ -26,6 +26,8 @@ import com.sinura.personaltrainer.domain.ProgressSegment
 import com.sinura.personaltrainer.domain.ProgressSegmentState
 import com.sinura.personaltrainer.domain.WorkoutProgress
 import com.sinura.personaltrainer.domain.WorkoutProgressCalculator
+import com.sinura.personaltrainer.domain.Gym
+import com.sinura.personaltrainer.ui.components.GymChip
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -52,6 +54,9 @@ internal fun WorkoutHeader(
     onExit: () -> Unit,
     overflow: (@Composable () -> Unit)? = null,
     focused: Boolean = false,
+    sessionGym: Gym? = null,
+    gymMissing: Boolean = false,
+    onGymChip: (() -> Unit)? = null,
 ) {
     val largeText = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val titleLines = if (compact || largeText) 1 else 2
@@ -90,8 +95,21 @@ internal fun WorkoutHeader(
         )
         if (headline.isNotBlank() && !planAsTitle) {
             if (focused && !largeText) {
-                WorkoutProgressBar(segments = progress.segments,
-                    modifier = Modifier.padding(start = Metrics.space2 + Metrics.touchMin, end = Metrics.gutter))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = Metrics.space2 + Metrics.touchMin, end = Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    if (onGymChip != null) {
+                        GymChip(
+                            gym = sessionGym,
+                            onClick = onGymChip,
+                            missingGym = gymMissing,
+                        )
+                    }
+                    WorkoutProgressBar(segments = progress.segments)
+                }
             } else {
                 Column(
                     modifier = Modifier
@@ -99,6 +117,13 @@ internal fun WorkoutHeader(
                         .padding(start = if (focused) Metrics.gutter else Metrics.space2 + Metrics.touchMin, end = Metrics.gutter),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                 ) {
+                    if (onGymChip != null) {
+                        GymChip(
+                            gym = sessionGym,
+                            onClick = onGymChip,
+                            missingGym = gymMissing,
+                        )
+                    }
                     Text(
                         if (focused) headline else headline.uppercase(),
                         modifier = progressLine(spoken),

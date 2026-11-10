@@ -15,7 +15,9 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.ui.components.GymTags
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -110,6 +112,7 @@ class HistoryDetailRepeatRenderTest {
         mount(opened)
         compose.onNodeWithTag(SessionDetailTestTags.REPEAT).performClick()
         compose.settle()
+        compose.onNodeWithTag(GymTags.row(TestGymIds.WESTON)).performClick()
         compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
         val seen: () -> Any? = { opened.toList() }
         compose.awaitThat(what = "the copy opens", now = seen) { opened.size == 1 }

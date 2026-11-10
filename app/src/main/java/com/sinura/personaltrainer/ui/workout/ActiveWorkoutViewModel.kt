@@ -78,6 +78,8 @@ import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.GymScope
+import com.sinura.personaltrainer.domain.OtherGymHint
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.ui.theme.Motion
@@ -220,6 +222,9 @@ data class ActiveWorkoutUiState(
     val effortValue: Int? = null,
     /** Whether [effortValue] is prefilled, coach-applied, user-picked, or absent (R1 lane B). */
     val effortSource: EffortSource = EffortSource.NONE,
+    val otherGymHint: OtherGymHint? = null,
+    /** Machine lift with no history at this gym: weight stays blank until the user types one. */
+    val machineWeightUnset: Boolean = false,
 ) {
     val isLoading: Boolean get() = loadState == SessionLoadState.LOADING
 
@@ -241,7 +246,10 @@ data class ActiveWorkoutUiState(
             return SetLogRules.validateEffort(rpe = effortValue, isWarmup = draft.isWarmup, isHold = hold) != null
         }
 
-    val logCommitReady: Boolean get() = canLog && !effortMissingForCommit
+    val machineWeightBlocksCommit: Boolean
+        get() = machineWeightUnset && !draft.isWarmup && draft.weightKg <= 0.0
+
+    val logCommitReady: Boolean get() = canLog && !effortMissingForCommit && !machineWeightBlocksCommit
 
     /** Explicit chip selection ([EffortSource.USER] or coach Apply [EffortSource.COACH]). */
     val effortChipSelected: Int?
@@ -314,6 +322,7 @@ class ActiveWorkoutViewModel internal constructor(
             (container as? AppContainer)?.customExerciseDrafts,
             (container as? AppContainer)?.pickerSwapDrafts,
         )
+    private val savedStateHandle: SavedStateHandle = savedStateHandle
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
     private val durability = draftCache.persistence?.forEntry()
@@ -679,6 +688,18 @@ class ActiveWorkoutViewModel internal constructor(
     /** The rest commands and the history reads this screen shares with the rest page. */
     private val restCommands = RestCommands(container, viewModelScope, sessionId)
     private val hintLoader = ProgressionHintLoader(container, sessionId)
+    private val otherGymHint = MutableStateFlow<OtherGymHint?>(null)
+    private val machineWeightUnset = MutableStateFlow(false)
+    val gymMovePrompt = MutableStateFlow<GymMovePrompt?>(null)
+    val showGymMovePicker = MutableStateFlow(false)
+    val showGymUpgrade = MutableStateFlow(false)
+    private var emptyPickerOffered = false
+
+    data class GymMovePrompt(
+        val targetGymId: String,
+        val targetShortName: String,
+        val machineSets: Int,
+    )
 
     /** The unit and the week's mark, as they change. The hint is read under them (W2e). */
     private val hintSettings: StateFlow<HintSettings?> =
@@ -800,6 +821,15 @@ class ActiveWorkoutViewModel internal constructor(
                     if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return@collect }
                     if (read.loadState == SessionLoadState.MISSING) sessionNotes.sessionMissing()
                     val current = read.session ?: return@collect
+                    if (!current.isFinished && current.gymId == null &&
+                        savedStateHandle.get<Boolean>("gym-upgrade-deferred") != true
+                    ) {
+                        showGymUpgrade.value = true
+                    }
+                    if (!emptyPickerOffered && !current.isFinished && !current.hasLifts() && current.gymId != null) {
+                        emptyPickerOffered = true
+                        showPicker.value = true
+                    }
                     if (!clocksRestored && !current.isFinished) {
                         clocksRestored = true
                         clocks.restore(selectedExerciseId.value)
@@ -935,6 +965,8 @@ class ActiveWorkoutViewModel internal constructor(
             MicroRecCore(current, selected, currentDraft, currentHint, extra)
         }.combine(lastPerformance) { core, last ->
             core.copy(lastPerformance = last)
+        }.combine(machineWeightUnset) { core, weightUnset ->
+            core.copy(loadedWeightUnset = weightUnset)
         },
         combine(
             editingSetId,
@@ -964,6 +996,7 @@ class ActiveWorkoutViewModel internal constructor(
             unit = extras.unit,
             coachPrefs = extras.coachPrefs,
             draftRpeIntent = extras.draftRpeIntent,
+            loadedWeightUnset = core.loadedWeightUnset,
         ).coachKey()
     }.distinctUntilChanged()
 
@@ -1203,6 +1236,10 @@ class ActiveWorkoutViewModel internal constructor(
             effortSource = source,
             effortValue = state.draft.rpe.takeIf { effortApplies },
         )
+    }.combine(otherGymHint) { state, hint ->
+        state.copy(otherGymHint = hint)
+    }.combine(machineWeightUnset) { state, unset ->
+        state.copy(machineWeightUnset = unset)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -1266,6 +1303,17 @@ class ActiveWorkoutViewModel internal constructor(
             // decision of 25 September 2026).
             if (keepDraft) followSuggestion(exerciseId)
             lastPerformance.value = hintLoader.lastPerformance(exerciseId, planned)
+            val gymId = current.gymId
+            val equipment = planned?.exercise?.equipment
+            val newAtGym = gymId != null && equipment != null &&
+                GymScope.isGymSpecific(equipment) && lastPerformance.value == null
+            if (newAtGym) {
+                otherGymHint.value = container.workoutRepository.otherGymHint(exerciseId, gymId)
+                machineWeightUnset.value = true
+            } else {
+                otherGymHint.value = null
+                machineWeightUnset.value = false
+            }
             if (!isCurrentPrefill(exerciseId, generation)) return
             priorHistory.value = container.workoutRepository
                 .historyBefore(sessionId, listOf(exerciseId))[exerciseId].orEmpty()
@@ -1318,9 +1366,12 @@ class ActiveWorkoutViewModel internal constructor(
                     hintStamp.value = HintStamp(exerciseId = exerciseId, generation = generation, settings = settings)
                     wrote
                 } else {
-                    val lastWeight = progression?.suggestedWeightKg
-                        ?: planned?.targetWeightKg
-                        ?: 0.0
+                    val lastWeight = when {
+                        machineWeightUnset.value -> 0.0
+                        else -> progression?.suggestedWeightKg
+                            ?: planned?.targetWeightKg
+                            ?: 0.0
+                    }
                     val seededEffort = EffortPrefillPolicy.effortForAutomaticSeed(
                         isWarmup = false,
                         isHold = hold,
@@ -1631,6 +1682,7 @@ class ActiveWorkoutViewModel internal constructor(
         if (!weightKg.isFinite()) return
         editEntry {
             draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
+            if (weightKg > 0.0) machineWeightUnset.value = false
             markDraftDirty()
         }
     }
@@ -3330,6 +3382,83 @@ class ActiveWorkoutViewModel internal constructor(
         return stagePrivateEntry()
     }
 
+    fun openGymMovePicker() {
+        if (session.value?.isFinished != false) return
+        showGymMovePicker.value = true
+    }
+
+    fun dismissGymMovePicker() {
+        showGymMovePicker.value = false
+    }
+
+    fun deferGymUpgrade() {
+        showGymUpgrade.value = false
+        savedStateHandle["gym-upgrade-deferred"] = true
+    }
+
+    fun assignGymUpgrade(gymId: String) {
+        showGymUpgrade.value = false
+        savedStateHandle.remove<Boolean>("gym-upgrade-deferred")
+        viewModelScope.launch {
+            when (container.workoutRepository.moveSessionToGym(sessionId, gymId)) {
+                WorkoutRepository.MoveGymOutcome.Moved -> {
+                    prefillGeneration++
+                    selectedExerciseId.value?.let { prefill(it) }
+                    if (session.value?.hasLifts() != true && !emptyPickerOffered) {
+                        emptyPickerOffered = true
+                        showPicker.value = true
+                    }
+                }
+                is WorkoutRepository.MoveGymOutcome.Refused ->
+                    error.fail(source = ERR_LOAD, message = "Could not set the gym. Try again.")
+            }
+        }
+    }
+
+    fun requestGymMove(targetGymId: String) {
+        val currentGym = session.value?.gymId
+        if (targetGymId == currentGym) {
+            showGymMovePicker.value = false
+            return
+        }
+        viewModelScope.launch {
+            val count = container.workoutRepository.machineSetCountForSession(sessionId)
+            val short = container.gymRepository.observeActiveGyms().first()
+                .firstOrNull { it.id == targetGymId }?.shortName ?: return@launch
+            showGymMovePicker.value = false
+            if (count == 0) {
+                applyGymMove(targetGymId)
+            } else {
+                gymMovePrompt.value = GymMovePrompt(
+                    targetGymId = targetGymId,
+                    targetShortName = short,
+                    machineSets = count,
+                )
+            }
+        }
+    }
+
+    fun confirmGymMove() {
+        val prompt = gymMovePrompt.value ?: return
+        gymMovePrompt.value = null
+        viewModelScope.launch { applyGymMove(prompt.targetGymId) }
+    }
+
+    fun dismissGymMoveConfirm() {
+        gymMovePrompt.value = null
+    }
+
+    private suspend fun applyGymMove(targetGymId: String) {
+        when (container.workoutRepository.moveSessionToGym(sessionId, targetGymId)) {
+            WorkoutRepository.MoveGymOutcome.Moved -> {
+                prefillGeneration++
+                selectedExerciseId.value?.let { prefill(it) }
+            }
+            is WorkoutRepository.MoveGymOutcome.Refused ->
+                error.fail(source = ERR_LOAD, message = "Could not move this workout. Try again.")
+        }
+    }
+
     private data class WorkoutCore(
         val read: WorkoutSessionRead,
         val selected: String?,
@@ -3344,6 +3473,7 @@ class ActiveWorkoutViewModel internal constructor(
         val draft: ActiveExerciseDraft,
         val hint: ProgressionHint?,
         val wantAnother: Boolean,
+        val loadedWeightUnset: Boolean = false,
         val lastPerformance: ExerciseSessionSummary? = null,
     )
 

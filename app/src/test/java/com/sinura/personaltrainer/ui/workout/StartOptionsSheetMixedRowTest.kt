@@ -8,6 +8,8 @@ import com.sinura.personaltrainer.ui.home.HomeViewModel
 import com.sinura.personaltrainer.ui.start.startGateFor
 import com.sinura.personaltrainer.ui.start.StartTags
 import com.sinura.personaltrainer.ui.start.StartChooserHost
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
+import com.sinura.personaltrainer.testutil.TestGymIds
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -107,7 +109,7 @@ class StartOptionsSheetMixedRowTest {
         }
 
         openOther()
-        compose.onNodeWithText("Mixed session").performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.LOG_MIXED).performScrollTo().performClick()
         compose.waitForIdle()
 
         assertEquals("the tap must reach the host", 1, mixedOpened)
@@ -143,7 +145,7 @@ class StartOptionsSheetMixedRowTest {
         }
 
         openOther()
-        compose.onNodeWithText("Mixed session").performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.LOG_MIXED).performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(1, mixedOpened)
 
@@ -207,7 +209,7 @@ class StartOptionsSheetMixedRowTest {
         visible = true
         compose.waitForIdle()
         openOther()
-        compose.onNodeWithText("Mixed session").performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.LOG_MIXED).performScrollTo().performClick()
         compose.waitForIdle()
         assertEquals(1, mixed)
         assertNothingWritten()
@@ -249,14 +251,21 @@ class StartOptionsSheetMixedRowTest {
 
     private fun openOther() {
         compose.waitForIdle()
+        compose.runOnIdle { gate.setChooserGym(TestGymIds.WESTON) }
+        StartChooserTestKit.pickWestonIfShown(compose)
         compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
         compose.waitForIdle()
     }
 
     private fun assertLogEntries() {
         openOther()
-        listOf("Past workout", "Mixed session", "Cardio", "Start cardio").forEach { label ->
-            compose.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+        listOf(
+            StartTags.LOG_PAST,
+            StartTags.LOG_MIXED,
+            StartTags.LOG_CARDIO,
+            StartTags.LIVE_CARDIO,
+        ).forEach { tag ->
+            compose.onNodeWithTag(tag).performScrollTo().assertIsDisplayed()
         }
         compose.onNodeWithTag(StartTags.OTHER_BACK).performScrollTo().performClick()
         compose.waitForIdle()

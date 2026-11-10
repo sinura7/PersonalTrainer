@@ -48,6 +48,7 @@ import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.PlanCreditCopy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.SessionHighlight
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -59,6 +60,7 @@ import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.SummaryCopy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
@@ -440,7 +442,17 @@ private fun SummaryHeading(summary: WorkoutSummary) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
         Kicker(stringResource(R.string.summary_kicker))
         Text(summary.title, style = InstrumentType.display, color = TextPrimary)
-        Text(dateLabel, style = InstrumentType.caption, color = TextTertiary)
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+            Text(dateLabel, style = InstrumentType.caption, color = TextTertiary)
+            summary.gymShortName?.let { gym ->
+                Text(
+                    stringResource(R.string.gym_summary_at, gym),
+                    style = InstrumentType.caption,
+                    color = TextTertiary,
+                    modifier = Modifier.testTag(SummaryTags.GYM_AT),
+                )
+            }
+        }
     }
 }
 
@@ -642,8 +654,14 @@ private fun PersonalRecordPanel(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
                     SummaryLiftIdentity(highlight, exercises, artTag = SummaryTags.recordArt(highlight.exerciseId))
+                    val machine = exercises[highlight.exerciseId]?.equipment == EquipmentType.MACHINE
+                    val gymShort = summary.gymShortName
+                    val prAtGym = gymShort?.let { stringResource(R.string.gym_pr_at, it) }
                     Text(
-                        highlight.records.joinToString(" · ", transform = PersonalRecordCopy::celebration),
+                        highlight.records.joinToString(" · ") { kind ->
+                            if (machine && prAtGym != null) prAtGym
+                            else PersonalRecordCopy.celebration(kind)
+                        },
                         style = InstrumentType.caption,
                         color = PrGold,
                     )
@@ -679,6 +697,9 @@ private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit, exercises: 
                                 weightKg = top.weightKg, reps = top.reps,
                                 loadClass = highlight.loadClass, unit = unit,
                                 durationSeconds = top.durationSeconds,
+                                loadedWeightUnset = highlight.loadClass == LoadClass.LOADED &&
+                                    top.weightKg <= 0.0 && top.reps > 0 &&
+                                    (top.durationSeconds ?: 0) < 1,
                             ),
                         style = InstrumentType.body,
                         color = TextSecondary,
@@ -791,6 +812,7 @@ object SummaryTags {
     const val OPEN_SESSION = "summary-open-session"
     const val RETRY = "summary-retry"
     const val PR_COUNT = "summary-pr-count"
+    const val GYM_AT = "summary-gym-at"
     const val TEMPO_NEXT = "summary-tempo-next"
     const val FIRST_WORKOUT = "summary-first-workout"
     const val FINISHED_EARLY = "summary-finished-early"

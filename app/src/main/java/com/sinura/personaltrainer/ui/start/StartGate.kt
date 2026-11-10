@@ -12,17 +12,17 @@ import kotlinx.coroutines.flow.StateFlow
 /**
  * The one start admission every Start surface goes through (blueprint V2, rule 6.1).
  *
- * One Activity-scoped instance is shared by Today and the [StartChooser] on Plan, History and
- * Body, so a start from any tab gets the same guards: a start is reserved before it launches
- * (a second tap from the same frame is refused), a rendered action only acts on its own
- * [HomeStartState.attemptId], nothing new is admitted while a navigation is still queued, and
- * a start refused by a live workout is held in [blockedByInProgress] for the user to resolve.
+ * Strength starts require a non-null [gymId] (D5). Cardio and Extra warm-up packs skip the pick.
  */
 interface StartGate {
     val startState: StateFlow<HomeStartState>
     val blockedByInProgress: StateFlow<HomeViewModel.BlockedStart?>
-    /** Home's board reads, so the chooser can explain a failed read and offer Retry. */
     val homeReads: StateFlow<com.sinura.personaltrainer.ui.home.HomeUiState>
+    /** Gym picked on the Start chooser this opening; reset to null whenever the sheet opens. */
+    val chooserGymId: StateFlow<String?>
+    /** A start that still needs a gym before it can launch (GymPickSheet). */
+    val pendingGymCommand: StateFlow<StartCommand?>
+
     fun retryRead(): Boolean
     val navigateToSession: StateFlow<String?>
     val navigateToCardio: StateFlow<String?>
@@ -37,12 +37,22 @@ interface StartGate {
     fun dismissStart(expectedAttemptId: Long? = null): Boolean
     fun retryStart(expectedAttemptId: Long? = null): Boolean
 
-    fun startFreeWorkout(): Boolean
-    fun startRoutine(routineId: String): Boolean
+    /** Called when the Start chooser sheet opens so nothing is preselected (D5). */
+    fun onChooserOpened()
+
+    fun setChooserGym(gymId: String)
+
+    fun clearPendingGymPick()
+
+    /** Complete a [pendingGymCommand] with the chosen gym and admit the start. */
+    fun fulfillGymPick(gymId: String, expectedAttemptId: Long? = null): Boolean
+
+    fun startFreeWorkout(gymId: String): Boolean
+    fun startRoutine(routineId: String, gymId: String): Boolean
     fun startCardio(type: CardioType): Boolean
-    fun startAux(packId: String): Boolean
-    fun startOccurrence(occurrenceId: String, deliveryId: String? = null): Boolean
-    fun startSuggestedDay(day: SuggestedTrainingDay): Boolean
+    fun startAux(packId: String, gymId: String): Boolean
+    fun startOccurrence(occurrenceId: String, gymId: String, deliveryId: String? = null): Boolean
+    fun startSuggestedDay(day: SuggestedTrainingDay, gymId: String): Boolean
 
     fun resumeBlocked(expectedBlocked: HomeViewModel.BlockedStart? = null, expectedAttemptId: Long? = null)
     fun discardBlockedAndStart(
@@ -51,11 +61,13 @@ interface StartGate {
     ): Boolean
     fun dismissBlockedStart(expectedBlocked: HomeViewModel.BlockedStart? = null, expectedAttemptId: Long? = null)
 
-    suspend fun previewWeights(routine: Routine): PreviewWeights
+    suspend fun previewWeights(routine: Routine, gymId: String): PreviewWeights
 
-    /** Today's plan: the occurrence when the agenda owns the day, the leftover day otherwise. */
-    fun startToday(start: TodaySheetStart): Boolean =
-        start.occurrenceId?.let { startOccurrence(occurrenceId = it) }
-            ?: start.leftover?.let { startSuggestedDay(day = it) }
+    fun startToday(start: TodaySheetStart, gymId: String): Boolean =
+        start.occurrenceId?.let { startOccurrence(occurrenceId = it, gymId = gymId) }
+            ?: start.leftover?.let { startSuggestedDay(day = it, gymId = gymId) }
             ?: false
+
+    /** Central admission: refuses strength commands without [StartCommand.gymId]. */
+    fun requestStart(command: StartCommand, expectedAttemptId: Long? = null): Boolean
 }

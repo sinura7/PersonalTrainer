@@ -69,7 +69,7 @@ data class WorkoutPrimaryAction(
      * What the tap will write, with effort when it was chosen: `70 lbs × 10 · RPE 9`.
      * Null for actions that carry no set — Next, Finish, the saving states.
      */
-    fun payload(unit: WeightUnit, loadClass: LoadClass): String? {
+    fun payload(unit: WeightUnit, loadClass: LoadClass, loadedWeightUnset: Boolean = false): String? {
         val carriesSet = when (kind) {
             WorkoutPrimaryKind.LOG_SET,
             WorkoutPrimaryKind.LOG_WARMUP,
@@ -91,7 +91,9 @@ data class WorkoutPrimaryAction(
         }
         if (!carriesSet) return null
         val saved = identity.pendingSave?.values
-        val line = setPayload(unit, loadClass)
+        val unset = loadedWeightUnset && !identity.draft.isWarmup && (saved?.weightKg ?: identity.draft.weightKg) <= 0.0
+        if (unset && kind == WorkoutPrimaryKind.LOG_SET) return null
+        val line = setPayload(unit, loadClass, loadedWeightUnset)
         // Imported warm-ups may already have effort. Corrections preserve that
         // recorded value; only a newly logged warm-up leaves effort blank.
         val rpe = if (saved != null) saved.rpe else identity.draft.rpe.takeUnless {
@@ -100,19 +102,21 @@ data class WorkoutPrimaryAction(
         return if (rpe != null) "$line · RPE $rpe" else line
     }
 
-    private fun setPayload(unit: WeightUnit, loadClass: LoadClass): String {
+    private fun setPayload(unit: WeightUnit, loadClass: LoadClass, loadedWeightUnset: Boolean): String {
         val draft = identity.pendingSave?.values
+        val unset = loadedWeightUnset && draft?.isWarmup != true && identity.draft.isWarmup != true
         return SetCopy.setLine(
             weightKg = draft?.weightKg ?: identity.draft.weightKg,
             reps = draft?.reps ?: identity.draft.reps,
             loadClass = loadClass, unit = unit,
             durationSeconds = draft?.durationSeconds ?: durationSeconds,
             entryPrecision = true,
+            loadedWeightUnset = unset,
         )
     }
 
-    fun label(unit: WeightUnit, loadClass: LoadClass, includeNextName: Boolean = true): String {
-        val payload = setPayload(unit, loadClass)
+    fun label(unit: WeightUnit, loadClass: LoadClass, includeNextName: Boolean = true, loadedWeightUnset: Boolean = false): String {
+        val payload = setPayload(unit, loadClass, loadedWeightUnset)
         return when (kind) {
             WorkoutPrimaryKind.UNAVAILABLE -> "Workout unavailable"
             WorkoutPrimaryKind.ADD_EXERCISE -> "Add exercise"

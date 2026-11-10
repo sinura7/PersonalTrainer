@@ -27,6 +27,7 @@ suspend fun seedTestWorkout(
     loggedSets: List<TestSetInput> = emptyList(),
     finish: Boolean = false,
     notes: String = "",
+    gymId: String? = TestGymIds.WESTON,
 ): TestWorkoutFixture {
     deps.database.exerciseDao().insertAll(
         listOf(
@@ -63,7 +64,11 @@ suspend fun seedTestWorkout(
     )
     val exercise = checkNotNull(deps.exerciseRepository.getById(exerciseId))
     val routine = checkNotNull(deps.routineRepository.getById(routineId))
-    val live = deps.workoutRepository.startRoutine(routine)
+    val live = when (val outcome = deps.workoutRepository.startRoutineSafely(routine, gymId)) {
+        is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Started -> outcome.session
+        is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Blocked -> outcome.inProgress
+        is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable -> error(outcome.message)
+    }
     loggedSets.forEach { set ->
         deps.workoutRepository.logSet(
             sessionId = live.id,

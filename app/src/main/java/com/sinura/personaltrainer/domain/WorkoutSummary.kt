@@ -18,6 +18,7 @@ data class SessionHighlight(
 data class WorkoutSummary(
     val sessionId: String = "",
     val title: String = "",
+    val gymShortName: String? = null,
     val performedAtMs: Long = 0L,
     val durationMinutes: Int = 0,
     val workingSets: Int = 0,
@@ -162,6 +163,7 @@ object WorkoutSummaryBuilder {
         return WorkoutSummary(
             sessionId = session.id,
             title = session.routineName?.takeIf { it.isNotBlank() } ?: "Workout",
+            gymShortName = null,
             performedAtMs = listOf(session.date, session.finishedAt ?: 0L, session.startedAt)
                 .firstOrNull { it > 0L } ?: 0L,
             durationMinutes = session.durationMinutes,

@@ -183,6 +183,7 @@ class StagedPickerCallerRecoveryTest {
         assertEquals("Preserve activity after picker reset", fields.title)
         assertEquals(lift.id, fields.strength.single().exercise.id)
         assertEquals(17.5, fields.strength.single().weightKg, 0.0); assertEquals(11, fields.strength.single().reps)
+        reopened.resolveComposerGymForTest(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
         reopened.save(); reopened.savedId.awaitFirst { it != null }
         assertEquals(1, deps.database.activityDao().getAllGraphs().size)
         assertEquals(null, deps.exerciseRepository.getById(id))

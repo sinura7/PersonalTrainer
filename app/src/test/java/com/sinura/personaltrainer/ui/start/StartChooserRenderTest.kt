@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
@@ -37,7 +38,10 @@ class StartChooserRenderTest {
 
     @Test
     fun plannedTodayIsFirst() {
-        show(StartOptionsUiState(isLoading = false, hasPlan = true, todayStart = TodaySheetStart(title = "Push"), routines = listOf(routine("a", "Pull"))))
+        show(
+            StartOptionsUiState(isLoading = false, hasPlan = true, todayStart = TodaySheetStart(title = "Push"), routines = listOf(routine("a", "Pull"))),
+            chooserGymId = TestGymIds.WESTON,
+        )
         val today = top(StartTags.START_TODAY)
         assertTrue("today sits above routines", today < top(StartTags.routine("a")))
         assertTrue("today sits above empty", today < top(StartTags.START_EMPTY))
@@ -125,20 +129,31 @@ class StartChooserRenderTest {
 
     private fun top(tag: String): Float = compose.onNodeWithTag(tag).fetchSemanticsNode().positionInRoot.y
 
-    private fun show(state: StartOptionsUiState, enabled: Boolean = StartGroups.startsEnabled(state)) {
+    private fun show(
+        state: StartOptionsUiState,
+        enabled: Boolean = StartGroups.startsEnabled(state),
+        chooserGymId: String? = null,
+    ) {
         compose.setContent {
             PersonalTrainerTheme {
                 Column {
                     MainPage(
                         state = state,
                         enabled = enabled,
+                        chooserGymId = chooserGymId,
+                        gyms = emptyList(),
+                        gymVisits = emptyMap(),
+                        onPickGym = {},
                         onResume = { taps += "resume:$it" },
                         onResumeActivity = { taps += "activity:$it" },
                         onDiscard = { taps += "discard" },
                         onStartToday = { taps += "today" },
                         onStartRoutine = { taps += "routine:$it" },
                         onStartEmpty = { taps += "empty" },
-                        onOther = { taps += "other" },
+                        onCardio = { taps += "cardio" },
+                        onWarmup = { taps += "warmup" },
+                        onLogPast = { taps += "log-past" },
+                        onMoreLogging = { taps += "more" },
                         onOpenPlan = { taps += "plan" },
                         onOpenRoutines = { taps += "routines" },
                     )

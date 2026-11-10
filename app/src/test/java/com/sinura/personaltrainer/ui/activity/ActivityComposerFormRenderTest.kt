@@ -94,6 +94,7 @@ class ActivityComposerFormRenderTest {
         val exercise = deps.exerciseRepository.createCustom("Mixed lift", "Legs") as SaveExerciseResult.Saved
         vm.uiState.awaitFirst { it.catalog.isNotEmpty() }
         vm.addStrength(exercise.exercise, 60.0, 8)
+        vm.pickComposerGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
         compose.setContent {
             PersonalTrainerTheme {
                 CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG) {

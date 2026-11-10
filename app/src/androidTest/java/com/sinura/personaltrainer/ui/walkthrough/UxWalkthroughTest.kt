@@ -174,6 +174,7 @@ class UxWalkthroughTest {
             "7" -> runFlow("07-body-map-measurements") { flowBodyMapAndMeasurements() }
             "8" -> runFlow("08-settings-units-backup") { flowSettingsUnitsAndBackup() }
             "9" -> runFlow("09-font-scale-live-workout") { flowLargeFontLiveWorkout() }
+            "10" -> runFlow("10-gym-start-and-switch") { flowGymStartAndSwitch() }
             else -> error("Unknown uxFlow argument: $flow")
         }
         emitFlowSummary()
@@ -190,6 +191,7 @@ class UxWalkthroughTest {
         runFlow("07-body-map-measurements") { flowBodyMapAndMeasurements() }
         runFlow("08-settings-units-backup") { flowSettingsUnitsAndBackup() }
         runFlow("09-font-scale-live-workout") { flowLargeFontLiveWorkout() }
+        runFlow("10-gym-start-and-switch") { flowGymStartAndSwitch() }
         shot("99-complete")
         val failed = flowOutcomes.filterValues { it.startsWith("FAIL") }
         if (failed.isNotEmpty()) {
@@ -588,6 +590,8 @@ class UxWalkthroughTest {
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston"))
+            .performScrollTo().performClick()
         compose.onNodeWithTag(StartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
@@ -654,8 +658,7 @@ class UxWalkthroughTest {
         preparePopulatedApp()
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
-        compose.onNodeWithTag(StartTags.LIVE_CARDIO).performScrollTo().performClick()
+        compose.onNodeWithTag(StartTags.START_TILE_CARDIO).performScrollTo().performClick()
         harnessWaitUntil(15_000) {
             compose.onAllNodesWithTag(StartTags.CARDIO_PAGE).fetchSemanticsNodes().isNotEmpty()
         }
@@ -707,7 +710,9 @@ class UxWalkthroughTest {
             compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(HistoryTags.START_SHEET).performScrollTo().performClick()
-        // V2: logging a past mixed session sits under the chooser's Other page.
+        compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston"))
+            .performScrollTo().performClick()
         compose.onNodeWithTag(StartTags.START_OTHER).performScrollTo().performClick()
         compose.onNodeWithTag(StartTags.LOG_MIXED).performScrollTo().performClick()
         harnessWaitUntil(30_000) {
@@ -739,6 +744,10 @@ class UxWalkthroughTest {
             compose.onAllNodesWithTag(ComposerTags.SAVE).fetchSemanticsNodes().isNotEmpty()
         }
         shot("mixed-composer-filled")
+        composerScrollToTag(ComposerTags.GYM)
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston"))
+            .performScrollTo().performClick()
+        shot("mixed-composer-gym")
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(ComposerTags.SAVE)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -829,6 +838,136 @@ class UxWalkthroughTest {
         pressBackToSettingsHome()
     }
 
+    private fun flowGymStartAndSwitch() {
+        WalkthroughRestCaptureHook.setHoldPlannedRestAfterLogMs(8_000)
+        try {
+            flowGymStartAndSwitchCaptures()
+        } finally {
+            WalkthroughRestCaptureHook.setHoldPlannedRestAfterLogMs(0)
+        }
+    }
+
+    private fun flowGymStartAndSwitchCaptures() {
+        preparePopulatedApp()
+        seedGymFlowWalkthroughRoutine()
+        seedMajorMacPecDeckHistory()
+        awaitHomeReady()
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        shot("start-gym-required")
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston"))
+            .performScrollTo().performClick()
+        shot("start-gym-chosen")
+        compose.onNodeWithTag(StartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
+        harnessWaitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(WorkoutPreviewTags.ROOT)).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("preview-weights-weston")
+        compose.onNodeWithTag(WorkoutPreviewTags.GYM_CHANGE).performClick()
+        harnessWaitUntil(10_000) {
+            compose.onAllNodes(hasTestTag("gym-pick-sheet")).fetchSemanticsNodes().isNotEmpty()
+        }
+        val majorMacInSheet = hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-major-mackenzie")) and
+            hasAnyAncestor(hasTestTag("gym-pick-sheet"))
+        compose.onNode(majorMacInSheet, useUnmergedTree = true).performClick()
+        harnessWaitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(WorkoutPreviewTags.ROOT)).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("preview-weights-majormac")
+        compose.onNodeWithTag(WorkoutPreviewTags.GYM_CHANGE).performClick()
+        val westonInSheet = hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston")) and
+            hasAnyAncestor(hasTestTag("gym-pick-sheet"))
+        compose.onNode(westonInSheet, useUnmergedTree = true).performClick()
+        harnessWaitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN) and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).performClick()
+        harnessWaitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT)
+            .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(primaryLift.id)))
+        logWorkingSet(weightKg = 60.0, reps = 5, rpe = 7)
+        advanceToNextExerciseIfShown()
+        dismissWhatNextSheetIfOpen()
+        harnessWaitUntil(30_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id))).fetchSemanticsNodes().isNotEmpty()
+        }
+        dismissWhatNextSheetIfOpen()
+        harnessWaitUntil(15_000) {
+            compose.onAllNodes(hasText("At Major Mac:", substring = true))
+                .fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithText("0 kg", substring = true)
+                    .fetchSemanticsNodes().isEmpty()
+        }
+        shot("live-machine-new-here")
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT)
+            .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(secondaryLift.id)))
+        logWorkingSet(weightKg = 50.0, reps = 10, rpe = 8)
+        awaitLoggedSetRestSurface(setNumber = 2)
+        skipRestIfVisible()
+        dismissWhatNextSheetIfOpen()
+        performHarnessClickOnTag(com.sinura.personaltrainer.ui.components.GymTags.CHIP)
+        harnessWaitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.MOVE_SHEET))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        val contrelleInMoveSheet = hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-contrelle")) and
+            hasAnyAncestor(hasTestTag(com.sinura.personaltrainer.ui.components.GymTags.MOVE_SHEET))
+        compose.onNode(contrelleInMoveSheet, useUnmergedTree = true).performClick()
+        harnessWaitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(com.sinura.personaltrainer.ui.components.ConfirmActionTags.CONFIRM))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("gym-move-confirm")
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.ConfirmActionTags.CONFIRM).performClick()
+        harnessWaitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("live-after-move")
+        finishLiveWorkout()
+        awaitSummaryScreenForCapture()
+        shot("summary-at-gym", composeCaptureTag = SummaryTags.CONTENT)
+    }
+
+    private fun seedGymFlowWalkthroughRoutine() = runBlocking(Dispatchers.IO) {
+        withTimeout(60_000) {
+            val catalog = container.exerciseRepository.observeAll().first { rows ->
+                rows.any { it.id == "ex-pec-deck" } && rows.any { it.id == "ex-barbell-back-squat" }
+            }
+            primaryLift = catalog.first { it.id == "ex-barbell-back-squat" }
+            secondaryLift = catalog.first { it.id == "ex-pec-deck" }
+            val suffix = UUID.randomUUID().toString().take(6)
+            walkthroughRoutineName = "$PREFIX gym $suffix"
+            val routine = container.routineRepository.create(walkthroughRoutineName)
+            walkthroughRoutineId = routine.id
+            container.routineRepository.addExercise(
+                routineId = routine.id,
+                exercise = primaryLift,
+                targetSets = 1,
+                targetReps = 5,
+                targetWeightKg = 60.0,
+                restSeconds = 60,
+            )
+            container.routineRepository.addExercise(
+                routineId = routine.id,
+                exercise = secondaryLift,
+                targetSets = 2,
+                targetReps = 10,
+                targetWeightKg = null,
+                restSeconds = 60,
+            )
+        }
+    }
+
+    private fun seedMajorMacPecDeckHistory() = runBlocking(Dispatchers.IO) {
+        val routine = container.routineRepository.getById(walkthroughRoutineId) ?: return@runBlocking
+        val majorMac = "gym-af-major-mackenzie"
+        val started = container.workoutRepository.startRoutineSafely(routine, gymId = majorMac)
+        val session = (started as com.sinura.personaltrainer.data.repository.StartSessionOutcome.Started).session
+        container.workoutRepository.logSet(session.id, secondaryLift.id, 45.0, 12, null, false)
+        container.workoutRepository.finishSession(session.id, "")
+    }
+
     private fun flowLargeFontLiveWorkout() {
         shell("settings put system font_scale 1.3")
         preparePopulatedApp()
@@ -837,6 +976,8 @@ class UxWalkthroughTest {
         awaitHomeReady()
         compose.onNodeWithTag(HomeTags.START).performClick()
         compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.components.GymTags.row("gym-af-weston"))
+            .performScrollTo().performClick()
         compose.onNodeWithTag(StartTags.routine(walkthroughRoutineId)).performScrollTo().performClick()
         harnessWaitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutPreviewTags.BEGIN)).fetchSemanticsNodes().isNotEmpty()
@@ -953,6 +1094,16 @@ class UxWalkthroughTest {
         compose.onNodeWithText("Set").performClick()
     }
 
+    private fun dismissWhatNextSheetIfOpen() {
+        if (compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isEmpty()) return
+        val primary = hasTestTag(WorkoutTestTags.NEXT) or hasTestTag(WorkoutTestTags.DOCK_FINISH)
+        compose.onNode(primary, useUnmergedTree = true).performClick()
+        harnessWaitUntil(15_000) {
+            compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isEmpty()
+        }
+        compose.waitForIdle()
+    }
+
     private fun advanceToNextExerciseIfShown() {
         harnessWaitUntil(30_000) {
             compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isNotEmpty() ||
@@ -962,13 +1113,17 @@ class UxWalkthroughTest {
         if (compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
             harnessWaitUntil(30_000) {
-                compose.onAllNodesWithTag(WorkoutTestTags.LIFT_TRANSITION).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag(WorkoutTestTags.LIFT_TRANSITION).fetchSemanticsNodes().isNotEmpty() ||
+                    compose.onAllNodesWithTag(WorkoutTestTags.WHAT_NEXT_SHEET).fetchSemanticsNodes().isEmpty()
             }
-            shot("strength-between-lifts")
-            compose.onNode(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).performClick()
+            if (compose.onAllNodesWithTag(WorkoutTestTags.LIFT_TRANSITION).fetchSemanticsNodes().isNotEmpty()) {
+                shot("strength-between-lifts")
+                compose.onNode(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).performClick()
+            }
         } else if (compose.onAllNodes(hasTestTag(WorkoutTestTags.NEXT) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
         }
+        dismissWhatNextSheetIfOpen()
         harnessWaitUntil(30_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY)).fetchSemanticsNodes().isNotEmpty()
         }
@@ -979,6 +1134,19 @@ class UxWalkthroughTest {
     private fun liveStrengthLoggedSetCount(): Int = runBlocking(Dispatchers.IO) {
         val session = container.workoutRepository.getInProgress() ?: return@runBlocking 0
         container.workoutRepository.getSession(session.id)?.sets?.size ?: 0
+    }
+
+    /** Gym flow 10: rest may skip REST_IDLE and auto-start before the strict idle gate passes. */
+    private fun awaitLoggedSetRestSurface(setNumber: Int) {
+        harnessWaitUntil(45_000) {
+            liveStrengthLoggedSetCount() >= setNumber
+        }
+        harnessWaitUntil(45_000) {
+            compose.onAllNodesWithTag(WorkoutTestTags.REST_IDLE).fetchSemanticsNodes().isNotEmpty() ||
+                compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty() ||
+                container.restTimerStore.current().running
+        }
+        compose.waitForIdle()
     }
 
     private fun awaitSetLoggedRestIdle(setNumber: Int, expectPlannedRest: Boolean) {

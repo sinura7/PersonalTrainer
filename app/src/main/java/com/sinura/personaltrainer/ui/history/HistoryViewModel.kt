@@ -30,6 +30,8 @@ import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingMonth
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.Gym
+import com.sinura.personaltrainer.domain.GymVisit
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.groupHistoryByMonth
 import com.sinura.personaltrainer.domain.toHistoryEntry
@@ -124,10 +126,28 @@ class HistoryViewModel internal constructor(
     private var explicitSelectionRevision = 0L
     private var privateSelectionApplied = false
 
+    private val _navigateToSession = MutableStateFlow<String?>(null)
+    val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
+
+    private val _blockedRepeat = MutableStateFlow<RepeatOutcome.Blocked?>(null)
+    val blockedRepeat: StateFlow<RepeatOutcome.Blocked?> = _blockedRepeat.asStateFlow()
+    private val _repeatGymPick = MutableStateFlow<String?>(null)
+    val repeatGymPick: StateFlow<String?> = _repeatGymPick.asStateFlow()
+    private val repeatGyms = MutableStateFlow<List<Gym>>(emptyList())
+    val gymsForRepeat: StateFlow<List<Gym>> = repeatGyms.asStateFlow()
+    private val repeatGymVisits = MutableStateFlow<Map<String?, GymVisit>>(emptyMap())
+    val gymVisitsForRepeat: StateFlow<Map<String?, GymVisit>> = repeatGymVisits.asStateFlow()
+
     init {
         // A provisional fallback is not an authored or restored selection. Recording it
         // before private hydration would let recreation overwrite the remembered period.
         if (savedSelection != null || periodMemory.snapshot.value.loaded) saveSelection(periodSelection.value)
+        viewModelScope.launch {
+            container.gymRepository.observeActiveGyms().collect { repeatGyms.value = it }
+        }
+        viewModelScope.launch {
+            container.gymRepository.observeVisits().collect { repeatGymVisits.value = it }
+        }
         viewModelScope.launch {
             periodMemory.snapshot.collect { memory ->
                 if (periodMemory.consumeReset(memory.resetSerial)) {
@@ -156,12 +176,6 @@ class HistoryViewModel internal constructor(
             }
         }
     }
-
-    private val _navigateToSession = MutableStateFlow<String?>(null)
-    val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
-
-    private val _blockedRepeat = MutableStateFlow<RepeatOutcome.Blocked?>(null)
-    val blockedRepeat: StateFlow<RepeatOutcome.Blocked?> = _blockedRepeat.asStateFlow()
 
     private val errors = ErrorSlot()
     val error: StateFlow<String?> = errors.messages
@@ -549,12 +563,24 @@ class HistoryViewModel internal constructor(
         epochDay in MIN_CIVIL_EPOCH_DAY..MAX_CIVIL_EPOCH_DAY
 
     fun repeatSession(sessionId: String) {
+        _repeatGymPick.value = sessionId
+    }
+
+    fun dismissRepeatGymPick() {
+        _repeatGymPick.value = null
+    }
+
+    fun fulfillRepeatGym(gymId: String) {
+        val sessionId = _repeatGymPick.value ?: return
+        _repeatGymPick.value = null
+        startRepeat(sessionId, gymId)
+    }
+
+    private fun startRepeat(sessionId: String, gymId: String) {
         if (!repeating.compareAndSet(false, true)) return
         val started = errors.mark()
         viewModelScope.launch {
-            val outcome = runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
-            // The refusal or the new session is the result. Drop the guard before publishing
-            // it, or the screen's reaction (Retry on the same row) is ignored.
+            val outcome = runCatchingCancellable { container.workoutRepository.repeatSession(sessionId, gymId) }
             repeating.set(false)
             outcome.onSuccess { result ->
                 when (result) {
@@ -578,6 +604,8 @@ class HistoryViewModel internal constructor(
             }
         }
     }
+
+    internal fun repeatSessionForTest(sessionId: String, gymId: String) = startRepeat(sessionId, gymId)
 
     fun resumeBlockedSession() {
         val blocked = _blockedRepeat.value ?: return

@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.start
 
 import android.app.Application
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,6 +11,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.home.HomeViewModel
 
@@ -37,6 +39,12 @@ fun HomeWithStartChooser(
         viewModel = vm,
     )
     val home by vm.uiState.collectAsState()
+    LaunchedEffect(open) {
+        if (open) {
+            kotlinx.coroutines.delay(50)
+            vm.setChooserGym(TestGymIds.WESTON)
+        }
+    }
     if (open) {
         StartChooser(
             onDismiss = { open = false },

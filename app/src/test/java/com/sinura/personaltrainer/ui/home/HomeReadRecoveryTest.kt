@@ -1,4 +1,9 @@
-package com.sinura.personaltrainer.ui.home
+package com.sinura.personaltrainer
+
+import com.sinura.personaltrainer.testutil.TestGymIds
+import com.sinura.personaltrainer.ui.home.HomeDayAdd
+import com.sinura.personaltrainer.ui.home.HomeReadState
+import com.sinura.personaltrainer.ui.home.HomeViewModel
 
 import android.Manifest
 import android.app.Application
@@ -255,7 +260,7 @@ class HomeReadRecoveryTest {
             startViewModel()
             val model = checkNotNull(vm)
             model.uiState.awaitFirst { it.readState == HomeReadState.CURRENT }
-            assertTrue(model.startRoutine(routineId))
+            assertTrue(model.startRoutine(routineId, gymId = TestGymIds.WESTON))
             val blocked = model.blockedByInProgress.awaitFirst { it != null }
             // The blocked sheet is published before the start coroutine clears pending.
             // Skip is refused until that flag drops; wait for the flag, then require Skip.
@@ -336,7 +341,7 @@ class HomeReadRecoveryTest {
         assertFalse(state.setupComplete)
         assertTrue(state.mutationEnabled)
         assertNull(state.readProblem)
-        assertTrue(checkNotNull(vm).startFreeWorkout())
+        assertTrue(checkNotNull(vm).startFreeWorkout(TestGymIds.WESTON))
         val opened = checkNotNull(vm).navigateToSession.awaitFirst { it != null }
         assertEquals(opened, checkNotNull(deps).workoutRepository.getInProgress()?.id)
     }
@@ -401,7 +406,7 @@ class HomeReadRecoveryTest {
         assertTrue(model.retryRead())
         faults.awaitSubscriptions(Feed.INSIGHTS, 2)
         model.uiState.awaitFirst { it.readState == HomeReadState.UNAVAILABLE && !it.retryPending }
-        assertFalse(model.startFreeWorkout())
+        assertFalse(model.startFreeWorkout(TestGymIds.WESTON))
         faults.failed.value = emptySet()
         assertTrue(model.retryRead())
         model.uiState.awaitFirst { it.readState == HomeReadState.CURRENT }
@@ -516,6 +521,8 @@ class HomeReadRecoveryTest {
     fun aFailedActualReminderStartIsTerminalForThatRequestAndLeavesItsDeliveryPending() = runBlocking {
         graph()
         val graph = checkNotNull(deps)
+        graph.database.workoutDao().deleteInProgressSession(liveId)
+        graph.restTimerController.stop()
         val deliveryId = "failed-actual-start"
         graph.database.plannerDao().upsertDelivery(ReminderDeliveryEntity(
             deliveryId, occurrence.id, 1L, ReminderDeliveryStatus.PENDING.name, 1L, 1L,
@@ -526,13 +533,15 @@ class HomeReadRecoveryTest {
         val before = inventory()
         faults.failStartLookup = true
         assertTrue(model.dispatchPendingOccurrenceStart(occurrence.id, deliveryId, "failed-start-request"))
+        assertTrue(model.fulfillGymPick(TestGymIds.WESTON, expectedAttemptId = null))
         model.uiState.awaitFirst { it.error == com.sinura.personaltrainer.domain.ReminderCopy.START_FAILED }
         faults.failStartLookup = false
         assertTrue(model.dispatchPendingOccurrenceStart(occurrence.id, deliveryId, "failed-start-request"))
         assertNull(model.blockedByInProgress.value)
         assertEquals(before, inventory())
         assertTrue(model.dispatchPendingOccurrenceStart(occurrence.id, deliveryId, "new-start-request"))
-        model.blockedByInProgress.awaitFirst { it != null }
+        checkNotNull(model.pendingGymCommand.value)
+        assertNull(model.navigateToSession.value)
         assertEquals(ReminderDeliveryStatus.PENDING.name, graph.database.plannerDao().getDelivery(deliveryId)?.status)
     }
 
@@ -552,6 +561,7 @@ class HomeReadRecoveryTest {
         val model = checkNotNull(vm)
         model.uiState.awaitFirst { it.readState == HomeReadState.CURRENT && it.inProgress == null }
         assertTrue(model.dispatchPendingOccurrenceStart(occurrence.id, deliveryId, "once-request"))
+        assertTrue(model.fulfillGymPick(TestGymIds.WESTON, expectedAttemptId = null))
         val sessionId = model.navigateToSession.awaitFirst { it != null }
         assertEquals(sessionId, graph.workoutRepository.getInProgress()?.id)
         assertEquals(occurrence.id, PendingOccurrence.followedBy(graph, checkNotNull(sessionId)))
@@ -647,9 +657,9 @@ class HomeReadRecoveryTest {
         insights.value = insights.value.copy(weekPlan = replacementPlan)
         model.uiState.awaitFirst { it.readState == HomeReadState.CURRENT && it.weekPlan == replacementPlan }
         val before = inventory()
-        assertFalse("an old confirmation cannot start a replaced day", model.startSuggestedDay(original))
+        assertFalse("an old confirmation cannot start a replaced day", model.startSuggestedDay(original, gymId = TestGymIds.WESTON))
         assertEquals(before, inventory())
-        assertTrue(model.startSuggestedDay(replacement))
+        assertTrue(model.startSuggestedDay(replacement, gymId = TestGymIds.WESTON))
         val sessionId = model.navigateToSession.awaitFirst { it != null }
         val saved = graph.database.workoutDao().getAllSessions().single()
         assertEquals(sessionId, saved.id)
@@ -729,13 +739,13 @@ class HomeReadRecoveryTest {
         val model = checkNotNull(vm)
         val agenda = listOf(AgendaItem(occurrence, null, "Recovery Push"))
         val attempted = linkedMapOf(
-            "free" to model.startFreeWorkout(),
-            "routine" to model.startRoutine(routineId),
+            "free" to model.startFreeWorkout(TestGymIds.WESTON),
+            "routine" to model.startRoutine(routineId, gymId = TestGymIds.WESTON),
             "cardio" to model.startCardio(CardioType.WALK),
-            "extra before routine mint" to model.startAux("golf"),
-            "suggested" to model.startSuggestedDay(suggestedDay),
-            "planned" to model.startOccurrence(occurrence.id),
-            "leftover before relocation" to model.startOccurrence(leftover.id),
+            "extra before routine mint" to model.startAux("golf", TestGymIds.WESTON),
+            "suggested" to model.startSuggestedDay(suggestedDay, gymId = TestGymIds.WESTON),
+            "planned" to model.startOccurrence(occurrence.id, gymId = TestGymIds.WESTON),
+            "leftover before relocation" to model.startOccurrence(leftover.id, gymId = TestGymIds.WESTON),
             "missed work" to model.applyMissedWork(MissedWorkChoice.KEEP_DATES),
             "skip" to model.skipOccurrence(leftover.id),
             "undo before offer clear" to model.undoSkipOccurrence(),

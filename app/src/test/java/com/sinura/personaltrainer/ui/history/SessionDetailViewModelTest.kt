@@ -385,6 +385,7 @@ class SessionDetailViewModelTest {
         val vm = createViewModel(fixture.id)
         vm.uiState.awaitFirst { !it.isLoading }
 
+        vm.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
         vm.repeatSession()
 
         val newId = checkNotNull(vm.navigateToSession.awaitFirst { it != null })
@@ -402,6 +403,7 @@ class SessionDetailViewModelTest {
         val vm = createViewModel(fixture.id)
         vm.uiState.awaitFirst { !it.isLoading }
 
+        vm.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
         vm.repeatSession()
 
         val blocked = checkNotNull(vm.blockedRepeat.awaitFirst { it != null })
@@ -459,6 +461,7 @@ class SessionDetailViewModelTest {
         val vm = createViewModel("missing")
         vm.uiState.awaitFirst { !it.isLoading }
 
+        vm.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
         vm.repeatSession()
 
         assertEquals(
@@ -477,6 +480,7 @@ class SessionDetailViewModelTest {
         val vm = createViewModel(fixture.id)
         vm.uiState.awaitFirst { !it.isLoading }
 
+        vm.pickRepeatGym(com.sinura.personaltrainer.testutil.TestGymIds.WESTON)
         vm.repeatSession()
         vm.blockedRepeat.awaitFirst { it != null }
 

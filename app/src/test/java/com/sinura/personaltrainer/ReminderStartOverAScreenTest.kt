@@ -31,6 +31,8 @@ import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
 import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import com.sinura.personaltrainer.ui.navigation.Route
 import com.sinura.personaltrainer.ui.summary.SummaryTags
+import com.sinura.personaltrainer.testutil.GymStartTestKit
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
 import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.runBlocking
@@ -123,7 +125,7 @@ class ReminderStartOverAScreenTest {
         val mixed = plannedEarlierToday(modality = ScheduleModality.MIXED)
         val strength = plannedEarlierToday(modality = ScheduleModality.STRENGTH, minute = 1)
         launch(ReminderNotifications.startLaunchIntent(app, mixed.id, MIXED_DELIVERY))
-        awaitTag(ComposerTags.SAVE)
+        GymStartTestKit.awaitTag(compose, ComposerTags.SAVE, timeoutMillis = WAIT_MS)
         ReminderNotifications.show(app, strength, DELIVERY, "Push")
 
         tapStart(strength)
@@ -159,7 +161,10 @@ class ReminderStartOverAScreenTest {
     private fun finishAWorkoutFromTheBar() {
         runBlocking {
             val container = app.container
-            val session = (container.workoutRepository.startFreeWorkoutSafely("Legs") as StartSessionOutcome.Started).session
+            val session = (
+                container.workoutRepository.startFreeWorkoutSafely("Legs", gymId = TestGymIds.WESTON)
+                    as StartSessionOutcome.Started
+            ).session
             val lift = container.exerciseRepository.createCustom(name = "Probe squat", muscleGroup = "Quads")
             container.workoutRepository.logSet(
                 sessionId = session.id,
@@ -207,6 +212,10 @@ class ReminderStartOverAScreenTest {
     }
 
     private fun awaitTag(tag: String) {
+        if (tag == WorkoutTestTags.CONTENT) {
+            GymStartTestKit.awaitWorkoutContent(compose, timeoutMillis = WAIT_MS)
+            return
+        }
         compose.waitUntil(timeoutMillis = WAIT_MS) {
             compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
         }

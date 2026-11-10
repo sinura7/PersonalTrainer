@@ -59,6 +59,10 @@ import com.sinura.personaltrainer.ui.components.CompletedReceiptNotes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymChip
+import com.sinura.personaltrainer.ui.components.GymPickerList
+import com.sinura.personaltrainer.ui.start.GymPickMode
+import com.sinura.personaltrainer.ui.start.GymPickSheet
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -673,18 +677,68 @@ fun SessionDetailScreen(
     }
 
     if (repeatPreview && session != null) {
+        val repeatGyms by viewModel.gymsForRepeat.collectAsStateWithLifecycle()
+        val repeatGymVisits by viewModel.gymVisitsForRepeat.collectAsStateWithLifecycle()
+        val pickedRepeatGymId by viewModel.pickedRepeatGymId.collectAsStateWithLifecycle()
+        var showRepeatGymSheet by rememberSaveable { mutableStateOf(false) }
+        val pickedGym = repeatGyms.firstOrNull { it.id == pickedRepeatGymId }
+        val gymReady = pickedRepeatGymId != null
         WorkoutPreviewScreen(
             model = WorkoutPreview.fromSession(session = session, fallbackTitle = stringResource(R.string.preview_workout_title)),
             unit = unit,
             onBegin = {
-                repeatPreview = false
-                viewModel.repeatSession()
+                if (gymReady) {
+                    repeatPreview = false
+                    viewModel.repeatSession()
+                }
             },
-            onBack = { repeatPreview = false },
+            onBack = {
+                repeatPreview = false
+                viewModel.clearRepeatGymPick()
+            },
             onReorder = {},
             showReorder = false,
-            onAddLift = { repeatPreview = false },
-            beginState = if (state.notesExiting) ActionState.Disabled else ActionState.Enabled,
+            onAddLift = {
+                repeatPreview = false
+                viewModel.clearRepeatGymPick()
+            },
+            beginState = when {
+                state.notesExiting -> ActionState.Disabled
+                !gymReady -> ActionState.Disabled
+                else -> ActionState.Enabled
+            },
+            gymShortName = pickedGym?.shortName,
+            onChangeGym = { showRepeatGymSheet = true },
+            contextContent = {
+                if (pickedGym == null) {
+                    GymPickerList(
+                        gyms = repeatGyms,
+                        visits = repeatGymVisits,
+                        selectedId = null,
+                        onPick = viewModel::pickRepeatGym,
+                    )
+                } else {
+                    GymChip(gym = pickedGym, onClick = { showRepeatGymSheet = true })
+                }
+            },
+        )
+        GymPickSheet(
+            visible = showRepeatGymSheet,
+            mode = GymPickMode.SELECT_ONLY,
+            title = stringResource(R.string.gym_pick_sheet_title),
+            caption = stringResource(R.string.gym_step_caption),
+            gyms = repeatGyms,
+            visits = repeatGymVisits,
+            selectedId = pickedRepeatGymId,
+            pendingGymId = null,
+            loading = false,
+            error = null,
+            onRetry = {},
+            onPick = { id ->
+                showRepeatGymSheet = false
+                viewModel.pickRepeatGym(id)
+            },
+            onCancel = { showRepeatGymSheet = false },
         )
     }
 

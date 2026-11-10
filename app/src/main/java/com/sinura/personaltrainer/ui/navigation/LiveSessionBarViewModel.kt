@@ -105,15 +105,19 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                         routeHidesBar.flatMapLatest { hidden ->
                             if (hidden) flowOf(0) else container.restTimerController.remainingSeconds
                         },
+                        container.gymRepository.observeActiveGyms(),
                         ticker,
-                    ) { activity, restSeconds, now ->
+                    ) { activity, restSeconds, gyms, now ->
                         val lastActivity = LiveSessionRules.lastActivityMs(
                             startedAt = session.startedAt,
                             lastSetCompletedAt = activity.lastCompletedAt,
                         )
+                        val gymShort = session.gymId?.let { id -> gyms.firstOrNull { it.id == id }?.shortName }
+                        val base = session.routineName ?: "Workout"
+                        val title = if (gymShort != null) "$base · $gymShort" else base
                         LiveSessionBarUiState(
                             sessionId = session.id,
-                            title = session.routineName ?: "Workout",
+                            title = title,
                             elapsedLabel = LiveSessionRules.formatElapsed(
                                 (now - session.startedAt) / 1_000,
                             ),

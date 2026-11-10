@@ -1795,6 +1795,12 @@ class WorkoutRepository(
         workoutDao.setSessionGym(sessionId, gymId)
         MoveGymOutcome.Moved
     }
+
+    suspend fun machineSetCountForSession(sessionId: String): Int =
+        workoutDao.machineSetCountForSession(
+            sessionId = sessionId,
+            gymSpecificEquipment = GymScope.GYM_SPECIFIC.map { it.name },
+        )
 }
 
 private const val TAG = "PT/WorkoutRepository"

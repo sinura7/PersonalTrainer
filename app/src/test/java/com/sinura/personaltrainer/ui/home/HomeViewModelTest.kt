@@ -1,4 +1,10 @@
-package com.sinura.personaltrainer.ui.home
+package com.sinura.personaltrainer
+
+import com.sinura.personaltrainer.testutil.TestGymIds
+import com.sinura.personaltrainer.ui.home.HomeDayAdd
+import com.sinura.personaltrainer.ui.home.HomeReadState
+import com.sinura.personaltrainer.ui.home.HomeUiState
+import com.sinura.personaltrainer.ui.home.HomeViewModel
 
 import android.Manifest
 import android.app.Application
@@ -269,7 +275,7 @@ class HomeViewModelTest {
         // The current Home planned row starts its actual occurrence; an unrendered
         // suggested day is not a fallback confirmation from the current week plan.
         val plannedOccurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
-        assertTrue(viewModel!!.startOccurrence(plannedOccurrence.id))
+        assertTrue(viewModel!!.startOccurrence(plannedOccurrence.id, gymId = TestGymIds.WESTON))
         val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         PendingOccurrence.complete(deps, sessionId)
 
@@ -299,7 +305,7 @@ class HomeViewModelTest {
         viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         val leftover = deps.plannerRepository.occurrencesBetween(yesterday, yesterday).single()
-        viewModel!!.startOccurrence(leftover.id)
+        viewModel!!.startOccurrence(leftover.id, gymId = TestGymIds.WESTON)
         val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         assertEquals(OccurrenceStatus.MOVED, leftover.id.let { deps.plannerRepository.getOccurrence(it) }!!.status)
         val moved = deps.plannerRepository.occurrencesBetween(today, today).single()
@@ -314,7 +320,7 @@ class HomeViewModelTest {
     @Test
     fun reminderStartStartsTheOccurrence() = runBlocking {
         val occurrence = seedTodayStrength()
-        viewModel!!.startOccurrence(occurrence.id)
+        viewModel!!.startOccurrence(occurrence.id, gymId = TestGymIds.WESTON)
         val sessionId = checkNotNull(viewModel!!.navigateToSession.awaitFirst { it != null })
         assertNull(viewModel!!.reviewOccurrenceId.value)
         assertEquals(sessionId, deps.workoutRepository.getInProgress()?.id)
@@ -335,7 +341,7 @@ class HomeViewModelTest {
 
         var opened: String? = null
         val crash = catchingUncaught {
-            viewModel!!.startOccurrence(occurrence.id)
+            viewModel!!.startOccurrence(occurrence.id, gymId = TestGymIds.WESTON)
             opened = withTimeoutOrNull(TestWaits.FLOW_MS) {
                 viewModel!!.navigateToSession.first { it != null }
             }
@@ -362,7 +368,7 @@ class HomeViewModelTest {
         deps = graph()
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.awaitFirst { !it.isLoading }
-        viewModel!!.startOccurrence("gone")
+        viewModel!!.startOccurrence("gone", gymId = TestGymIds.WESTON)
         val state = viewModel!!.uiState.awaitFirst { it.error != null }
         assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.GONE, state.error)
         assertNull(viewModel!!.navigateToSession.value)
@@ -389,7 +395,7 @@ class HomeViewModelTest {
         val occurrence = seedTodayStrength()
         val reminder = postReminder(occurrence)
 
-        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
+        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder, gymId = TestGymIds.WESTON)
         viewModel!!.navigateToSession.awaitFirst { it != null }
 
         assertEquals(ReminderDeliveryStatus.STARTED.name, deliveryStatus(reminder))
@@ -402,7 +408,7 @@ class HomeViewModelTest {
         val reminder = postReminder(occurrence)
         val live = startAnotherSession()
 
-        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
+        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder, gymId = TestGymIds.WESTON)
         val blocked = checkNotNull(viewModel!!.blockedByInProgress.awaitFirst { it != null })
         assertEquals(live, blocked.sessionId)
         assertEquals(ReminderDeliveryStatus.PENDING.name, deliveryStatus(reminder))
@@ -419,7 +425,7 @@ class HomeViewModelTest {
         val occurrence = seedTodayStrength()
         val reminder = postReminder(occurrence)
         val live = startAnotherSession()
-        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
+        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder, gymId = TestGymIds.WESTON)
         viewModel!!.blockedByInProgress.awaitFirst { it != null }
 
         viewModel!!.discardBlockedAndStart()
@@ -437,7 +443,7 @@ class HomeViewModelTest {
         val reminder = postReminder(occurrence)
         deps.database.plannerDao().deleteOccurrence(occurrence.id)
 
-        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
+        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder, gymId = TestGymIds.WESTON)
         val state = viewModel!!.uiState.awaitFirst { it.error != null }
 
         assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.GONE, state.error)
@@ -460,7 +466,7 @@ class HomeViewModelTest {
 
         var state: HomeUiState? = null
         val crash = catchingUncaught {
-            viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
+            viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder, gymId = TestGymIds.WESTON)
             state = withTimeoutOrNull(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.error != null } }
         }
 
@@ -566,7 +572,7 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.awaitFirst { !it.isLoading }
 
-        viewModel!!.startFreeWorkout()
+        viewModel!!.startFreeWorkout(TestGymIds.WESTON)
         val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         val session = deps.workoutRepository.getSession(sessionId)!!
         assertEquals("Free workout", session.routineName)
@@ -597,7 +603,7 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.awaitFirst { !it.isLoading }
 
-        viewModel!!.startRoutine(extra.id)
+        viewModel!!.startRoutine(extra.id, gymId = TestGymIds.WESTON)
         val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         val session = deps.workoutRepository.getSession(sessionId)!!
         assertEquals(extra.id, session.routineId)
@@ -634,7 +640,7 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.awaitFirst { !it.isLoading }
 
-        viewModel!!.startAux("golf")
+        viewModel!!.startAux("golf", TestGymIds.WESTON)
         val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         val session = deps.workoutRepository.getSession(sessionId)!!
         assertEquals("Golf warm-up", session.routineName)

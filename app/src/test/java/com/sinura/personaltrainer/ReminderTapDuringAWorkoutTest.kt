@@ -29,6 +29,7 @@ import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
 import com.sinura.personaltrainer.ui.home.HomeTags
 import com.sinura.personaltrainer.ui.navigation.Route
+import com.sinura.personaltrainer.testutil.GymStartTestKit
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
 import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.runBlocking
@@ -364,6 +365,10 @@ class ReminderTapDuringAWorkoutTest {
     }
 
     private fun awaitTag(tag: String) {
+        if (tag == WorkoutTestTags.CONTENT) {
+            GymStartTestKit.awaitWorkoutContent(compose, timeoutMillis = WAIT_MS)
+            return
+        }
         compose.waitUntil(timeoutMillis = WAIT_MS) {
             compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
         }

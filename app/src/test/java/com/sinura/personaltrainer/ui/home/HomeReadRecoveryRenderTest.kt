@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.home
 
 import com.sinura.personaltrainer.ui.plan.PickerHeaderTags
 import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
 import android.database.sqlite.SQLiteFullException
@@ -197,7 +198,7 @@ class HomeReadRecoveryRenderTest {
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
         compose.onNodeWithTag(WeekStripTags.STRIP).assertExists()
-        scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
+        openAgendaPreview()
         compose.mainClock.autoAdvance = false
         try {
             compose.settle()
@@ -431,6 +432,8 @@ class HomeReadRecoveryRenderTest {
         await(HomeReadState.CURRENT)
         scrollTo(HomeTags.START).performClick()
         compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        StartChooserTestKit.pickWestonIfShown(compose)
+        StartChooserTestKit.waitForRoutineEnabled(compose, routineId)
         val oldRoutine = compose.onNodeWithTag(StartTags.routine(routineId))
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -441,7 +444,8 @@ class HomeReadRecoveryRenderTest {
         assertEquals(before, inventory())
         proveRecovery("routine-page-stale")
         retry()
-        compose.onNodeWithTag(StartTags.routine(routineId)).assertIsEnabled()
+        StartChooserTestKit.pickWestonIfShown(compose)
+        StartChooserTestKit.waitForRoutineEnabled(compose, routineId)
         reachable(compose.onNodeWithTag(StartTags.START_OTHER)).performClick()
         compose.onNodeWithTag(StartTags.LIVE_CARDIO).performClick()
         val oldCardio = compose.onNodeWithTag(CardioPickTags.card(CardioType.WALK))
@@ -453,7 +457,7 @@ class HomeReadRecoveryRenderTest {
         assertEquals(before, inventory())
         retry()
         reachable(compose.onNodeWithTag(StartTags.OTHER_BACK)).performClick()
-        compose.onNodeWithTag(StartTags.EXTRA).performClick()
+        compose.onNodeWithTag(StartTags.START_TILE_WARMUP).performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
         val pack = AuxiliaryPacks.visibleFor(ExtraEquipment.NONE, emptySet()).first()
         val oldExtra = compose.onNodeWithTag(AuxiliaryPackTags.row(pack.id))
@@ -518,6 +522,7 @@ class HomeReadRecoveryRenderTest {
         }
         addVirtualizationBoundary()
         scrollTo(HomeTags.SESSION).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -535,6 +540,7 @@ class HomeReadRecoveryRenderTest {
         assertEquals(before, inventory())
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         compose.awaitThat("the deliberately accepted fallback start", { openedSession }) { openedSession != null }
         compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertDoesNotExist()
@@ -558,6 +564,7 @@ class HomeReadRecoveryRenderTest {
         val oldSecondCell = scrollTo(WeekStripTags.cell(secondDay))
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         scrollTo(HomeTags.SESSION).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -587,6 +594,7 @@ class HomeReadRecoveryRenderTest {
         show()
         awaitFallbackPlan(plan = original)
         scrollTo(HomeTags.SESSION).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -606,6 +614,7 @@ class HomeReadRecoveryRenderTest {
             scrollTo(HomeTags.SESSION).performClick()
             compose.settle()
             compose.onNode(hasText("Lower B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
+            StartChooserTestKit.pickWestonIfShown(compose)
             // A replaced owner's callback cannot dismiss or admit the new confirmation.
             compose.runOnUiThread { oldConfirm() }
             compose.settle()
@@ -650,7 +659,7 @@ class HomeReadRecoveryRenderTest {
                 vm.uiState.value.occurrences.any { it.id == occurrenceId } &&
                 vm.uiState.value.occurrences.any { it.id == secondOccurrence }
         }
-        scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
+        openAgendaPreview()
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val oldDismiss = compose.onNodeWithTag(WorkoutPreviewTags.BACK)
@@ -659,7 +668,7 @@ class HomeReadRecoveryRenderTest {
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BACK)).performClick()
         // Reopening the same occurrence creates another modal owner. Its ID alone cannot
         // authorize the old owner's queued confirmation or cancellation.
-        scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
+        openAgendaPreview()
         compose.runOnUiThread { oldConfirm(); oldDismiss() }
         compose.settle()
         compose.onNode(hasText("Upper B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
@@ -667,7 +676,7 @@ class HomeReadRecoveryRenderTest {
         assertNull(openedSession)
         assertEquals(before, inventory())
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BACK)).performClick()
-        scrollTo(HomeTags.agendaRow(secondOccurrence)).performClick()
+        openAgendaPreview(secondOccurrence)
         compose.runOnUiThread { oldConfirm(); oldDismiss() }
         compose.settle()
         compose.onNode(hasText("Lower B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
@@ -724,7 +733,7 @@ class HomeReadRecoveryRenderTest {
         show(restoration)
         await(HomeReadState.CURRENT)
         addVirtualizationBoundary()
-        scrollTo(HomeTags.agendaRow(occurrenceId)).performClick()
+        openAgendaPreview()
         val oldConfirm = compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -743,6 +752,7 @@ class HomeReadRecoveryRenderTest {
         assertEquals(before, inventory())
         read.held!!.complete(Unit)
         await(HomeReadState.CURRENT)
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
         reachable(compose.onNodeWithTag(WorkoutPreviewTags.BEGIN)).assertIsEnabled().performClick()
         compose.awaitThat("the deliberate recovered planned start", { openedSession }) { openedSession != null }
         val saved = runBlocking { checkNotNull(deps.workoutRepository.getSession(checkNotNull(openedSession))) }
@@ -806,7 +816,8 @@ class HomeReadRecoveryRenderTest {
         scrollTo(WeekStripTags.cell(firstDay)).performClick()
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertExists()
         scrollTo(HomeTags.START).performClick()
-        reachable(compose.onNodeWithTag(StartTags.START_OTHER)).performClick(); compose.onNodeWithTag(StartTags.EXTRA).performClick()
+        StartChooserTestKit.pickWestonIfShown(compose)
+        reachable(compose.onNodeWithTag(StartTags.START_TILE_WARMUP)).performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
         val pack = AuxiliaryPacks.visibleFor(ExtraEquipment.NONE, emptySet()).first()
         failRead()
@@ -918,6 +929,12 @@ class HomeReadRecoveryRenderTest {
         reachable(recoveryNode(HomeTags.RETRY)).assertIsEnabled().performClick()
         compose.awaitThat("a fresh required DAO collection", read.collections::get) { read.collections.get() > before }
         if (!held) await(HomeReadState.CURRENT) else compose.settle()
+    }
+
+    private fun openAgendaPreview(occurrence: String = occurrenceId) {
+        scrollTo(HomeTags.agendaRow(occurrence)).performClick()
+        StartChooserTestKit.pickWestonOnStrengthPreview(compose)
+        compose.settle()
     }
 
     private fun scrollTo(tag: String): SemanticsNodeInteraction {

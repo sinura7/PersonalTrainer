@@ -103,7 +103,7 @@ object Metrics {
     /** Dock prelude line height matches [InstrumentType.caption]. */
     val dockPreludeGap: Dp = space2
 
-    /** Gym plate badge (see [com.sinura.personaltrainer.ui.components.GymBadgeSize.Plate]). */
+    /** Gym plate badge size in refresh kit plates (uses [com.sinura.personaltrainer.ui.components.GymBadgeSize.Small]). */
     val gymPlateBadge: Dp = 44.dp
 
     /** Gym plate minimum height (112 dp when the last-here line shows). */

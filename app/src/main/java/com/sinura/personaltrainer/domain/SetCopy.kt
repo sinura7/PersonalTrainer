@@ -21,6 +21,8 @@ object SetCopy {
         unit: WeightUnit,
         durationSeconds: Int? = null,
         entryPrecision: Boolean = false,
+        /** Machine lift new at this gym: blank weight reads as reps only, not "no weight × n". */
+        loadedWeightUnset: Boolean = false,
     ): String {
         fun Double.loadLabel(): String = if (entryPrecision) WorkoutWeightCopy.label(this, unit) else toWeightLabel(unit)
         val held = durationSeconds?.takeIf { it > 0 }
@@ -39,7 +41,11 @@ object SetCopy {
         }
         val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
         val repsLine = when (loadClass) {
-            LoadClass.LOADED -> "${load?.loadLabel() ?: NO_WEIGHT} × $safeReps"
+            LoadClass.LOADED -> when {
+                load != null -> "${load.loadLabel()} × $safeReps"
+                loadedWeightUnset -> repsLabel(safeReps)
+                else -> "$NO_WEIGHT × $safeReps"
+            }
             LoadClass.BODYWEIGHT -> repsLabel(safeReps)
             LoadClass.BODYWEIGHT_ADDED ->
                 if (load == null) repsLabel(safeReps)
@@ -117,9 +123,19 @@ object SetCopy {
         meaning: WeightMeaning,
         weightKg: Double,
         unit: WeightUnit,
+        loadedWeightUnset: Boolean = false,
     ): WeightEntryHero {
         val spoken = weightWellSpoken(meaning, weightKg, unit, entryPrecision = true)
         val hasLoad = weightKg.isFinite() && weightKg > 0.0
+        if (meaning == WeightMeaning.LIFTED && loadedWeightUnset && !hasLoad) {
+            return WeightEntryHero(
+                value = NOTHING_YET,
+                unitSuffix = null,
+                caption = null,
+                spoken = spoken,
+                layoutSample = WEIGHT_HERO_LAYOUT_SAMPLE,
+            )
+        }
         if (meaning == WeightMeaning.ADDED && !hasLoad) {
             return WeightEntryHero(
                 value = BW_SHORT,

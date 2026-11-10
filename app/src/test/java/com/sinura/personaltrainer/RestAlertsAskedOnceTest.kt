@@ -26,6 +26,7 @@ import com.sinura.personaltrainer.data.repository.prefs.ONBOARDING_COMPLETE
 import com.sinura.personaltrainer.data.repository.prefs.LAUNCH_PERMISSIONS_ASKED
 import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.testutil.forgetFirstApplication
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
@@ -248,7 +249,7 @@ class RestAlertsAskedOnceTest {
     /** A workout with one lift, so the workout shows its rest clock. */
     private fun startAWorkout(): String = runBlocking {
         val workouts = app.container.workoutRepository
-        val session = (workouts.startFreeWorkoutSafely("Legs") as StartSessionOutcome.Started).session
+        val session = (workouts.startFreeWorkoutSafely("Legs", gymId = TestGymIds.WESTON) as StartSessionOutcome.Started).session
         val squat = when (val made = app.container.exerciseRepository.createCustom("Rest alerts squat", "Quads")) {
             is SaveExerciseResult.Saved -> made.exercise
             is SaveExerciseResult.DuplicateName -> made.existing

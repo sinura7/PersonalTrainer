@@ -81,7 +81,7 @@ class RefreshKitRenderTest {
             .assertWidthIsAtLeast(Metrics.touchMin)
         compose.onNodeWithTag("refresh-text-action").assertHeightIsAtLeast(Metrics.touchMin)
             .assertWidthIsAtLeast(Metrics.touchMin)
-        compose.onNodeWithTag("refresh-gym-filter-all").assertHeightIsAtLeast(Metrics.touchMin)
+        compose.onNodeWithTag("gym-filter-all").assertHeightIsAtLeast(Metrics.touchMin)
             .assertWidthIsAtLeast(Metrics.touchMin)
         compose.onNodeWithTag("start-tile-routine").assertHeightIsAtLeast(Metrics.touchMin)
             .assertWidthIsAtLeast(Metrics.touchMin)
