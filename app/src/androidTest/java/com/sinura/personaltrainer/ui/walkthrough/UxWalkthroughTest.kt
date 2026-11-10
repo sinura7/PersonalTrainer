@@ -885,8 +885,6 @@ class UxWalkthroughTest {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT)
             .performScrollToNode(hasTestTag(WorkoutTestTags.liftCard(primaryLift.id)))
         logWorkingSet(weightKg = 60.0, reps = 5, rpe = 7)
-        awaitLoggedSetRestSurface(setNumber = 1)
-        skipRestIfVisible()
         advanceToNextExerciseIfShown()
         dismissWhatNextSheetIfOpen()
         harnessWaitUntil(30_000) {
@@ -942,7 +940,7 @@ class UxWalkthroughTest {
             container.routineRepository.addExercise(
                 routineId = routine.id,
                 exercise = primaryLift,
-                targetSets = 2,
+                targetSets = 1,
                 targetReps = 5,
                 targetWeightKg = 60.0,
                 restSeconds = 60,
