@@ -609,6 +609,7 @@ interface WorkoutDao {
                e.equipment AS equipment,
                ws.gymId AS sessionGymId,
                ws.routineId AS sessionRoutineId,
+               ws.routineName AS sessionRoutineName,
                sl.weightKg AS weightKg,
                sl.reps AS reps,
                sl.completedAt AS completedAt

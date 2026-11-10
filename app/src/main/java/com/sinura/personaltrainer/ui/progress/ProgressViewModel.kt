@@ -252,14 +252,18 @@ class ProgressViewModel @JvmOverloads constructor(
                     .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
                     .toEpochDay()
                 val weekEnd = weekStart + 6
-                val auxIds = runCatchingCancellable { container.workoutRepository.auxiliaryRoutineIds() }
-                    .getOrDefault(emptySet())
-                val auxMinutes = workouts.presentValue().orEmpty()
-                    .filter { summary ->
-                        summary.routineId != null && summary.routineId in auxIds &&
-                            summary.localEpochDay in weekStart..weekEnd
+                var auxMinutes = 0
+                workouts.presentValue().orEmpty()
+                    .filter { it.localEpochDay in weekStart..weekEnd }
+                    .forEach { summary ->
+                        if (container.workoutRepository.excludeAuxiliaryVolume(
+                                summary.routineId,
+                                summary.routineName,
+                            )
+                        ) {
+                            auxMinutes += summary.durationMinutes
+                        }
                     }
-                    .sumOf { it.durationMinutes }
                 val weekActivity = if (!activityFailed) {
                     BodyWeekActivityMath.forWeek(
                         weekStartEpochDay = weekStart,

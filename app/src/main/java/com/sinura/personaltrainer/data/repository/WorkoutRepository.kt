@@ -253,9 +253,13 @@ class WorkoutRepository(
         observeFinishedWorkRevision()
             .distinctUntilChanged()
             .mapLatest {
-                val auxIds = auxiliaryResolver.auxiliaryRoutineIds()
                 workoutDao.finishedWorkingSetRecords()
-                    .filterNot { row -> row.sessionRoutineId != null && row.sessionRoutineId in auxIds }
+                    .filterNot { row ->
+                        auxiliaryResolver.excludeFromAuxiliaryVolume(
+                            row.sessionRoutineId,
+                            row.sessionRoutineName,
+                        )
+                    }
                     .mapNotNull { it.toRecordSet() }
             }
             .observeHealth("standing records")
@@ -1753,11 +1757,14 @@ class WorkoutRepository(
         )
 
     /** v4 V7: per-session working-set counts since [sinceMs], for Body's weekly sets per muscle. */
-    suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow> {
-        val auxIds = auxiliaryResolver.auxiliaryRoutineIds()
-        return workoutDao.workingSetCountsSince(sinceMs)
-            .filterNot { row -> row.routineId != null && row.routineId in auxIds }
-    }
+    suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow> =
+        workoutDao.workingSetCountsSince(sinceMs)
+            .filterNot { row ->
+                auxiliaryResolver.excludeFromAuxiliaryVolume(row.routineId, row.routineName)
+            }
+
+    suspend fun excludeAuxiliaryVolume(routineId: String?, routineName: String?): Boolean =
+        auxiliaryResolver.excludeFromAuxiliaryVolume(routineId, routineName)
 
     suspend fun auxiliaryRoutineIds(): Set<String> = auxiliaryResolver.auxiliaryRoutineIds()
 

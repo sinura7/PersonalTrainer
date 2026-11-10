@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.repository
 
 import com.sinura.personaltrainer.data.local.AppRoomDatabase
 import com.sinura.personaltrainer.data.mapper.toDomain
+import com.sinura.personaltrainer.domain.AuxiliaryRoutineMatch
 import com.sinura.personaltrainer.domain.AuxiliarySessions
 import com.sinura.personaltrainer.domain.WorkoutSession
 
@@ -26,6 +27,19 @@ internal class AuxiliaryRoutineResolver(private val database: AppRoomDatabase) {
     suspend fun isAuxiliarySession(session: WorkoutSession): Boolean {
         val routine = session.routineId?.let { database.routineDao().getById(it)?.toDomain() }
         return AuxiliarySessions.isAuxiliarySession(session, routine)
+    }
+
+    /**
+     * Whether this session snapshot should drop out of weekly sets, records, and Body aux minutes.
+     * Current pack routine ids first; only when the routine row is gone fall back to session name.
+     */
+    suspend fun excludeFromAuxiliaryVolume(routineId: String?, routineName: String?): Boolean {
+        val auxIds = auxiliaryRoutineIds()
+        if (!routineId.isNullOrBlank()) {
+            if (routineId in auxIds) return true
+            if (database.routineDao().getById(routineId) != null) return false
+        }
+        return AuxiliaryRoutineMatch.orphanSessionNameMatchesPackTitle(routineName)
     }
 
     suspend fun isAuxiliaryRoutineId(routineId: String?): Boolean {

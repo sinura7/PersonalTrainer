@@ -91,8 +91,66 @@ object Metrics {
     /** v4 V4: the inline rest bar above the next set. Same floor as a list row. */
     val restBar: Dp = rowMin
 
+    /** Refresh: left accent stripe on the RestBar (V4 grows [restBar] to 72 dp). */
+    val restBarAccent: Dp = 3.dp
+
     /** v4 V4: the rest bar's remaining-time track. */
     val restBarProgress: Dp = 4.dp
+
+    /** Today hero and done cards. */
+    val heroCardPadding: Dp = 18.dp
+
+    /** Dock prelude line height matches [InstrumentType.caption]. */
+    val dockPreludeGap: Dp = space2
+
+    /** Gym plate badge (see [com.sinura.personaltrainer.ui.components.GymBadgeSize.Plate]). */
+    val gymPlateBadge: Dp = 44.dp
+
+    /** Gym plate minimum height (112 dp when the last-here line shows). */
+    val gymPlateMinHeight: Dp = 96.dp
+
+    val gymPlateGap: Dp = space2
+
+    val gymPlatePaddingTop: Dp = 10.dp
+
+    val gymPlatePaddingBottom: Dp = space2
+
+    val gymPlateCheck: Dp = space3 + hairline
+
+    val gymPlateMinCell: Dp = 56.dp
+
+    /** Start / Add sheet tiles. */
+    val startTileMin: Dp = 68.dp
+
+    val startTileMinWidth: Dp = 156.dp
+
+    val startTilePaddingH: Dp = 13.dp
+
+    val startTilePaddingV: Dp = 11.dp
+
+    val filterChipPaddingH: Dp = startTilePaddingH
+
+    /** Sheet grab handle (C22). */
+    val sheetGrabWidth: Dp = space8
+
+    val sheetGrabHeight: Dp = space1
+
+    val tileIcon: Dp = 28.dp
+
+    /** Role tag drawn height (not a touch target). */
+    val roleTagHeight: Dp = 19.dp
+
+    val roleTagPaddingH: Dp = 7.dp
+
+    val segmentTrackInset: Dp = 3.dp
+
+    /** Segmented control track height; insets keep each segment at [touchMin]. */
+    val segmentTarget: Dp = touchMin + segmentTrackInset * 2
+
+    /** Filter chip drawn height (48 dp touch target via padding). */
+    val filterChip: Dp = 32.dp
+
+    val setPill: Dp = 32.dp
 
     /** Buttons and controls that get used mid-session. */
     val control: Dp = 56.dp
@@ -144,6 +202,9 @@ object Metrics {
 
     /** Primary commit control app-wide (recovery Keep, rest card, cardio, dock Next/Finish): 72 dp. */
     val commit: Dp = 72.dp
+
+    /** Stat strip row minimum. */
+    val statStripMin: Dp = commit
 
     /** Plan week training day row minimum height (v3 blueprint 4.2; a minimum, rows grow with text). */
     val planTrainingRow: Dp = commit

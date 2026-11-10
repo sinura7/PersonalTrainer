@@ -344,18 +344,31 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
     }
 
     fun countForTodayPlan() {
-        val choice = _uiState.value.planCredit as? PlanCreditUiState.NeedsChoice ?: return
+        val (occurrenceId, dayTitle) = when (val credit = _uiState.value.planCredit) {
+            is PlanCreditUiState.NeedsChoice -> credit.occurrenceId to credit.dayTitle
+            is PlanCreditUiState.Error -> credit.occurrenceId?.let { it to credit.dayTitle } ?: return
+            else -> return
+        }
+        if (occurrenceId.isBlank()) return
         viewModelScope.launch {
             when (
-                PlanCreditOnFinish.applyChoice(container, choice.occurrenceId, sessionId, countForPlan = true)
+                PlanCreditOnFinish.applyChoice(container, occurrenceId, sessionId, countForPlan = true)
             ) {
                 PlanCreditApplyResult.Applied ->
                     _uiState.update {
-                        it.copy(planCredit = PlanCreditUiState.Credited(choice.occurrenceId, choice.dayTitle))
+                        it.copy(planCredit = PlanCreditUiState.Credited(occurrenceId, dayTitle.orEmpty()))
                     }
                 PlanCreditApplyResult.AlreadyDone -> _uiState.update { it.copy(planCredit = null) }
                 PlanCreditApplyResult.Failed ->
-                    _uiState.update { it.copy(planCredit = PlanCreditUiState.Error(PlanCreditCopy.APPLY_FAILED)) }
+                    _uiState.update {
+                        it.copy(
+                            planCredit = PlanCreditUiState.Error(
+                                message = PlanCreditCopy.APPLY_FAILED,
+                                occurrenceId = occurrenceId,
+                                dayTitle = dayTitle,
+                            ),
+                        )
+                    }
                 PlanCreditApplyResult.Declined -> Unit
             }
         }

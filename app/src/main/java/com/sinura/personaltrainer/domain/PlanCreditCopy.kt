@@ -41,5 +41,9 @@ sealed interface PlanCreditUiState {
         val dayTitle: String,
     ) : PlanCreditUiState
 
-    data class Error(val message: String = PlanCreditCopy.APPLY_FAILED) : PlanCreditUiState
+    data class Error(
+        val message: String = PlanCreditCopy.APPLY_FAILED,
+        val occurrenceId: String? = null,
+        val dayTitle: String? = null,
+    ) : PlanCreditUiState
 }

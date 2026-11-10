@@ -61,12 +61,17 @@ class PlanCreditOnFinishTest {
         deps.plannerRepository.importSlotsIfNeeded()
         deps.plannerRepository.ensureWeek(weekStart, "UTC", 1L)
         val occ = deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay).single()
-        deps.plannerRepository.markOccurrenceDone(occ.id, "other-session")
-        val session = finishSession(routine.id, "Push", "s-other")
-        val result = PlanCreditOnFinish.afterFinish(deps, session, boundOccurrenceId = occ.id, weekStart.epochDay)
+        val session = finishSession(routine.id, "Push", "s-bound")
+        val result = PlanCreditOnFinish.afterFinish(
+            deps,
+            session,
+            boundOccurrenceId = occ.id,
+            todayEpochDay = weekStart.epochDay,
+        )
         assertTrue(result is PlanCreditResult.Credited)
         val after = deps.plannerRepository.getOccurrence(occ.id)!!
-        assertEquals("other-session", after.completedActivityId)
+        assertEquals(OccurrenceStatus.PLANNED, after.status)
+        assertEquals(null, after.completedActivityId)
     }
 
     @Test

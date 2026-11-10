@@ -267,6 +267,14 @@ internal fun WorkoutSummaryContent(
                                     color = TextSecondary,
                                     modifier = Modifier.testTag(SummaryTags.PLAN_ERROR),
                                 )
+                                if (credit.occurrenceId != null) {
+                                    TextButton(
+                                        onClick = onCountForPlan,
+                                        modifier = Modifier.testTag(SummaryTags.PLAN_COUNT),
+                                    ) {
+                                        Text(PlanCreditCopy.COUNT)
+                                    }
+                                }
                             }
                             null -> Unit
                         }
