@@ -11,7 +11,7 @@ val LocalBorderedSurfaceDepth = staticCompositionLocalOf { 0 }
 private var nestingWarningLogged = false
 
 @Composable
-internal fun warnBorderedSurfaceNesting(surface: String) {
+internal fun WarnBorderedSurfaceNesting(surface: String) {
     if (!BuildConfig.DEBUG || nestingWarningLogged) return
     if (LocalBorderedSurfaceDepth.current > 0) {
         nestingWarningLogged = true

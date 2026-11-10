@@ -18,7 +18,8 @@ required_args_lambda = 46
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
 # Refresh V1: RoleTagKind and StartTileKind when blocks in kit.
-when_exhaustive = 47
+# Refresh V1 review: SupportingLineStyle when in GymButtons.
+when_exhaustive = 48
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
 # (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site
@@ -31,7 +32,8 @@ when_exhaustive = 47
 # 47 -> 46 in W2a, measured after the dead code went.
 # 46 -> 47 with P10 (#541): ExerciseHeader.kt:85 liftHeaderSwipe is the 47th declined site.
 # Refresh V1: one new declined receiver slot in kit wiring.
-lambda_arity_declined = 48
+# Refresh V1 review: GymPlates width helper plus RefreshKitRenderTest touch harness sites.
+lambda_arity_declined = 51
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
 # (9 Sep 2026, twice). Ratchet down class by class.
@@ -66,7 +68,7 @@ haptic = 0
 m3_scheme = 0
 # 14 -> 9 in W2a: five Icons.Outlined.MoreVert are OutlinedMarks.MoreVert, pixel for pixel
 # (MoreVertMarkRenderTest). The nine left: Close ×4, Search, Add ×2, Check ×2.
-stock_icons = 9
+stock_icons = 8
 shadow = 0
 defaults_elevation = 1
 stock_component = 1

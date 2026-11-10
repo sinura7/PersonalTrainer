@@ -35,6 +35,57 @@ import com.sinura.personaltrainer.ui.theme.Typography
 object InstrumentSheetTags {
     const val FRAME = "instrument-sheet"
     const val HANDLE = "instrument-sheet-handle"
+    const val GALLERY = "instrument-sheet-gallery"
+}
+
+/** Sheet chrome for the refresh kit gallery (no modal host). */
+@Composable
+fun InstrumentSheetGalleryChrome(
+    title: String,
+    caption: String?,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit = {},
+) {
+    val shape = RoundedCornerShape(topStart = Radius.lg, topEnd = Radius.lg)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Surface3)
+            .border(Metrics.hairline, SectionEdge, shape)
+            .testTag(InstrumentSheetTags.GALLERY)
+            .padding(bottom = Metrics.space3),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Metrics.space2),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(Metrics.sheetGrabWidth)
+                    .height(Metrics.sheetGrabHeight)
+                    .clip(Radius.full)
+                    .background(HairlineStrong)
+                    .testTag(InstrumentSheetTags.HANDLE),
+            )
+        }
+        Box(Modifier.height(Metrics.heroCardPadding))
+        Column(
+            modifier = Modifier.padding(horizontal = Metrics.gutter),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
+            Text(title, style = Typography.headlineSmall, color = TextPrimary)
+            if (caption != null) {
+                Text(caption, style = InstrumentType.caption, color = TextSecondary)
+            }
+        }
+        Column(
+            modifier = Modifier.padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
+            content = content,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

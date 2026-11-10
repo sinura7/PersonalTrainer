@@ -142,10 +142,10 @@ object Metrics {
 
     val roleTagPaddingH: Dp = 7.dp
 
-    /** Segmented control track height (segments are 35 dp drawn inside). */
-    val segmentTarget: Dp = touchMin
-
     val segmentTrackInset: Dp = 3.dp
+
+    /** Segmented control track height; insets keep each segment at [touchMin]. */
+    val segmentTarget: Dp = touchMin + segmentTrackInset * 2
 
     /** Filter chip drawn height (48 dp touch target via padding). */
     val filterChip: Dp = 32.dp

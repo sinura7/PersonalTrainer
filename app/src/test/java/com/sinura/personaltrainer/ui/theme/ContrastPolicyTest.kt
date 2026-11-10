@@ -39,6 +39,7 @@ class ContrastPolicyTest {
         assertTrue(ContrastPolicy.meetsAA(PrGold, GoldContainer))
         assertTrue(ContrastPolicy.meetsAA(Volt, VoltContainer))
         assertTrue(ContrastPolicy.meetsAA(Pit, Volt))
+        assertTrue(ContrastPolicy.meetsAA(PitOnVoltSubtle, Volt))
         assertTrue(ContrastPolicy.meetsAA(Warn, Surface2))
         assertTrue(ContrastPolicy.meetsNonText(VoltEdge, Surface2))
     }

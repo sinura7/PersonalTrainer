@@ -26,8 +26,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -38,7 +38,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.Gym
 import com.sinura.personaltrainer.domain.GymCopy
 import com.sinura.personaltrainer.domain.GymFilter
@@ -62,6 +61,13 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+private const val REFRESH_GYM_PLATES = "refresh-gym-plates"
+
+private fun refreshGymPlateTag(gymId: String) = "refresh-gym-plate-$gymId"
+private fun refreshGymRowTag(gymId: String) = "refresh-gym-row-$gymId"
+private fun refreshGymFilterTag(key: String) = "refresh-gym-filter-$key"
+private const val REFRESH_GYM_TAG_PREFIX = "refresh-kit-gym-tag"
 
 enum class GymBadgeSize(val box: Dp, val radius: Dp, val textStyle: TextStyle) {
     Large(Metrics.space8, Radius.sm, InstrumentType.title),
@@ -126,9 +132,9 @@ fun GymTag(
     unassigned: Boolean = gym == null,
 ) {
     val tagId = when {
-        unassigned -> GymTags.TAG_UNASSIGNED
-        gym != null -> GymTags.tag(gym.id)
-        else -> GymTags.TAG_UNASSIGNED
+        unassigned -> "$REFRESH_GYM_TAG_PREFIX-unassigned"
+        gym != null -> "$REFRESH_GYM_TAG_PREFIX-${gym.id}"
+        else -> "$REFRESH_GYM_TAG_PREFIX-unassigned"
     }
     val short = when {
         unassigned -> "Unassigned"
@@ -169,7 +175,7 @@ fun GymTag(
 
 data class GymPlateRowState(
     val gyms: List<Gym>,
-    val visits: Map<String, GymVisit>,
+    val visits: Map<String?, GymVisit>,
     val selectedId: String?,
     val onPick: (String) -> Unit,
     val hintBeforePick: String,
@@ -184,7 +190,7 @@ fun GymPlateRow(
 ) {
     val density = LocalDensity.current
     val fontScale = density.fontScale
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val screenWidth = with(density) { LocalWindowInfo.current.containerSize.width.toDp() }
     val plateWidth = (screenWidth - Metrics.gutter * 2 - Metrics.gymPlateGap * 4) / 5
     val useList = state.gyms.size >= 10 ||
         fontScale >= 1.3f ||
@@ -194,7 +200,7 @@ fun GymPlateRow(
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         if (useList) {
-            GymPickerList(
+            PlateListFallback(
                 gyms = state.gyms,
                 visits = state.visits,
                 selectedId = state.selectedId,
@@ -206,7 +212,7 @@ fun GymPlateRow(
             val plateModifier = Modifier
                 .fillMaxWidth()
                 .selectableGroup()
-                .testTag(GymTags.PLATES)
+                .testTag(REFRESH_GYM_PLATES)
             if (active.size <= 5) {
                 Row(
                     modifier = plateModifier,
@@ -226,7 +232,7 @@ fun GymPlateRow(
                     }
                 }
             } else {
-                val plateWidth = (screenWidth - Metrics.gutter * 2 - Metrics.gymPlateGap * 2) / 3
+                val columnPlateWidth = (screenWidth - Metrics.gutter * 2 - Metrics.gymPlateGap * 2) / 3
                 @OptIn(ExperimentalLayoutApi::class)
                 FlowRow(
                     modifier = plateModifier,
@@ -242,7 +248,7 @@ fun GymPlateRow(
                             enabled = state.enabled,
                             position = index + 1,
                             total = active.size,
-                            modifier = Modifier.width(plateWidth),
+                            modifier = Modifier.width(columnPlateWidth),
                             onPick = { state.onPick(gym.id) },
                         )
                     }
@@ -298,7 +304,7 @@ private fun GymPlate(
                 role = Role.RadioButton,
                 onClick = onPick,
             )
-            .testTag(GymTags.plate(gym.id))
+            .testTag(refreshGymPlateTag(gym.id))
             .semantics {
                 contentDescription = spoken
                 this.selected = selected
@@ -350,101 +356,42 @@ private fun GymPlate(
     }
 }
 
-private val LAST_HERE: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH)
-
-private fun gymLastHere(lastAtMs: Long?): String =
-    if (lastAtMs == null) "Not yet"
-    else LAST_HERE.format(Instant.ofEpochMilli(lastAtMs).atZone(ZoneId.systemDefault()))
-
 @Composable
-fun GymPickerList(
+private fun PlateListFallback(
     gyms: List<Gym>,
-    visits: Map<String, GymVisit>,
+    visits: Map<String?, GymVisit>,
     selectedId: String?,
     onPick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    loading: Boolean = false,
-    error: String? = null,
-    onRetry: (() -> Unit)? = null,
-    includeUnassigned: Boolean = false,
-    pendingId: String? = null,
-    enabled: Boolean = true,
+    enabled: Boolean,
 ) {
-    when {
-        loading -> ScreenSkeleton(modifier = modifier, cards = 5)
-        error != null -> Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            Text(error, style = InstrumentType.body, color = TextSecondary)
-            if (onRetry != null) {
-                GhostButton(label = "Retry", onClick = onRetry, modifier = Modifier.testTag(GymTags.PICKER_RETRY))
-            }
-        }
-        else -> GroupedList(modifier = modifier) {
-            gyms.forEachIndexed { index, gym ->
-                val visit = visits[gym.id]
-                val selected = gym.id == selectedId
-                val rowEnabled = enabled && (pendingId == null || pendingId == gym.id)
-                GymPickerRow(
-                    gym = gym,
-                    caption = gymLastHere(visit?.lastAtMs),
-                    selected = selected,
-                    enabled = rowEnabled,
-                    pending = pendingId == gym.id,
-                    onClick = { if (rowEnabled) onPick(gym.id) },
-                )
-                if (index < gyms.lastIndex || includeUnassigned) HairlineDivider()
-            }
-            if (includeUnassigned) {
-                GymPickerRow(
-                    gym = null,
-                    caption = "Sessions with no gym",
-                    selected = selectedId == null && includeUnassigned,
-                    enabled = enabled,
-                    pending = false,
-                    onClick = { onPick(GymTags.UNASSIGNED_PICK) },
-                    unassigned = true,
-                )
-            }
+    GroupedList {
+        gyms.forEachIndexed { index, gym ->
+            val selected = gym.id == selectedId
+            InstrumentRow(
+                title = gym.name,
+                subtitle = gymLastHere(visits[gym.id]?.lastAtMs),
+                selected = selected,
+                onClick = { if (enabled) onPick(gym.id) },
+                enabled = enabled,
+                modifier = Modifier
+                    .testTag(refreshGymRowTag(gym.id))
+                    .semantics { this.selected = selected },
+                leading = {
+                    GymBadge(
+                        badge = gym.badge,
+                        size = GymBadgeSize.Large,
+                        visual = when {
+                            selected -> GymBadgeVisual.Selected
+                            gym.archived -> GymBadgeVisual.Archived
+                            else -> GymBadgeVisual.Normal
+                        },
+                    )
+                },
+                trailing = { RadioDot(selected = selected, pending = false) },
+            )
+            if (index < gyms.lastIndex) HairlineDivider()
         }
     }
-}
-
-@Composable
-private fun GymPickerRow(
-    gym: Gym?,
-    caption: String,
-    selected: Boolean,
-    enabled: Boolean,
-    pending: Boolean,
-    onClick: () -> Unit,
-    unassigned: Boolean = false,
-) {
-    val id = gym?.id ?: "unassigned"
-    val title = gym?.name ?: "Unassigned"
-    InstrumentRow(
-        title = title,
-        subtitle = caption,
-        selected = selected,
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier
-            .testTag(if (unassigned) GymTags.ROW_UNASSIGNED else GymTags.row(id))
-            .semantics { this.selected = selected },
-        leading = {
-            GymBadge(
-                badge = gym?.badge ?: GymCopy.UNASSIGNED_TAG,
-                size = GymBadgeSize.Large,
-                visual = when {
-                    unassigned -> GymBadgeVisual.Unassigned
-                    selected -> GymBadgeVisual.Selected
-                    gym?.archived == true -> GymBadgeVisual.Archived
-                    else -> GymBadgeVisual.Normal
-                },
-                testId = gym?.let { GymTags.badge(it.id) },
-            )
-        },
-        trailing = { RadioDot(selected = selected, pending = pending) },
-    )
 }
 
 @Composable
@@ -453,7 +400,7 @@ private fun RadioDot(selected: Boolean, pending: Boolean) {
     Box(
         modifier = Modifier
             .size(Metrics.icon)
-            .border(Metrics.emphasisBorder, ring, RoundedCornerShape(Metrics.icon / 2)),
+            .border(Metrics.emphasisBorder, ring, Radius.full),
         contentAlignment = Alignment.Center,
     ) {
         when {
@@ -484,16 +431,16 @@ fun GymFilterRow(
             .padding(vertical = Metrics.space1),
         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        FilterChip("All gyms", selected is GymFilter.All, GymTags.filter("all")) {
+        FilterChip("All gyms", selected is GymFilter.All, refreshGymFilterTag("all")) {
             onSelect(GymFilter.All)
         }
         gyms.filterNot { it.archived }.forEach { gym ->
-            FilterChip(gym.shortName, selected == GymFilter.One(gym.id), GymTags.filter(gym.id)) {
+            FilterChip(gym.shortName, selected == GymFilter.One(gym.id), refreshGymFilterTag(gym.id)) {
                 onSelect(GymFilter.One(gym.id))
             }
         }
         if (showUnassigned) {
-            FilterChip("Unassigned", selected is GymFilter.Unassigned, GymTags.filter("unassigned")) {
+            FilterChip("Unassigned", selected is GymFilter.Unassigned, refreshGymFilterTag("unassigned")) {
                 onSelect(GymFilter.Unassigned)
             }
         }
@@ -523,3 +470,10 @@ private fun RowScope.FilterChip(label: String, selected: Boolean, tag: String, o
         Text(label, style = InstrumentType.bodyStrong, color = textColor, maxLines = 1)
     }
 }
+
+private val LAST_HERE: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH)
+
+private fun gymLastHere(lastAtMs: Long?): String =
+    if (lastAtMs == null) "Not yet"
+    else LAST_HERE.format(Instant.ofEpochMilli(lastAtMs).atZone(ZoneId.systemDefault()))

@@ -56,7 +56,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.theme.BorderSurfaceScope
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.SectionEdge
-import com.sinura.personaltrainer.ui.theme.warnBorderedSurfaceNesting
+import com.sinura.personaltrainer.ui.theme.WarnBorderedSurfaceNesting
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -167,7 +167,7 @@ fun Panel(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    warnBorderedSurfaceNesting("Panel")
+    WarnBorderedSurfaceNesting("Panel")
     val shape = RoundedCornerShape(Radius.lg)
     val border = when (emphasis) {
         PanelEmphasis.None -> BorderStroke(Metrics.hairline, OutlineSolidVariant)
@@ -221,7 +221,7 @@ fun GymCard(
     enabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    warnBorderedSurfaceNesting("GymCard")
+    WarnBorderedSurfaceNesting("GymCard")
     val shape = RoundedCornerShape(Radius.md)
     val border = BorderStroke(Metrics.hairline, SectionEdge)
     BorderSurfaceScope {
@@ -324,7 +324,7 @@ fun GroupedList(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    warnBorderedSurfaceNesting("GroupedList")
+    WarnBorderedSurfaceNesting("GroupedList")
     BorderSurfaceScope {
         Column(
             modifier = modifier

@@ -1,8 +1,10 @@
 package com.sinura.personaltrainer.ui.theme
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RefreshTokenTest {
@@ -16,16 +18,20 @@ class RefreshTokenTest {
 
     @Test
     fun refreshColourTokensMatchBlueprint() {
-        assertEquals(androidx.compose.ui.graphics.Color(0x61C2FF44), VoltEdge)
-        assertEquals(androidx.compose.ui.graphics.Color(0x1AC2FF44), VoltGlowCenter)
-        assertEquals(androidx.compose.ui.graphics.Color(0x9E000000), Scrim)
+        assertEquals(Color(0x61C2FF44), VoltEdge)
+        assertEquals(Color(0x1AC2FF44), VoltGlowCenter)
+        assertEquals(Color(0x9E000000), Scrim)
         assertEquals(TextPrimary, RoleMainInk)
         assertEquals(RestCyan, RoleWarmupInk)
+        assertEquals(Color(0xFFC2FF44), Volt)
+        assertTrue(ContrastPolicy.meetsAA(PitOnVoltSubtle, Volt))
     }
 
     @Test
     fun refreshMetricsMatchBlueprintAndRestBarUnchanged() {
+        assertEquals(48.dp, Metrics.touchMin)
         assertEquals(56.dp, Metrics.restBar)
+        assertEquals(72.dp, Metrics.commit)
         assertEquals(3.dp, Metrics.restBarAccent)
         assertEquals(18.dp, Metrics.heroCardPadding)
         assertEquals(44.dp, Metrics.gymPlateBadge)

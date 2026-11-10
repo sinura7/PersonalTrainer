@@ -29,9 +29,11 @@ import com.sinura.personaltrainer.ui.components.GymFilterRow
 import com.sinura.personaltrainer.ui.components.GymPlateRow
 import com.sinura.personaltrainer.ui.components.GymPlateRowState
 import com.sinura.personaltrainer.ui.components.GymTag
+import com.sinura.personaltrainer.ui.components.InstrumentSheetGalleryChrome
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryButton
+import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RoleTag
 import com.sinura.personaltrainer.ui.components.RoleTagKind
 import com.sinura.personaltrainer.ui.components.SecondaryButton
@@ -39,6 +41,7 @@ import com.sinura.personaltrainer.ui.components.SegmentOption
 import com.sinura.personaltrainer.ui.components.SegmentedControl
 import com.sinura.personaltrainer.ui.components.StatStrip
 import com.sinura.personaltrainer.ui.components.StatStripCell
+import com.sinura.personaltrainer.ui.components.SupportingLineStyle
 import com.sinura.personaltrainer.ui.components.TextAction
 import com.sinura.personaltrainer.ui.start.StartTile
 import com.sinura.personaltrainer.ui.start.StartTileKind
@@ -68,7 +71,7 @@ fun RefreshKitGalleryLargeTextPreview() {
 fun RefreshKitGallery(modifier: Modifier = Modifier) {
     var period by rememberSaveable { mutableStateOf("week") }
     var gymFilter by remember { mutableStateOf<GymFilter>(GymFilter.One("weston")) }
-  var selectedGym by rememberSaveable { mutableStateOf<String?>("weston") }
+    var selectedGym by rememberSaveable { mutableStateOf<String?>("weston") }
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
@@ -85,14 +88,15 @@ fun RefreshKitGallery(modifier: Modifier = Modifier) {
                 state = ActionState.Enabled,
             )
             SecondaryButton(label = "Secondary", onClick = {})
-            PrimaryButton(
-                label = "Disabled",
-                subLabel = "says why",
+            PrimaryGymButton(
+                text = "Disabled",
+                supporting = "says why",
+                enabled = false,
                 onClick = {},
-                state = ActionState.Disabled,
+                supportingLineStyle = SupportingLineStyle.RefreshReason,
             )
             GhostButton(label = "Ghost", onClick = {})
-            TextAction(label = "Text action", onClick = {}, accent = true)
+            TextAction(label = "Text action", onClick = {}, accent = true, testTag = "refresh-text-action")
         }
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             Kicker("Gym plate row")
@@ -154,6 +158,12 @@ fun RefreshKitGallery(modifier: Modifier = Modifier) {
             onClick = {},
             testTag = "start-tile-routine",
         )
+        InstrumentSheetGalleryChrome(
+            title = "Start",
+            caption = "Pick your gym, then go",
+        ) {
+            Text("Sheet body", style = InstrumentType.body, color = TextSecondary)
+        }
         PinnedDock(
             volt = {
                 PrimaryButton(label = "Start Push day", onClick = {}, tone = ActionTone.Act)

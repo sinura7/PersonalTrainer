@@ -50,6 +50,35 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 
+/** How the second line under a primary commit is drawn. */
+enum class SupportingLineStyle {
+    /** Trunk behaviour: [InstrumentType.bodyStrong], same ink as the main label when disabled. */
+    Default,
+    /** Refresh kit (A3): [InstrumentType.caption]; disabled reason in [TextTertiary]. */
+    RefreshReason,
+}
+
+internal fun primarySupportingInk(
+    enabled: Boolean,
+    contentColor: Color,
+    style: SupportingLineStyle,
+): Color = when (style) {
+    SupportingLineStyle.Default ->
+        if (enabled) contentColor else TextDisabled
+    SupportingLineStyle.RefreshReason ->
+        when {
+            !enabled -> TextTertiary
+            contentColor == Pit -> PitOnVoltSubtle
+            else -> contentColor
+        }
+}
+
+internal fun primarySupportingType(style: SupportingLineStyle): TextStyle =
+    when (style) {
+        SupportingLineStyle.Default -> InstrumentType.bodyStrong
+        SupportingLineStyle.RefreshReason -> InstrumentType.caption
+    }
+
 /**
  * The one loud control on a screen.
  *
@@ -75,6 +104,7 @@ fun PrimaryGymButton(
     textStyle: TextStyle = InstrumentType.title,
     containerColor: Color = Volt,
     contentColor: Color = Pit,
+    supportingLineStyle: SupportingLineStyle = SupportingLineStyle.Default,
 ) {
     val view = LocalView.current
     val interactions = interactionSource ?: remember { MutableInteractionSource() }
@@ -122,12 +152,8 @@ fun PrimaryGymButton(
                 )
                 Text(
                     supporting,
-                    style = InstrumentType.caption,
-                    color = when {
-                        !enabled -> TextTertiary
-                        contentColor == Pit -> PitOnVoltSubtle
-                        else -> contentColor
-                    },
+                    style = primarySupportingType(supportingLineStyle),
+                    color = primarySupportingInk(enabled, contentColor, supportingLineStyle),
                     textAlign = TextAlign.Center,
                     // Capped, so a long payload (the next lift's name) never grows the commit
                     // into the floor; the whole string stays in semantics.
@@ -215,6 +241,7 @@ fun PrimaryButton(
     subLabel: String? = null,
     tone: ActionTone = ActionTone.Act,
     state: ActionState = ActionState.Enabled,
+    supportingLineStyle: SupportingLineStyle = SupportingLineStyle.Default,
 ) {
     val enabled = state == ActionState.Enabled || state == ActionState.Error
     val (containerFill, labelInk) = when (tone) {
@@ -231,6 +258,7 @@ fun PrimaryButton(
         textStyle = InstrumentType.commit,
         containerColor = containerFill,
         contentColor = labelInk,
+        supportingLineStyle = supportingLineStyle,
     )
 }
 
