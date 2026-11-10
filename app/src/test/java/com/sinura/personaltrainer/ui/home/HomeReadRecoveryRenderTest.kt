@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.home
 
 import com.sinura.personaltrainer.ui.plan.PickerHeaderTags
 import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
 import android.database.sqlite.SQLiteFullException
@@ -431,6 +432,8 @@ class HomeReadRecoveryRenderTest {
         await(HomeReadState.CURRENT)
         scrollTo(HomeTags.START).performClick()
         compose.onNodeWithTag(StartTags.START_TITLE).assertIsDisplayed()
+        StartChooserTestKit.pickWestonIfShown(compose)
+        StartChooserTestKit.waitForRoutineEnabled(compose, routineId)
         val oldRoutine = compose.onNodeWithTag(StartTags.routine(routineId))
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         val before = inventory()
@@ -441,7 +444,8 @@ class HomeReadRecoveryRenderTest {
         assertEquals(before, inventory())
         proveRecovery("routine-page-stale")
         retry()
-        compose.onNodeWithTag(StartTags.routine(routineId)).assertIsEnabled()
+        StartChooserTestKit.pickWestonIfShown(compose)
+        StartChooserTestKit.waitForRoutineEnabled(compose, routineId)
         reachable(compose.onNodeWithTag(StartTags.START_OTHER)).performClick()
         compose.onNodeWithTag(StartTags.LIVE_CARDIO).performClick()
         val oldCardio = compose.onNodeWithTag(CardioPickTags.card(CardioType.WALK))

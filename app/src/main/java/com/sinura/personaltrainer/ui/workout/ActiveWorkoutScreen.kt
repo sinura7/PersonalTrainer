@@ -290,9 +290,11 @@ private fun ActiveWorkoutContent(
     val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
     val showGymMovePicker by viewModel.showGymMovePicker.collectAsStateWithLifecycle()
     val gymMovePrompt by viewModel.gymMovePrompt.collectAsStateWithLifecycle()
-    val app = LocalContext.current.applicationContext as PersonalTrainerApp
-    val gyms by app.container.gymRepository.observeActiveGyms().collectAsStateWithLifecycle(initialValue = emptyList())
-    val gymVisits by app.container.gymRepository.observeVisits().collectAsStateWithLifecycle(initialValue = emptyMap())
+    val gymRepo = (LocalContext.current.applicationContext as? PersonalTrainerApp)?.container?.gymRepository
+    val gyms by (gymRepo?.observeActiveGyms() ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val gymVisits by (gymRepo?.observeVisits() ?: kotlinx.coroutines.flow.flowOf(emptyMap()))
+        .collectAsStateWithLifecycle(initialValue = emptyMap())
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmEntryDiscard by rememberSaveable { mutableStateOf(false) }

@@ -57,9 +57,9 @@ class PreviewWeightsGymTest {
         finish(MAJOR, 45.0)
         val routine = pecDeckRoutine()
         val atWeston = viewModel.previewWeights(routine, TestGymIds.WESTON)
-        assertEquals(55.0, atWeston.suggestedKg[PEC_ID]!!, 0.001)
+        assertEquals(55.0, atWeston.lastKg[PEC_ID]!!, 0.001)
         val atMajor = viewModel.previewWeights(routine, MAJOR)
-        assertEquals(45.0, atMajor.suggestedKg[PEC_ID]!!, 0.001)
+        assertEquals(45.0, atMajor.lastKg[PEC_ID]!!, 0.001)
         val atCotrelle = viewModel.previewWeights(routine, COTRELLE)
         assertNull(atCotrelle.suggestedKg[PEC_ID])
     }

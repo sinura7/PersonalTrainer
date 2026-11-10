@@ -126,9 +126,12 @@ fun StartChooser(
     var previewRoutineId by rememberSaveable { mutableStateOf<String?>(null) }
     var previewGymId by rememberSaveable { mutableStateOf<String?>(null) }
     val chooserGymId by gate.chooserGymId.collectAsStateWithLifecycle()
-    val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as com.sinura.personaltrainer.PersonalTrainerApp
-    val gyms by app.container.gymRepository.observeActiveGyms().collectAsStateWithLifecycle(initialValue = emptyList())
-    val gymVisits by app.container.gymRepository.observeVisits().collectAsStateWithLifecycle(initialValue = emptyMap())
+    val gymRepo = (androidx.compose.ui.platform.LocalContext.current.applicationContext as? com.sinura.personaltrainer.PersonalTrainerApp)
+        ?.container?.gymRepository
+    val gyms by (gymRepo?.observeActiveGyms() ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val gymVisits by (gymRepo?.observeVisits() ?: kotlinx.coroutines.flow.flowOf(emptyMap()))
+        .collectAsStateWithLifecycle(initialValue = emptyMap())
     LaunchedEffect(Unit) { gate.onChooserOpened() }
     LaunchedEffect(previewRoutineId) { previewGymId = null }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }

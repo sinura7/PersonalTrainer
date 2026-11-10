@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.ui.test.onFirst
 import com.sinura.personaltrainer.ui.start.HomeWithStartChooser
+import com.sinura.personaltrainer.ui.start.StartChooserTestKit
 import com.sinura.personaltrainer.ui.start.StartTags
 import android.app.Application
 import android.database.sqlite.SQLiteFullException
@@ -877,7 +878,8 @@ class HomeStartAdmissionRenderTest {
         boardNode(HomeTags.START).performClick()
         // Blueprint 3.1: routines sit on the chooser itself, no routine page to open.
         reachable(compose.onNodeWithTag(StartTags.START_TITLE)).assertIsDisplayed()
-        reachable(compose.onNodeWithTag(StartTags.routine(routineId))).assertIsEnabled()
+        StartChooserTestKit.pickWestonIfShown(compose)
+        StartChooserTestKit.waitForRoutineEnabled(compose, routineId)
     }
 
     private fun selectDay(day: Long) {
