@@ -136,7 +136,7 @@ class QuietCompletionReadinessRenderTest {
         if (withNextLift) {
             compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed().assertIsEnabled().performClick()
             compose.onNodeWithTag(WorkoutTestTags.LIFT_TRANSITION).assertIsDisplayed()
-            compose.onNodeWithTag(WorkoutTestTags.BETWEEN_START).assertIsDisplayed().performClick()
+            compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed().performClick()
             compose.awaitThat("only the explicit Start next tap changes lifts", vm.uiState::value) {
                 vm.uiState.value.selectedExerciseId == FLOOR_NEXT_LIFT_ID && FLOOR_LIFT_READY(vm.uiState.value)
             }

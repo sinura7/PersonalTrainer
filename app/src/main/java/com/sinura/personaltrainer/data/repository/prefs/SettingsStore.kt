@@ -167,6 +167,7 @@ internal val BLOCK_WEEKS = intPreferencesKey("block_weeks")
 internal val PAST_BLOCKS = stringPreferencesKey("past_blocks")
 
 internal val DISMISSED_COLLISIONS = stringSetPreferencesKey("library_collision_dismissed_ids")
+internal val PLAN_CREDIT_KEPT_SEPARATE = stringSetPreferencesKey("plan_credit_kept_separate_session_ids")
 internal val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
 
 /** The setup visit that already tapped Use this plan. A second tap of that visit writes nothing. */

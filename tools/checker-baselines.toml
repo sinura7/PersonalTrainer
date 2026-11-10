@@ -19,7 +19,10 @@ required_args_lambda = 46
 # Measured with complete source, preserving and tightening the existing skip ceiling.
 # G2 coach key: one more combine lambda declined exhaustive indexing.
 # Refresh V1: RoleTagKind and StartTileKind when blocks in kit.
-when_exhaustive = 53
+# Refresh V1 review: SupportingLineStyle when in GymButtons.
+# F1 round 2 merge: two additional indexed when blocks (kit + plan credit UI).
+# G2 merge: coach-key when blocks on branch.
+when_exhaustive = 55
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
 # (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site

@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
 import com.sinura.personaltrainer.domain.EndWorkoutCopy
+import com.sinura.personaltrainer.workout.PlanCreditOnFinish
 import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.logging.AppLog
@@ -254,7 +255,16 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
         when (outcome) {
             is CompleteTrainingOutcome.Written -> {
                 if (!activity) {
+                    val bound = PendingOccurrence.followedBy(container, outcome.id)
                     PendingOccurrence.complete(container, outcome.id)
+                    container.workoutRepository.getSession(outcome.id)?.let { finished ->
+                        PlanCreditOnFinish.afterFinish(
+                            deps = container,
+                            session = finished,
+                            boundOccurrenceId = bound,
+                            todayEpochDay = todayEpochDay(),
+                        )
+                    }
                     _finishedNavigation.value = outcome.id
                 } else {
                     _finishedActivityNavigation.value = outcome.id

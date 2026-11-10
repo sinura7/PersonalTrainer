@@ -65,6 +65,7 @@ data class BodyTrends(
     val recordsRead: CardRead = CardRead.LOADING,
     val weeklySets: List<MuscleWeeks> = emptyList(),
     val volumeRead: CardRead = CardRead.LOADING,
+    val weekActivity: com.sinura.personaltrainer.domain.BodyWeekActivity = com.sinura.personaltrainer.domain.BodyWeekActivity(),
     /** Monday of the oldest of the [WEEKS] ISO weeks shown. */
     val firstWeekStartEpochDay: Long = 0L,
 )
@@ -130,6 +131,8 @@ object BodyTrendTags {
     const val RECORDS = "body-trend-records"
     const val ALL_RECORDS = "body-trend-all-records"
     const val VOLUME = "body-trend-volume"
+    const val CARDIO_WEEK = "body-trend-cardio-week"
+    const val WARMUP_WEEK = "body-trend-warmup-week"
     const val LOG_WEIGHT = "body-trend-log-weight"
     fun failed(card: String) = "$card-failed"
     fun stale(card: String) = "$card-stale"
@@ -280,6 +283,7 @@ internal fun WeeklyVolumeCard(
     weeks: List<MuscleWeeks>,
     modifier: Modifier = Modifier,
     read: CardRead = CardRead.OK,
+    weekActivity: com.sinura.personaltrainer.domain.BodyWeekActivity = com.sinura.personaltrainer.domain.BodyWeekActivity(),
     onRetry: () -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth().testTag(BodyTrendTags.VOLUME), verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
@@ -305,6 +309,40 @@ internal fun WeeklyVolumeCard(
                     HeatBars(row.sets, peak)
                     Text(row.thisWeek.toString(), style = InstrumentType.bodyStrong, color = TextPrimary)
                 }
+            }
+            if (weekActivity.cardioSessions > 0 || weekActivity.cardioMinutes > 0) {
+                HairlineDivider()
+                Text(
+                    stringResource(R.string.body_cardio_week),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(horizontal = Metrics.space3, vertical = Metrics.space2),
+                )
+                Text(
+                    com.sinura.personaltrainer.domain.BodyWeekActivityCopy.cardioLine(
+                        weekActivity.cardioSessions,
+                        weekActivity.cardioMinutes,
+                        weekActivity.cardioDistanceMeters,
+                    ),
+                    style = InstrumentType.body,
+                    color = TextPrimary,
+                    modifier = Modifier.padding(horizontal = Metrics.space3).testTag(BodyTrendTags.CARDIO_WEEK),
+                )
+            }
+            if (weekActivity.warmUpStretchMinutes > 0) {
+                HairlineDivider()
+                Text(
+                    stringResource(R.string.body_warmup_week),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(horizontal = Metrics.space3, vertical = Metrics.space2),
+                )
+                Text(
+                    com.sinura.personaltrainer.domain.BodyWeekActivityCopy.warmupLine(weekActivity.warmUpStretchMinutes),
+                    style = InstrumentType.body,
+                    color = TextPrimary,
+                    modifier = Modifier.padding(horizontal = Metrics.space3).testTag(BodyTrendTags.WARMUP_WEEK),
+                )
             }
         }
     }

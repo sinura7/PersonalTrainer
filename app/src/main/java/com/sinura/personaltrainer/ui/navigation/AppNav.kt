@@ -888,6 +888,11 @@ fun PersonalTrainerNav(
                                     .getOrNull()?.savedStateHandle?.set(PLAN_FOCUS_DAY, day)
                             }
                         },
+                        onStartToday = { start ->
+                            if (startGate.startToday(start)) {
+                                navController.popBackStack(Route.Home.path, inclusive = false)
+                            }
+                        },
                     )
                 }
                 composable(

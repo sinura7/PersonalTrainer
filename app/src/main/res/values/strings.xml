@@ -76,7 +76,7 @@
     <string name="between_volume">%1$s kg</string>
     <string name="between_pr">PR %1$s</string>
     <string name="between_up_next">Up next · %1$d of %2$d</string>
-    <string name="between_start">Start %1$s</string>
+    <string name="between_start" tools:ignore="UnusedResources">Start %1$s</string>
     <string name="between_other">Choose a different lift</string>
     <string name="between_first_time">First time, start light</string>
     <string name="finish_title">Finish workout?</string>
@@ -102,6 +102,16 @@
     <string name="summary_up_next_tomorrow">Up next: tomorrow, %1$s</string>
     <string name="summary_up_next_next_week">Up next: %1$s next week, %2$s</string>
     <string name="summary_up_next_none">Up next: plan your week</string>
+    <string name="summary_warmup_next_today">Next: %1$s today</string>
+    <string name="summary_finished_early">Finished early</string>
+    <plurals name="summary_auxiliary_holds">
+        <item quantity="one">%d hold</item>
+        <item quantity="other">%d holds</item>
+    </plurals>
+    <string name="summary_plan_credit_undo">Undo plan credit</string>
+    <string name="cardio_type_chip">%1$s · %2$s</string>
+    <string name="body_cardio_week">Cardio this week</string>
+    <string name="body_warmup_week">Warm-up and stretch</string>
     <plurals name="preview_subtitle">
         <item quantity="one">%1$d lift · about %2$d min</item>
         <item quantity="other">%1$d lifts · about %2$d min</item>

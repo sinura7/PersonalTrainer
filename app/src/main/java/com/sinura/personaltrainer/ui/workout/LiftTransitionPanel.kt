@@ -19,7 +19,6 @@ import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.GhostButton
 import com.sinura.personaltrainer.ui.components.PanelEmphasis
-import com.sinura.personaltrainer.ui.components.PrimaryButton
 import com.sinura.personaltrainer.ui.components.RestRing
 import com.sinura.personaltrainer.ui.components.RingSize
 import com.sinura.personaltrainer.ui.components.UpNextCard
@@ -48,7 +47,6 @@ internal fun LiftTransitionPanel(
     restTotalSeconds: Int,
     restRunning: Boolean,
     restCompleted: Boolean,
-    onStartNext: () -> Unit,
     onChooseOther: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -108,7 +106,7 @@ internal fun LiftTransitionPanel(
             showEdit = false,
             reason = stringResource(R.string.between_first_time).takeIf { nextFirstTimeCaption },
             modifier = Modifier.fillMaxWidth(),
-            emphasis = PanelEmphasis.Emphasis,
+            emphasis = PanelEmphasis.None,
         )
         if (restRunning || restCompleted) {
             Column(
@@ -130,13 +128,6 @@ internal fun LiftTransitionPanel(
                 )
             }
         }
-        PrimaryButton(
-            label = stringResource(R.string.between_start, nextLiftName),
-            onClick = onStartNext,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(WorkoutTestTags.BETWEEN_START),
-        )
         GhostButton(
             label = stringResource(R.string.between_other),
             onClick = onChooseOther,

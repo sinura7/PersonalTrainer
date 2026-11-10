@@ -214,35 +214,45 @@ fun LiveCardioScreen(
             }
             Text(CardioCopy.CLOCK_CAPTION, style = InstrumentType.caption, color = TextSecondary)
             state.error?.let { GymErrorBanner(it, onDismiss = viewModel::dismissError) }
-            Kicker(CardioCopy.TYPE)
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
-                CardioType.entries.forEach { option ->
+            var typePickerOpen by rememberSaveable { mutableStateOf(false) }
+            val venue = if (state.indoor) CardioCopy.INDOOR else CardioCopy.OUTDOOR
+            InstrumentChip(
+                label = stringResource(R.string.cardio_type_chip, CardioCopy.name(state.type), venue),
+                selected = typePickerOpen,
+                onClick = { typePickerOpen = !typePickerOpen },
+                modifier = Modifier.testTag(CardioTags.TYPE_CHIP),
+            )
+            if (typePickerOpen) {
+                Kicker(CardioCopy.TYPE)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    CardioType.entries.forEach { option ->
+                        InstrumentChip(
+                            label = CardioCopy.name(option),
+                            selected = option == state.type,
+                            onClick = { viewModel.setType(option) },
+                        )
+                    }
+                }
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
                     InstrumentChip(
-                        label = CardioCopy.name(option),
-                        selected = option == state.type,
-                        onClick = { viewModel.setType(option) },
+                        label = CardioCopy.INDOOR,
+                        selected = state.indoor,
+                        onClick = { viewModel.setIndoor(true) },
+                    )
+                    InstrumentChip(
+                        label = CardioCopy.OUTDOOR,
+                        selected = !state.indoor,
+                        onClick = { viewModel.setIndoor(false) },
                     )
                 }
-            }
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
-                InstrumentChip(
-                    label = CardioCopy.INDOOR,
-                    selected = state.indoor,
-                    onClick = { viewModel.setIndoor(true) },
-                )
-                InstrumentChip(
-                    label = CardioCopy.OUTDOOR,
-                    selected = !state.indoor,
-                    onClick = { viewModel.setIndoor(false) },
-                )
             }
             // The complaint under the box, as a slot: same shape as NumberEntryDialog's suffix.
             val distanceComplaint: (@Composable () -> Unit)? = state.distanceError?.let { message ->
@@ -360,6 +370,7 @@ object CardioFinishGate {
 }
 
 object CardioTags {
+    const val TYPE_CHIP = "live-cardio-type-chip"
     const val ELAPSED = "live-cardio-elapsed"
     const val FINISH = "live-cardio-finish"
     const val LEAVE = "live-cardio-leave"

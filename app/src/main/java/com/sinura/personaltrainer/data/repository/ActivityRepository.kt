@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.draft.CompletedNoteRecord
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.WorkingSetCountRow
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.data.mapper.toExerciseSetEntry
@@ -171,6 +172,9 @@ class ActivityRepository(
 
     fun observeCompletedGraphsSince(minPerformedAtMs: Long): Flow<List<ActivitySession>> =
         observeCompletedGraphsSinceHealth(minPerformedAtMs).presentValues()
+
+    suspend fun workingSetCountsSince(sinceMs: Long): List<WorkingSetCountRow> =
+        dao.workingSetCountsSince(sinceMs)
 
     suspend fun onLocalDate(localEpochDay: Long): List<ActivitySession> =
         dao.graphsOnLocalDate(localEpochDay).map { it.toDomain() }

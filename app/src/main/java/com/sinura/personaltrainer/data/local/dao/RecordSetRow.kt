@@ -18,6 +18,8 @@ data class RecordSetRow(
     val loadType: String?,
     val equipment: String? = null,
     val sessionGymId: String? = null,
+    val sessionRoutineId: String? = null,
+    val sessionRoutineName: String? = null,
     val weightKg: Double,
     val reps: Int,
     val completedAt: Long,

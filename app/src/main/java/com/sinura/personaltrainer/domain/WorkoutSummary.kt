@@ -28,6 +28,9 @@ data class WorkoutSummary(
     /** Heaviest-worked lift first: the session's own headline, not the order it was logged in. */
     val highlights: List<SessionHighlight> = emptyList(),
     val notes: String = "",
+    /** Non-zero for Extra warm-up sessions: hold sets logged, not kg volume. */
+    val auxiliaryHoldSets: Int = 0,
+    val isAuxiliaryPack: Boolean = false,
 ) {
     val recordCount: Int get() = highlights.sumOf { it.records.size }
     val hasWork: Boolean get() = workingSets > 0
@@ -119,7 +122,11 @@ object WorkoutSummaryBuilder {
     fun build(
         session: WorkoutSession,
         priorByExercise: Map<String, List<ExerciseSetRecord>>,
+        routine: Routine? = null,
     ): WorkoutSummary {
+        if (AuxiliarySessions.isAuxiliarySession(session, routine)) {
+            return buildAuxiliary(session)
+        }
         val working = session.sets.filterNot { it.isWarmup }
             .sortedWith(compareBy<SetLog> { it.completedAt }.thenBy { it.id })
         val highlights = working
@@ -188,6 +195,27 @@ object WorkoutSummaryBuilder {
             seen += candidate
         }
         return broken
+    }
+
+    private fun buildAuxiliary(session: WorkoutSession): WorkoutSummary {
+        val holdSets = session.sets.count { set ->
+            !set.isWarmup && (set.durationSeconds ?: 0) > 0
+        }
+        val working = session.sets.count { !it.isWarmup }
+        return WorkoutSummary(
+            sessionId = session.id,
+            title = session.routineName?.takeIf { it.isNotBlank() } ?: "Warm-up",
+            performedAtMs = listOf(session.date, session.finishedAt ?: 0L, session.startedAt)
+                .firstOrNull { it > 0L } ?: 0L,
+            durationMinutes = session.durationMinutes,
+            workingSets = working,
+            volumeKg = 0.0,
+            bodyweightReps = 0,
+            highlights = emptyList(),
+            notes = session.notes,
+            auxiliaryHoldSets = holdSets,
+            isAuxiliaryPack = true,
+        )
     }
 
     private fun topSetOf(records: List<ExerciseSetRecord>, loadClass: LoadClass): ExerciseSetRecord? {

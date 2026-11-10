@@ -670,6 +670,8 @@ class UxWalkthroughTest {
             compose.onAllNodesWithTag(CardioTags.ELAPSED).fetchSemanticsNodes().isNotEmpty()
         }
         shot("cardio-live")
+        compose.onNodeWithTag(CardioTags.TYPE_CHIP).performClick()
+        shot("cardio-type-chips")
         dismissSoftKeyboard()
         // A24: Finish opens once the clock passes one minute.
         harnessWaitUntil(120_000) {

@@ -202,6 +202,10 @@ class PreferencesRepository(
         reminders.setDayAlarm(weekday, hour, minute)
     suspend fun clearDayAlarm(weekday: Weekday) = reminders.clearDayAlarm(weekday)
     suspend fun setPendingOccurrenceId(id: String?) = reminders.setPendingOccurrenceId(id)
+    suspend fun setPlanCreditKeptSeparate(sessionId: String, kept: Boolean) =
+        reminders.setPlanCreditKeptSeparate(sessionId, kept)
+    suspend fun isPlanCreditKeptSeparate(sessionId: String): Boolean =
+        reminders.isPlanCreditKeptSeparate(sessionId)
     suspend fun setLaunchPermissionsAsked(asked: Boolean) =
         reminders.setLaunchPermissionsAsked(asked)
 
