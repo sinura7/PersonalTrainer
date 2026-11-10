@@ -77,6 +77,8 @@ jobs:
       - name: Unit tests
         # Static gate already ran in the step above; skip the Gradle copy so this step fits the suite.
         timeout-minutes: 35
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx5g -XX:MaxMetaspaceSize=1024m -Dorg.gradle.workers.max=2
         run: sh tools/hang-watchdog.sh ./gradlew -PskipStaticChecks testDebugUnitTest --stacktrace
 
       # Blocking: the stated precondition for that (a known-clean lint state) has
