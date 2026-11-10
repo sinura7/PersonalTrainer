@@ -29,7 +29,7 @@ jobs:
   verify:
     name: Tests, lint, debug build
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
 
     steps:
       - name: Check out
@@ -75,9 +75,9 @@ jobs:
       # is a *step* timeout on purpose: it fails the step and leaves the job alive to
       # run the uploads below.
       - name: Unit tests
-        # PR branches use read-only Gradle cache; full suite + staticChecks can exceed 25m on cold runs.
-        timeout-minutes: 32
-        run: sh tools/hang-watchdog.sh ./gradlew testDebugUnitTest --stacktrace
+        # Static gate already ran in the step above; skip the Gradle copy so this step fits the suite.
+        timeout-minutes: 35
+        run: sh tools/hang-watchdog.sh ./gradlew -PskipStaticChecks testDebugUnitTest --stacktrace
 
       # Blocking: the stated precondition for that (a known-clean lint state) has
       # been met for a while — lint-baseline.xml is committed and EMPTY, and
