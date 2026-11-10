@@ -70,4 +70,10 @@ object DateCopy {
     } else {
         "${civilDate(range.startEpochDay)} – ${civilDate(range.endEpochDay)}"
     }
+
+    fun gymLastHere(lastAtMs: Long?, zone: ZoneId = ZoneId.systemDefault()): String {
+        if (lastAtMs == null) return "Not trained here yet"
+        val day = Instant.ofEpochMilli(lastAtMs).atZone(zone).toLocalDate()
+        return "Last here ${WEEKDAY_SHORT.format(day)}"
+    }
 }

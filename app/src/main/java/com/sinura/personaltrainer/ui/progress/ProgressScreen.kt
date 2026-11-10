@@ -55,6 +55,7 @@ import com.sinura.personaltrainer.domain.RecommendationIntents
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
+import com.sinura.personaltrainer.ui.components.GymFilterRow
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.ExerciseRow
@@ -91,6 +92,8 @@ fun ProgressScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val trends by viewModel.trends.collectAsStateWithLifecycle()
+    val gymFilter by viewModel.gymFilterState.collectAsStateWithLifecycle()
+    val activeGyms by viewModel.activeGyms.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val today = LocalTodayEpochDay.current
     LaunchedEffect(today) { viewModel.setTrendsToday(today) }
@@ -175,6 +178,18 @@ fun ProgressScreen(
             window = state.window,
             onSelectWindow = viewModel::setWindow,
             onOpenStartSheet = onOpenStartSheet,
+        )
+        GymFilterRow(
+            gyms = activeGyms,
+            selected = gymFilter,
+            onSelect = viewModel::setGymFilter,
+            modifier = Modifier.padding(horizontal = Metrics.gutter),
+        )
+        Text(
+            stringResource(R.string.gym_records_filter_caption),
+            modifier = Modifier.padding(horizontal = Metrics.gutter),
+            style = InstrumentType.caption,
+            color = TextSecondary,
         )
 
         when {
@@ -304,6 +319,7 @@ fun ProgressScreen(
                         RecordsCard(
                             records = trends.records, unit = unit, onOpenExercise = onOpenExercise,
                             read = trends.recordsRead, onRetry = viewModel::retryTrends,
+                            gyms = activeGyms,
                         )
                     }
                     item(key = "trend-volume") {

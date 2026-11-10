@@ -24,6 +24,7 @@ data class ActivitySummaryRow(
     val volumeKg: Double,
     val cardioSeconds: Long,
     val cardioDistanceMeters: Double?,
+    val gymId: String? = null,
 )
 
 /** One lift on a finished session, for History stills. Not a set row. */

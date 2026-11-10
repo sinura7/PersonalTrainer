@@ -174,6 +174,7 @@ class UxWalkthroughTest {
             "7" -> runFlow("07-body-map-measurements") { flowBodyMapAndMeasurements() }
             "8" -> runFlow("08-settings-units-backup") { flowSettingsUnitsAndBackup() }
             "9" -> runFlow("09-font-scale-live-workout") { flowLargeFontLiveWorkout() }
+            "11" -> runFlow("11-gyms-settings-history-body") { flowGymsEverywhere() }
             else -> error("Unknown uxFlow argument: $flow")
         }
         emitFlowSummary()
@@ -190,6 +191,7 @@ class UxWalkthroughTest {
         runFlow("07-body-map-measurements") { flowBodyMapAndMeasurements() }
         runFlow("08-settings-units-backup") { flowSettingsUnitsAndBackup() }
         runFlow("09-font-scale-live-workout") { flowLargeFontLiveWorkout() }
+        runFlow("11-gyms-settings-history-body") { flowGymsEverywhere() }
         shot("99-complete")
         val failed = flowOutcomes.filterValues { it.startsWith("FAIL") }
         if (failed.isNotEmpty()) {
@@ -825,6 +827,28 @@ class UxWalkthroughTest {
         }
         shot("settings-backup-view")
         pressBackToSettingsHome()
+    }
+
+    private fun flowGymsEverywhere() {
+        preparePopulatedApp()
+        goToTab("settings")
+        openSettingsRow(SettingsHomeCopy.GYMS)
+        harnessWaitUntil(15_000) {
+            compose.onAllNodesWithTag(com.sinura.personaltrainer.ui.components.GymSettingsTags.SETTINGS_SECTION)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("settings-gyms")
+        pressBackToSettingsHome()
+        goToTab("history")
+        harnessWaitUntil(15_000) {
+            compose.onAllNodesWithTag(HistoryTags.LIST).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("history-gym-tags")
+        goToTab("progress")
+        harnessWaitUntil(15_000) {
+            compose.onAllNodesWithTag(BodyTrendTags.RECORDS).fetchSemanticsNodes().isNotEmpty()
+        }
+        shot("body-filter-weston")
     }
 
     private fun flowLargeFontLiveWorkout() {

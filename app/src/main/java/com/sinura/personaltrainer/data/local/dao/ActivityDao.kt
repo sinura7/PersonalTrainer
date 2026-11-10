@@ -65,7 +65,8 @@ interface ActivityDao {
                (
                    SELECT SUM(b.distanceMeters) FROM activity_blocks b
                    WHERE b.sessionId = s.id AND b.kind = 'CARDIO'
-               ) AS cardioDistanceMeters
+               ) AS cardioDistanceMeters,
+               s.gymId AS gymId
         FROM activity_sessions s
         WHERE s.status = 'COMPLETED'
         ORDER BY s.performedStartInstantMs DESC

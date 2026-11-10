@@ -6,6 +6,7 @@ import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.LoadType
 
 /** Raw fields remain distinct from normalized, immutable business intent. */
@@ -16,6 +17,7 @@ internal data class CustomLiftDraft(
     val muscle: String,
     val notes: String,
     val loadType: LoadType,
+    val equipment: EquipmentType? = null,
     val before: CustomLiftRecord?,
 ) {
     override fun toString(): String = "CustomLiftDraft(redacted)"
@@ -39,6 +41,7 @@ internal object CustomLiftCodec : DraftCodec<CustomLiftDraft, CustomLiftCommand>
         addProperty("muscle", value.muscle)
         addProperty("notes", value.notes)
         addProperty("loadType", value.loadType.name)
+        add("equipment", value.equipment?.name?.let { com.google.gson.JsonPrimitive(it) } ?: JsonNull.INSTANCE)
         add("before", value.before?.let(::encodeRecord) ?: JsonNull.INSTANCE)
     }
 
@@ -48,6 +51,7 @@ internal object CustomLiftCodec : DraftCodec<CustomLiftDraft, CustomLiftCommand>
             createId = item.text("createId"), editId = item.nullableText("editId"),
             name = item.text("name"), muscle = item.text("muscle"), notes = item.text("notes"),
             loadType = LoadType.valueOf(item.text("loadType")),
+            equipment = item.get("equipment").takeUnless { it.isJsonNull }?.asString?.let(EquipmentType::valueOf),
             before = item.get("before").takeUnless { it.isJsonNull }?.let(::decodeRecord),
         )
         require(draft.createId.startsWith("ex-custom-"))

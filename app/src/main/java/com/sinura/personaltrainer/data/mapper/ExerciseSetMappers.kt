@@ -18,4 +18,5 @@ fun ExerciseSetRow.toExerciseSetEntry(kind: HistoryKind): ExerciseSetEntry = Exe
     sessionPerformedAtMs = sessionDate,
     kind = kind,
     sessionLocalEpochDay = sessionLocalEpochDay,
+    sessionGymId = sessionGymId,
 )

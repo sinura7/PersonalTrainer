@@ -28,6 +28,7 @@ data class ExerciseSessionSummary(
     val sets: List<ExerciseSetRecord>,
     val kind: HistoryKind = HistoryKind.WORKOUT,
     val localEpochDay: Long? = null,
+    val gymId: String? = null,
 ) {
     /**
      * The two numbers as one value, so the screen renders whichever this lift is measured in
@@ -83,6 +84,7 @@ data class ExerciseSetEntry(
     val sessionPerformedAtMs: Long,
     val kind: HistoryKind = HistoryKind.WORKOUT,
     val sessionLocalEpochDay: Long? = null,
+    val sessionGymId: String? = null,
 )
 
 /**
@@ -226,6 +228,7 @@ object ExerciseHistoryBuilder {
             sets = records,
             kind = group.first().kind,
             localEpochDay = group.first().sessionLocalEpochDay,
+            gymId = group.first().sessionGymId,
         )
     }
 

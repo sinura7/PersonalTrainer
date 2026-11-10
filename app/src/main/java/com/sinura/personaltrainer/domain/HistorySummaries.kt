@@ -15,6 +15,8 @@ data class PrSummaryRow(
     val valueKg: Double,
     val reps: Int,
     val achievedAt: Long,
+    val recordBucket: String? = null,
+    val gymId: String? = null,
 )
 
 /**

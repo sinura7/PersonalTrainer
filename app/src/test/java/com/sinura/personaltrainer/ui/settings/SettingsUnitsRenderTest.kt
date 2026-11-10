@@ -102,6 +102,7 @@ class SettingsUnitsRenderTest {
         compose.setContent {
             PersonalTrainerTheme {
                 SettingsHome(
+                    gymsSummary = "5 gyms · each start asks which",
                     displaySummary = "lb · mi · Regular",
                     remindersSummary = SettingsHomeCopy.OFF,
                     generatorSummary = "3 days",
@@ -124,6 +125,7 @@ class SettingsUnitsRenderTest {
         compose.setContent {
             PersonalTrainerTheme {
                 SettingsHome(
+                    gymsSummary = "5 gyms · each start asks which",
                     displaySummary = "lb · mi · Regular",
                     remindersSummary = SettingsHomeCopy.OFF,
                     generatorSummary = "3 days",

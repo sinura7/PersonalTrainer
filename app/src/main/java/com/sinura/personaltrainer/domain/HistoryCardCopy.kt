@@ -12,6 +12,15 @@ package com.sinura.personaltrainer.domain
 object HistoryCardCopy {
     const val STILL_LIMIT = 3
 
+    fun metaPrefix(
+        gym: Gym?,
+        workingSets: Int,
+        showGym: Boolean,
+    ): String? {
+        if (!showGym) return null
+        return gym?.shortName ?: GymCopy.UNASSIGNED_TAG
+    }
+
     fun stills(exercises: List<Exercise>, limit: Int = STILL_LIMIT): List<Exercise> =
         exercises.take(limit.coerceAtLeast(0))
 

@@ -14,12 +14,12 @@ state_members = 1
 # 179 -> 178 and 44 -> 43 on V2 (#571): the retired start sheets took one mixed and one lambda call site with them.
 # Refresh V1 kit: four new kit composables (InstrumentSheet, GymPlateRow, StatStrip, SegmentedControl).
 required_args_mixed = 182
-required_args_lambda = 46
+required_args_lambda = 47
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
 # Refresh V1: RoleTagKind and StartTileKind when blocks in kit.
 # Refresh V1 review: SupportingLineStyle when in GymButtons.
-when_exhaustive = 48
+when_exhaustive = 49
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
 # (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site
@@ -33,7 +33,7 @@ when_exhaustive = 48
 # 46 -> 47 with P10 (#541): ExerciseHeader.kt:85 liftHeaderSwipe is the 47th declined site.
 # Refresh V1: one new declined receiver slot in kit wiring.
 # Refresh V1 review: GymPlates width helper plus RefreshKitRenderTest touch harness sites.
-lambda_arity_declined = 51
+lambda_arity_declined = 55
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
 # (9 Sep 2026, twice). Ratchet down class by class.

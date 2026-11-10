@@ -194,6 +194,22 @@ internal class LiftEditorRecovery(
     private fun uncertain() { mutableStatus.value = LiftEditorStatus(LiftEditorPhase.UNCERTAIN, "Save not confirmed. Check what saved before trying again.") }
     private fun conflict() { mutableStatus.value = LiftEditorStatus(LiftEditorPhase.CONFLICT, "This lift or draft changed. Your fields are retained; review the current lift before saving.") }
     private fun checkpointFailed() { mutableStatus.value = LiftEditorStatus(LiftEditorPhase.CHECKPOINT_FAILED, "Draft not confirmed on this device. Check again before closing.") }
-    private fun CustomLiftDraft.toEditor(): ExerciseEditorDraft = ExerciseEditorDraft(id = editId, name = name, muscleGroup = muscle, notes = notes, loadType = loadType)
-    private fun ExerciseEditorDraft.toStored(current: CustomLiftHandle): CustomLiftDraft = current.authored.copy(name = name, muscle = muscleGroup, notes = notes, loadType = loadType)
+    private fun CustomLiftDraft.toEditor(): ExerciseEditorDraft = ExerciseEditorDraft(
+        id = editId,
+        name = name,
+        muscleGroup = muscle,
+        notes = notes,
+        loadType = loadType,
+        equipment = equipment
+            ?: before?.row?.equipment?.let(com.sinura.personaltrainer.domain.EquipmentType::fromStorage)
+            ?: loadType.defaultEquipment,
+    )
+    private fun ExerciseEditorDraft.toStored(current: CustomLiftHandle): CustomLiftDraft =
+        current.authored.copy(
+            name = name,
+            muscle = muscleGroup,
+            notes = notes,
+            loadType = loadType,
+            equipment = equipment,
+        )
 }

@@ -10,10 +10,14 @@ import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseFloorStats
 import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
+import com.sinura.personaltrainer.data.repository.GymFilters
 import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.ExerciseHistory
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
 import com.sinura.personaltrainer.domain.ExerciseSetEntry
+import com.sinura.personaltrainer.domain.Gym
+import com.sinura.personaltrainer.domain.GymFilter
+import com.sinura.personaltrainer.domain.GymScope
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.Routine
@@ -24,6 +28,7 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -57,6 +62,8 @@ data class ExerciseDetailUiState(
      * cannot be read: the card is optional, and never holds the screen.
      */
     val sessionInProgress: SessionInProgressStats? = null,
+    /** Machine/cable lifts keep separate history per gym; free weights hide the filter. */
+    val gymScoped: Boolean = false,
 )
 
 /** The floor's own stats for this lift, and the unit they were worded in. */
@@ -93,8 +100,32 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
     private val resolved = MutableStateFlow(exerciseId.isBlank())
 
     private val notice = MutableStateFlow<String?>(null)
+    private val gymFilter = MutableStateFlow<GymFilter>(GymFilter.All)
+    val gymFilterState: StateFlow<GymFilter> = gymFilter.asStateFlow()
+    val activeGyms: StateFlow<List<Gym>> = container.gymRepository.observeActiveGyms()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun setGymFilter(filter: GymFilter) {
+        gymFilter.value = filter
+    }
 
     private data class RoutinesAndNotice(val routines: List<Routine>, val notice: String?)
+
+    init {
+        viewModelScope.launch {
+            val (_, entries) = combine(
+                container.exerciseRepository.observeById(exerciseId),
+                container.completedTrainingRepository.observeExerciseSets(exerciseId),
+            ) { exercise, rows -> exercise to rows }
+                .first { (exercise, rows) ->
+                    exercise != null && rows.isNotEmpty() &&
+                        GymScope.isGymSpecific(exercise.equipment)
+                }
+            entries.maxByOrNull { it.sessionPerformedAtMs }?.sessionGymId?.let { gymId ->
+                gymFilter.value = GymFilter.One(gymId)
+            }
+        }
+    }
 
     fun dismissNotice() {
         notice.value = null
@@ -197,21 +228,25 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
         },
         container.preferencesRepository.schedulePreferences,
         resolved,
-        combine(container.routineRepository.observeAll(), notice) { routines, message ->
+        combine(container.routineRepository.observeAll(), notice, gymFilter) { routines, message, filter ->
             // A named pair rather than `to`: five heterogeneous flows is where combine's type
             // inference starts needing help, and a destructured Pair in the outer lambda is
             // exactly the shape that trips it.
-            RoutinesAndNotice(routines, message)
+            RoutinesAndNotice(routines, message) to filter
         },
-    ) { exercise, setsAndLive, preferences, isResolved, extras ->
+    ) { exercise, setsAndLive, preferences, isResolved, extrasAndFilter ->
         val entries = setsAndLive.entries
+        val extras = extrasAndFilter.first
+        val filter = extrasAndFilter.second
+        val gymScoped = exercise?.let { GymScope.isGymSpecific(it.equipment) } == true
+        val scopedEntries = GymFilters.exerciseEntries(entries, exercise?.equipment, filter)
         ExerciseDetailUiState(
             isLoading = !isResolved,
             missing = isResolved && exercise == null,
             exercise = exercise,
             history = ExerciseHistoryBuilder.fromEntries(
                 exerciseId = exerciseId,
-                entries = entries,
+                entries = scopedEntries,
                 // From the library row, which this screen already has: a push-up's history is
                 // counted in reps and a bench press's in kilograms.
                 loadClass = LoadClass.of(exercise?.loadType),
@@ -227,7 +262,8 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
                 )
             },
             notice = extras.notice,
-            sessionInProgress = sessionInProgress(setsAndLive.live, entries),
+            sessionInProgress = sessionInProgress(setsAndLive.live, scopedEntries),
+            gymScoped = gymScoped,
         )
     }
         // Bucketing a lift's whole history is real work and does not belong on the main thread,

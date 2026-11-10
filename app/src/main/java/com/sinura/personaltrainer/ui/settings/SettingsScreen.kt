@@ -22,7 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.res.stringResource
 import com.sinura.personaltrainer.BuildConfig
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.diagnostics.DiagnosticMetadata
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.domain.ClockFormat
@@ -60,6 +62,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val prefs by viewModel.uiState.collectAsStateWithLifecycle()
+    val gymCount by viewModel.activeGymCount.collectAsStateWithLifecycle(initialValue = 0)
     val backup by viewModel.backup.uiState.collectAsStateWithLifecycle()
     val account by viewModel.account.uiState.collectAsStateWithLifecycle()
     val savePosture by viewModel.savePostureState.collectAsStateWithLifecycle()
@@ -213,6 +216,7 @@ fun SettingsScreen(
                         )
                     }
                     SettingsHome(
+                        gymsSummary = stringResource(R.string.gym_settings_subtitle, gymCount),
                         displaySummary = SettingsHomeCopy.displaySummary(
                             unit = selectedUnit,
                             clock = clockFormat,
@@ -250,6 +254,12 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                     )
                 }
+            }
+            SettingsPage.GYMS -> SettingsSubpage(
+                title = stringResource(R.string.gym_settings_title),
+                onBack = goHome,
+            ) {
+                GymsSection()
             }
             SettingsPage.DISPLAY -> SettingsSubpage(
                 title = SettingsHomeCopy.DISPLAY,
@@ -647,6 +657,7 @@ object SettingsTags {
     const val SHOW_BACKUP_PASSWORD = "settings-show-backup-password"
     const val PLAY_COMPLETE_CUE = "settings-play-complete-cue"
     const val HOME = "settings-home"
+    const val ROW_GYMS = "settings-row-gyms"
     const val ROW_DISPLAY = "settings-row-display"
     const val ROW_REMINDERS = "settings-row-reminders"
     const val ROW_GENERATOR = "settings-row-generator"

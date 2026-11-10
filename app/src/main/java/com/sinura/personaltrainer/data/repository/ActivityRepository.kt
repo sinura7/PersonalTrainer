@@ -413,6 +413,10 @@ class ActivityRepository(
     suspend fun templates(): List<ActivityTemplate> =
         dao.getAllTemplateGraphs().map { it.toDomain() }
 
+    suspend fun moveSessionToGym(sessionId: String, gymId: String?) {
+        dao.setSessionGym(sessionId, gymId)
+    }
+
     private companion object {
         const val TAG = "PT/ActivityRepository"
 

@@ -30,7 +30,9 @@ import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.MuscleNormalizer
+import com.sinura.personaltrainer.domain.Gym
 import com.sinura.personaltrainer.domain.PrSummaryRow
+import com.sinura.personaltrainer.ui.components.GymTag
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -227,6 +229,7 @@ internal fun RecordsCard(
     modifier: Modifier = Modifier,
     read: CardRead = CardRead.OK,
     onRetry: () -> Unit = {},
+    gyms: List<Gym> = emptyList(),
 ) {
     var all by rememberSaveable { mutableStateOf(false) }
     val clock = LocalClockFormat.current
@@ -249,6 +252,9 @@ internal fun RecordsCard(
                         .testTag(BodyTrendTags.record(record.exerciseId)),
                 ) {
                     Text(record.exerciseName, style = InstrumentType.bodyStrong, color = TextPrimary)
+                    record.gymId?.let { gymId ->
+                        gyms.firstOrNull { it.id == gymId }?.let { gym -> GymTag(gym = gym) }
+                    }
                     Text(recordLine(record, unit, DateCopy.dateTime(record.achievedAt, clock)),
                         style = InstrumentType.caption, color = TextSecondary)
                 }

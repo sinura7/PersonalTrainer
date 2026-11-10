@@ -154,6 +154,7 @@ class ExerciseRepository(
         muscleGroup: String,
         notes: String = "",
         loadType: LoadType = LoadType.EXTERNAL,
+        equipment: EquipmentType = loadType.defaultEquipment,
     ): SaveExerciseResult {
         val trimmedName = name.trim()
         val nameKey = MuscleNormalizer.nameKeyOf(trimmedName)
@@ -170,7 +171,7 @@ class ExerciseRepository(
                 muscleGroup = group,
                 notes = notes.trim(),
                 isCustom = true,
-                equipment = loadType.defaultEquipment,
+                equipment = loadType.kitFor(equipment),
                 loadType = loadType,
                 muscles = MuscleNormalizer.deriveCredits(group),
             )
@@ -189,6 +190,7 @@ class ExerciseRepository(
         muscleGroup: String,
         notes: String,
         loadType: LoadType? = null,
+        equipment: EquipmentType? = null,
     ): SaveExerciseResult? {
         val trimmedName = name.trim()
         val nameKey = MuscleNormalizer.nameKeyOf(trimmedName)
@@ -200,7 +202,8 @@ class ExerciseRepository(
             }
             val group = muscleGroup.trim().ifBlank { existing.muscleGroup }
             val nextLoad = loadType ?: LoadType.fromStorage(existing.loadType)
-            val nextEquipment = nextLoad.kitFor(EquipmentType.fromStorage(existing.equipment))
+            val nextEquipment = equipment
+                ?: nextLoad.kitFor(EquipmentType.fromStorage(existing.equipment))
             val updated = existing.copy(
                 name = trimmedName,
                 muscleGroup = group,

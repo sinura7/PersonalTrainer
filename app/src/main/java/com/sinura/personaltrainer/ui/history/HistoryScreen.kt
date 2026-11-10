@@ -109,6 +109,7 @@ fun HistoryScreen(
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val gymsById by viewModel.gymsById.collectAsStateWithLifecycle()
     val unit = state.unit
     val today = LocalTodayEpochDay.current
     // Own exploration before a required-read retry can temporarily remove the calendar.
@@ -284,10 +285,15 @@ fun HistoryScreen(
                                     .testTag(HistoryTags.row(entry.kind, entry.id)),
                             ) {
                                 if (index > 0) HairlineDivider(startIndent = 0.dp)
+                                val gym = entry.gymId?.let { gymsById[it] }
+                                val showGym = entry.workingSets > 0 ||
+                                    entry.kind == com.sinura.personaltrainer.domain.HistoryKind.WORKOUT
                                 SessionLogRow(
                                     title = entry.title, dateLabel = DateCopy.civilDate(entry.localEpochDay),
                                     workingSets = entry.workingSets, work = entry.work,
                                     durationMinutes = entry.durationMinutes, stills = entry.stills,
+                                    gym = gym,
+                                    showGymTag = showGym && !(entry.workingSets == 0 && entry.kind == com.sinura.personaltrainer.domain.HistoryKind.ACTIVITY),
                                     onClick = {
                                         if (entry.kind == HistoryKind.ACTIVITY) onOpenActivity(entry.id)
                                         else onOpenSession(entry.id)

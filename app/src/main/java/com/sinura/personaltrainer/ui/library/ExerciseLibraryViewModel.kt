@@ -71,6 +71,7 @@ data class ExerciseEditorDraft(
     val muscleGroup: String = "",
     val notes: String = "",
     val loadType: LoadType = LoadType.EXTERNAL,
+    val equipment: EquipmentType = LoadType.EXTERNAL.defaultEquipment,
 )
 
 data class ExerciseLibraryUiState(
@@ -512,7 +513,16 @@ class ExerciseLibraryViewModel internal constructor(
             return
         }
         durableEditor?.let {
-            it.open(ExerciseEditorDraft(id = exercise.id, name = exercise.name, muscleGroup = exercise.muscleGroup, notes = exercise.notes, loadType = exercise.loadType))
+            it.open(
+                ExerciseEditorDraft(
+                    id = exercise.id,
+                    name = exercise.name,
+                    muscleGroup = exercise.muscleGroup,
+                    notes = exercise.notes,
+                    loadType = exercise.loadType,
+                    equipment = exercise.equipment,
+                ),
+            )
             return
         }
         editor.value = ExerciseEditorDraft(
@@ -521,6 +531,7 @@ class ExerciseLibraryViewModel internal constructor(
             muscleGroup = exercise.muscleGroup,
             notes = exercise.notes,
             loadType = exercise.loadType,
+            equipment = exercise.equipment,
         )
         error.dismiss()
     }
@@ -553,12 +564,14 @@ class ExerciseLibraryViewModel internal constructor(
         viewModelScope.launch {
             try {
                 if (refuseUnreadChanges(generation)) return@launch
+                val kit = draft.loadType.kitFor(draft.equipment)
                 val result = if (draft.id == null) {
                     container.exerciseRepository.createCustom(
                         name,
                         draft.muscleGroup,
                         draft.notes,
                         draft.loadType,
+                        equipment = kit,
                     )
                 } else {
                     container.exerciseRepository.updateCustom(
@@ -567,6 +580,7 @@ class ExerciseLibraryViewModel internal constructor(
                         muscleGroup = draft.muscleGroup,
                         notes = draft.notes,
                         loadType = draft.loadType,
+                        equipment = kit,
                     )
                 }
                 when (result) {

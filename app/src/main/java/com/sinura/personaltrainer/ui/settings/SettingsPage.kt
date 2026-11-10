@@ -6,6 +6,7 @@ package com.sinura.personaltrainer.ui.settings
  */
 enum class SettingsPage {
     HOME,
+    GYMS,
     DISPLAY,
     REMINDERS,
     GENERATOR,

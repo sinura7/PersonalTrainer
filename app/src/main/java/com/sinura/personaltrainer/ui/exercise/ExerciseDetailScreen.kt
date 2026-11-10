@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -51,7 +52,10 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.domain.supportingRecordSession
+import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.GymFilter
 import com.sinura.personaltrainer.ui.components.AddToRoutineSheet
+import com.sinura.personaltrainer.ui.components.GymFilterRow
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -61,6 +65,8 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.LabelledTrend
+import com.sinura.personaltrainer.ui.components.TrendPointShape
+import com.sinura.personaltrainer.ui.components.TrendSeries
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
@@ -106,6 +112,8 @@ fun ExerciseDetailScreen(
     viewModel: ExerciseDetailViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val gymFilter by viewModel.gymFilterState.collectAsStateWithLifecycle()
+    val activeGyms by viewModel.activeGyms.collectAsStateWithLifecycle()
     var routinePickerOpen by rememberSaveable { mutableStateOf(false) }
     val unit = LocalWeightUnit.current
     val history = state.history
@@ -134,6 +142,28 @@ fun ExerciseDetailScreen(
         estimateSessions.mapNotNull { it.estimatedOneRepMaxKg }
             .map { WeightConverter.toDisplayValue(it, unit) }
     }
+    val estimateGymSeries = remember(history.sessions, unit, gymFilter, state.gymScoped) {
+        if (!state.gymScoped || gymFilter !is GymFilter.All) {
+            null
+        } else {
+            val grouped = history.sessions
+                .filter { it.estimatedOneRepMaxKg != null }
+                .groupBy { it.gymId }
+            if (grouped.size <= 1) {
+                null
+            } else {
+                val shapes = TrendPointShape.entries
+                grouped.entries.mapIndexed { index, (_, sessions) ->
+                    val ordered = sessions.sortedBy { it.performedAtMs }
+                    TrendSeries(
+                        values = ordered.mapNotNull { it.estimatedOneRepMaxKg }
+                            .map { WeightConverter.toDisplayValue(it, unit) },
+                        pointShape = shapes[index % shapes.size],
+                    )
+                }
+            }
+        }
+    }
     // A lift measured in reps gets a rep trend. Plotting its kilograms would draw a flat line
     // along zero for someone whose pull-ups went from six to fifteen — the app charting the
     // absence of a number instead of the presence of the progress.
@@ -160,6 +190,23 @@ fun ExerciseDetailScreen(
             exercise = state.exercise,
             onBack = onBack,
         )
+        if (state.gymScoped) {
+            Column(
+                modifier = Modifier.padding(horizontal = Metrics.gutter, vertical = Metrics.space2),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                Text(
+                    stringResource(R.string.gym_equipment_per_gym_caption),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+                GymFilterRow(
+                    gyms = activeGyms,
+                    selected = gymFilter,
+                    onSelect = viewModel::setGymFilter,
+                )
+            }
+        }
 
         // Outside the branches: adding to a routine is offered from the empty state as well as
         // from the full one, and the confirmation has to land wherever it was pressed.
@@ -306,6 +353,7 @@ fun ExerciseDetailScreen(
                             grouped = false,
                             tag = ExerciseDetailTags.ESTIMATES,
                             prValue = prDisplay,
+                            lineSeries = estimateGymSeries,
                             modifier = Modifier.padding(top = SECTION_LEAD),
                         )
                     }
@@ -581,6 +629,7 @@ internal fun ExerciseTrendCard(
     modifier: Modifier = Modifier,
     prValue: Double? = null,
     currentWeek: Boolean = false,
+    lineSeries: List<TrendSeries>? = null,
 ) {
     require(values.size == epochDays.size)
     var valuesOpen by rememberSaveable { mutableStateOf(false) }
@@ -612,6 +661,7 @@ internal fun ExerciseTrendCard(
                     line = line,
                     contentDescription = trendDescription(title, values, pointNoun, measure, grouped),
                     prValue = prValue,
+                    series = if (line) lineSeries else null,
                 )
                 Text("Change from the previous recorded $pointNoun", style = InstrumentType.caption,
                     color = TextTertiary)
