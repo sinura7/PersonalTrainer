@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
@@ -38,13 +39,45 @@ import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.PitOnVoltSubtle
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
+
+/** How the second line under a primary commit is drawn. */
+enum class SupportingLineStyle {
+    /** Trunk behaviour: [InstrumentType.bodyStrong], same ink as the main label when disabled. */
+    Default,
+    /** Refresh kit (A3): [InstrumentType.caption]; disabled reason in [TextTertiary]. */
+    RefreshReason,
+}
+
+internal fun primarySupportingInk(
+    enabled: Boolean,
+    contentColor: Color,
+    style: SupportingLineStyle,
+): Color = when (style) {
+    SupportingLineStyle.Default ->
+        if (enabled) contentColor else TextDisabled
+    SupportingLineStyle.RefreshReason ->
+        when {
+            !enabled -> TextTertiary
+            contentColor == Pit -> PitOnVoltSubtle
+            else -> contentColor
+        }
+}
+
+internal fun primarySupportingType(style: SupportingLineStyle): TextStyle =
+    when (style) {
+        SupportingLineStyle.Default -> InstrumentType.bodyStrong
+        SupportingLineStyle.RefreshReason -> InstrumentType.caption
+    }
 
 /**
  * The one loud control on a screen.
@@ -71,6 +104,7 @@ fun PrimaryGymButton(
     textStyle: TextStyle = InstrumentType.title,
     containerColor: Color = Volt,
     contentColor: Color = Pit,
+    supportingLineStyle: SupportingLineStyle = SupportingLineStyle.Default,
 ) {
     val view = LocalView.current
     val interactions = interactionSource ?: remember { MutableInteractionSource() }
@@ -118,8 +152,8 @@ fun PrimaryGymButton(
                 )
                 Text(
                     supporting,
-                    style = InstrumentType.bodyStrong,
-                    color = if (enabled) contentColor else TextDisabled,
+                    style = primarySupportingType(supportingLineStyle),
+                    color = primarySupportingInk(enabled, contentColor, supportingLineStyle),
                     textAlign = TextAlign.Center,
                     // Capped, so a long payload (the next lift's name) never grows the commit
                     // into the floor; the whole string stays in semantics.
@@ -207,6 +241,7 @@ fun PrimaryButton(
     subLabel: String? = null,
     tone: ActionTone = ActionTone.Act,
     state: ActionState = ActionState.Enabled,
+    supportingLineStyle: SupportingLineStyle = SupportingLineStyle.Default,
 ) {
     val enabled = state == ActionState.Enabled || state == ActionState.Error
     val (containerFill, labelInk) = when (tone) {
@@ -223,6 +258,7 @@ fun PrimaryButton(
         textStyle = InstrumentType.commit,
         containerColor = containerFill,
         contentColor = labelInk,
+        supportingLineStyle = supportingLineStyle,
     )
 }
 
@@ -269,4 +305,31 @@ fun DestructiveButton(
         height = Metrics.rowMin,
         textStyle = InstrumentType.bodyStrong,
     )
+}
+
+/** Inline text action (Change, Undo, Why). */
+@Composable
+fun TextAction(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accent: Boolean = false,
+    subdued: Boolean = false,
+    testTag: String? = null,
+) {
+    val ink = when {
+        accent -> Volt
+        subdued -> TextSecondary
+        else -> Volt
+    }
+    androidx.compose.foundation.layout.Box(
+        modifier = modifier
+            .heightIn(min = Metrics.touchMin)
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Metrics.space2),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, style = InstrumentType.bodyStrong, color = ink, maxLines = 1)
+    }
 }

@@ -367,12 +367,15 @@ private fun RowScope.FilterChip(label: String, selected: Boolean, tag: String, o
     val textColor = if (selected) Volt else TextSecondary
     Box(
         modifier = Modifier
-            .height(Metrics.space8 - Metrics.space2)
+            .heightIn(min = Metrics.touchMin)
             .clip(shape)
             .background(fill)
             .border(Metrics.hairline, border, shape)
             .clickable(role = Role.Tab, onClick = onClick)
-            .padding(horizontal = Metrics.space3)
+            .padding(
+                horizontal = Metrics.space3,
+                vertical = (Metrics.touchMin - Metrics.filterChip) / 2,
+            )
             .testTag(tag),
         contentAlignment = Alignment.Center,
     ) {

@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.theme
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 
@@ -95,6 +97,9 @@ val TextDisabled = Color(0xFF5F6B73)
 /** The accent. Roughly 16:1 on [Pit]; ink on a volt fill is [Pit], at the same ratio. */
 val Volt = Color(0xFFC2FF44)
 
+/** Second line on a Volt primary (82% of [Pit]). */
+val PitOnVoltSubtle = Color(0xD107090B)
+
 /** Selected chips, active tracks. Volt at 14%. */
 val VoltDim = Color(0x24C2FF44)
 
@@ -122,6 +127,47 @@ val RestCyanDim = Color(0x2433D6E8)
 
 /** Rest pill and up-next accent background (R1). RestCyan on this passes AA body text. */
 val RestContainer = Color(0xFF0B2A2F)
+
+/** Today hero card border when a plan is ready. Volt at 38%. */
+val VoltEdge = Color(0x61C2FF44)
+
+/** Volt at 10% — static hero-card wash only (see [voltHeroGlowBrush]). */
+val VoltGlowCenter = Color(0x1AC2FF44)
+
+/** Static radial wash for the Today hero card (never animated). */
+fun voltHeroGlowBrush(width: Float, height: Float): Brush =
+    Brush.radialGradient(
+        colors = listOf(VoltGlowCenter, Color.Transparent),
+        center = Offset(width * 0.5f, 0f),
+        radius = width * 0.85f,
+    )
+
+/** Modal scrim behind sheets — black at 62%. */
+val Scrim = Color(0x9E000000)
+
+// ---------------------------------------------------------------------------
+// Role tag fills (aliases; hex values unchanged)
+// ---------------------------------------------------------------------------
+
+/** MAIN tag: primary text on sheet surface. */
+val RoleMainInk = TextPrimary
+val RoleMainFill = Surface3
+
+/** WARM-UP, STRETCH, REST, NEW HERE. */
+val RoleWarmupInk = RestCyan
+val RoleWarmupFill = RestContainer
+
+/** CARDIO — secondary text on sheet surface with a hairline ring at draw time. */
+val RoleCardioInk = TextSecondary
+val RoleCardioFill = Surface3
+
+/** PR tag. */
+val RoleRecordInk = PrGold
+val RoleRecordFill = GoldContainer
+
+/** TODAY, DONE, LIVE. */
+val RoleLiveInk = Volt
+val RoleLiveFill = VoltContainer
 
 // ---------------------------------------------------------------------------
 // Muscle heat

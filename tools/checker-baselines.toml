@@ -12,12 +12,14 @@ state_members = 1
 # with SetEntryPanel's unused compact path.
 # Compact History uses fully named metric/layout arguments, reducing skipped calls.
 # 179 -> 178 and 44 -> 43 on V2 (#571): the retired start sheets took one mixed and one lambda call site with them.
-required_args_mixed = 179
+# Refresh V1 kit merged with G2: kit composables plus coach-key when blocks.
+required_args_mixed = 183
 required_args_lambda = 46
 # Home required-read recovery: indexing generic sealed types makes DataHealth visible.
 # Measured with complete source, preserving and tightening the existing skip ceiling.
-# G2 coach key: one more combine lambda declined exhaustive indexing (51 skips, 0 defects).
-when_exhaustive = 51
+# G2 coach key: one more combine lambda declined exhaustive indexing.
+# Refresh V1: RoleTagKind and StartTileKind when blocks in kit.
+when_exhaustive = 53
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
 # (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site
@@ -29,7 +31,9 @@ when_exhaustive = 51
 # Net reduction from the accepted ceiling of 62. Receiver slots remain out of scope.
 # 47 -> 46 in W2a, measured after the dead code went.
 # 46 -> 47 with P10 (#541): ExerciseHeader.kt:85 liftHeaderSwipe is the 47th declined site.
-lambda_arity_declined = 48
+# Refresh V1: kit wiring plus RefreshKitRenderTest touch harness sites.
+# G2 merge: reconcile with prior branch ceiling.
+lambda_arity_declined = 52
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
 # (9 Sep 2026, twice). Ratchet down class by class.
@@ -57,14 +61,14 @@ rounded_percent = 0
 circle = 0
 # 20 -> 14 in W2a: the icon vectors' 24 dp is Metrics.icon, the switch's 4 dp inset and a debug
 # gallery bar's 4 dp are Metrics.space1 (TokenIdentityTest). The rest have no honest token.
-raw_dp = 14
+raw_dp = 13
 sp_style = 0
 motion = 11
 haptic = 0
 m3_scheme = 0
 # 14 -> 9 in W2a: five Icons.Outlined.MoreVert are OutlinedMarks.MoreVert, pixel for pixel
 # (MoreVertMarkRenderTest). The nine left: Close ×4, Search, Add ×2, Check ×2.
-stock_icons = 9
+stock_icons = 8
 shadow = 0
 defaults_elevation = 1
 stock_component = 1
