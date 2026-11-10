@@ -31,6 +31,20 @@ class ContrastPolicyTest {
     }
 
     @Test
+    fun refreshContrastPairsMeetFloors() {
+        assertTrue(ContrastPolicy.meetsAA(RestCyan, RestContainer))
+        assertTrue(ContrastPolicy.meetsAA(TextSecondary, Surface3))
+        assertTrue(ContrastPolicy.meetsAA(TextTertiary, Surface3))
+        assertTrue(ContrastPolicy.meetsAA(TextTertiary, Surface2))
+        assertTrue(ContrastPolicy.meetsAA(PrGold, GoldContainer))
+        assertTrue(ContrastPolicy.meetsAA(Volt, VoltContainer))
+        assertTrue(ContrastPolicy.meetsAA(Pit, Volt))
+        assertTrue(ContrastPolicy.meetsAA(PitOnVoltSubtle, Volt))
+        assertTrue(ContrastPolicy.meetsAA(Warn, Surface2))
+        assertTrue(ContrastPolicy.meetsNonText(VoltEdge, Surface2))
+    }
+
+    @Test
     fun disabledIsNotLoadBearingAndMaySitBelowAa() {
         assertFalse(ContrastPolicy.isLoadBearing(TextDisabled))
         assertFalse(ContrastPolicy.meetsAA(TextDisabled, Surface2))
