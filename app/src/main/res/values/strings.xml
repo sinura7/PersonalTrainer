@@ -275,6 +275,8 @@
     <string name="start_log_mixed">Mixed session</string>
     <string name="start_log_cardio">Cardio</string>
     <string name="start_log_cardio_sub">Typed time and distance.</string>
+    <string name="start_more_logging">More logging</string>
+    <string name="start_more_logging_sub">Mixed session, cardio log, and more.</string>
     <string name="start_live_cardio_kicker">Live cardio</string>
     <string name="start_live_cardio">Start cardio</string>
     <string name="start_retry">Retry</string>

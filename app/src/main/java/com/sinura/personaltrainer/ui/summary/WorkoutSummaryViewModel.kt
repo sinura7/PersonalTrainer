@@ -226,7 +226,12 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 withContext(container.computeDispatcher) {
                     WorkoutSummaryBuilder.build(session, prior)
                 }
-            }.onSuccess { summary ->
+            }.onSuccess { built ->
+                val gymShortName = session.gymId?.let { gymId ->
+                    container.gymRepository.observeActiveGyms().first()
+                        .firstOrNull { it.id == gymId }?.shortName
+                }
+                val summary = built.copy(gymShortName = gymShortName)
                 val readExercises = session.exercises.associate { it.exercise.id to it.exercise }
                 val identities = summary.highlights.associate { highlight ->
                     highlight.exerciseId to (readExercises[highlight.exerciseId] ?: Exercise(

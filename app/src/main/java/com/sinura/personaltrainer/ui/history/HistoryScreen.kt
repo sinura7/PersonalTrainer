@@ -48,6 +48,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
+import com.sinura.personaltrainer.ui.start.GymPickSheet
+import com.sinura.personaltrainer.ui.start.GymPickMode
 import com.sinura.personaltrainer.domain.CivilYearMonth
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
@@ -108,6 +110,9 @@ fun HistoryScreen(
     var resetPeriodConfirm by rememberSaveable { mutableStateOf(false) }
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
+    val repeatGymPick by viewModel.repeatGymPick.collectAsStateWithLifecycle()
+    val repeatGyms by viewModel.gymsForRepeat.collectAsStateWithLifecycle()
+    val repeatGymVisits by viewModel.gymVisitsForRepeat.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val unit = state.unit
     val today = LocalTodayEpochDay.current
@@ -332,6 +337,21 @@ fun HistoryScreen(
             items(state.pastBlocks, key = { it.block.startEpochDay }) { FinishedBlockCard(it, unit) }
         }
     }
+    GymPickSheet(
+        visible = repeatGymPick != null,
+        mode = GymPickMode.START,
+        title = stringResource(R.string.gym_pick_sheet_title),
+        caption = stringResource(R.string.gym_step_caption),
+        gyms = repeatGyms,
+        visits = repeatGymVisits,
+        selectedId = null,
+        pendingGymId = null,
+        loading = false,
+        error = null,
+        onRetry = {},
+        onPick = viewModel::fulfillRepeatGym,
+        onCancel = viewModel::dismissRepeatGymPick,
+    )
     if (blockedRepeat != null) {
         ConfirmActionDialog(
             title = "Session in progress",

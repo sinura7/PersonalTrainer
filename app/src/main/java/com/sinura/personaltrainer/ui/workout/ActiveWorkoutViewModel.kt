@@ -321,6 +321,7 @@ class ActiveWorkoutViewModel internal constructor(
             (container as? AppContainer)?.customExerciseDrafts,
             (container as? AppContainer)?.pickerSwapDrafts,
         )
+    private val savedStateHandle: SavedStateHandle = savedStateHandle
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
     private val durability = draftCache.persistence?.forEntry()
@@ -690,6 +691,8 @@ class ActiveWorkoutViewModel internal constructor(
     private val machineWeightUnset = MutableStateFlow(false)
     val gymMovePrompt = MutableStateFlow<GymMovePrompt?>(null)
     val showGymMovePicker = MutableStateFlow(false)
+    val showGymUpgrade = MutableStateFlow(false)
+    private var emptyPickerOffered = false
 
     data class GymMovePrompt(
         val targetGymId: String,
@@ -817,6 +820,15 @@ class ActiveWorkoutViewModel internal constructor(
                     if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return@collect }
                     if (read.loadState == SessionLoadState.MISSING) sessionNotes.sessionMissing()
                     val current = read.session ?: return@collect
+                    if (!current.isFinished && current.gymId == null &&
+                        savedStateHandle.get<Boolean>("gym-upgrade-deferred") != true
+                    ) {
+                        showGymUpgrade.value = true
+                    }
+                    if (!emptyPickerOffered && !current.isFinished && !current.hasLifts() && current.gymId != null) {
+                        emptyPickerOffered = true
+                        showPicker.value = true
+                    }
                     if (!clocksRestored && !current.isFinished) {
                         clocksRestored = true
                         clocks.restore(selectedExerciseId.value)
@@ -3356,6 +3368,30 @@ class ActiveWorkoutViewModel internal constructor(
 
     fun dismissGymMovePicker() {
         showGymMovePicker.value = false
+    }
+
+    fun deferGymUpgrade() {
+        showGymUpgrade.value = false
+        savedStateHandle["gym-upgrade-deferred"] = true
+    }
+
+    fun assignGymUpgrade(gymId: String) {
+        showGymUpgrade.value = false
+        savedStateHandle.remove<Boolean>("gym-upgrade-deferred")
+        viewModelScope.launch {
+            when (container.workoutRepository.moveSessionToGym(sessionId, gymId)) {
+                WorkoutRepository.MoveGymOutcome.Moved -> {
+                    prefillGeneration++
+                    selectedExerciseId.value?.let { prefill(it) }
+                    if (session.value?.hasLifts() != true && !emptyPickerOffered) {
+                        emptyPickerOffered = true
+                        showPicker.value = true
+                    }
+                }
+                is WorkoutRepository.MoveGymOutcome.Refused ->
+                    error.fail(source = ERR_LOAD, message = "Could not set the gym. Try again.")
+            }
+        }
     }
 
     fun requestGymMove(targetGymId: String) {

@@ -23,6 +23,8 @@ import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.FinishedSessionEdits
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
+import com.sinura.personaltrainer.domain.Gym
+import com.sinura.personaltrainer.domain.GymVisit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.components.NotesSaveState
@@ -246,6 +248,21 @@ class SessionDetailViewModel internal constructor(
         pending || back || target != null
     }
 
+    private val repeatGymId = MutableStateFlow<String?>(null)
+    val pickedRepeatGymId: StateFlow<String?> = repeatGymId.asStateFlow()
+    private val repeatGyms = MutableStateFlow<List<Gym>>(emptyList())
+    val gymsForRepeat: StateFlow<List<Gym>> = repeatGyms.asStateFlow()
+    private val repeatGymVisits = MutableStateFlow<Map<String?, GymVisit>>(emptyMap())
+    val gymVisitsForRepeat: StateFlow<Map<String?, GymVisit>> = repeatGymVisits.asStateFlow()
+
+    fun pickRepeatGym(gymId: String) {
+        repeatGymId.value = gymId
+    }
+
+    fun clearRepeatGymPick() {
+        repeatGymId.value = null
+    }
+
     val uiState: StateFlow<SessionDetailUiState> = combine(load, sessionNotes.text, sessionNotes.saveState, notesExiting) { load, typed, save, exiting ->
         SessionDetailUiState(
             isLoading = load.isLoading,
@@ -266,6 +283,12 @@ class SessionDetailViewModel internal constructor(
         )
 
     init {
+        viewModelScope.launch {
+            container.gymRepository.observeActiveGyms().collect { repeatGyms.value = it }
+        }
+        viewModelScope.launch {
+            container.gymRepository.observeVisits().collect { repeatGymVisits.value = it }
+        }
         finishedSetForm?.start()
         finishedSetForm?.let { form ->
             viewModelScope.launch {
@@ -818,9 +841,15 @@ class SessionDetailViewModel internal constructor(
     }
 
     private suspend fun repeatAfterNotes() {
+        val gymId = repeatGymId.value
+        if (gymId == null) {
+            errors.fail(source = ERR_REPEAT, message = getApplication<Application>().getString(R.string.gym_pick_first))
+            notesExitPending.value = false
+            return
+        }
         if (!mutating.compareAndSet(false, true)) return
         val outcome = try {
-            runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
+            runCatchingCancellable { container.workoutRepository.repeatSession(sessionId, gymId) }
         } finally {
             mutating.set(false)
         }
@@ -829,7 +858,10 @@ class SessionDetailViewModel internal constructor(
         notesExitPending.value = false
         outcome.onSuccess { result ->
             when (result) {
-                is RepeatOutcome.Started -> _navigateToSession.value = result.sessionId
+                is RepeatOutcome.Started -> {
+                    clearRepeatGymPick()
+                    _navigateToSession.value = result.sessionId
+                }
                 is RepeatOutcome.Blocked -> _blockedRepeat.value = result
                 is RepeatOutcome.Failed ->
                     errors.fail(source = ERR_REPEAT, message = result.message)

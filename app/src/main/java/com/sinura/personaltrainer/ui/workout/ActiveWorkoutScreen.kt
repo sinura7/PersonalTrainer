@@ -288,6 +288,7 @@ private fun ActiveWorkoutContent(
     val logReceipt by viewModel.logReceipt.collectAsStateWithLifecycle()
     val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
     val showGymMovePicker by viewModel.showGymMovePicker.collectAsStateWithLifecycle()
+    val showGymUpgrade by viewModel.showGymUpgrade.collectAsStateWithLifecycle()
     val gymMovePrompt by viewModel.gymMovePrompt.collectAsStateWithLifecycle()
     val gymRepo = (LocalContext.current.applicationContext as? PersonalTrainerApp)?.container?.gymRepository
     val gyms by (gymRepo?.observeActiveGyms() ?: kotlinx.coroutines.flow.flowOf(emptyList()))
@@ -1425,6 +1426,22 @@ private fun ActiveWorkoutContent(
         onRetry = {},
         onPick = viewModel::requestGymMove,
         onCancel = viewModel::dismissGymMovePicker,
+    )
+    GymPickSheet(
+        visible = showGymUpgrade,
+        mode = GymPickMode.START,
+        title = stringResource(R.string.gym_upgrade_sheet_title),
+        caption = stringResource(R.string.gym_step_caption),
+        gyms = gyms,
+        visits = gymVisits,
+        selectedId = null,
+        pendingGymId = null,
+        loading = false,
+        error = null,
+        onRetry = {},
+        onPick = viewModel::assignGymUpgrade,
+        onCancel = viewModel::deferGymUpgrade,
+        cancelLabel = stringResource(R.string.gym_upgrade_decide_later),
     )
     gymMovePrompt?.let { prompt ->
         ConfirmActionDialog(

@@ -54,7 +54,11 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.RecoverableExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
 import com.sinura.personaltrainer.ui.components.FieldComplaint
+import com.sinura.personaltrainer.ui.components.GymChip
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.GymPickerList
+import com.sinura.personaltrainer.ui.start.GymPickMode
+import com.sinura.personaltrainer.ui.start.GymPickSheet
 import com.sinura.personaltrainer.ui.components.fieldError
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
@@ -181,6 +185,15 @@ fun ActivityComposerScreen(
                     enabled = formEditable,
                     onPick = viewModel::setEpochDay,
                 )
+            }
+            if (state.needsGym) {
+                item {
+                    ComposerGymField(
+                        state = state,
+                        enabled = formEditable,
+                        onPick = viewModel::pickComposerGym,
+                    )
+                }
             }
             if (state.mode != ComposerMode.CARDIO) {
                 item { Kicker("Strength") }
@@ -656,9 +669,58 @@ private fun composerTitle(mode: ComposerMode): String = when (mode) {
 }
 
 
+@Composable
+private fun ComposerGymField(
+    state: ActivityComposerUiState,
+    enabled: Boolean,
+    onPick: (String) -> Unit,
+) {
+    var showSheet by rememberSaveable { mutableStateOf(false) }
+    val picked = state.gyms.firstOrNull { it.id == state.gymId }
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2), modifier = Modifier.testTag(ComposerTags.GYM)) {
+        Kicker(stringResource(R.string.gym_composer_field))
+        when {
+            !state.gymResolved -> GymPickerList(
+                gyms = state.gyms,
+                visits = state.gymVisits,
+                selectedId = null,
+                onPick = onPick,
+                enabled = enabled,
+                includeUnassigned = true,
+            )
+            picked != null -> GymChip(gym = picked, onClick = { if (enabled) showSheet = true })
+            else -> InstrumentRow(
+                title = stringResource(R.string.gym_composer_not_sure),
+                onClick = { if (enabled) showSheet = true },
+                enabled = enabled,
+            )
+        }
+    }
+    GymPickSheet(
+        visible = showSheet,
+        mode = GymPickMode.SELECT_ONLY,
+        title = stringResource(R.string.gym_composer_field),
+        caption = null,
+        gyms = state.gyms,
+        visits = state.gymVisits,
+        selectedId = state.gymId,
+        pendingGymId = null,
+        loading = false,
+        error = null,
+        onRetry = {},
+        includeUnassigned = true,
+        onPick = { id ->
+            showSheet = false
+            onPick(id)
+        },
+        onCancel = { showSheet = false },
+    )
+}
+
 /** 4.16: what Save will write, or why it cannot yet. */
 @Composable
 internal fun composerSaveSupport(state: ActivityComposerUiState): String {
+    if (state.needsGym && !state.gymResolved) return stringResource(R.string.gym_composer_pick_required)
     if (state.strength.isEmpty() && state.cardio.isEmpty()) return stringResource(R.string.past_save_empty)
     val lifts = state.strength.map { it.exercise.id }.distinct().size
     val sets = state.strength.size
@@ -668,6 +730,7 @@ internal fun composerSaveSupport(state: ActivityComposerUiState): String {
 }
 
 object ComposerTags {
+    const val GYM = "activity-composer-gym"
     const val WHEN = "activity-composer-when"
     const val WHEN_CONFIRM = "activity-composer-when-confirm"
     const val SAVE = "activity-composer-save"

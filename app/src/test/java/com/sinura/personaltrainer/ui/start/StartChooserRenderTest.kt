@@ -150,7 +150,10 @@ class StartChooserRenderTest {
                         onStartToday = { taps += "today" },
                         onStartRoutine = { taps += "routine:$it" },
                         onStartEmpty = { taps += "empty" },
-                        onOther = { taps += "other" },
+                        onCardio = { taps += "cardio" },
+                        onWarmup = { taps += "warmup" },
+                        onLogPast = { taps += "log-past" },
+                        onMoreLogging = { taps += "more" },
                         onOpenPlan = { taps += "plan" },
                         onOpenRoutines = { taps += "routines" },
                     )

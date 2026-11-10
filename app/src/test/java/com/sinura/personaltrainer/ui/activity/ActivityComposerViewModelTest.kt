@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.testutil.GatedPickerCreation
+import com.sinura.personaltrainer.testutil.TestGymIds
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import kotlinx.coroutines.CompletableDeferred
@@ -75,6 +76,7 @@ class ActivityComposerViewModelTest {
             assertFalse(vm.canLeave())
             withTimeout(TestWaits.FLOW_MS) { creation.entered.await() }
             vm.createExercise("Duplicate tap", "Back")
+            vm.prepareSave()
             vm.save()
             vm.discardDraft()
             assertFalse(vm.uiState.value.saving)
@@ -91,7 +93,8 @@ class ActivityComposerViewModelTest {
             }
             assertTrue(vm.canLeave())
             vm.addStrength(created, 50.0, 8)
-            vm.save()
+            vm.prepareSave()
+            vm.triggerSave()
             val id = withTimeout(TestWaits.FLOW_MS) { vm.savedId.first { it != null } }!!
             assertEquals(1, creation.inserts.get())
             assertEquals(listOf(existing.id, created.id), deps.activityRepository.get(id)!!.strengthBlocks.map { it.exerciseId })
@@ -151,7 +154,8 @@ class ActivityComposerViewModelTest {
         assertFalse(state.cardio[1].indoor)
         assertEquals(null, state.cardio[1].distanceKm)
 
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val session = deps.activityRepository.get(id)!!
         assertEquals(ActivityOrigin.BACKDATED, session.origin)
@@ -170,7 +174,8 @@ class ActivityComposerViewModelTest {
         viewModel = composer("strength")
         viewModel!!.addStrength(exercise, 100.0, 5)
         viewModel!!.setEpochDay(20_000L)
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val session = deps.activityRepository.get(id)!!
         assertEquals(ActivityOrigin.BACKDATED, session.origin)
@@ -183,7 +188,8 @@ class ActivityComposerViewModelTest {
     fun typedCardioWritesZeroStrengthRows() = runBlocking {
         viewModel = composer("cardio")
         viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val session = deps.activityRepository.get(id)!!
         assertTrue(session.isCardioOnly)
@@ -197,7 +203,8 @@ class ActivityComposerViewModelTest {
         viewModel = composer("mixed")
         viewModel!!.addStrength(exercise, 80.0, 8)
         viewModel!!.addCardio(CardioType.RIDE, 20, null, true)
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val session = deps.activityRepository.get(id)!!
         assertTrue(session.isMixed)
@@ -211,7 +218,8 @@ class ActivityComposerViewModelTest {
     fun untitledCardioUsesGymNameNotSchemaEnum() = runBlocking {
         viewModel = composer("cardio")
         viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val session = deps.activityRepository.get(id)!!
         assertEquals("Run", session.title)
@@ -250,7 +258,8 @@ class ActivityComposerViewModelTest {
         viewModel = composer("strength")
         viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
         assertFalse(viewModel!!.uiState.value.canSave)
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         assertFalse(viewModel!!.uiState.value.saving)
         assertEquals(null, viewModel!!.savedId.value)
         assertTrue(deps.activityRepository.all().isEmpty())
@@ -292,6 +301,7 @@ class ActivityComposerViewModelTest {
         viewModel = composer(handle)
         viewModel!!.setTitle("Tempo")
         viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
+        viewModel!!.prepareSave()
         viewModel!!.save()
         withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }
         viewModel!!.clearAndJoinForTest()
@@ -336,7 +346,8 @@ class ActivityComposerViewModelTest {
         val draft = SavedStateComposerDraft(handle)
         assertTrue(draft.exists())
 
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         try {
             val saving = viewModel!!.uiState.awaitFirst { it.saving }
             assertTrue(saving.saving)
@@ -373,8 +384,8 @@ class ActivityComposerViewModelTest {
         deps.pendingOccurrenceId.value = "occ-1"
         viewModel = composer("cardio")
         viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
-        viewModel!!.save()
-
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val saved = deps.activityRepository.all().single()
         assertEquals(id, saved.id)
@@ -390,6 +401,7 @@ class ActivityComposerViewModelTest {
         vm.setEpochDay(20_000L)
         vm.addStrength(exercise, 80.0, 5)
         vm.addCardio(CardioType.RIDE, 15, 3.0, false)
+        vm.prepareSave()
         val first = vm.confirmDraft()
         check(first is CompleteTrainingOutcome.Written)
         val noted = deps.activityRepository.updateCompletedNotes(first.id, "Easy on the knees", 1_700_000_000_000L)
@@ -416,12 +428,15 @@ class ActivityComposerViewModelTest {
         val exercise = seedLift()
         viewModel = composer("strength")
         viewModel!!.addStrength(exercise, 80.0, 5)
-        viewModel!!.save()
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         gate.complete(Unit)
         val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         assertEquals(listOf(id), deps.activityRepository.all().map { it.id })
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         assertEquals(listOf(id), deps.activityRepository.all().map { it.id })
     }
 
@@ -433,6 +448,7 @@ class ActivityComposerViewModelTest {
         first.setEpochDay(20_000L)
         first.addStrength(exercise, 80.0, 5)
         first.addCardio(CardioType.RIDE, 15, 3.0, false)
+        first.prepareSave()
         val written = first.confirmDraft()
         check(written is CompleteTrainingOutcome.Written)
         viewModel = composer(handle)
@@ -446,7 +462,8 @@ class ActivityComposerViewModelTest {
         assertEquals(20_000L, again.localEpochDay)
         assertTrue(again.isMixed)
         assertEquals("Easy on the knees", again.notes)
-        viewModel!!.save()
+        viewModel!!.prepareSave()
+        viewModel!!.triggerSave()
         assertEquals(1, deps.activityRepository.all().size)
     }
 
@@ -465,7 +482,8 @@ class ActivityComposerViewModelTest {
             vm.addStrength(exercise, 40.0, 5)
             vm.setEpochDay(20_000L)
             assertEquals(20_000L, vm.uiState.awaitFirst { it.epochDay == 20_000L }.epochDay)
-            vm.save()
+            vm.prepareSave()
+            vm.triggerSave()
             val id = withTimeout(TestWaits.FLOW_MS) { vm.savedId.first { it != null } }!!
             val session = deps.activityRepository.get(id)!!
             assertEquals(clock.defaultZoneId(), session.performedStart.zoneId)
@@ -480,12 +498,16 @@ class ActivityComposerViewModelTest {
         handle: SavedStateHandle,
         container: AppDependencies = deps,
         clock: TimePort = JvmTime,
-    ) = ActivityComposerViewModel(
-        application = ApplicationProvider.getApplicationContext(),
-        savedStateHandle = handle,
-        container = container,
-        clock = clock,
-    )
+    ): ActivityComposerViewModel {
+        val vm = ActivityComposerViewModel(
+            application = ApplicationProvider.getApplicationContext(),
+            savedStateHandle = handle,
+            container = container,
+            clock = clock,
+        )
+        dispatcher.scheduler.advanceUntilIdle()
+        return vm
+    }
 
     /** The activity DAO with its session insert held at a gate, so a save can be caught mid-write. */
     private class GatedInsertDao(
@@ -502,5 +524,20 @@ class ActivityComposerViewModelTest {
         val saved = deps.exerciseRepository.createCustom("Squat", "Quads")
         check(saved is com.sinura.personaltrainer.data.repository.SaveExerciseResult.Saved)
         return saved.exercise
+    }
+
+    private suspend fun ActivityComposerViewModel.prepareSave() {
+        if (uiState.value.strength.isNotEmpty()) {
+            uiState.awaitFirst { it.strength.isNotEmpty() }
+            if (!uiState.value.gymResolved) {
+                pickComposerGym(TestGymIds.WESTON)
+                uiState.awaitFirst { it.gymResolved && it.gymId == TestGymIds.WESTON }
+            }
+        }
+    }
+
+    private fun ActivityComposerViewModel.triggerSave() {
+        save()
+        dispatcher.scheduler.advanceUntilIdle()
     }
 }

@@ -28,6 +28,8 @@ data class ComposerDraftSnapshot(
     val epochDay: Long,
     val strength: List<ComposerStrengthLine>,
     val cardio: List<ComposerCardioLine>,
+    val gymId: String? = null,
+    val gymResolved: Boolean = false,
 )
 
 class SavedStateComposerDraft(private val handle: SavedStateHandle) : DraftStore<ComposerDraftSnapshot> {
@@ -44,6 +46,10 @@ class SavedStateComposerDraft(private val handle: SavedStateHandle) : DraftStore
     fun cardio(): List<ComposerCardioLine> =
         handle.get<ArrayList<Bundle>>(KEY_CARDIO)?.mapNotNull { cardioFrom(it) }.orEmpty()
 
+    fun gymId(): String? = handle.get<String>(KEY_GYM_ID)
+
+    fun gymResolved(): Boolean = handle.get<Boolean>(KEY_GYM_RESOLVED) == true
+
     override fun read(): ComposerDraftSnapshot? {
         if (!exists()) return null
         val day = epochDay() ?: return null
@@ -52,6 +58,8 @@ class SavedStateComposerDraft(private val handle: SavedStateHandle) : DraftStore
             epochDay = day,
             strength = strength(),
             cardio = cardio(),
+            gymId = gymId(),
+            gymResolved = gymResolved(),
         )
     }
 
@@ -61,6 +69,8 @@ class SavedStateComposerDraft(private val handle: SavedStateHandle) : DraftStore
             epochDay = value.epochDay,
             strength = value.strength,
             cardio = value.cardio,
+            gymId = value.gymId,
+            gymResolved = value.gymResolved,
         )
     }
 
@@ -69,11 +79,20 @@ class SavedStateComposerDraft(private val handle: SavedStateHandle) : DraftStore
         epochDay: Long,
         strength: List<ComposerStrengthLine>,
         cardio: List<ComposerCardioLine>,
+        gymId: String? = gymId(),
+        gymResolved: Boolean = gymResolved(),
     ) {
         handle[KEY_TITLE] = title
         handle[KEY_EPOCH_DAY] = epochDay
         handle[KEY_STRENGTH] = ArrayList(strength.map { bundleOf(it) })
         handle[KEY_CARDIO] = ArrayList(cardio.map { bundleOf(it) })
+        if (gymResolved) {
+            handle[KEY_GYM_RESOLVED] = true
+            if (gymId != null) handle[KEY_GYM_ID] = gymId else handle.remove<String>(KEY_GYM_ID)
+        } else {
+            handle.remove<Boolean>(KEY_GYM_RESOLVED)
+            handle.remove<String>(KEY_GYM_ID)
+        }
     }
 
     /** After an accepted save or a deliberate leave: the next composer must open clean. */
@@ -82,6 +101,8 @@ class SavedStateComposerDraft(private val handle: SavedStateHandle) : DraftStore
         handle.remove<Long>(KEY_EPOCH_DAY)
         handle.remove<ArrayList<Bundle>>(KEY_STRENGTH)
         handle.remove<ArrayList<Bundle>>(KEY_CARDIO)
+        handle.remove<String>(KEY_GYM_ID)
+        handle.remove<Boolean>(KEY_GYM_RESOLVED)
     }
 
     private fun bundleOf(line: ComposerStrengthLine): Bundle = Bundle().apply {
@@ -159,6 +180,8 @@ class SavedStateComposerDraft(private val handle: SavedStateHandle) : DraftStore
         const val KEY_EPOCH_DAY = "composer.epochDay"
         const val KEY_STRENGTH = "composer.strength"
         const val KEY_CARDIO = "composer.cardio"
+        const val KEY_GYM_ID = "composer.gymId"
+        const val KEY_GYM_RESOLVED = "composer.gymResolved"
         const val EXERCISE_ID = "exerciseId"
         const val NAME = "name"
         const val MUSCLE_GROUP = "muscleGroup"

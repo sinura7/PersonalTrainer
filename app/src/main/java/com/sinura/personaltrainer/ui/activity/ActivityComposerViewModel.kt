@@ -53,7 +53,10 @@ import com.sinura.personaltrainer.data.draft.StagedStrength
 import com.sinura.personaltrainer.ui.components.OwnedPickerRecovery
 import com.sinura.personaltrainer.ui.components.StagedFormRecovery
 import java.util.UUID
+import com.sinura.personaltrainer.domain.Gym
+import com.sinura.personaltrainer.domain.GymVisit
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.GymTags
 
 /**
  * [ErrorSlot] families: a success may clear only its own family's refusal.
@@ -90,6 +93,10 @@ data class ActivityComposerUiState(
     val strength: List<ComposerStrengthLine> = emptyList(),
     val cardio: List<ComposerCardioLine> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
+    val gyms: List<Gym> = emptyList(),
+    val gymVisits: Map<String?, GymVisit> = emptyMap(),
+    val gymId: String? = null,
+    val gymResolved: Boolean = false,
     /** Form-level outcomes: a refused or failed save. Rendered above Save. */
     val error: String? = null,
     val pickerProgress: ExercisePickerProgress = ExercisePickerProgress(),
@@ -97,11 +104,14 @@ data class ActivityComposerUiState(
     val createError: String? = null,
     val saving: Boolean = false,
 ) {
+    val needsGym: Boolean get() = strength.isNotEmpty()
+
     val canShiftLater: Boolean
         get() = ComposerCopy.canShiftLater(epochDay, todayEpochDay)
 
     val canSave: Boolean
-        get() = ComposerCopy.canSave(mode.name, strength.size, cardio.size)
+        get() = ComposerCopy.canSave(mode.name, strength.size, cardio.size) &&
+            (!needsGym || gymResolved)
 
     val isDirty: Boolean
         get() = ComposerCopy.isDirty(
@@ -148,6 +158,10 @@ class ActivityComposerViewModel internal constructor(
     private val strength = MutableStateFlow(draft.strength())
     private val cardio = MutableStateFlow(draft.cardio())
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
+    private val gyms = MutableStateFlow<List<Gym>>(emptyList())
+    private val gymVisits = MutableStateFlow<Map<String?, GymVisit>>(emptyMap())
+    private val gymId = MutableStateFlow(draft.gymId())
+    private val gymResolved = MutableStateFlow(draft.gymResolved())
 
     /** Form-level refusals — [ERR_DRAFT], [ERR_SAVE]. Rendered above Save. */
     private val pickerWrites = PickerWrites()
@@ -163,13 +177,24 @@ class ActivityComposerViewModel internal constructor(
             Quad(currentMode, name, day, lifts)
         },
         combine(
-            strength,
-            cardio,
-            error.messages,
-            saving,
-            createError.messages,
-        ) { sets, cardioLines, err, busy, createProblem ->
-            Flags(sets, cardioLines, err, busy, createProblem)
+            combine(strength, cardio, gyms, gymVisits, gymId) { sets, cardioLines, gymRows, visits, pickedGym ->
+                Quint(sets, cardioLines, gymRows, visits, pickedGym)
+            },
+            combine(gymResolved, error.messages, saving, createError.messages) { resolved, err, busy, createProblem ->
+                TailFlags(resolved, err, busy, createProblem)
+            },
+        ) { head, tail ->
+            GymFlags(
+                strength = head.sets,
+                cardio = head.cardioLines,
+                gyms = head.gymRows,
+                visits = head.visits,
+                gymId = head.pickedGym,
+                gymResolved = tail.resolved,
+                error = tail.error,
+                saving = tail.saving,
+                createError = tail.createError,
+            )
         },
     ) { quad, flags ->
         ActivityComposerUiState(
@@ -180,6 +205,10 @@ class ActivityComposerViewModel internal constructor(
             strength = flags.strength,
             cardio = flags.cardio,
             catalog = quad.catalog,
+            gyms = flags.gyms,
+            gymVisits = flags.visits,
+            gymId = flags.gymId,
+            gymResolved = flags.gymResolved,
             error = flags.error,
             createError = flags.createError,
             saving = flags.saving,
@@ -223,6 +252,12 @@ class ActivityComposerViewModel internal constructor(
     init {
         viewModelScope.launch {
             container.exerciseRepository.observeAll().collect { catalog.value = it }
+        }
+        viewModelScope.launch {
+            container.gymRepository.observeActiveGyms().collect { gyms.value = it }
+        }
+        viewModelScope.launch {
+            container.gymRepository.observeVisits().collect { gymVisits.value = it }
         }
         if (savedStateHandle.get<String>(KEY_IDENTITY) == null) {
             savedStateHandle[KEY_IDENTITY] = formIdentity
@@ -429,12 +464,28 @@ class ActivityComposerViewModel internal constructor(
         formRecovery?.changed()
     }
     private fun canEditDraft(): Boolean = !saving.value && formRecovery?.status?.value?.loading != true && formRecovery?.status?.value?.pending != true
+    fun pickComposerGym(rawId: String) {
+        if (!canEditDraft()) return
+        val resolvedId = if (rawId == GymTags.UNASSIGNED_PICK) null else rawId
+        gymId.value = resolvedId
+        gymResolved.value = true
+        rememberDraft()
+    }
+
+    internal fun resolveComposerGymForTest(rawId: String) {
+        gymId.value = rawId
+        gymResolved.value = true
+        rememberDraft()
+    }
+
     private fun rememberSavedDraft() {
         draft.write(
             title = title.value,
             epochDay = epochDay.value,
             strength = strength.value,
             cardio = cardio.value,
+            gymId = gymId.value,
+            gymResolved = gymResolved.value,
         )
     }
 
@@ -443,6 +494,7 @@ class ActivityComposerViewModel internal constructor(
         if (saving.value || pickerWrites.busy || _createdExercise.value != null) return
         if (formRecovery?.status?.value?.ready == false || pickerRecovery?.create?.status?.value?.busy == true) return
         if (!ComposerCopy.canSave(mode.value.name, strength.value.size, cardio.value.size)) return
+        if (strength.value.isNotEmpty() && !gymResolved.value) return
         saving.value = true
         viewModelScope.launch {
             if (formRecovery?.beginSubmission() == false) { saving.value = false; return@launch }
@@ -543,6 +595,8 @@ class ActivityComposerViewModel internal constructor(
             performedEnd = performed,
             occurrenceId = heldOccurrenceId,
             blocks = blocks,
+            gymId = gymId.value,
+            gymResolved = !strength.value.isNotEmpty() || gymResolved.value,
         )
         // The link is spent only by an accepted write: "Nothing to save." must
         // leave it in place so the retry still marks the Plan row DONE.
@@ -626,9 +680,28 @@ class ActivityComposerViewModel internal constructor(
         val catalog: List<Exercise>,
     )
 
-    private data class Flags(
+    private data class Quint(
+        val sets: List<ComposerStrengthLine>,
+        val cardioLines: List<ComposerCardioLine>,
+        val gymRows: List<Gym>,
+        val visits: Map<String?, GymVisit>,
+        val pickedGym: String?,
+    )
+
+    private data class TailFlags(
+        val resolved: Boolean,
+        val error: String?,
+        val saving: Boolean,
+        val createError: String?,
+    )
+
+    private data class GymFlags(
         val strength: List<ComposerStrengthLine>,
         val cardio: List<ComposerCardioLine>,
+        val gyms: List<Gym>,
+        val visits: Map<String?, GymVisit>,
+        val gymId: String?,
+        val gymResolved: Boolean,
         val error: String?,
         val saving: Boolean,
         val createError: String?,

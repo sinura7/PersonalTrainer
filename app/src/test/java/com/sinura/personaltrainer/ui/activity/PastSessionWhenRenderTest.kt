@@ -71,6 +71,7 @@ class PastSessionWhenRenderTest {
             strength = listOf(
                 ComposerStrengthLine(bench, 60.0, 8), ComposerStrengthLine(bench, 60.0, 8), ComposerStrengthLine(row, 40.0, 10),
             ),
+            gymResolved = true,
         )
         compose.setContent {
             PersonalTrainerTheme {

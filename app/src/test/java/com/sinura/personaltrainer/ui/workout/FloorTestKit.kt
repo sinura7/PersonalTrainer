@@ -388,6 +388,8 @@ internal fun ComposeContentTestRule.showWorkoutScreen(
     waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.loadState == SessionLoadState.FOUND }
     waitUntil(timeoutMillis = FLOOR_WAIT_MS) { ready(vm.uiState.value) }
     waitForIdle()
+    com.sinura.personaltrainer.testutil.GymStartTestKit.pickWestonIfShown(this)
+    waitForIdle()
 }
 
 /**

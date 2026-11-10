@@ -289,7 +289,13 @@ fun StartChooser(
                         val gym = chooserGymId
                         if (gym != null && mayStart()) gate.startFreeWorkout(gymId = gym)
                     },
-                    onOther = { if (mayOpenStart()) pageName = StartPage.OTHER_PAGE.name },
+                    onCardio = { if (mayOpenStart()) pageName = StartPage.CARDIO_PAGE.name },
+                    onWarmup = { if (mayOpenStart()) pageName = StartPage.EXTRA_PAGE.name },
+                    onLogPast = {
+                        onDismiss()
+                        onLogPast()
+                    },
+                    onMoreLogging = { if (mayOpenStart()) pageName = StartPage.OTHER_PAGE.name },
                     onOpenPlan = {
                         onDismiss()
                         onOpenPlan()
@@ -320,7 +326,7 @@ fun StartChooser(
                 )
                 StartPage.CARDIO_PAGE -> CardioPage(
                     enabled = startsEnabled,
-                    onBack = { pageName = StartPage.OTHER_PAGE.name },
+                    onBack = { pageName = StartPage.CHOOSER_PAGE.name },
                     onStartCardio = { if (mayStart()) gate.startCardio(type = it) },
                 )
                 StartPage.EXTRA_PAGE -> AuxiliaryPackList(
@@ -329,7 +335,7 @@ fun StartChooser(
                         val gym = chooserGymId ?: return@AuxiliaryPackList
                         if (mayStart()) gate.requestStart(StartCommand.Aux(packId = packId, gymId = gym))
                     },
-                    onCancel = { pageName = StartPage.OTHER_PAGE.name },
+                    onCancel = { pageName = StartPage.CHOOSER_PAGE.name },
                     suggestedKit = suggestedKit,
                     modifier = Modifier.testTag(StartTags.EXTRA_PAGE),
                     pickEnabled = startsEnabled,
@@ -458,7 +464,10 @@ internal fun MainPage(
     onStartToday: () -> Unit,
     onStartRoutine: (String) -> Unit,
     onStartEmpty: () -> Unit,
-    onOther: () -> Unit,
+    onCardio: () -> Unit,
+    onWarmup: () -> Unit,
+    onLogPast: () -> Unit,
+    onMoreLogging: () -> Unit,
     onOpenPlan: () -> Unit,
     onOpenRoutines: () -> Unit,
 ) {
@@ -532,25 +541,57 @@ internal fun MainPage(
         }
     }
     Group(kicker = stringResource(R.string.start_group_empty)) {
-        Column(Modifier.alpha(if (gymPicked) 1f else 0.38f)) {
-        SecondaryGymButton(
-            text = stringResource(R.string.start_empty),
-            onClick = onStartEmpty,
-            enabled = groupsEnabled,
-            height = Metrics.rowMin,
-            modifier = Modifier.fillMaxWidth().testTag(StartTags.START_EMPTY),
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+            Column(Modifier.alpha(if (gymPicked) 1f else 0.38f)) {
+                SecondaryGymButton(
+                    text = stringResource(R.string.start_empty),
+                    onClick = onStartEmpty,
+                    enabled = groupsEnabled,
+                    height = Metrics.rowMin,
+                    modifier = Modifier.fillMaxWidth().testTag(StartTags.START_EMPTY),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                SecondaryGymButton(
+                    text = stringResource(R.string.start_live_cardio),
+                    onClick = onCardio,
+                    enabled = enabled,
+                    height = Metrics.rowMin,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(StartTags.START_TILE_CARDIO),
+                )
+                SecondaryGymButton(
+                    text = HomeStartCopy.EXTRA,
+                    onClick = onWarmup,
+                    enabled = enabled && gymPicked,
+                    height = Metrics.rowMin,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(StartTags.START_TILE_WARMUP),
+                )
+            }
         }
     }
-    Group(kicker = stringResource(R.string.start_group_other)) {
-        GroupedList {
-            InstrumentRow(
-                title = stringResource(R.string.start_other),
-                onClick = onOther,
-                enabled = enabled,
-                modifier = Modifier.heightIn(min = Metrics.rowMin).testTag(StartTags.START_OTHER),
-            )
-        }
+    GroupedList {
+        InstrumentRow(
+            title = stringResource(R.string.start_log_past),
+            subtitle = stringResource(R.string.start_log_past_sub),
+            onClick = onLogPast,
+            enabled = enabled,
+            modifier = Modifier.testTag(StartTags.LOG_PAST),
+        )
+        HairlineDivider()
+        InstrumentRow(
+            title = stringResource(R.string.start_more_logging),
+            subtitle = stringResource(R.string.start_more_logging_sub),
+            onClick = onMoreLogging,
+            enabled = groupsEnabled,
+            modifier = Modifier.heightIn(min = Metrics.rowMin).testTag(StartTags.START_OTHER),
+        )
     }
 }
 

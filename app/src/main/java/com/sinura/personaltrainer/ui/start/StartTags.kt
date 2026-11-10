@@ -13,6 +13,8 @@ object StartTags {
     const val START_NO_ROUTINES = "start-no-routines"
     const val START_EMPTY = "start-empty"
     const val START_OTHER = "start-other"
+    const val START_TILE_CARDIO = "start-tile-cardio"
+    const val START_TILE_WARMUP = "start-tile-warmup"
     const val START_ERROR = "start-error"
     const val START_RETRY = "start-retry"
     const val START_DISCARD = "start-discard"
