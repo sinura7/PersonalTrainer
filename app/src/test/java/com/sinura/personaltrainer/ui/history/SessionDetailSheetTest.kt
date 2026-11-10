@@ -14,8 +14,13 @@ class SessionDetailSheetTest {
         val screen = readOwned("ui/history/SessionDetailScreen.kt")
         assertTrue(screen.contains("FilledLiftCard("))
         assertTrue(screen.contains("session.filledLifts()"))
-        assertFalse(screen.contains("InstrumentRow("))
+        assertTrue(screen.contains("SessionDetailTestTags.GYM_ROW"))
         assertFalse(screen.contains("private fun ExerciseBlock("))
+        val instrumentRows = screen.split("InstrumentRow(").size - 1
+        assertTrue(
+            "Gym edit uses one InstrumentRow; lift blocks stay on FilledLiftCard",
+            instrumentRows == 1,
+        )
 
         val card = readOwned("ui/history/FilledLiftCard.kt")
         assertTrue(card.contains("LiftCard("))

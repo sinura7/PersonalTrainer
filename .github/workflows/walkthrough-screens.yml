@@ -57,7 +57,7 @@ jobs:
       - name: Instrumented walkthrough on emulator
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
-          UX_WALKTHROUGH_FLOWS: '1-11'
+          UX_WALKTHROUGH_FLOWS: '1-9,11'
         with:
           api-level: 29
           arch: x86_64

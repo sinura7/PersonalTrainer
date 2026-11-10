@@ -564,13 +564,14 @@ class ExerciseLibraryViewModel internal constructor(
         viewModelScope.launch {
             try {
                 if (refuseUnreadChanges(generation)) return@launch
+                val kit = draft.loadType.kitFor(draft.equipment)
                 val result = if (draft.id == null) {
                     container.exerciseRepository.createCustom(
                         name,
                         draft.muscleGroup,
                         draft.notes,
                         draft.loadType,
-                        equipment = draft.equipment,
+                        equipment = kit,
                     )
                 } else {
                     container.exerciseRepository.updateCustom(
@@ -579,7 +580,7 @@ class ExerciseLibraryViewModel internal constructor(
                         muscleGroup = draft.muscleGroup,
                         notes = draft.notes,
                         loadType = draft.loadType,
-                        equipment = draft.equipment,
+                        equipment = kit,
                     )
                 }
                 when (result) {
