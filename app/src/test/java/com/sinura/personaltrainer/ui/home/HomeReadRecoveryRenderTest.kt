@@ -613,8 +613,8 @@ class HomeReadRecoveryRenderTest {
             compose.onNodeWithTag(WorkoutPreviewTags.BEGIN).assertDoesNotExist()
             scrollTo(HomeTags.SESSION).performClick()
             compose.settle()
-            StartChooserTestKit.pickWestonOnStrengthPreview(compose)
             compose.onNode(hasText("Lower B") and hasAnyAncestor(hasTestTag(WorkoutPreviewTags.ROOT))).assertExists()
+            StartChooserTestKit.pickWestonIfShown(compose)
             // A replaced owner's callback cannot dismiss or admit the new confirmation.
             compose.runOnUiThread { oldConfirm() }
             compose.settle()

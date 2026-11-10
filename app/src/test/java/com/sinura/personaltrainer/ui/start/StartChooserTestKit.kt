@@ -2,7 +2,9 @@ package com.sinura.personaltrainer.ui.start
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -34,6 +36,14 @@ object StartChooserTestKit {
         val gymTag = GymTags.row(TestGymIds.WESTON)
         val beginTag = WorkoutPreviewTags.BEGIN
         val chipTag = GymTags.CHIP
+        val previewRoot = WorkoutPreviewTags.ROOT
+        if (compose.onAllNodes(hasTestTag(previewRoot)).fetchSemanticsNodes().isNotEmpty() &&
+            compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes().isNotEmpty()
+        ) {
+            runCatching {
+                compose.onNode(hasTestTag(previewRoot)).performScrollToNode(hasTestTag(gymTag))
+            }
+        }
         val deadline = System.currentTimeMillis() + 30_000
         compose.waitUntil(30_000) {
             if (System.currentTimeMillis() > deadline) return@waitUntil false
@@ -43,11 +53,11 @@ object StartChooserTestKit {
             }
             when {
                 compose.onAllNodes(hasTestTag(gymTag)).fetchSemanticsNodes().isNotEmpty() -> {
-                    val roots = compose.onAllNodes(hasTestTag(WorkoutPreviewTags.ROOT)).fetchSemanticsNodes()
-                    if (roots.isNotEmpty()) {
-                        compose.onNode(hasTestTag(WorkoutPreviewTags.ROOT)).performScrollToNode(hasTestTag(gymTag))
-                    }
                     compose.onNodeWithTag(gymTag).performClick()
+                    compose.waitForIdle()
+                }
+                compose.onAllNodes(hasText("Weston", substring = true) and hasClickAction()).fetchSemanticsNodes().isNotEmpty() -> {
+                    compose.onNode(hasText("Weston", substring = true) and hasClickAction()).performClick()
                     compose.waitForIdle()
                 }
                 compose.onAllNodes(hasTestTag(chipTag)).fetchSemanticsNodes().isNotEmpty() -> {
